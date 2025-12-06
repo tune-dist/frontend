@@ -15,8 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Music, Loader2, Plus, Filter, Eye, Trash2, Send, XCircle } from 'lucide-react'
-import { getReleases, deleteRelease, submitRelease, cancelRelease, Release } from '@/lib/api/releases'
+import { Loader2, Plus, Filter, Eye, Trash2, Send, XCircle, Music } from 'lucide-react'
+import { getSubmissions, deleteSubmission, submitSubmission, cancelSubmission, Submission, SubmissionStatus } from '@/lib/api/submissions'
 
 // Animation variants
 const containerVariants = {
@@ -40,10 +40,10 @@ const itemVariants = {
   },
 }
 
-type StatusFilter = 'all' | 'draft' | 'pending_review' | 'processing' | 'distributed' | 'rejected'
+type StatusFilter = 'all' | SubmissionStatus
 
 export default function ReleasesPage() {
-  const [releases, setReleases] = useState<Release[]>([])
+  const [releases, setReleases] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -52,8 +52,9 @@ export default function ReleasesPage() {
     try {
       setLoading(true)
       const params = statusFilter !== 'all' ? { status: statusFilter } : {}
-      const response = await getReleases(params)
-      setReleases(response.data)
+      const response = await getSubmissions(params)
+      console.log(response)
+      setReleases(response.submissions)
     } catch (error) {
       toast.error('Failed to fetch releases')
       console.error(error)
@@ -68,7 +69,7 @@ export default function ReleasesPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'distributed':
+      case 'approved':
         return 'bg-green-500/10 text-green-500'
       case 'processing':
         return 'bg-blue-500/10 text-blue-500'
@@ -82,7 +83,7 @@ export default function ReleasesPage() {
   }
 
   const formatStatus = (status: string) => {
-    return status.split('_').map(word => 
+    return status.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ')
   }
@@ -94,7 +95,7 @@ export default function ReleasesPage() {
 
     try {
       setActionLoading(id)
-      await deleteRelease(id)
+      await deleteSubmission(id)
       toast.success('Release deleted successfully')
       fetchReleases()
     } catch (error) {
@@ -112,7 +113,7 @@ export default function ReleasesPage() {
 
     try {
       setActionLoading(id)
-      await submitRelease(id)
+      await submitSubmission(id)
       toast.success('Release submitted for review')
       fetchReleases()
     } catch (error) {
@@ -130,7 +131,7 @@ export default function ReleasesPage() {
 
     try {
       setActionLoading(id)
-      await cancelRelease(id)
+      await cancelSubmission(id)
       toast.success('Release submission cancelled')
       fetchReleases()
     } catch (error) {
@@ -146,7 +147,7 @@ export default function ReleasesPage() {
     { value: 'draft', label: 'Drafts' },
     { value: 'pending_review', label: 'Pending Review' },
     { value: 'processing', label: 'Processing' },
-    { value: 'distributed', label: 'Distributed' },
+    { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' },
   ]
 

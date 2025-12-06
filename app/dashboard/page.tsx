@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table'
 import { TrendingUp, DollarSign, Globe, Music, Loader2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { getReleases, Release } from '@/lib/api/releases'
+import { getSubmissions, Submission } from '@/lib/api/submissions'
 import { getUsageStats, UsageStats } from '@/lib/api/users'
 
 // Animation variants
@@ -42,7 +42,7 @@ const itemVariants = {
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const [releases, setReleases] = useState<Release[]>([])
+  const [releases, setReleases] = useState<Submission[]>([])
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -50,10 +50,10 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         const [releasesData, statsData] = await Promise.all([
-          getReleases({ limit: 5 }),
+          getSubmissions({ limit: 5 }),
           getUsageStats(),
         ])
-        setReleases(releasesData.data)
+        setReleases(releasesData.submissions)
         setUsageStats(statsData)
       } catch (error) {
         toast.error('Failed to fetch dashboard data')
@@ -82,7 +82,7 @@ export default function DashboardPage() {
   }
 
   const formatStatus = (status: string) => {
-    return status.split('_').map(word => 
+    return status.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ')
   }
@@ -162,9 +162,9 @@ export default function DashboardPage() {
                   {usageStats?.releases.canUpload ? 'Yes' : 'No'}
                 </div>
                 <CardDescription className="mt-1">
-                  {usageStats?.releases.limit === 0 
-                    ? 'Unlimited releases' 
-                    : `${usageStats?.releases.limit} release${usageStats?.releases.limit > 1 ? 's' : ''} limit`
+                  {usageStats?.releases.limit === 0
+                    ? 'Unlimited releases'
+                    : `${usageStats?.releases.limit ?? 0} release${(usageStats?.releases.limit ?? 0) > 1 ? 's' : ''} limit`
                   }
                 </CardDescription>
               </CardContent>
@@ -200,14 +200,14 @@ export default function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {releases.length === 0 ? (
+                    {releases?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                           No releases yet. Start by uploading your first track!
                         </TableCell>
                       </TableRow>
                     ) : (
-                      releases.map((release) => (
+                      releases?.map((release) => (
                         <TableRow key={release._id}>
                           <TableCell className="font-medium">
                             {release.title}
