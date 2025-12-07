@@ -87,11 +87,11 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
 
     return (
         <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Basic Information</h3>
+            <h3 className="text-xl font-semibold">Release Information</h3>
             <p className="text-muted-foreground">Let's start with the basics about your release</p>
 
             {/* Number of Songs */}
-            <div className="space-y-3 pt-6 border-t border-border">
+            {/* <div className="space-y-3 pt-6 border-t border-border">
                 <Label htmlFor="numberOfSongs" className="text-lg font-semibold">
                     Number of songs
                 </Label>
@@ -107,10 +107,19 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                         </option>
                     ))}
                 </select>
-            </div>
+            </div> */}
             <div className="space-y-4 mt-6">
                 <div className="space-y-2">
                     <Label htmlFor="title">Track/Album Title *</Label>
+                    <Input
+                        id="title"
+                        placeholder="Enter title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="title">Version/Subtitle</Label>
                     <Input
                         id="title"
                         placeholder="Enter title"
@@ -392,7 +401,15 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                         </div>
                     </div>
                 </div>
-
+                <div className="space-y-2">
+                    <Label htmlFor="title">Featuring Artist</Label>
+                    <Input
+                        id="title"
+                        placeholder="Enter Featuring Artist"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    />
+                </div>
                 <div className="space-y-2">
                     <Label htmlFor="language">Language *</Label>
                     <select
@@ -416,7 +433,20 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                         <option value="other">Other</option>
                     </select>
                 </div>
-
+                <div className="space-y-2">
+                    <Label htmlFor="format">Format *</Label>
+                    <select
+                        id="format"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={formData.format}
+                        onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+                    >
+                        <option value="">Select a format</option>
+                        <option value="single">Single</option>
+                        <option value="ep">EP</option>
+                        <option value="album">Album</option>
+                    </select>
+                </div>
                 <div className="space-y-3 pt-6 border-t border-border">
                     <Label className="text-lg font-semibold">
                         Explicit lyrics

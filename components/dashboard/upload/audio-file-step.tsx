@@ -134,7 +134,7 @@ export default function AudioFileStep({ formData, setFormData }: AudioFileStepPr
                     </p>
                 </div>
             </div>
-            <div className="space-y-3 pt-6 border-t border-border">
+            {/* <div className="space-y-3 pt-6 border-t border-border">
                 <h4 className="text-base font-semibold">Dolby Atmos/Spatial audio</h4>
                 <p className="text-sm text-muted-foreground">
                     Apple, Tidal and Amazon{' '}
@@ -172,7 +172,7 @@ export default function AudioFileStep({ formData, setFormData }: AudioFileStepPr
                         </Label>
                     </div>
                 </div>
-            </div>
+            </div> */}
         </div>
     )
 }

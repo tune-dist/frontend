@@ -10,9 +10,11 @@ interface CreditsStepProps {
     setFormData: (data: UploadFormData) => void
     songwriters: Songwriter[]
     setSongwriters: (data: Songwriter[]) => void
+    composers: Songwriter[]
+    setComposers: (data: Songwriter[]) => void
 }
 
-export default function CreditsStep({ formData, setFormData, songwriters, setSongwriters }: CreditsStepProps) {
+export default function CreditsStep({ formData, setFormData, songwriters, setSongwriters, composers, setComposers }: CreditsStepProps) {
 
     const addSongwriter = () => {
         setSongwriters([...songwriters, {
@@ -34,17 +36,57 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
             setSongwriters(songwriters.filter((_, i) => i !== index))
         }
     }
+    const addComposer = () => {
+        setComposers([...composers, {
+            role: 'Composer',
+            firstName: '',
+            middleName: '',
+            lastName: ''
+        }])
+    }
 
+    const updateComposer = (index: number, field: keyof Songwriter, value: string) => {
+        const updated = [...composers]
+        updated[index] = { ...updated[index], [field]: value }
+        setComposers(updated)
+    }
+
+    const removeComposer = (index: number) => {
+        if (composers.length > 1) {
+            setComposers(composers.filter((_, i) => i !== index))
+        }
+    }
     return (
         <div className="space-y-4">
             <h3 className="text-xl font-semibold">Credits & Metadata</h3>
             <p className="text-muted-foreground">Give credit to everyone involved</p>
+            <div className="space-y-4 mt-6">
 
+                {/* 
+                <div className="space-y-2">
+                    <Label htmlFor="writers">Composer*</Label>
+                    <Input
+                        id="writers"
+                        placeholder="Comma-separated names"
+                        onChange={(e) => setFormData({ ...formData, writers: e.target.value.split(',').map((w: string) => w.trim()) })}
+                    />
+                </div> */}
+
+                {/* <div className="space-y-2">
+                    <Label htmlFor="copyright">Copyright (Optional)</Label>
+                    <Input
+                        id="copyright"
+                        placeholder="© 2025 Your Name"
+                        value={formData.copyright}
+                        onChange={(e) => setFormData({ ...formData, copyright: e.target.value })}
+                    />
+                </div> */}
+            </div>
             <div className="space-y-4 mt-6">
                 <div className="space-y-4 pt-6 border-t border-border">
                     <div>
                         <Label className="text-lg font-semibold">
-                            Songwriter(s) real name
+                            Songwriter/Author
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1">
                             Real names, not stage names <a href="#" className="text-primary hover:underline">(why?)</a>
@@ -53,39 +95,13 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
 
                     {songwriters.map((songwriter, index) => (
                         <div key={index} className="space-y-3 p-4 rounded-lg border border-border bg-accent/5">
-                            {/* Role Dropdown */}
-                            <div className="space-y-2">
-                                <select
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                    value={songwriter.role}
-                                    onChange={(e) => updateSongwriter(index, 'role', e.target.value)}
-                                >
-                                    <option value="Music and lyrics">Music and lyrics</option>
-                                    <option value="Music only">Music only</option>
-                                    <option value="Lyrics only">Lyrics only</option>
-                                    <option value="Producer">Producer</option>
-                                    <option value="Composer">Composer</option>
-                                </select>
-                            </div>
 
                             {/* Name Fields */}
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 gap-1">
                                 <Input
-                                    placeholder="First name"
+                                    placeholder="Enter First name and last name *"
                                     value={songwriter.firstName}
                                     onChange={(e) => updateSongwriter(index, 'firstName', e.target.value)}
-                                    className="text-sm"
-                                />
-                                <Input
-                                    placeholder="Middle name"
-                                    value={songwriter.middleName}
-                                    onChange={(e) => updateSongwriter(index, 'middleName', e.target.value)}
-                                    className="text-sm"
-                                />
-                                <Input
-                                    placeholder="Last name"
-                                    value={songwriter.lastName}
-                                    onChange={(e) => updateSongwriter(index, 'lastName', e.target.value)}
                                     className="text-sm"
                                 />
                             </div>
@@ -113,6 +129,54 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                         type="button"
                     >
                         + Add another songwriter
+                    </Button>
+                </div>
+                <div className="space-y-4 pt-6 border-t border-border">
+                    <div>
+                        <Label className="text-lg font-semibold">
+                            Composer
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Real names, not stage names <a href="#" className="text-primary hover:underline">(why?)</a>
+                        </p>
+                    </div>
+
+                    {composers.map((composer, index) => (
+                        <div key={index} className="space-y-3 p-4 rounded-lg border border-border bg-accent/5">
+
+                            {/* Name Fields */}
+                            <div className="grid grid-cols-1 gap-1">
+                                <Input
+                                    placeholder="Enter First name and last name"
+                                    value={composer.firstName}
+                                    onChange={(e) => updateComposer(index, 'firstName', e.target.value)}
+                                    className="text-sm"
+                                />
+                            </div>
+
+                            {/* Remove Button (only show if more than one songwriter) */}
+                            {composers.length > 1 && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => removeComposer(index)}
+                                    className="text-destructive hover:text-destructive"
+                                    type="button"
+                                >
+                                    Remove Composer
+                                </Button>
+                            )}
+                        </div>
+                    ))}
+
+                    {/* Add Another Songwriter Button */}
+                    <Button
+                        variant="outline"
+                        onClick={addComposer}
+                        className="text-primary hover:text-primary"
+                        type="button"
+                    >
+                        + Add Composer
                     </Button>
                 </div>
                 {/* Instrumental */}
@@ -160,36 +224,13 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                         Preview clip start time <span className="text-muted-foreground font-normal">(TikTok, Apple Music, iTunes)</span>
                     </Label>
 
-                    <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="radio"
-                                id="previewAuto"
-                                name="previewClipStartTime"
-                                value="auto"
-                                checked={formData.previewClipStartTime === 'auto'}
-                                onChange={(e) => setFormData({ ...formData, previewClipStartTime: e.target.value })}
-                                className="h-4 w-4"
-                            />
-                            <Label htmlFor="previewAuto" className="font-normal cursor-pointer">
-                                Let streaming services decide
-                            </Label>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="radio"
-                                id="previewManual"
-                                name="previewClipStartTime"
-                                value="manual"
-                                checked={formData.previewClipStartTime === 'manual'}
-                                onChange={(e) => setFormData({ ...formData, previewClipStartTime: e.target.value })}
-                                className="h-4 w-4"
-                            />
-                            <Label htmlFor="previewManual" className="font-normal cursor-pointer">
-                                Let me specify when the good part starts
-                            </Label>
-                        </div>
+                    <div className="grid grid-cols-1 gap-1">
+                        <Input
+                            placeholder="HH:MM:SS"
+                            value={formData.previewClipStartTime}
+                            onChange={(e) => setFormData({ ...formData, previewClipStartTime: e.target.value })}
+                            className="text-sm"
+                        />
                     </div>
                 </div>
 
@@ -216,7 +257,7 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                 </div>
 
                 {/* Apple Music Additional Requirements */}
-                <div className="space-y-4 pt-6 border-t border-border">
+                {/* <div className="space-y-4 pt-6 border-t border-border">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2">
                             <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
@@ -256,16 +297,25 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                     <p className="text-xs text-muted-foreground">
                         To skip this step for now, simply <a href="#" className="text-primary hover:underline">deselect Apple Music and iTunes at the top of the page</a>. You can always add this release to Apple later.
                     </p>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="copyright">Copyright (Optional)</Label>
-                    <Input
-                        id="copyright"
-                        placeholder="© 2025 Your Name"
-                        value={formData.copyright || ''}
-                        onChange={(e) => setFormData({ ...formData, copyright: e.target.value })}
-                    />
-                </div>
+                </div> */}
+
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="copyright">Copyright</Label>
+                <Input
+                    id="copyright"
+                    placeholder="© Your label Name"
+                    value={formData.copyright || ''}
+                    onChange={(e) => setFormData({ ...formData, copyright: e.target.value })}
+                />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="producers">Producers</Label>
+                <Input
+                    id="producers"
+                    placeholder="℗ Your label Name"
+                    onChange={(e) => setFormData({ ...formData, producers: e.target.value.split(',').map((p: string) => p.trim()) })}
+                />
             </div>
         </div>
     )

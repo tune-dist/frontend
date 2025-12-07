@@ -17,6 +17,7 @@ export interface UploadFormData {
     releaseType: string
     isExplicit: boolean
     explicitLyrics: string // 'yes' | 'no'
+    format: string
 
     // Social media & platforms
     spotifyProfile: string

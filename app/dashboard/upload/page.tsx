@@ -76,7 +76,7 @@ export default function UploadPage() {
     language: 'English',
     releaseType: 'single',
     isExplicit: false,
-    explicitLyrics: 'no', // Default
+    explicitLyrics: '', // Default
 
     // Social media & platforms
     spotifyProfile: '',
@@ -112,6 +112,15 @@ export default function UploadPage() {
     middleName: '',
     lastName: ''
   }])
+
+  const [composers, setComposers] = useState<Songwriter[]>([
+    {
+      role: 'Composer',
+      firstName: '',
+      middleName: '',
+      lastName: ''
+    }
+  ])
 
   const [mandatoryChecks, setMandatoryChecks] = useState<MandatoryChecks>({
     youtubeConfirmation: false,
@@ -253,6 +262,8 @@ export default function UploadPage() {
             setFormData={setFormData}
             songwriters={songwriters}
             setSongwriters={setSongwriters}
+            composers={composers}
+            setComposers={setComposers}
           />
         )
       case 6:
