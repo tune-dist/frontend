@@ -4,6 +4,26 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { UploadFormData, Songwriter } from './types'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ExternalLink, Music, X, GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+
+// Track interface for individual tracks
+interface Track {
+    id: string
+    title: string
+    subtitle: string
+    artistName: string
+    featuringArtist: string
+    language: string
+    explicitLyrics: string
+    spotifyProfile: string
+    youtubeMusicProfile: string
+    instagramProfile: string
+    instagramProfileUrl: string
+    facebookProfile: string
+    facebookProfileUrl: string
+}
 
 interface CreditsStepProps {
     formData: UploadFormData
@@ -15,7 +35,182 @@ interface CreditsStepProps {
 }
 
 export default function CreditsStep({ formData, setFormData, songwriters, setSongwriters, composers, setComposers }: CreditsStepProps) {
+    const [isSearching, setIsSearching] = useState(false)
+    const [isTrackModalOpen, setIsTrackModalOpen] = useState(false)
+    const [tracks, setTracks] = useState<Track[]>([])
+    const [editingTrackIndex, setEditingTrackIndex] = useState<number | null>(null)
+    const [currentTrack, setCurrentTrack] = useState<Track>({
+        id: '',
+        title: '',
+        subtitle: '',
+        artistName: '',
+        featuringArtist: '',
+        language: '',
+        explicitLyrics: 'no',
+        spotifyProfile: '',
+        youtubeMusicProfile: '',
+        instagramProfile: '',
+        instagramProfileUrl: '',
+        facebookProfile: '',
+        facebookProfileUrl: ''
+    })
 
+    const [searchResults, setSearchResults] = useState<{
+        spotify: any[];
+        apple: any[];
+        youtube: any[];
+    }>({ spotify: [], apple: [], youtube: [] })
+    const searchTimeout = useRef<NodeJS.Timeout | null>(null)
+    const handleArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const name = e.target.value
+        setFormData({ ...formData, artistName: name })
+
+        if (searchTimeout.current) {
+            clearTimeout(searchTimeout.current)
+        }
+
+        if (name.length > 2) {
+            setIsSearching(true)
+            searchTimeout.current = setTimeout(async () => {
+                try {
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+                    // Call both Spotify and YouTube search APIs in parallel
+                    const [spotifyResponse, youtubeResponse] = await Promise.all([
+                        fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`)
+                            .catch(err => {
+                                console.error('Spotify search error:', err)
+                                return null
+                            }),
+                        fetch(`${apiUrl}/integrations/youtube/search?q=${encodeURIComponent(name)}&limit=5`)
+                            .catch(err => {
+                                console.error('YouTube search error:', err)
+                                return null
+                            })
+                    ])
+
+                    const spotifyArtists = spotifyResponse?.ok ? await spotifyResponse.json() : []
+                    const youtubeChannels = youtubeResponse?.ok ? await youtubeResponse.json() : []
+
+                    setSearchResults({
+                        spotify: spotifyArtists,
+                        apple: [], // TODO: Implement Apple Music search
+                        youtube: youtubeChannels
+                    })
+                } catch (error) {
+                    console.error('Search error:', error)
+                    setSearchResults({ spotify: [], apple: [], youtube: [] })
+                } finally {
+                    setIsSearching(false)
+                }
+            }, 1000)
+        } else {
+            setSearchResults({ spotify: [], apple: [], youtube: [] })
+            setIsSearching(false)
+        }
+    }
+
+    // Track artist name change handler for modal
+    const handleTrackArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const name = e.target.value
+        setCurrentTrack({ ...currentTrack, artistName: name })
+
+        if (searchTimeout.current) {
+            clearTimeout(searchTimeout.current)
+        }
+
+        if (name.length > 2) {
+            setIsSearching(true)
+            searchTimeout.current = setTimeout(async () => {
+                try {
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+                    const [spotifyResponse, youtubeResponse] = await Promise.all([
+                        fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`)
+                            .catch(err => {
+                                console.error('Spotify search error:', err)
+                                return null
+                            }),
+                        fetch(`${apiUrl}/integrations/youtube/search?q=${encodeURIComponent(name)}&limit=5`)
+                            .catch(err => {
+                                console.error('YouTube search error:', err)
+                                return null
+                            })
+                    ])
+
+                    const spotifyArtists = spotifyResponse?.ok ? await spotifyResponse.json() : []
+                    const youtubeChannels = youtubeResponse?.ok ? await youtubeResponse.json() : []
+
+                    setSearchResults({
+                        spotify: spotifyArtists,
+                        apple: [],
+                        youtube: youtubeChannels
+                    })
+                } catch (error) {
+                    console.error('Search error:', error)
+                    setSearchResults({ spotify: [], apple: [], youtube: [] })
+                } finally {
+                    setIsSearching(false)
+                }
+            }, 1000)
+        } else {
+            setSearchResults({ spotify: [], apple: [], youtube: [] })
+            setIsSearching(false)
+        }
+    }
+
+    // Open modal for adding a new track
+    const openAddTrackModal = () => {
+        setCurrentTrack({
+            id: Date.now().toString(),
+            title: '',
+            subtitle: '',
+            artistName: formData.artistName || '',
+            featuringArtist: '',
+            language: formData.language || '',
+            explicitLyrics: 'no',
+            spotifyProfile: '',
+            youtubeMusicProfile: '',
+            instagramProfile: '',
+            instagramProfileUrl: '',
+            facebookProfile: '',
+            facebookProfileUrl: ''
+        })
+        setEditingTrackIndex(null)
+        setSearchResults({ spotify: [], apple: [], youtube: [] })
+        setIsTrackModalOpen(true)
+    }
+
+    // Open modal for editing an existing track
+    const openEditTrackModal = (index: number) => {
+        setCurrentTrack({ ...tracks[index] })
+        setEditingTrackIndex(index)
+        setSearchResults({ spotify: [], apple: [], youtube: [] })
+        setIsTrackModalOpen(true)
+    }
+
+    // Save track (add new or update existing)
+    const saveTrack = () => {
+        if (!currentTrack.title.trim()) {
+            return // Don't save empty tracks
+        }
+
+        if (editingTrackIndex !== null) {
+            // Update existing track
+            const updatedTracks = [...tracks]
+            updatedTracks[editingTrackIndex] = currentTrack
+            setTracks(updatedTracks)
+        } else {
+            // Add new track
+            setTracks([...tracks, currentTrack])
+        }
+        setIsTrackModalOpen(false)
+    }
+
+    // Delete a track
+    const deleteTrack = (index: number) => {
+        setTracks(tracks.filter((_, i) => i !== index))
+    }
     const addSongwriter = () => {
         setSongwriters([...songwriters, {
             role: 'Music and lyrics',
@@ -81,6 +276,119 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                         onChange={(e) => setFormData({ ...formData, copyright: e.target.value })}
                     />
                 </div> */}
+            </div>
+            <div className="space-y-4">
+                {/* <h3 className="text-xl font-semibold">Release Details</h3>
+                <p className="text-muted-foreground">When do you want to release your music?</p> */}
+                {/* Previously Released */}
+
+                <div className="space-y-3 pt-6 border-t border-border">
+                    <Label className="text-lg font-semibold">
+                        Has this single been previously released?
+                    </Label>
+                    <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="radio"
+                                id="previouslyReleased-no"
+                                name="previouslyReleased"
+                                value="no"
+                                checked={formData.previouslyReleased === 'no'}
+                                onChange={(e) => setFormData({ ...formData, previouslyReleased: e.target.value })}
+                                className="h-4 w-4 border-primary text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="previouslyReleased-no" className="font-normal cursor-pointer">No</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="radio"
+                                id="previouslyReleased-yes"
+                                name="previouslyReleased"
+                                value="yes"
+                                checked={formData.previouslyReleased === 'yes'}
+                                onChange={(e) => setFormData({ ...formData, previouslyReleased: e.target.value })}
+                                className="h-4 w-4 border-primary text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="previouslyReleased-yes" className="font-normal cursor-pointer">Yes</Label>
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-4 mt-6">
+                    {/* <div className="space-y-2">
+                    <Label htmlFor="releaseDate">Release Date *</Label>
+                    <Input
+                        id="releaseDate"
+                        type="date"
+                        value={formData.releaseDate}
+                        onChange={(e) => setFormData({ ...formData, releaseDate: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Must be at least 7 days from today
+                    </p>
+                </div> */}
+
+                    <div className="space-y-3">
+                        <Label htmlFor="primaryGenre" className="text-lg font-semibold">
+                            Primary genre
+                        </Label>
+                        <select
+                            id="primaryGenre"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            value={formData.primaryGenre}
+                            onChange={(e) => setFormData({ ...formData, primaryGenre: e.target.value })}
+                        >
+                            <option value="">Select a genre</option>
+                            <option value="pop">Pop</option>
+                            <option value="rock">Rock</option>
+                            <option value="hip-hop">Hip-Hop/Rap</option>
+                            <option value="electronic">Electronic</option>
+                            <option value="r&b">R&B/Soul</option>
+                            <option value="country">Country</option>
+                            <option value="jazz">Jazz</option>
+                            <option value="classical">Classical</option>
+                            <option value="indie">Indie</option>
+                            <option value="alternative">Alternative</option>
+                            <option value="folk">Folk</option>
+                            <option value="reggae">Reggae</option>
+                            <option value="latin">Latin</option>
+                            <option value="world">World</option>
+                            <option value="metal">Metal</option>
+                            <option value="blues">Blues</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div className="space-y-3">
+                        <Label htmlFor="secondaryGenre" className="text-lg font-semibold">
+                            Secondary genre <span className="text-muted-foreground font-normal">(optional)</span>
+                        </Label>
+                        <select
+                            id="secondaryGenre"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            value={formData.secondaryGenre}
+                            onChange={(e) => setFormData({ ...formData, secondaryGenre: e.target.value })}
+                        >
+                            <option value="">Select another genre</option>
+                            <option value="pop">Pop</option>
+                            <option value="rock">Rock</option>
+                            <option value="hip-hop">Hip-Hop/Rap</option>
+                            <option value="electronic">Electronic</option>
+                            <option value="r&b">R&B/Soul</option>
+                            <option value="country">Country</option>
+                            <option value="jazz">Jazz</option>
+                            <option value="classical">Classical</option>
+                            <option value="indie">Indie</option>
+                            <option value="alternative">Alternative</option>
+                            <option value="folk">Folk</option>
+                            <option value="reggae">Reggae</option>
+                            <option value="latin">Latin</option>
+                            <option value="world">World</option>
+                            <option value="metal">Metal</option>
+                            <option value="blues">Blues</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <div className="space-y-4 mt-6">
                 <div className="space-y-4 pt-6 border-t border-border">
@@ -256,6 +564,83 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                     </p>
                 </div>
 
+                {/* Tracks Section */}
+                <div className="pt-6 border-t border-border space-y-4">
+                    {/* Tracks List */}
+                    {tracks.length > 0 && (
+                        <div className="space-y-2">
+                            {tracks.map((track, index) => (
+                                <div
+                                    key={track.id}
+                                    className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 hover:bg-accent/10 transition-colors"
+                                >
+                                    {/* Drag Handle */}
+                                    <div className="cursor-grab text-muted-foreground hover:text-foreground">
+                                        <GripVertical className="h-5 w-5" />
+                                    </div>
+
+                                    {/* Music Icon */}
+                                    <div className="flex items-center justify-center h-8 w-8 rounded bg-muted">
+                                        <Music className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+
+                                    {/* Track Number and Title */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium truncate">
+                                            {index + 1}. {track.title || 'Untitled'}
+                                        </p>
+                                    </div>
+
+                                    {/* Artist Name */}
+                                    <div className="flex-1 min-w-0 text-muted-foreground">
+                                        <p className="truncate">{track.artistName || 'Unknown Artist'}</p>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => openEditTrackModal(index)}
+                                            className="h-8 px-3 text-sm"
+                                        >
+                                            <Pencil className="h-3 w-3 mr-1" />
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => deleteTrack(index)}
+                                            className="h-8 px-3 text-sm text-destructive hover:text-destructive"
+                                        >
+                                            <Trash2 className="h-3 w-3 mr-1" />
+                                            Delete
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {tracks.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-lg">
+                            <Music className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p>No tracks added yet</p>
+                            <p className="text-sm">Click "+ Add track" to add your first track</p>
+                        </div>
+                    )}
+
+                    {/* Add Track Button - Below the list */}
+                    {formData.format == 'ep' || formData.format == 'album' && <Button
+                        variant="outline"
+                        onClick={openAddTrackModal}
+                        className="w-full text-primary hover:text-primary"
+                        type="button"
+                    >
+                        + Add track
+                    </Button>}
+                </div>
+
                 {/* Apple Music Additional Requirements */}
                 {/* <div className="space-y-4 pt-6 border-t border-border">
                     <div className="flex items-center gap-3">
@@ -317,6 +702,450 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                     onChange={(e) => setFormData({ ...formData, producers: e.target.value.split(',').map((p: string) => p.trim()) })}
                 />
             </div>
+
+            {/* Track Modal */}
+            <AnimatePresence>
+                {isTrackModalOpen && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+                            onClick={() => setIsTrackModalOpen(false)}
+                        />
+
+                        {/* Modal */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ duration: 0.2 }}
+                            className="fixed inset-4 md:inset-10 lg:inset-20 bg-background border border-border rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between p-4 md:p-6 border-b border-border">
+                                <div>
+                                    <h2 className="text-xl font-bold">{editingTrackIndex !== null ? 'Edit Track' : 'Add Track'}</h2>
+                                    <p className="text-sm text-muted-foreground">Enter track details</p>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsTrackModalOpen(false)}
+                                    className="h-8 w-8 p-0"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            {/* Modal Content - Scrollable */}
+                            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-semibold">Release Information</h3>
+                                    <p className="text-muted-foreground">Let's start with the basics about your release</p>
+
+                                    <div className="space-y-4 mt-6">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="modal-title">Track Title *</Label>
+                                            <Input
+                                                id="modal-title"
+                                                placeholder="Enter title"
+                                                value={currentTrack.title}
+                                                onChange={(e) => setCurrentTrack({ ...currentTrack, title: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="modal-subtitle">Version/Subtitle</Label>
+                                            <Input
+                                                id="modal-subtitle"
+                                                placeholder="Enter subtitle"
+                                                value={currentTrack.subtitle}
+                                                onChange={(e) => setCurrentTrack({ ...currentTrack, subtitle: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <Label htmlFor="modal-artistName">Artist Name *</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id="modal-artistName"
+                                                    placeholder="Your artist name"
+                                                    value={currentTrack.artistName}
+                                                    onChange={handleTrackArtistNameChange}
+                                                    className={isSearching ? 'pr-10' : ''}
+                                                />
+                                                {isSearching && (
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                        <motion.div
+                                                            animate={{ rotate: 360 }}
+                                                            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                                            className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Search Results / Platform Linking */}
+                                            {currentTrack.artistName.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.youtube.length > 0) && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="mt-4 space-y-6 border border-border rounded-lg p-4 bg-card/50"
+                                                >
+                                                    <h4 className="font-semibold text-sm text-foreground">
+                                                        We found this artist on other platforms. Is this you?
+                                                    </h4>
+
+                                                    {/* Spotify Results */}
+                                                    {searchResults.spotify.length > 0 && (
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <svg className="h-5 w-5 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
+                                                                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                                                                </svg>
+                                                                <span className="text-sm font-medium">Spotify</span>
+                                                            </div>
+
+                                                            {searchResults.spotify.map((artist: any) => (
+                                                                <div
+                                                                    key={artist.id}
+                                                                    className={`flex items-center gap-3 p-3 rounded-md transition-colors cursor-pointer ${currentTrack.spotifyProfile === artist.id ? 'bg-primary/10 border border-primary' : 'bg-background hover:bg-accent'}`}
+                                                                    onClick={() => setCurrentTrack({ ...currentTrack, spotifyProfile: artist.id })}
+                                                                >
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="modal-spotifyProfile"
+                                                                        checked={currentTrack.spotifyProfile === artist.id}
+                                                                        onChange={() => { }}
+                                                                        className="h-4 w-4 border-primary text-primary"
+                                                                    />
+                                                                    {artist.image ? (
+                                                                        <img src={artist.image} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
+                                                                    ) : (
+                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                                                            <Music className="h-5 w-5 text-muted-foreground" />
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex-1">
+                                                                        <p className="font-medium text-primary">{artist.name}</p>
+                                                                        <p className="text-sm text-muted-foreground">{(artist.followers || 0).toLocaleString()} followers</p>
+                                                                    </div>
+                                                                    <a
+                                                                        href={artist.externalUrl}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-primary"
+                                                                        title="Open in Spotify"
+                                                                    >
+                                                                        <ExternalLink className="h-4 w-4" />
+                                                                    </a>
+                                                                </div>
+                                                            ))}
+
+                                                            <div className="space-y-2 mt-4">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="modal-spotifyProfile"
+                                                                        id="modal-spotify-new"
+                                                                        value="new"
+                                                                        checked={currentTrack.spotifyProfile === 'new'}
+                                                                        onChange={(e) => setCurrentTrack({ ...currentTrack, spotifyProfile: e.target.value })}
+                                                                        className="h-4 w-4"
+                                                                    />
+                                                                    <Label htmlFor="modal-spotify-new" className="font-normal cursor-pointer">
+                                                                        This will be my first <strong>{currentTrack.artistName}</strong> release in Spotify.
+                                                                    </Label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* YouTube Results */}
+                                                    {searchResults.youtube.length > 0 && (
+                                                        <div className="space-y-3 pt-4 border-t border-border">
+                                                            <div className="flex items-center gap-2">
+                                                                <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
+                                                                    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+                                                                </svg>
+                                                                <span className="text-sm font-medium">YouTube Music</span>
+                                                            </div>
+
+                                                            {searchResults.youtube.map((profile: any) => (
+                                                                <div
+                                                                    key={profile.id}
+                                                                    className={`flex items-center gap-3 p-3 rounded-md transition-colors cursor-pointer ${currentTrack.youtubeMusicProfile === profile.id ? 'bg-primary/10 border border-primary' : 'bg-background hover:bg-accent'}`}
+                                                                    onClick={() => setCurrentTrack({ ...currentTrack, youtubeMusicProfile: profile.id })}
+                                                                >
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="modal-youtubeProfile"
+                                                                        checked={currentTrack.youtubeMusicProfile === profile.id}
+                                                                        onChange={() => { }}
+                                                                        className="h-4 w-4 border-primary text-primary"
+                                                                    />
+                                                                    <img src={profile.image} alt={profile.name} className="h-10 w-10 rounded-full object-cover" />
+                                                                    <div className="flex-1">
+                                                                        <p className="font-medium text-primary">{profile.name}</p>
+                                                                        <p className="text-sm text-muted-foreground">{profile.track}</p>
+                                                                    </div>
+                                                                    {profile.channelUrl && (
+                                                                        <a
+                                                                            href={profile.channelUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-primary"
+                                                                            title="Open in YouTube Music"
+                                                                        >
+                                                                            <ExternalLink className="h-4 w-4" />
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+
+                                                            <div className="space-y-2 mt-4">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="modal-youtubeProfile"
+                                                                        id="modal-youtube-new"
+                                                                        value="new"
+                                                                        checked={currentTrack.youtubeMusicProfile === 'new'}
+                                                                        onChange={(e) => setCurrentTrack({ ...currentTrack, youtubeMusicProfile: e.target.value })}
+                                                                        className="h-4 w-4"
+                                                                    />
+                                                                    <Label htmlFor="modal-youtube-new" className="font-normal cursor-pointer">
+                                                                        This will be my first <strong>{currentTrack.artistName}</strong> release in YouTube Music.
+                                                                    </Label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </motion.div>
+                                            )}
+                                        </div>
+
+                                        {/* Social Media Profiles */}
+                                        <div className="space-y-6 pt-6 border-t border-border">
+                                            {/* Instagram Profile */}
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[#E4405F] font-bold text-lg">Instagram</span>
+                                                    <h3 className="text-base font-semibold">Artist already on Instagram?</h3>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="radio"
+                                                            id="modal-instagram-yes"
+                                                            name="modal-instagramProfile"
+                                                            value="yes"
+                                                            checked={currentTrack.instagramProfile === 'yes'}
+                                                            onChange={(e) => setCurrentTrack({ ...currentTrack, instagramProfile: e.target.value })}
+                                                            className="h-4 w-4 border-primary text-primary focus:ring-primary"
+                                                        />
+                                                        <Label htmlFor="modal-instagram-yes" className="font-normal cursor-pointer">
+                                                            Yes - Group with other <strong>{currentTrack.artistName || 'artist'}</strong> releases
+                                                        </Label>
+                                                    </div>
+                                                    {currentTrack.instagramProfile === 'yes' && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, height: 0 }}
+                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                            className="ml-6 space-y-2"
+                                                        >
+                                                            <Input
+                                                                id="modal-instagramUrl"
+                                                                placeholder="https://instagram.com/..."
+                                                                value={currentTrack.instagramProfileUrl}
+                                                                onChange={(e) => setCurrentTrack({ ...currentTrack, instagramProfileUrl: e.target.value })}
+                                                                className="text-sm"
+                                                            />
+                                                        </motion.div>
+                                                    )}
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="radio"
+                                                            id="modal-instagram-no"
+                                                            name="modal-instagramProfile"
+                                                            value="no"
+                                                            checked={currentTrack.instagramProfile === 'no'}
+                                                            onChange={(e) => setCurrentTrack({ ...currentTrack, instagramProfile: e.target.value })}
+                                                            className="h-4 w-4 border-primary text-primary focus:ring-primary"
+                                                        />
+                                                        <Label htmlFor="modal-instagram-no" className="font-normal cursor-pointer">
+                                                            No - <strong>{currentTrack.artistName || 'Artist'}</strong> is not on Instagram
+                                                        </Label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Facebook Profile */}
+                                            <div className="space-y-3 pt-4 border-t border-border/50">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[#1877F2] font-bold text-lg">Facebook</span>
+                                                    <h3 className="text-base font-semibold">Artist already on Facebook?</h3>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="radio"
+                                                            id="modal-facebook-yes"
+                                                            name="modal-facebookProfile"
+                                                            value="yes"
+                                                            checked={currentTrack.facebookProfile === 'yes'}
+                                                            onChange={(e) => setCurrentTrack({ ...currentTrack, facebookProfile: e.target.value })}
+                                                            className="h-4 w-4 border-primary text-primary focus:ring-primary"
+                                                        />
+                                                        <Label htmlFor="modal-facebook-yes" className="font-normal cursor-pointer">
+                                                            Yes - Group with other <strong>{currentTrack.artistName || 'artist'}</strong> releases
+                                                        </Label>
+                                                    </div>
+                                                    {currentTrack.facebookProfile === 'yes' && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, height: 0 }}
+                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                            className="ml-6 space-y-2"
+                                                        >
+                                                            <Input
+                                                                id="modal-facebookUrl"
+                                                                placeholder="https://facebook.com/..."
+                                                                value={currentTrack.facebookProfileUrl}
+                                                                onChange={(e) => setCurrentTrack({ ...currentTrack, facebookProfileUrl: e.target.value })}
+                                                                className="text-sm"
+                                                            />
+                                                        </motion.div>
+                                                    )}
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="radio"
+                                                            id="modal-facebook-no"
+                                                            name="modal-facebookProfile"
+                                                            value="no"
+                                                            checked={currentTrack.facebookProfile === 'no'}
+                                                            onChange={(e) => setCurrentTrack({ ...currentTrack, facebookProfile: e.target.value })}
+                                                            className="h-4 w-4 border-primary text-primary focus:ring-primary"
+                                                        />
+                                                        <Label htmlFor="modal-facebook-no" className="font-normal cursor-pointer">
+                                                            No - <strong>{currentTrack.artistName || 'Artist'}</strong> is not on Facebook
+                                                        </Label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="modal-featuring">Featuring Artist</Label>
+                                            <Input
+                                                id="modal-featuring"
+                                                placeholder="Enter Featuring Artist"
+                                                value={currentTrack.featuringArtist}
+                                                onChange={(e) => setCurrentTrack({ ...currentTrack, featuringArtist: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="modal-language">Language *</Label>
+                                            <select
+                                                id="modal-language"
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                value={currentTrack.language}
+                                                onChange={(e) => setCurrentTrack({ ...currentTrack, language: e.target.value })}
+                                            >
+                                                <option value="">Select a language</option>
+                                                <option value="hindi">Hindi</option>
+                                                <option value="english">English</option>
+                                                <option value="punjabi">Punjabi</option>
+                                                <option value="tamil">Tamil</option>
+                                                <option value="telugu">Telugu</option>
+                                                <option value="bengali">Bengali</option>
+                                                <option value="marathi">Marathi</option>
+                                                <option value="gujarati">Gujarati</option>
+                                                <option value="kannada">Kannada</option>
+                                                <option value="malayalam">Malayalam</option>
+                                                <option value="urdu">Urdu</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+
+                                        {/* <div className="space-y-2">
+                                            <Label htmlFor="modal-format">Format *</Label>
+                                            <select
+                                                id="modal-format"
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                value={formData.format}
+                                                onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+                                            >
+                                                <option value="">Select a format</option>
+                                                <option value="single">Single</option>
+                                                <option value="ep">EP</option>
+                                                <option value="album">Album</option>
+                                            </select>
+                                        </div> */}
+
+                                        <div className="space-y-3 pt-6 border-t border-border">
+                                            <Label className="text-lg font-semibold">
+                                                Explicit lyrics
+                                            </Label>
+
+                                            <div className="space-y-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="radio"
+                                                        id="modal-explicitNo"
+                                                        name="modal-explicitLyrics"
+                                                        value="no"
+                                                        checked={currentTrack.explicitLyrics === 'no'}
+                                                        onChange={(e) => setCurrentTrack({ ...currentTrack, explicitLyrics: e.target.value })}
+                                                        className="h-4 w-4"
+                                                    />
+                                                    <Label htmlFor="modal-explicitNo" className="font-normal cursor-pointer">
+                                                        No
+                                                    </Label>
+                                                </div>
+
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="radio"
+                                                        id="modal-explicitYes"
+                                                        name="modal-explicitLyrics"
+                                                        value="yes"
+                                                        checked={currentTrack.explicitLyrics === 'yes'}
+                                                        onChange={(e) => setCurrentTrack({ ...currentTrack, explicitLyrics: e.target.value })}
+                                                        className="h-4 w-4"
+                                                    />
+                                                    <Label htmlFor="modal-explicitYes" className="font-normal cursor-pointer">
+                                                        Yes
+                                                    </Label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="flex items-center justify-end gap-3 p-4 md:p-6 border-t border-border">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setIsTrackModalOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={saveTrack}
+                                >
+                                    {editingTrackIndex !== null ? 'Update Track' : 'Save Track'}
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

@@ -51,12 +51,12 @@ const itemVariants = {
 }
 
 const steps = [
-  { id: 1, name: 'Basic Info', icon: Info },
+  { id: 1, name: 'Release Details', icon: Info },
   { id: 2, name: 'Audio File', icon: Music },
   { id: 3, name: 'Cover Art', icon: ImageIcon },
-  { id: 4, name: 'Release Details', icon: Calendar },
-  { id: 5, name: 'Credits', icon: Users },
-  { id: 6, name: 'Review', icon: CheckCircle },
+  // { id: 4, name: 'Release Details', icon: Calendar },
+  { id: 4, name: 'Credits', icon: Users },
+  { id: 5, name: 'Review', icon: CheckCircle },
 ]
 
 export default function UploadPage() {
@@ -253,9 +253,9 @@ export default function UploadPage() {
         return <AudioFileStep formData={formData} setFormData={setFormData} />
       case 3:
         return <CoverArtStep formData={formData} setFormData={setFormData} />
+      // case 4:
+      //   return <ReleaseDetailsStep formData={formData} setFormData={setFormData} />
       case 4:
-        return <ReleaseDetailsStep formData={formData} setFormData={setFormData} />
-      case 5:
         return (
           <CreditsStep
             formData={formData}
@@ -266,7 +266,7 @@ export default function UploadPage() {
             setComposers={setComposers}
           />
         )
-      case 6:
+      case 5:
         return (
           <ReviewStep
             formData={formData}
