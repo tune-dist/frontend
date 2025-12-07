@@ -50,7 +50,7 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
-                    // Call both Spotify and YouTube search APIs in parallel
+                    // Call both Spotify and YouTube search APIs in parallel via backend
                     const [spotifyResponse, youtubeResponse] = await Promise.all([
                         fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`)
                             .catch(err => {

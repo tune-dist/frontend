@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table'
 import { TrendingUp, DollarSign, Globe, Music, Loader2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { getSubmissions, Submission } from '@/lib/api/submissions'
+import { getReleases, Release } from '@/lib/api/releases'
 import { getUsageStats, UsageStats } from '@/lib/api/users'
 
 // Animation variants
@@ -42,7 +42,7 @@ const itemVariants = {
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const [releases, setReleases] = useState<Submission[]>([])
+  const [releases, setReleases] = useState<Release[]>([])
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -50,10 +50,10 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         const [releasesData, statsData] = await Promise.all([
-          getSubmissions({ limit: 5 }),
+          getReleases({ limit: 5 }),
           getUsageStats(),
         ])
-        setReleases(releasesData.submissions)
+        setReleases(releasesData.releases)
         setUsageStats(statsData)
       } catch (error) {
         toast.error('Failed to fetch dashboard data')
@@ -218,11 +218,13 @@ export default function DashboardPage() {
                             </span>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {new Date(release.releaseDate).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
+                            {release.releaseDate
+                              ? new Date(release.releaseDate).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                              : 'Not set'}
                           </TableCell>
                           <TableCell>
                             <span

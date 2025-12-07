@@ -20,7 +20,7 @@ import {
 
 // Types & Child Components
 import { UploadFormData, Songwriter, MandatoryChecks } from '@/components/dashboard/upload/types'
-import { submitNewSubmission } from '@/lib/api/submissions'
+import { submitNewRelease } from '@/lib/api/releases'
 import BasicInfoStep from '@/components/dashboard/upload/basic-info-step'
 import AudioFileStep from '@/components/dashboard/upload/audio-file-step'
 import CoverArtStep from '@/components/dashboard/upload/cover-art-step'
@@ -77,6 +77,7 @@ export default function UploadPage() {
     releaseType: 'single',
     isExplicit: false,
     explicitLyrics: '', // Default
+    format: 'single', // Added format field
 
     // Social media & platforms
     spotifyProfile: '',
@@ -151,8 +152,7 @@ export default function UploadPage() {
     if (!formData.artistName?.trim()) errors.push('Please enter an artist name')
     if (!formData.primaryGenre) errors.push('Please select a primary genre')
     if (!formData.language) errors.push('Please select a language')
-    if (!formData.releaseDate) errors.push('Please select a release date')
-    // if (!formData.coverArt) errors.push('Please upload an album cover') // TODO: Validation needed
+    if (!formData.coverArt) errors.push('Please upload an album cover') // TODO: Validation needed
     // if (!formData.audioFile) errors.push('Please upload an audio file') // TODO: Validation needed
 
     if (!mandatoryChecks.promoServices || !mandatoryChecks.rightsAuthorization || !mandatoryChecks.nameUsage || !mandatoryChecks.termsAgreement) {
@@ -184,13 +184,13 @@ export default function UploadPage() {
         .map(s => `${s.firstName} ${s.middleName} ${s.lastName}`.trim())
 
       // Call API
-      await submitNewSubmission({
+      await submitNewRelease({
         ...formData,
         coverArt: formData.coverArt!, // Assuming verified by step logic (Add validation above)
         audioFile: formData.audioFile!, // Assuming verified by step logic
         writers: writers.length > 0 ? writers : undefined,
         // Map other fields as necessary if types don't match exactly
-        releaseType: 'single', // Hardcoded or mapped
+        releaseType: formData.releaseType as any, // Use the form's releaseType
         artistName: formData.artistName,
         title: formData.title,
         language: formData.language,

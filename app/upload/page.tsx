@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { submitNewSubmission } from '@/lib/api/submissions'
+import { submitNewRelease } from '@/lib/api/releases'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function UploadPage() {
@@ -131,7 +131,7 @@ export default function UploadPage() {
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
-                    // Call both Spotify and YouTube search APIs in parallel
+                    // Call both Spotify and YouTube search APIs in parallel via backend
                     const [spotifyResponse, youtubeResponse] = await Promise.all([
                         fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`)
                             .catch(err => {
@@ -364,7 +364,7 @@ export default function UploadPage() {
 
 
             // Submit to backend
-            const result = await submitNewSubmission({
+            const result = await submitNewRelease({
                 title: formData.title,
                 artistName: formData.artistName,
                 numberOfSongs: formData.numberOfSongs,

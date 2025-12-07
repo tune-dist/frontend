@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Loader2, Plus, Filter, Eye, Trash2, Send, XCircle, Music } from 'lucide-react'
-import { getSubmissions, deleteSubmission, submitSubmission, cancelSubmission, Submission, SubmissionStatus } from '@/lib/api/submissions'
+import { getReleases, deleteRelease, submitRelease, cancelRelease, Release, ReleaseStatus } from '@/lib/api/releases'
 
 // Animation variants
 const containerVariants = {
@@ -40,10 +40,10 @@ const itemVariants = {
   },
 }
 
-type StatusFilter = 'all' | SubmissionStatus
+type StatusFilter = 'all' | ReleaseStatus
 
 export default function ReleasesPage() {
-  const [releases, setReleases] = useState<Submission[]>([])
+  const [releases, setReleases] = useState<Release[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -52,9 +52,9 @@ export default function ReleasesPage() {
     try {
       setLoading(true)
       const params = statusFilter !== 'all' ? { status: statusFilter } : {}
-      const response = await getSubmissions(params)
+      const response = await getReleases(params)
       console.log(response)
-      setReleases(response.submissions)
+      setReleases(response.releases)
     } catch (error) {
       toast.error('Failed to fetch releases')
       console.error(error)
@@ -95,7 +95,7 @@ export default function ReleasesPage() {
 
     try {
       setActionLoading(id)
-      await deleteSubmission(id)
+      await deleteRelease(id)
       toast.success('Release deleted successfully')
       fetchReleases()
     } catch (error) {
@@ -113,7 +113,7 @@ export default function ReleasesPage() {
 
     try {
       setActionLoading(id)
-      await submitSubmission(id)
+      await submitRelease(id)
       toast.success('Release submitted for review')
       fetchReleases()
     } catch (error) {
@@ -131,7 +131,7 @@ export default function ReleasesPage() {
 
     try {
       setActionLoading(id)
-      await cancelSubmission(id)
+      await cancelRelease(id)
       toast.success('Release submission cancelled')
       fetchReleases()
     } catch (error) {
@@ -271,11 +271,13 @@ export default function ReleasesPage() {
                               </span>
                             </TableCell>
                             <TableCell className="text-muted-foreground">
-                              {new Date(release.releaseDate).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })}
+                              {release.releaseDate
+                                ? new Date(release.releaseDate).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })
+                                : 'Not set'}
                             </TableCell>
                             <TableCell>
                               <span
