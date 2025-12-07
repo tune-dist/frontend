@@ -28,15 +28,20 @@ export interface ReleaseFormData {
   // Files
   coverArt: File;
   coverArtPreview?: string;
-  audioFile: File;
+  audioFile?: File; // Optional for multi-track
   audioFileName?: string;
 
-  // Track details
+  // Track details (Legacy/Single)
   artworkConfirmed?: boolean;
   explicitLyrics?: string;
   radioEdit?: string;
   instrumental?: string;
   previewClipStartTime?: string;
+
+  // Multi-track support
+  // We use 'any' here to accommodate the incoming Track structure from the form,
+  // which might have extra UI fields.
+  tracks?: any[];
 
   // Other
   releaseType: ReleaseType;
@@ -82,6 +87,19 @@ export interface CoverArt {
   format: string;
 }
 
+export interface TrackPayload {
+  title: string;
+  artistName: string;
+  audioFile: AudioFile | null;
+  isExplicit: boolean;
+  isInstrumental: boolean;
+  previewStartTime?: string;
+  price?: string;
+  songwriters?: any[];
+  composers?: any[];
+  // Add other fields as needed
+}
+
 export interface Release {
   _id: string;
   userId: string;
@@ -93,7 +111,7 @@ export interface Release {
   language: string;
   releaseType: ReleaseType;
   isExplicit: boolean;
-  audioFile: AudioFile;
+  audioFile?: AudioFile; // Optional
   trackNumber?: number;
   coverArt: CoverArt;
   releaseDate?: string;
@@ -113,6 +131,8 @@ export interface Release {
   approvedAt?: string;
   createdAt: string;
   updatedAt: string;
+  // Multi-track
+  tracks?: TrackPayload[];
 }
 
 export interface CreateReleaseData {
@@ -123,7 +143,7 @@ export interface CreateReleaseData {
   language: string;
   releaseType: ReleaseType;
   isExplicit: boolean;
-  audioFile: AudioFile;
+  audioFile?: AudioFile; // Optional
   trackNumber?: number;
   coverArt: CoverArt;
   releaseDate?: string;
@@ -169,6 +189,9 @@ export interface CreateReleaseData {
   radioEdit?: string;
   instrumental?: string;
   genres?: string[];
+
+  // Multi-track
+  tracks?: TrackPayload[];
 }
 
 export interface ReleasesResponse {
@@ -178,6 +201,7 @@ export interface ReleasesResponse {
     page: number;
     limit: number;
     totalPages: number;
+    pages: number;
   };
 }
 
@@ -190,17 +214,62 @@ export interface GetReleasesParams {
 // Process and submit new release with file uploads
 export const submitNewRelease = async (formData: ReleaseFormData) => {
   try {
-    // 1. Upload audio file
-    console.log('Uploading audio file...');
-    const audioUrl = await uploadFile(formData.audioFile, 'audio');
-    const audioMetadata = await getAudioMetadata(formData.audioFile);
+    // 1. Upload audio file (if single/present)
+    let audioData: AudioFile | undefined = undefined;
+    if (formData.audioFile) {
+      console.log('Uploading audio file...');
+      const audioUrl = await uploadFile(formData.audioFile, 'audio');
+      const audioMetadata = await getAudioMetadata(formData.audioFile);
+      audioData = {
+        url: audioUrl,
+        filename: formData.audioFile.name,
+        size: formData.audioFile.size,
+        duration: audioMetadata.duration,
+        format: audioMetadata.format,
+      };
+    }
 
     // 2. Upload cover art
     console.log('Uploading cover art...');
     const coverUrl = await uploadFile(formData.coverArt, 'cover');
     const coverMetadata = await getImageMetadata(formData.coverArt);
 
-    // 3. Prepare release data
+    // 3. Process Tracks (if any)
+    let tracksPayload: TrackPayload[] = [];
+    if (formData.tracks && formData.tracks.length > 0) {
+      console.log(`Processing ${formData.tracks.length} tracks...`);
+      tracksPayload = await Promise.all(formData.tracks.map(async (track: any) => {
+        let trackAudioData = null;
+        if (track.audioFile) {
+          const url = await uploadFile(track.audioFile, 'audio');
+          const metadata = await getAudioMetadata(track.audioFile);
+          trackAudioData = {
+            url,
+            filename: track.audioFile.name,
+            size: track.audioFile.size,
+            duration: metadata.duration,
+            format: metadata.format
+          };
+        }
+        return {
+          title: track.title,
+          artistName: track.artistName,
+          audioFile: trackAudioData,
+          isExplicit: track.explicitLyrics === 'yes' || track.isExplicit === true,
+          isInstrumental: track.isInstrumental === 'yes',
+          previewStartTime: track.previewStartTime,
+          price: track.price,
+          songwriters: track.songwriters,
+          composers: track.composers,
+          previouslyReleased: track.previouslyReleased,
+          originalReleaseDate: track.originalReleaseDate,
+          primaryGenre: track.primaryGenre,
+          secondaryGenre: track.secondaryGenre,
+        };
+      }));
+    }
+
+    // 4. Prepare release data
     const releaseData: CreateReleaseData = {
       title: formData.title,
       artistName: formData.artistName,
@@ -209,13 +278,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       isExplicit: formData.explicitLyrics === 'yes',
       releaseDate: formData.releaseDate,
 
-      audioFile: {
-        url: audioUrl,
-        filename: formData.audioFile.name,
-        size: formData.audioFile.size,
-        duration: audioMetadata.duration,
-        format: audioMetadata.format,
-      },
+      audioFile: audioData,
 
       coverArt: {
         url: coverUrl,
@@ -227,6 +290,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         },
         format: coverMetadata.format,
       },
+
+      tracks: tracksPayload,
 
       // Optional fields mapping
       ...(formData.featuredArtists && { featuredArtists: formData.featuredArtists }),
@@ -248,7 +313,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.selectedPlatforms && { selectedPlatforms: formData.selectedPlatforms }),
 
       // New fields specific to releases
-      ...(formData.numberOfSongs && { numberOfSongs: parseInt(formData.numberOfSongs) || 1 }),
+      ...(formData.numberOfSongs && { numberOfSongs: parseInt(formData.numberOfSongs || '1') || 1 }),
       ...(formData.socialMediaPack !== undefined && { socialMediaPack: formData.socialMediaPack }),
 
       // Flat fields mapping
@@ -279,7 +344,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.instrumental && { instrumental: formData.instrumental }),
     };
 
-    // 4. Create release via API
+    // 5. Create release via API
     console.log('Creating release...', releaseData);
     return createRelease(releaseData);
   } catch (error: any) {

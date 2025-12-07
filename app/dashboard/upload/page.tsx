@@ -77,7 +77,7 @@ export default function UploadPage() {
     releaseType: 'single',
     isExplicit: false,
     explicitLyrics: '', // Default
-    format: 'single', // Added format field
+    format: '', // Added format field
 
     // Social media & platforms
     spotifyProfile: '',
@@ -94,6 +94,9 @@ export default function UploadPage() {
     coverArt: null,
     coverArtPreview: '',
     dolbyAtmos: 'no',
+
+    // Multi-track support
+    tracks: [],
 
     // Release Details
     releaseDate: '',

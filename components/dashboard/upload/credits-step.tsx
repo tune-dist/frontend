@@ -3,28 +3,14 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { UploadFormData, Songwriter } from './types'
+import { UploadFormData, Songwriter, Track } from './types'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink, Music, X, GripVertical, Pencil, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 
-// Track interface for individual tracks
-interface Track {
-    id: string
-    title: string
-    subtitle: string
-    artistName: string
-    featuringArtist: string
-    language: string
-    explicitLyrics: string
-    spotifyProfile: string
-    youtubeMusicProfile: string
-    instagramProfile: string
-    instagramProfileUrl: string
-    facebookProfile: string
-    facebookProfileUrl: string
-}
 
+
+// CreditsStepProps interface
 interface CreditsStepProps {
     formData: UploadFormData
     setFormData: (data: UploadFormData) => void
@@ -35,25 +21,15 @@ interface CreditsStepProps {
 }
 
 export default function CreditsStep({ formData, setFormData, songwriters, setSongwriters, composers, setComposers }: CreditsStepProps) {
+    // ... (state unchanged) ...
+
     const [isSearching, setIsSearching] = useState(false)
     const [isTrackModalOpen, setIsTrackModalOpen] = useState(false)
-    const [tracks, setTracks] = useState<Track[]>([])
+    const tracks = formData.tracks || []
+    const setTracks = (newTracks: Track[]) => {
+        setFormData({ ...formData, tracks: newTracks })
+    }
     const [editingTrackIndex, setEditingTrackIndex] = useState<number | null>(null)
-    const [currentTrack, setCurrentTrack] = useState<Track>({
-        id: '',
-        title: '',
-        subtitle: '',
-        artistName: '',
-        featuringArtist: '',
-        language: '',
-        explicitLyrics: 'no',
-        spotifyProfile: '',
-        youtubeMusicProfile: '',
-        instagramProfile: '',
-        instagramProfileUrl: '',
-        facebookProfile: '',
-        facebookProfileUrl: ''
-    })
 
     const [searchResults, setSearchResults] = useState<{
         spotify: any[];
@@ -61,6 +37,7 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
         youtube: any[];
     }>({ spotify: [], apple: [], youtube: [] })
     const searchTimeout = useRef<NodeJS.Timeout | null>(null)
+
     const handleArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
         setFormData({ ...formData, artistName: name })
@@ -159,6 +136,32 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
         }
     }
 
+    const [currentTrack, setCurrentTrack] = useState<Track>({
+        id: '',
+        title: '',
+        subtitle: '',
+        artistName: '',
+        audioFile: null,
+        audioFileName: '',
+        isExplicit: false,
+        explicitLyrics: 'no',
+        featuringArtist: '',
+        language: '',
+        spotifyProfile: '',
+        youtubeMusicProfile: '',
+        instagramProfile: '',
+        instagramProfileUrl: '',
+        facebookProfile: '',
+        facebookProfileUrl: '',
+        songwriters: [{ role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }],
+        composers: [{ role: 'Composer', firstName: '', middleName: '', lastName: '' }],
+        isInstrumental: 'no',
+        previewStartTime: 'auto',
+        price: '0.99'
+    })
+
+    // ... (handlers unchanged)
+
     // Open modal for adding a new track
     const openAddTrackModal = () => {
         setCurrentTrack({
@@ -166,20 +169,95 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
             title: '',
             subtitle: '',
             artistName: formData.artistName || '',
+            audioFile: null,
+            audioFileName: '',
+            isExplicit: false,
+            explicitLyrics: 'no',
             featuringArtist: '',
             language: formData.language || '',
-            explicitLyrics: 'no',
             spotifyProfile: '',
             youtubeMusicProfile: '',
             instagramProfile: '',
             instagramProfileUrl: '',
             facebookProfile: '',
-            facebookProfileUrl: ''
+            facebookProfileUrl: '',
+            songwriters: [{ role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }],
+            composers: [{ role: 'Composer', firstName: '', middleName: '', lastName: '' }],
+            isInstrumental: 'no',
+            previewStartTime: 'auto',
+            price: '0.99',
+            previouslyReleased: 'no',
+            originalReleaseDate: '',
+            primaryGenre: '',
+            secondaryGenre: ''
         })
         setEditingTrackIndex(null)
         setSearchResults({ spotify: [], apple: [], youtube: [] })
         setIsTrackModalOpen(true)
     }
+
+    // ... (other handlers unchanged)
+
+    // Helper functions for updating track-specific songwriters/composers
+    const updateTrackSongwriter = (index: number, field: keyof Songwriter, value: string) => {
+        const currentSongwriters = currentTrack.songwriters || []
+        const updated = [...currentSongwriters]
+        if (updated[index]) {
+            updated[index] = { ...updated[index], [field]: value }
+            setCurrentTrack({ ...currentTrack, songwriters: updated })
+        }
+    }
+
+    const addTrackSongwriter = () => {
+        const currentSongwriters = currentTrack.songwriters || []
+        setCurrentTrack({
+            ...currentTrack,
+            songwriters: [...currentSongwriters, { role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }]
+        })
+    }
+
+    const removeTrackSongwriter = (index: number) => {
+        const currentSongwriters = currentTrack.songwriters || []
+        if (currentSongwriters.length > 1) {
+            setCurrentTrack({
+                ...currentTrack,
+                songwriters: currentSongwriters.filter((_, i) => i !== index)
+            })
+        }
+    }
+
+    const updateTrackComposer = (index: number, field: keyof Songwriter, value: string) => {
+        const currentComposers = currentTrack.composers || []
+        const updated = [...currentComposers]
+        if (updated[index]) {
+            updated[index] = { ...updated[index], [field]: value }
+            setCurrentTrack({ ...currentTrack, composers: updated })
+        }
+    }
+
+    const addTrackComposer = () => {
+        const currentComposers = currentTrack.composers || []
+        setCurrentTrack({
+            ...currentTrack,
+            composers: [...currentComposers, { role: 'Composer', firstName: '', middleName: '', lastName: '' }]
+        })
+    }
+
+    const removeTrackComposer = (index: number) => {
+        const currentComposers = currentTrack.composers || []
+        if (currentComposers.length > 1) {
+            setCurrentTrack({
+                ...currentTrack,
+                composers: currentComposers.filter((_, i) => i !== index)
+            })
+        }
+    }
+
+
+
+
+    // Helper functions for updating track-specific songwriters/composers
+
 
     // Open modal for editing an existing track
     const openEditTrackModal = (index: number) => {
@@ -743,8 +821,8 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                             {/* Modal Content - Scrollable */}
                             <div className="flex-1 overflow-y-auto p-4 md:p-6">
                                 <div className="space-y-4">
-                                    <h3 className="text-xl font-semibold">Release Information</h3>
-                                    <p className="text-muted-foreground">Let's start with the basics about your release</p>
+                                    {/* <h3 className="text-xl font-semibold">Release Information</h3>
+                                    <p className="text-muted-foreground">Let's start with the basics about your release</p> */}
 
                                     <div className="space-y-4 mt-6">
                                         <div className="space-y-2">
@@ -785,6 +863,112 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                                                         />
                                                     </div>
                                                 )}
+                                            </div>
+
+                                            {/* Previously Released */}
+                                            <div className="space-y-4 pt-4">
+                                                <Label className="text-base font-semibold">Has this single been previously released?</Label>
+                                                <div className="flex gap-6">
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="radio"
+                                                            id="modal-prev-no"
+                                                            checked={currentTrack.previouslyReleased === 'no'}
+                                                            onChange={() => setCurrentTrack({ ...currentTrack, previouslyReleased: 'no', originalReleaseDate: '' })}
+                                                            className="h-4 w-4"
+                                                        />
+                                                        <Label htmlFor="modal-prev-no" className="font-normal cursor-pointer">No</Label>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="radio"
+                                                            id="modal-prev-yes"
+                                                            checked={currentTrack.previouslyReleased === 'yes'}
+                                                            onChange={() => setCurrentTrack({ ...currentTrack, previouslyReleased: 'yes' })}
+                                                            className="h-4 w-4"
+                                                        />
+                                                        <Label htmlFor="modal-prev-yes" className="font-normal cursor-pointer">Yes</Label>
+                                                    </div>
+                                                </div>
+
+                                                {currentTrack.previouslyReleased === 'yes' && (
+                                                    <div className="pt-2">
+                                                        <Label htmlFor="modal-originalDate">Original Release Date</Label>
+                                                        <Input
+                                                            id="modal-originalDate"
+                                                            type="date"
+                                                            value={currentTrack.originalReleaseDate}
+                                                            onChange={(e) => setCurrentTrack({ ...currentTrack, originalReleaseDate: e.target.value })}
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Primary Genre */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="modal-primaryGenre">Primary Genre *</Label>
+                                                    <select
+                                                        id="modal-primaryGenre"
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                        value={currentTrack.primaryGenre}
+                                                        onChange={(e) => setCurrentTrack({ ...currentTrack, primaryGenre: e.target.value })}
+                                                    >
+                                                        <option value="">Select Genre</option>
+                                                        <option value="Pop">Pop</option>
+                                                        <option value="Rock">Rock</option>
+                                                        <option value="Hip Hop/Rap">Hip Hop/Rap</option>
+                                                        <option value="R&B/Soul">R&B/Soul</option>
+                                                        <option value="Electronic/Dance">Electronic/Dance</option>
+                                                        <option value="Latin">Latin</option>
+                                                        <option value="Country">Country</option>
+                                                        <option value="Jazz">Jazz</option>
+                                                        <option value="Classical">Classical</option>
+                                                        <option value="Folk">Folk</option>
+                                                        <option value="Reggae">Reggae</option>
+                                                        <option value="Blues">Blues</option>
+                                                        <option value="Metal">Metal</option>
+                                                        <option value="Alternative">Alternative</option>
+                                                        <option value="Indie">Indie</option>
+                                                        <option value="World">World</option>
+                                                        <option value="Soundtrack">Soundtrack</option>
+                                                        <option value="Spoken Word">Spoken Word</option>
+                                                        <option value="Children's Music">Children's Music</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="modal-secondaryGenre">Secondary Genre</Label>
+                                                    <select
+                                                        id="modal-secondaryGenre"
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                        value={currentTrack.secondaryGenre}
+                                                        onChange={(e) => setCurrentTrack({ ...currentTrack, secondaryGenre: e.target.value })}
+                                                    >
+                                                        <option value="">Select Genre</option>
+                                                        <option value="Pop">Pop</option>
+                                                        <option value="Rock">Rock</option>
+                                                        <option value="Hip Hop/Rap">Hip Hop/Rap</option>
+                                                        <option value="R&B/Soul">R&B/Soul</option>
+                                                        <option value="Electronic/Dance">Electronic/Dance</option>
+                                                        <option value="Latin">Latin</option>
+                                                        <option value="Country">Country</option>
+                                                        <option value="Jazz">Jazz</option>
+                                                        <option value="Classical">Classical</option>
+                                                        <option value="Folk">Folk</option>
+                                                        <option value="Reggae">Reggae</option>
+                                                        <option value="Blues">Blues</option>
+                                                        <option value="Metal">Metal</option>
+                                                        <option value="Alternative">Alternative</option>
+                                                        <option value="Indie">Indie</option>
+                                                        <option value="World">World</option>
+                                                        <option value="Soundtrack">Soundtrack</option>
+                                                        <option value="Spoken Word">Spoken Word</option>
+                                                        <option value="Children's Music">Children's Music</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </div>
                                             </div>
 
                                             {/* Search Results / Platform Linking */}
@@ -928,6 +1112,78 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                                                 </motion.div>
                                             )}
                                         </div>
+
+
+                                        {/* Songwriter Section */}
+                                        <div className="space-y-4 pt-6 border-t border-border">
+                                            <div>
+                                                <Label className="text-lg font-semibold">Songwriter/Author</Label>
+                                                <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
+                                            </div>
+                                            {(currentTrack.songwriters || []).map((songwriter, index) => (
+                                                <div key={index} className="space-y-3 p-4 rounded-lg border border-border bg-accent/5">
+                                                    <Input
+                                                        placeholder="Enter First name and last name *"
+                                                        value={songwriter.firstName}
+                                                        onChange={(e) => updateTrackSongwriter(index, 'firstName', e.target.value)}
+                                                        className="text-sm"
+                                                    />
+                                                    {(currentTrack.songwriters?.length || 0) > 1 && (
+                                                        <Button variant="outline" size="sm" onClick={() => removeTrackSongwriter(index)} className="text-destructive">Remove</Button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            <Button variant="outline" onClick={addTrackSongwriter}>+ Add another songwriter</Button>
+                                        </div>
+
+                                        {/* Composer Section */}
+                                        <div className="space-y-4 pt-6 border-t border-border">
+                                            <div>
+                                                <Label className="text-lg font-semibold">Composer</Label>
+                                                <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
+                                            </div>
+                                            {(currentTrack.composers || []).map((composer, index) => (
+                                                <div key={index} className="space-y-3 p-4 rounded-lg border border-border bg-accent/5">
+                                                    <Input
+                                                        placeholder="Enter First name and last name"
+                                                        value={composer.firstName}
+                                                        onChange={(e) => updateTrackComposer(index, 'firstName', e.target.value)}
+                                                        className="text-sm"
+                                                    />
+                                                    {(currentTrack.composers?.length || 0) > 1 && (
+                                                        <Button variant="outline" size="sm" onClick={() => removeTrackComposer(index)} className="text-destructive">Remove</Button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            <Button variant="outline" onClick={addTrackComposer}>+ Add Composer</Button>
+                                        </div>
+
+                                        {/* Instrumental */}
+                                        <div className="space-y-3 pt-6 border-t border-border">
+                                            <Label className="text-lg font-semibold">Instrumental?</Label>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <input type="radio" id="track-inst-no" checked={currentTrack.isInstrumental === 'no'} onChange={() => setCurrentTrack({ ...currentTrack, isInstrumental: 'no' })} className="h-4 w-4" />
+                                                    <Label htmlFor="track-inst-no">This song contains lyrics</Label>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <input type="radio" id="track-inst-yes" checked={currentTrack.isInstrumental === 'yes'} onChange={() => setCurrentTrack({ ...currentTrack, isInstrumental: 'yes' })} className="h-4 w-4" />
+                                                    <Label htmlFor="track-inst-yes">This song is instrumental</Label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Preview Clip Start Time */}
+                                        <div className="space-y-3 pt-6 border-t border-border">
+                                            <Label className="text-lg font-semibold">Preview clip start time</Label>
+                                            <Input
+                                                placeholder="HH:MM:SS"
+                                                value={currentTrack.previewStartTime}
+                                                onChange={(e) => setCurrentTrack({ ...currentTrack, previewStartTime: e.target.value })}
+                                            />
+                                        </div>
+
+
 
                                         {/* Social Media Profiles */}
                                         <div className="space-y-6 pt-6 border-t border-border">

@@ -5,6 +5,35 @@ export interface Songwriter {
     lastName: string
 }
 
+// Track specific data
+export interface Track {
+    id: string
+    title: string
+    subtitle?: string // version/subtitle
+    artistName: string
+    audioFile: File | null
+    audioFileName: string
+    isExplicit: boolean
+    explicitLyrics: string
+    isInstrumental: string
+    previewStartTime: string
+    price?: string
+    songwriters?: Songwriter[]
+    composers?: Songwriter[]
+    featuringArtist?: string
+    language?: string
+    spotifyProfile?: string
+    youtubeMusicProfile?: string
+    instagramProfile?: string
+    instagramProfileUrl?: string
+    facebookProfile?: string
+    facebookProfileUrl?: string
+    previouslyReleased?: string
+    originalReleaseDate?: string
+    primaryGenre?: string
+    secondaryGenre?: string
+}
+
 export interface UploadFormData {
     // Basic Info
     numberOfSongs: string
@@ -17,7 +46,7 @@ export interface UploadFormData {
     releaseType: string
     isExplicit: boolean
     explicitLyrics: string // 'yes' | 'no'
-    format: string
+    format: 'single' | 'ep' | 'album' | string
 
     // Social media & platforms
     spotifyProfile: string
@@ -28,12 +57,15 @@ export interface UploadFormData {
     facebookProfile: string
     facebookProfileUrl: string
 
-    // Files
+    // Files (Legacy for Single / First track)
     audioFile: File | null
     audioFileName: string
     coverArt: File | null
     coverArtPreview: string
     dolbyAtmos: string // 'yes' | 'no'
+
+    // Multi-track support
+    tracks: Track[]
 
     // Release Details
     releaseDate: string
