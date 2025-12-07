@@ -53,7 +53,7 @@ export default function DashboardPage() {
           getReleases({ limit: 5 }),
           getUsageStats(),
         ])
-        setReleases(releasesData.data)
+        setReleases(releasesData.releases)
         setUsageStats(statsData)
       } catch (error) {
         toast.error('Failed to fetch dashboard data')
@@ -82,7 +82,7 @@ export default function DashboardPage() {
   }
 
   const formatStatus = (status: string) => {
-    return status.split('_').map(word => 
+    return status.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ')
   }
@@ -162,8 +162,8 @@ export default function DashboardPage() {
                   {usageStats?.releases.canUpload ? 'Yes' : 'No'}
                 </div>
                 <CardDescription className="mt-1">
-                  {usageStats?.releases.limit === 0 
-                    ? 'Unlimited releases' 
+                  {usageStats?.releases.limit === 0
+                    ? 'Unlimited releases'
                     : `${usageStats?.releases.limit} release${usageStats?.releases.limit > 1 ? 's' : ''} limit`
                   }
                 </CardDescription>

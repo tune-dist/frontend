@@ -90,12 +90,12 @@ export interface CreateReleaseData {
 }
 
 export interface ReleasesResponse {
-  data: Release[];
+  releases: Release[];
   pagination: {
     total: number;
     page: number;
     limit: number;
-    pages: number;
+    totalPages: number;
   };
 }
 
