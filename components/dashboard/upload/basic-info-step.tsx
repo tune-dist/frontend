@@ -101,12 +101,12 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="title">Version/Subtitle</Label>
+                    <Label htmlFor="version">Version/Subtitle</Label>
                     <Input
-                        id="title"
-                        placeholder="Enter title"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        id="version"
+                        placeholder="Enter version/subtitle"
+                        value={formData.version}
+                        onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                     />
                 </div>
 

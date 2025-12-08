@@ -38,7 +38,9 @@ export interface UploadFormData {
     // Basic Info
     numberOfSongs: string
     title: string
+    version: string
     artistName: string
+    isrc: string
     previouslyReleased: string // 'yes' | 'no'
     primaryGenre: string
     secondaryGenre: string

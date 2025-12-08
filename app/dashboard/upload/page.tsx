@@ -70,11 +70,13 @@ export default function UploadPage() {
     numberOfSongs: '1',
     title: '',
     artistName: '',
+    version: '',
     previouslyReleased: 'no',
     primaryGenre: '',
     secondaryGenre: '',
     language: 'English',
     releaseType: 'single',
+    isrc: '',
     isExplicit: false,
     explicitLyrics: '', // Default
     format: '', // Added format field

@@ -334,7 +334,15 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
             <h3 className="text-xl font-semibold">Credits & Metadata</h3>
             <p className="text-muted-foreground">Give credit to everyone involved</p>
             <div className="space-y-4 mt-6">
-
+                <div className="space-y-2">
+                    <Label htmlFor="isrc">ISRC</Label>
+                    <Input
+                        id="isrc"
+                        placeholder="Enter ISRC"
+                        value={formData.isrc}
+                        onChange={(e) => setFormData({ ...formData, isrc: e.target.value })}
+                    />
+                </div>
                 {/* 
                 <div className="space-y-2">
                     <Label htmlFor="writers">Composer*</Label>
@@ -709,7 +717,7 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                     )}
 
                     {/* Add Track Button - Below the list */}
-                    {formData.format == 'ep' || formData.format == 'album' && <Button
+                    {(formData.format == 'ep' || formData.format == 'album') && <Button
                         variant="outline"
                         onClick={openAddTrackModal}
                         className="w-full text-primary hover:text-primary"
@@ -821,6 +829,15 @@ export default function CreditsStep({ formData, setFormData, songwriters, setSon
                             {/* Modal Content - Scrollable */}
                             <div className="flex-1 overflow-y-auto p-4 md:p-6">
                                 <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="isrc">ISRC</Label>
+                                        <Input
+                                            id="isrc"
+                                            placeholder="Enter ISRC"
+                                            value={formData.isrc}
+                                            onChange={(e) => setFormData({ ...formData, isrc: e.target.value })}
+                                        />
+                                    </div>
                                     {/* <h3 className="text-xl font-semibold">Release Information</h3>
                                     <p className="text-muted-foreground">Let's start with the basics about your release</p> */}
 
