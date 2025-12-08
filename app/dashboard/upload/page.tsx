@@ -105,7 +105,7 @@ export default function UploadPage() {
     copyright: '',
     producers: [], // Legacy/Unused
     writers: [],
-    previewClipStartTime: 'auto',
+    previewClipStartTime: '',
     instrumental: 'no',  // Legacy/Unused
   })
 
