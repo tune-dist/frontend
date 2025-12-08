@@ -26,7 +26,12 @@ export const trackSchema = z.object({
     audioFileId: z.string(), // Reference to audioFiles array
     artistName: z.string().optional(), // Per-track artist name
     language: z.string().optional(), // Per-track language
-    isrc: z.string().optional(),
+    isrc: z.string().optional().refine((val) => {
+        if (!val || val.trim() === '') return true;
+        return /^[A-Z]{2}-[A-Z0-9]{3}-\d{2}-\d{5}$/i.test(val);
+    }, {
+        message: 'ISRC must be in format: XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)'
+    }),
     previouslyReleased: z.string().optional(),
     originalReleaseDate: z.string().optional(),
     primaryGenre: z.string().optional(),
@@ -51,7 +56,12 @@ export const uploadFormSchema = z.object({
     title: z.string().min(1, 'Title is required'),
     version: z.string().optional(),
     artistName: z.string().min(1, 'Artist Name is required'),
-    isrc: z.string().optional(), // Add regex validation if needed
+    isrc: z.string().optional().refine((val) => {
+        if (!val || val.trim() === '') return true;
+        return /^[A-Z]{2}-[A-Z0-9]{3}-\d{2}-\d{5}$/i.test(val);
+    }, {
+        message: 'ISRC must be in format: XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)'
+    }), // Add regex validation if needed
     previouslyReleased: z.enum(['yes', 'no']),
     primaryGenre: z.string().min(1, 'Primary genre is required'),
     secondaryGenre: z.string().optional(),

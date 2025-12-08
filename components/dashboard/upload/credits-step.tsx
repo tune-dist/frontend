@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { UploadFormData, Songwriter, Track, AudioFile } from './types'
 import { useFormContext, useFieldArray } from 'react-hook-form'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Music, Pencil } from 'lucide-react'
 import TrackEditModal from './track-edit-modal'
+import { getGenres, type Genre } from '@/lib/api/genres'
 
 interface CreditsStepProps {
     formData?: UploadFormData
@@ -29,6 +30,25 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
     // Track modal state
     const [isTrackModalOpen, setIsTrackModalOpen] = useState(false)
     const [editingTrackIndex, setEditingTrackIndex] = useState<number | null>(null)
+
+    // Genres state
+    const [genres, setGenres] = useState<Genre[]>([])
+    const [genresLoading, setGenresLoading] = useState(true)
+
+    // Fetch genres on mount
+    useEffect(() => {
+        const fetchGenres = async () => {
+            try {
+                const fetchedGenres = await getGenres()
+                setGenres(fetchedGenres)
+            } catch (error) {
+                console.error('Failed to fetch genres:', error)
+            } finally {
+                setGenresLoading(false)
+            }
+        }
+        fetchGenres()
+    }, [])
 
     // UseFieldArray for songwriters and composers (for single format)
     const { fields: songwriterFields, append: appendSongwriter, remove: removeSongwriter } = useFieldArray({
@@ -160,9 +180,13 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
                             <Label htmlFor="isrc">ISRC</Label>
                             <Input
                                 id="isrc"
-                                placeholder="Enter ISRC"
+                                placeholder="XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)"
                                 {...register('isrc')}
+                                className={errors.isrc ? 'border-red-500' : ''}
                             />
+                            {errors.isrc && (
+                                <p className="text-xs text-red-500 mt-1">{String(errors.isrc.message)}</p>
+                            )}
                         </div>
 
                         {/* Previously Released */}
@@ -207,23 +231,15 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
                                     {...register('primaryGenre')}
                                 >
                                     <option value="">Select a genre</option>
-                                    <option value="pop">Pop</option>
-                                    <option value="rock">Rock</option>
-                                    <option value="hip-hop">Hip-Hop/Rap</option>
-                                    <option value="electronic">Electronic</option>
-                                    <option value="r&b">R&B/Soul</option>
-                                    <option value="country">Country</option>
-                                    <option value="jazz">Jazz</option>
-                                    <option value="classical">Classical</option>
-                                    <option value="indie">Indie</option>
-                                    <option value="alternative">Alternative</option>
-                                    <option value="folk">Folk</option>
-                                    <option value="reggae">Reggae</option>
-                                    <option value="latin">Latin</option>
-                                    <option value="world">World</option>
-                                    <option value="metal">Metal</option>
-                                    <option value="blues">Blues</option>
-                                    <option value="other">Other</option>
+                                    {genresLoading ? (
+                                        <option disabled>Loading genres...</option>
+                                    ) : (
+                                        genres.map((genre) => (
+                                            <option key={genre._id} value={genre.slug}>
+                                                {genre.name}
+                                            </option>
+                                        ))
+                                    )}
                                 </select>
                                 {errors.primaryGenre && <p className="text-xs text-red-500 mt-1">{String(errors.primaryGenre.message)}</p>}
                             </div>
@@ -238,23 +254,15 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
                                     {...register('secondaryGenre')}
                                 >
                                     <option value="">Select another genre</option>
-                                    <option value="pop">Pop</option>
-                                    <option value="rock">Rock</option>
-                                    <option value="hip-hop">Hip-Hop/Rap</option>
-                                    <option value="electronic">Electronic</option>
-                                    <option value="r&b">R&B/Soul</option>
-                                    <option value="country">Country</option>
-                                    <option value="jazz">Jazz</option>
-                                    <option value="classical">Classical</option>
-                                    <option value="indie">Indie</option>
-                                    <option value="alternative">Alternative</option>
-                                    <option value="folk">Folk</option>
-                                    <option value="reggae">Reggae</option>
-                                    <option value="latin">Latin</option>
-                                    <option value="world">World</option>
-                                    <option value="metal">Metal</option>
-                                    <option value="blues">Blues</option>
-                                    <option value="other">Other</option>
+                                    {genresLoading ? (
+                                        <option disabled>Loading genres...</option>
+                                    ) : (
+                                        genres.map((genre) => (
+                                            <option key={genre._id} value={genre.slug}>
+                                                {genre.name}
+                                            </option>
+                                        ))
+                                    )}
                                 </select>
                             </div>
                         </div>

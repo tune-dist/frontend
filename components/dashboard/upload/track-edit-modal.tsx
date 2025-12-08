@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Track, Songwriter } from './types'
 import { useState, useRef, useEffect } from 'react'
 import { Music, X, Loader2 } from 'lucide-react'
+import { getGenres, type Genre } from '@/lib/api/genres'
 
 interface TrackEditModalProps {
     isOpen: boolean
@@ -20,6 +21,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [trackTitle, setTrackTitle] = useState(track?.title || '')
     const [language, setLanguage] = useState(track?.language || '')
     const [isrc, setIsrc] = useState(track?.isrc || '')
+    const [isrcError, setIsrcError] = useState('')
     const [previouslyReleased, setPreviouslyReleased] = useState(track?.previouslyReleased || 'no')
     const [primaryGenre, setPrimaryGenre] = useState(track?.primaryGenre || '')
     const [secondaryGenre, setSecondaryGenre] = useState(track?.secondaryGenre || '')
@@ -44,6 +46,25 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [facebookStatus, setFacebookStatus] = useState(track?.facebookProfile ? 'yes' : 'no')
     const [instagramUrl, setInstagramUrl] = useState(track?.instagramProfile || '')
     const [facebookUrl, setFacebookUrl] = useState(track?.facebookProfile || '')
+
+    // Genres state
+    const [genres, setGenres] = useState<Genre[]>([])
+    const [genresLoading, setGenresLoading] = useState(true)
+
+    // Fetch genres on mount
+    useEffect(() => {
+        const fetchGenres = async () => {
+            try {
+                const fetchedGenres = await getGenres()
+                setGenres(fetchedGenres)
+            } catch (error) {
+                console.error('Failed to fetch genres:', error)
+            } finally {
+                setGenresLoading(false)
+            }
+        }
+        fetchGenres()
+    }, [])
 
     // Update state when track changes (switching between different tracks)
     useEffect(() => {
@@ -106,8 +127,33 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         }
     }
 
+    const handleISRCChange = (value: string) => {
+        setIsrc(value)
+
+        // Only validate if there's a value
+        if (value.trim() === '') {
+            setIsrcError('')
+            return
+        }
+
+        // ISRC Format: XX-XXX-XX-XXXXX
+        // 2 letters, dash, 3 alphanumeric, dash, 2 digits, dash, 5 digits
+        const isrcPattern = /^[A-Z]{2}-[A-Z0-9]{3}-\d{2}-\d{5}$/i
+
+        if (!isrcPattern.test(value)) {
+            setIsrcError('ISRC must be in format: XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)')
+        } else {
+            setIsrcError('')
+        }
+    }
+
     const handleSave = () => {
         if (track && trackIndex !== null) {
+            // Check for ISRC validation error
+            if (isrcError) {
+                return // Don't save if there's an ISRC error
+            }
+
             const updatedTrack: Track = {
                 ...track,
                 title: trackTitle,
@@ -383,231 +429,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             </div>
                         )}
                     </div>
-
-                    {/* Language */}
-                    <div className="space-y-2">
-                        <Label htmlFor="track-language">Language</Label>
-                        <select
-                            id="track-language"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={language}
-                            onChange={(e) => setLanguage(e.target.value)}
-                        >
-                            <option value="">Select a language</option>
-                            <option value="english">English</option>
-                            <option value="spanish">Spanish</option>
-                            <option value="french">French</option>
-                            <option value="german">German</option>
-                            <option value="italian">Italian</option>
-                            <option value="portuguese">Portuguese</option>
-                            <option value="japanese">Japanese</option>
-                            <option value="korean">Korean</option>
-                            <option value="chinese">Chinese (Mandarin)</option>
-                            <option value="hindi">Hindi</option>
-                            <option value="arabic">Arabic</option>
-                            <option value="russian">Russian</option>
-                            <option value="turkish">Turkish</option>
-                            <option value="dutch">Dutch</option>
-                            <option value="swedish">Swedish</option>
-                            <option value="polish">Polish</option>
-                            <option value="urdu">Urdu</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    {/* ISRC */}
-                    <div className="space-y-2">
-                        <Label htmlFor="track-isrc">ISRC</Label>
-                        <Input
-                            id="track-isrc"
-                            placeholder="Enter ISRC for this track"
-                            value={isrc}
-                            onChange={(e) => setIsrc(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Previously Released */}
-                    <div className="space-y-3">
-                        <Label className="text-lg font-semibold">Has this track been previously released?</Label>
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-prev-no"
-                                    name="track-previously-released"
-                                    value="no"
-                                    checked={previouslyReleased === 'no'}
-                                    onChange={() => setPreviouslyReleased('no')}
-                                />
-                                <Label htmlFor="track-prev-no">No</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-prev-yes"
-                                    name="track-previously-released"
-                                    value="yes"
-                                    checked={previouslyReleased === 'yes'}
-                                    onChange={() => setPreviouslyReleased('yes')}
-                                />
-                                <Label htmlFor="track-prev-yes">Yes</Label>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Primary Genre */}
-                    <div className="space-y-2">
-                        <Label htmlFor="track-genre">Primary Genre</Label>
-                        <select
-                            id="track-genre"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={primaryGenre}
-                            onChange={(e) => setPrimaryGenre(e.target.value)}
-                        >
-                            <option value="">Select a genre</option>
-                            <option value="pop">Pop</option>
-                            <option value="rock">Rock</option>
-                            <option value="hip-hop">Hip-Hop/Rap</option>
-                            <option value="electronic">Electronic</option>
-                            <option value="r&b">R&B/Soul</option>
-                            <option value="country">Country</option>
-                            <option value="jazz">Jazz</option>
-                            <option value="classical">Classical</option>
-                            <option value="indie">Indie</option>
-                            <option value="alternative">Alternative</option>
-                            <option value="folk">Folk</option>
-                            <option value="reggae">Reggae</option>
-                            <option value="latin">Latin</option>
-                            <option value="world">World</option>
-                            <option value="metal">Metal</option>
-                            <option value="blues">Blues</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    {/* Secondary Genre */}
-                    <div className="space-y-2">
-                        <Label htmlFor="track-genre-2">Secondary Genre (optional)</Label>
-                        <select
-                            id="track-genre-2"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={secondaryGenre}
-                            onChange={(e) => setSecondaryGenre(e.target.value)}
-                        >
-                            <option value="">Select another genre</option>
-                            <option value="pop">Pop</option>
-                            <option value="rock">Rock</option>
-                            <option value="hip-hop">Hip-Hop/Rap</option>
-                            <option value="electronic">Electronic</option>
-                            <option value="r&b">R&B/Soul</option>
-                            <option value="country">Country</option>
-                            <option value="jazz">Jazz</option>
-                            <option value="classical">Classical</option>
-                            <option value="indie">Indie</option>
-                            <option value="alternative">Alternative</option>
-                            <option value="folk">Folk</option>
-                            <option value="reggae">Reggae</option>
-                            <option value="latin">Latin</option>
-                            <option value="world">World</option>
-                            <option value="metal">Metal</option>
-                            <option value="blues">Blues</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    {/* Songwriters */}
-                    <div className="space-y-3 pt-4 border-t">
-                        <div>
-                            <Label className="text-lg font-semibold">Songwriter/Author</Label>
-                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
-                        </div>
-                        {modalSongwriters.map((songwriter, idx) => (
-                            <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
-                                <Input
-                                    placeholder="Enter First name and last name *"
-                                    value={songwriter.firstName}
-                                    onChange={(e) => {
-                                        const updated = [...modalSongwriters]
-                                        updated[idx].firstName = e.target.value
-                                        setModalSongwriters(updated)
-                                    }}
-                                />
-                                {modalSongwriters.length > 1 && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setModalSongwriters(modalSongwriters.filter((_, i) => i !== idx))}
-                                        className="text-destructive hover:text-destructive"
-                                        type="button"
-                                    >
-                                        Remove songwriter
-                                    </Button>
-                                )}
-                            </div>
-                        ))}
-                        <Button
-                            variant="outline"
-                            onClick={() => setModalSongwriters([...modalSongwriters, { role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }])}
-                            className="text-primary hover:text-primary"
-                            type="button"
-                        >
-                            + Add another songwriter
-                        </Button>
-                    </div>
-
-                    {/* Composers */}
-                    <div className="space-y-3 pt-4 border-t">
-                        <div>
-                            <Label className="text-lg font-semibold">Composer</Label>
-                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
-                        </div>
-                        {modalComposers.map((composer, idx) => (
-                            <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
-                                <Input
-                                    placeholder="Enter First name and last name"
-                                    value={composer.firstName}
-                                    onChange={(e) => {
-                                        const updated = [...modalComposers]
-                                        updated[idx].firstName = e.target.value
-                                        setModalComposers(updated)
-                                    }}
-                                />
-                                {modalComposers.length > 1 && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setModalComposers(modalComposers.filter((_, i) => i !== idx))}
-                                        className="text-destructive hover:text-destructive"
-                                        type="button"
-                                    >
-                                        Remove Composer
-                                    </Button>
-                                )}
-                            </div>
-                        ))}
-                        <Button
-                            variant="outline"
-                            onClick={() => setModalComposers([...modalComposers, { role: 'Composer', firstName: '', middleName: '', lastName: '' }])}
-                            className="text-primary hover:text-primary"
-                            type="button"
-                        >
-                            + Add Composer
-                        </Button>
-                    </div>
-
-                    {/* Preview Clip Start Time */}
-                    <div className="space-y-3 pt-4 border-t">
-                        <Label htmlFor="track-preview-time" className="text-lg font-semibold">
-                            Preview clip start time <span className="text-muted-foreground font-normal">(TikTok, Apple Music, iTunes)</span>
-                        </Label>
-                        <Input
-                            id="track-preview-time"
-                            placeholder="HH:MM:SS"
-                            value={previewClipStartTime}
-                            onChange={(e) => setPreviewClipStartTime(e.target.value)}
-                        />
-                    </div>
-
                     {/* Instagram */}
                     <div className="space-y-3 pt-4 border-t">
                         <div className="flex items-center gap-2">
@@ -716,6 +537,219 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             </div>
                         )}
                     </div>
+                    {/* Language */}
+                    <div className="space-y-2">
+                        <Label htmlFor="track-language">Language</Label>
+                        <select
+                            id="track-language"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={language}
+                            onChange={(e) => setLanguage(e.target.value)}
+                        >
+                            <option value="">Select a language</option>
+                            <option value="english">English</option>
+                            <option value="spanish">Spanish</option>
+                            <option value="french">French</option>
+                            <option value="german">German</option>
+                            <option value="italian">Italian</option>
+                            <option value="portuguese">Portuguese</option>
+                            <option value="japanese">Japanese</option>
+                            <option value="korean">Korean</option>
+                            <option value="chinese">Chinese (Mandarin)</option>
+                            <option value="hindi">Hindi</option>
+                            <option value="arabic">Arabic</option>
+                            <option value="russian">Russian</option>
+                            <option value="turkish">Turkish</option>
+                            <option value="dutch">Dutch</option>
+                            <option value="swedish">Swedish</option>
+                            <option value="polish">Polish</option>
+                            <option value="urdu">Urdu</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    {/* ISRC */}
+                    <div className="space-y-2">
+                        <Label htmlFor="track-isrc">ISRC</Label>
+                        <Input
+                            id="track-isrc"
+                            placeholder="XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)"
+                            value={isrc}
+                            onChange={(e) => handleISRCChange(e.target.value)}
+                            className={isrcError ? 'border-red-500' : ''}
+                        />
+                        {isrcError && (
+                            <p className="text-xs text-red-500 mt-1">{isrcError}</p>
+                        )}
+                    </div>
+
+                    {/* Previously Released */}
+                    <div className="space-y-3">
+                        <Label className="text-lg font-semibold">Has this track been previously released?</Label>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-prev-no"
+                                    name="track-previously-released"
+                                    value="no"
+                                    checked={previouslyReleased === 'no'}
+                                    onChange={() => setPreviouslyReleased('no')}
+                                />
+                                <Label htmlFor="track-prev-no">No</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-prev-yes"
+                                    name="track-previously-released"
+                                    value="yes"
+                                    checked={previouslyReleased === 'yes'}
+                                    onChange={() => setPreviouslyReleased('yes')}
+                                />
+                                <Label htmlFor="track-prev-yes">Yes</Label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Primary Genre */}
+                    <div className="space-y-2">
+                        <Label htmlFor="track-genre">Primary Genre</Label>
+                        <select
+                            id="track-genre"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={primaryGenre}
+                            onChange={(e) => setPrimaryGenre(e.target.value)}
+                        >
+                            <option value="">Select a genre</option>
+                            {genresLoading ? (
+                                <option disabled>Loading genres...</option>
+                            ) : (
+                                genres.map((genre) => (
+                                    <option key={genre._id} value={genre.slug}>
+                                        {genre.name}
+                                    </option>
+                                ))
+                            )}
+                        </select>
+                    </div>
+
+                    {/* Secondary Genre */}
+                    <div className="space-y-2">
+                        <Label htmlFor="track-genre-2">Secondary Genre (optional)</Label>
+                        <select
+                            id="track-genre-2"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={secondaryGenre}
+                            onChange={(e) => setSecondaryGenre(e.target.value)}
+                        >
+                            <option value="">Select another genre</option>
+                            {genresLoading ? (
+                                <option disabled>Loading genres...</option>
+                            ) : (
+                                genres.map((genre) => (
+                                    <option key={genre._id} value={genre.slug}>
+                                        {genre.name}
+                                    </option>
+                                ))
+                            )}
+                        </select>
+                    </div>
+
+                    {/* Songwriters */}
+                    <div className="space-y-3 pt-4 border-t">
+                        <div>
+                            <Label className="text-lg font-semibold">Songwriter/Author</Label>
+                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
+                        </div>
+                        {modalSongwriters.map((songwriter, idx) => (
+                            <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
+                                <Input
+                                    placeholder="Enter First name and last name *"
+                                    value={songwriter.firstName}
+                                    onChange={(e) => {
+                                        const updated = [...modalSongwriters]
+                                        updated[idx].firstName = e.target.value
+                                        setModalSongwriters(updated)
+                                    }}
+                                />
+                                {modalSongwriters.length > 1 && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setModalSongwriters(modalSongwriters.filter((_, i) => i !== idx))}
+                                        className="text-destructive hover:text-destructive"
+                                        type="button"
+                                    >
+                                        Remove songwriter
+                                    </Button>
+                                )}
+                            </div>
+                        ))}
+                        <Button
+                            variant="outline"
+                            onClick={() => setModalSongwriters([...modalSongwriters, { role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }])}
+                            className="text-primary hover:text-primary"
+                            type="button"
+                        >
+                            + Add another songwriter
+                        </Button>
+                    </div>
+
+                    {/* Composers */}
+                    <div className="space-y-3 pt-4 border-t">
+                        <div>
+                            <Label className="text-lg font-semibold">Composer</Label>
+                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
+                        </div>
+                        {modalComposers.map((composer, idx) => (
+                            <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
+                                <Input
+                                    placeholder="Enter First name and last name"
+                                    value={composer.firstName}
+                                    onChange={(e) => {
+                                        const updated = [...modalComposers]
+                                        updated[idx].firstName = e.target.value
+                                        setModalComposers(updated)
+                                    }}
+                                />
+                                {modalComposers.length > 1 && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setModalComposers(modalComposers.filter((_, i) => i !== idx))}
+                                        className="text-destructive hover:text-destructive"
+                                        type="button"
+                                    >
+                                        Remove Composer
+                                    </Button>
+                                )}
+                            </div>
+                        ))}
+                        <Button
+                            variant="outline"
+                            onClick={() => setModalComposers([...modalComposers, { role: 'Composer', firstName: '', middleName: '', lastName: '' }])}
+                            className="text-primary hover:text-primary"
+                            type="button"
+                        >
+                            + Add Composer
+                        </Button>
+                    </div>
+
+                    {/* Preview Clip Start Time */}
+                    <div className="space-y-3 pt-4 border-t">
+                        <Label htmlFor="track-preview-time" className="text-lg font-semibold">
+                            Preview clip start time <span className="text-muted-foreground font-normal">(TikTok, Apple Music, iTunes)</span>
+                        </Label>
+                        <Input
+                            id="track-preview-time"
+                            placeholder="HH:MM:SS"
+                            value={previewClipStartTime}
+                            onChange={(e) => setPreviewClipStartTime(e.target.value)}
+                        />
+                    </div>
+
+
 
                     <div className="flex justify-end gap-2 pt-4 border-t mt-6">
                         <Button variant="outline" onClick={onClose} type="button">
