@@ -4,13 +4,18 @@ import { Button } from '@/components/ui/button'
 import { Image as ImageIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData } from './types'
+import { useFormContext } from 'react-hook-form'
 
 interface CoverArtStepProps {
-    formData: UploadFormData
-    setFormData: (data: UploadFormData) => void
+    formData?: UploadFormData
+    setFormData?: (data: UploadFormData) => void
 }
 
-export default function CoverArtStep({ formData, setFormData }: CoverArtStepProps) {
+export default function CoverArtStep({ formData: propFormData, setFormData: propSetFormData }: CoverArtStepProps) {
+    const { setValue, watch, formState: { errors } } = useFormContext<UploadFormData>()
+
+    const coverArtPreview = watch('coverArtPreview')
+    const coverArt = watch('coverArt')
 
     const handleCoverArtChange = (file: File) => {
         console.log('🖼️ Album cover upload started:', file.name)
@@ -34,11 +39,8 @@ export default function CoverArtStep({ formData, setFormData }: CoverArtStepProp
                     return
                 }
 
-                setFormData({
-                    ...formData,
-                    coverArt: file,
-                    coverArtPreview: reader.result as string
-                })
+                setValue('coverArt', file, { shouldValidate: true })
+                setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
                 toast.success('Cover art selected')
             }
             img.src = reader.result as string
@@ -71,6 +73,11 @@ export default function CoverArtStep({ formData, setFormData }: CoverArtStepProp
         input.click()
     }
 
+    const handleRemove = () => {
+        setValue('coverArt', null, { shouldValidate: true })
+        setValue('coverArtPreview', '', { shouldValidate: true })
+    }
+
     return (
         <div className="space-y-4">
             <h3 className="text-xl font-semibold">Cover Art Upload</h3>
@@ -81,34 +88,38 @@ export default function CoverArtStep({ formData, setFormData }: CoverArtStepProp
                 <div className="space-y-4 pt-6 border-t border-border">
                     <h3 className="text-lg font-semibold">Album cover</h3>
 
-                    {!formData.coverArtPreview ? (
-                        <div
-                            className="border-2 border-dashed border-border rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer bg-muted/20"
-                            onClick={handleCoverArtClick}
-                            onDrop={handleCoverArtDrop}
-                            onDragOver={handleCoverArtDragOver}
-                        >
-                            <div className="flex flex-col items-center">
-                                <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
-                                <p className="text-base font-medium mb-1 text-primary">Select an image</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Or drag image here to upload
-                                </p>
+                    {!coverArtPreview ? (
+                        <>
+                            <div
+                                className={`border-2 border-dashed rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer bg-muted/20 ${errors.coverArt ? 'border-red-500' : 'border-border'
+                                    }`}
+                                onClick={handleCoverArtClick}
+                                onDrop={handleCoverArtDrop}
+                                onDragOver={handleCoverArtDragOver}
+                            >
+                                <div className="flex flex-col items-center">
+                                    <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                                    <p className="text-base font-medium mb-1 text-primary">Select an image</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Or drag image here to upload
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                            {errors.coverArt && <p className="text-xs text-red-500 mt-2">{String(errors.coverArt.message)}</p>}
+                        </>
                     ) : (
                         <div className="space-y-4">
                             <div className="relative inline-block">
                                 <img
-                                    src={formData.coverArtPreview}
+                                    src={coverArtPreview}
                                     alt="Album cover preview"
                                     className="w-full max-w-sm mx-auto rounded-lg border-2 border-border shadow-lg"
                                 />
                             </div>
-                            {formData.coverArt && (
+                            {coverArt && (
                                 <div className="text-sm text-muted-foreground text-center">
-                                    <p className="font-medium">{formData.coverArt.name}</p>
-                                    <p>{(formData.coverArt.size / 1024 / 1024).toFixed(2)} MB</p>
+                                    <p className="font-medium">{(coverArt as File).name}</p>
+                                    <p>{((coverArt as File).size / 1024 / 1024).toFixed(2)} MB</p>
                                 </div>
                             )}
                             <div className="flex justify-center gap-3">
@@ -121,7 +132,7 @@ export default function CoverArtStep({ formData, setFormData }: CoverArtStepProp
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    onClick={() => setFormData({ ...formData, coverArt: null, coverArtPreview: '' })}
+                                    onClick={handleRemove}
                                     type="button"
                                     className="text-destructive hover:text-destructive"
                                 >

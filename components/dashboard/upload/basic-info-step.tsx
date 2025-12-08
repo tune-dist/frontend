@@ -7,24 +7,47 @@ import { Label } from '@/components/ui/label'
 import { Music, ExternalLink, Info, Plus } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData } from './types'
+import { useFormContext } from 'react-hook-form'
 
 interface BasicInfoStepProps {
-    formData: UploadFormData
-    setFormData: (data: UploadFormData) => void
+    // Keeping these optional for compatibility, but we primarily use context
+    formData?: UploadFormData
+    setFormData?: (data: UploadFormData) => void
 }
 
-export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
+export default function BasicInfoStep({ formData: propFormData, setFormData: propSetFormData }: BasicInfoStepProps) {
     const { user } = useAuth()
+    const { register, formState: { errors }, watch, setValue } = useFormContext<UploadFormData>()
 
-    // Prefill title with user name
+    // Watch values for conditional rendering
+    const artistName = watch('artistName')
+    const title = watch('title')
+    const spotifyProfile = watch('spotifyProfile')
+    const appleMusicProfile = watch('appleMusicProfile')
+    const youtubeMusicProfile = watch('youtubeMusicProfile')
+    const instagramProfile = watch('instagramProfile')
+    const facebookProfile = watch('facebookProfile')
+
+    // Prefill title with user name (logic from original, slightly adjusted)
     useEffect(() => {
-        if (user?.fullName && !formData.title) {
-            setFormData({
-                ...formData,
-                title: user.fullName
-            })
+        // Only if title is empty and user has a name? Or maybe not force it? 
+        // Original logic: if (user?.fullName && !formData.title)
+        if (user?.fullName && !title) {
+            setValue('title', user.fullName) // Assuming this was desired behavior, though usually title is Song Title not User Name? 
+            // The original logic did THIS: setFormData({ ...formData, title: user.fullName })
+            // Maybe they meant Artist Name? "Title" is track title. 
+            // If the user is an artist, maybe they want the artist name prefilled?
+            // The original code used `title: user.fullName`.
+            // Let's keep it but it's weird for a song title. 
+            // Actually, maybe the USER meant "Artist Name" prefill? 
+            // Let's assume the original code was correct for "Title" or maybe it was a mistake i should fix?
+            // I will prefill Artist Name if empty, seems more logical for a user profile.
+            // But strict adherence to previous behavior: title.
+            // I'll stick to original behavior but maybe check if 'artistName' is empty too?
+            // Let's set ArtistName too if empty.
+            // if (!artistName) setValue('artistName', user.fullName)
         }
-    }, [user, formData.title, setFormData, formData])
+    }, [user, title, setValue, artistName])
 
     // Search State
     const [isSearching, setIsSearching] = useState(false)
@@ -38,7 +61,7 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
 
     const handleArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
-        setFormData({ ...formData, artistName: name })
+        setValue('artistName', name, { shouldValidate: true })
 
         if (searchTimeout.current) {
             clearTimeout(searchTimeout.current)
@@ -96,29 +119,34 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                     <Input
                         id="title"
                         placeholder="Enter title"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        {...register('title')}
+                        className={errors.title ? 'border-red-500' : ''}
                     />
+                    {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="version">Version/Subtitle</Label>
                     <Input
                         id="version"
                         placeholder="Enter version/subtitle"
-                        value={formData.version}
-                        onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                        {...register('version')}
                     />
                 </div>
 
                 <div className="space-y-4">
                     <Label htmlFor="artistName">Artist Name *</Label>
+                </div>
+                <div className="relative">
                     <div className="relative">
                         <Input
                             id="artistName"
                             placeholder="Your artist name"
-                            value={formData.artistName}
-                            onChange={handleArtistNameChange}
-                            className={isSearching ? 'pr-10' : ''}
+                            {...register('artistName')}
+                            onChange={(e) => {
+                                register('artistName').onChange(e) // Call original hook form handler
+                                handleArtistNameChange(e) // Call our custom search handler
+                            }}
+                            className={`${isSearching ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''}`}
                         />
                         {isSearching && (
                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -130,9 +158,10 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                             </div>
                         )}
                     </div>
+                    {errors.artistName && <p className="text-xs text-red-500 mt-1">{errors.artistName.message}</p>}
 
                     {/* Search Results / Platform Linking */}
-                    {formData.artistName.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0) && (
+                    {artistName && artistName.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0) && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -152,23 +181,24 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                             </svg>
                                             <span className="text-sm font-medium">Spotify</span>
                                         </div>
-                                        {formData.spotifyProfile && (
+                                        {spotifyProfile && (
                                             <button
-                                                onClick={() => setFormData({ ...formData, spotifyProfile: '' })}
+                                                onClick={() => setValue('spotifyProfile', '')}
                                                 className="text-xs text-primary hover:underline hover:text-primary/80"
+                                                type="button"
                                             >
                                                 Change Selection
                                             </button>
                                         )}
                                     </div>
 
-                                    {!formData.spotifyProfile ? (
+                                    {!spotifyProfile ? (
                                         <>
                                             {searchResults.spotify.map((artist: any) => (
                                                 <div
                                                     key={artist.id}
                                                     className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
-                                                    onClick={() => setFormData({ ...formData, spotifyProfile: artist.id })}
+                                                    onClick={() => setValue('spotifyProfile', artist.id)}
                                                 >
                                                     <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
                                                         <div className="h-2 w-2 rounded-full hidden" />
@@ -200,13 +230,13 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                             <div className="space-y-2 mt-4">
                                                 <div
                                                     className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                                    onClick={() => setFormData({ ...formData, spotifyProfile: 'new' })}
+                                                    onClick={() => setValue('spotifyProfile', 'new')}
                                                 >
                                                     <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                        {formData.spotifyProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                        {spotifyProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
                                                     </div>
                                                     <Label className="font-normal cursor-pointer">
-                                                        This will be my first <strong>{formData.artistName}</strong> release in Spotify.
+                                                        This will be my first <strong>{artistName}</strong> release in Spotify.
                                                     </Label>
                                                 </div>
                                             </div>
@@ -214,19 +244,19 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                     ) : (
                                         // Selected View
                                         <div className="bg-primary/10 border border-primary rounded-md p-3">
-                                            {formData.spotifyProfile === 'new' ? (
+                                            {spotifyProfile === 'new' ? (
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                                                         <Plus className="h-5 w-5 text-primary" />
                                                     </div>
                                                     <div>
                                                         <p className="font-medium text-primary">New Artist Profile</p>
-                                                        <p className="text-sm text-muted-foreground">Creating a new profile for {formData.artistName}</p>
+                                                        <p className="text-sm text-muted-foreground">Creating a new profile for {artistName}</p>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 (() => {
-                                                    const selected = searchResults.spotify.find(a => a.id === formData.spotifyProfile)
+                                                    const selected = searchResults.spotify.find(a => a.id === spotifyProfile)
                                                     if (!selected) return null;
                                                     return (
                                                         <div className="flex items-center gap-3">
@@ -263,23 +293,24 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                             </svg>
                                             <span className="text-sm font-medium">Apple Music</span>
                                         </div>
-                                        {formData.appleMusicProfile && (
+                                        {appleMusicProfile && (
                                             <button
-                                                onClick={() => setFormData({ ...formData, appleMusicProfile: '' })}
+                                                onClick={() => setValue('appleMusicProfile', '')}
                                                 className="text-xs text-primary hover:underline hover:text-primary/80"
+                                                type="button"
                                             >
                                                 Change Selection
                                             </button>
                                         )}
                                     </div>
 
-                                    {!formData.appleMusicProfile ? (
+                                    {!appleMusicProfile ? (
                                         <>
                                             {searchResults.apple.map((artist: any) => (
                                                 <div
                                                     key={artist.id}
                                                     className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
-                                                    onClick={() => setFormData({ ...formData, appleMusicProfile: artist.id })}
+                                                    onClick={() => setValue('appleMusicProfile', artist.id)}
                                                 >
                                                     <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
                                                         <div className="h-2 w-2 rounded-full hidden" />
@@ -307,13 +338,13 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                             <div className="space-y-2 mt-4">
                                                 <div
                                                     className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                                    onClick={() => setFormData({ ...formData, appleMusicProfile: 'new' })}
+                                                    onClick={() => setValue('appleMusicProfile', 'new')}
                                                 >
                                                     <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                        {formData.appleMusicProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                        {appleMusicProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
                                                     </div>
                                                     <Label className="font-normal cursor-pointer">
-                                                        This will be my first <strong>{formData.artistName}</strong> release in Apple Music.
+                                                        This will be my first <strong>{artistName}</strong> release in Apple Music.
                                                     </Label>
                                                 </div>
                                             </div>
@@ -321,19 +352,19 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                     ) : (
                                         // Selected View
                                         <div className="bg-primary/10 border border-primary rounded-md p-3">
-                                            {formData.appleMusicProfile === 'new' ? (
+                                            {appleMusicProfile === 'new' ? (
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                                                         <Plus className="h-5 w-5 text-primary" />
                                                     </div>
                                                     <div>
                                                         <p className="font-medium text-primary">New Artist Profile</p>
-                                                        <p className="text-sm text-muted-foreground">Creating a new profile for {formData.artistName}</p>
+                                                        <p className="text-sm text-muted-foreground">Creating a new profile for {artistName}</p>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 (() => {
-                                                    const selected = searchResults.apple.find(a => a.id === formData.appleMusicProfile)
+                                                    const selected = searchResults.apple.find(a => a.id === appleMusicProfile)
                                                     if (!selected) return null;
                                                     return (
                                                         <div className="flex items-center gap-3">
@@ -364,24 +395,25 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                             </svg>
                                             <span className="text-sm font-medium">YouTube Music</span>
                                         </div>
-                                        {formData.youtubeMusicProfile && (
+                                        {youtubeMusicProfile && (
                                             <button
-                                                onClick={() => setFormData({ ...formData, youtubeMusicProfile: '' })}
+                                                onClick={() => setValue('youtubeMusicProfile', '')}
                                                 className="text-xs text-primary hover:underline hover:text-primary/80"
+                                                type="button"
                                             >
                                                 Change Selection
                                             </button>
                                         )}
                                     </div>
 
-                                    {!formData.youtubeMusicProfile ? (
+                                    {!youtubeMusicProfile ? (
                                         <>
                                             {searchResults.youtube.map((profile: any) => (
                                                 <div
                                                     key={profile.id}
-                                                    className={`flex items-center gap-3 p-3 rounded-md transition-colors cursor-pointer ${formData.youtubeMusicProfile === profile.id ? 'bg-primary/10 border border-primary' : 'bg-background hover:bg-accent'
+                                                    className={`flex items-center gap-3 p-3 rounded-md transition-colors cursor-pointer ${youtubeMusicProfile === profile.id ? 'bg-primary/10 border border-primary' : 'bg-background hover:bg-accent'
                                                         }`}
-                                                    onClick={() => setFormData({ ...formData, youtubeMusicProfile: profile.id })}
+                                                    onClick={() => setValue('youtubeMusicProfile', profile.id)}
                                                 >
                                                     <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
                                                         <div className="h-2 w-2 rounded-full hidden" />
@@ -409,13 +441,13 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                             <div className="space-y-2 mt-4">
                                                 <div
                                                     className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                                    onClick={() => setFormData({ ...formData, youtubeMusicProfile: 'new' })}
+                                                    onClick={() => setValue('youtubeMusicProfile', 'new')}
                                                 >
                                                     <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                        {formData.youtubeMusicProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                        {youtubeMusicProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
                                                     </div>
                                                     <Label className="font-normal cursor-pointer">
-                                                        This will be my first <strong>{formData.artistName}</strong> release in YouTube Music.
+                                                        This will be my first <strong>{artistName}</strong> release in YouTube Music.
                                                     </Label>
                                                 </div>
                                             </div>
@@ -423,19 +455,19 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                     ) : (
                                         // Selected View
                                         <div className="bg-primary/10 border border-primary rounded-md p-3">
-                                            {formData.youtubeMusicProfile === 'new' ? (
+                                            {youtubeMusicProfile === 'new' ? (
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                                                         <Plus className="h-5 w-5 text-primary" />
                                                     </div>
                                                     <div>
                                                         <p className="font-medium text-primary">New Artist Profile</p>
-                                                        <p className="text-sm text-muted-foreground">Creating a new profile for {formData.artistName}</p>
+                                                        <p className="text-sm text-muted-foreground">Creating a new profile for {artistName}</p>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 (() => {
-                                                    const selected = searchResults.youtube.find(p => p.id === formData.youtubeMusicProfile)
+                                                    const selected = searchResults.youtube.find(p => p.id === youtubeMusicProfile)
                                                     if (!selected) return null;
                                                     return (
                                                         <div className="flex items-center gap-3">
@@ -472,17 +504,15 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                 <input
                                     type="radio"
                                     id="instagram-yes"
-                                    name="instagramProfile"
                                     value="yes"
-                                    checked={formData.instagramProfile === 'yes'}
-                                    onChange={(e) => setFormData({ ...formData, instagramProfile: e.target.value })}
+                                    {...register('instagramProfile')}
                                     className="h-4 w-4 border-primary text-primary focus:ring-primary"
                                 />
                                 <Label htmlFor="instagram-yes" className="font-normal cursor-pointer">
-                                    Yes - Group with other <strong>{formData.artistName || 'artist'}</strong> releases
+                                    Yes - Group with other <strong>{artistName || 'artist'}</strong> releases
                                 </Label>
                             </div>
-                            {formData.instagramProfile === 'yes' && (
+                            {instagramProfile === 'yes' && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
@@ -491,8 +521,7 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                     <Input
                                         id="instagramUrl"
                                         placeholder="https://instagram.com/..."
-                                        value={formData.instagramProfileUrl}
-                                        onChange={(e) => setFormData({ ...formData, instagramProfileUrl: e.target.value })}
+                                        {...register('instagramProfileUrl')}
                                         className="text-sm"
                                     />
                                 </motion.div>
@@ -501,14 +530,12 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                 <input
                                     type="radio"
                                     id="instagram-no"
-                                    name="instagramProfile"
                                     value="no"
-                                    checked={formData.instagramProfile === 'no'}
-                                    onChange={(e) => setFormData({ ...formData, instagramProfile: e.target.value })}
+                                    {...register('instagramProfile')}
                                     className="h-4 w-4 border-primary text-primary focus:ring-primary"
                                 />
                                 <Label htmlFor="instagram-no" className="font-normal cursor-pointer">
-                                    No - <strong>{formData.artistName || 'Artist'}</strong> is not on Instagram
+                                    No - <strong>{artistName || 'Artist'}</strong> is not on Instagram
                                 </Label>
                             </div>
                         </div>
@@ -525,17 +552,15 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                 <input
                                     type="radio"
                                     id="facebook-yes"
-                                    name="facebookProfile"
                                     value="yes"
-                                    checked={formData.facebookProfile === 'yes'}
-                                    onChange={(e) => setFormData({ ...formData, facebookProfile: e.target.value })}
+                                    {...register('facebookProfile')}
                                     className="h-4 w-4 border-primary text-primary focus:ring-primary"
                                 />
                                 <Label htmlFor="facebook-yes" className="font-normal cursor-pointer">
-                                    Yes - Group with other <strong>{formData.artistName || 'artist'}</strong> releases
+                                    Yes - Group with other <strong>{artistName || 'artist'}</strong> releases
                                 </Label>
                             </div>
-                            {formData.facebookProfile === 'yes' && (
+                            {facebookProfile === 'yes' && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
@@ -544,8 +569,7 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                     <Input
                                         id="facebookUrl"
                                         placeholder="https://facebook.com/..."
-                                        value={formData.facebookProfileUrl}
-                                        onChange={(e) => setFormData({ ...formData, facebookProfileUrl: e.target.value })}
+                                        {...register('facebookProfileUrl')}
                                         className="text-sm"
                                     />
                                 </motion.div>
@@ -554,35 +578,31 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                                 <input
                                     type="radio"
                                     id="facebook-no"
-                                    name="facebookProfile"
                                     value="no"
-                                    checked={formData.facebookProfile === 'no'}
-                                    onChange={(e) => setFormData({ ...formData, facebookProfile: e.target.value })}
+                                    {...register('facebookProfile')}
                                     className="h-4 w-4 border-primary text-primary focus:ring-primary"
                                 />
                                 <Label htmlFor="facebook-no" className="font-normal cursor-pointer">
-                                    No - <strong>{formData.artistName || 'Artist'}</strong> is not on Facebook
+                                    No - <strong>{artistName || 'Artist'}</strong> is not on Facebook
                                 </Label>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="title">Featuring Artist</Label>
+                    <Label htmlFor="featuringArtist">Featuring Artist</Label>
                     <Input
-                        id="title"
+                        id="featuringArtist"
                         placeholder="Enter Featuring Artist"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        {...register('featuringArtist')}
                     />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="language">Language *</Label>
                     <select
                         id="language"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        value={formData.language}
-                        onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                        className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.language ? 'border-red-500' : ''}`}
+                        {...register('language')}
                     >
                         <option value="">Select a language</option>
                         <option value="hindi">Hindi</option>
@@ -598,20 +618,22 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                         <option value="urdu">Urdu</option>
                         <option value="other">Other</option>
                     </select>
+                    {errors.language && <p className="text-xs text-red-500 mt-1">{errors.language.message}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="format">Format *</Label>
                     <select
                         id="format"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        value={formData.format}
-                        onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+                        className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.format ? 'border-red-500' : ''}`}
+                        {...register('format')}
                     >
-                        <option value="">Select a format</option>
+                        <option disabled value="">Select a format</option>
+
                         <option value="single">Single</option>
                         <option value="ep">EP</option>
                         <option value="album">Album</option>
                     </select>
+                    {errors.format && <p className="text-xs text-red-500 mt-1">{errors.format.message}</p>}
                 </div>
                 <div className="space-y-3 pt-6 border-t border-border">
                     <Label className="text-lg font-semibold">
@@ -623,10 +645,8 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                             <input
                                 type="radio"
                                 id="explicitNo"
-                                name="explicitLyrics"
                                 value="no"
-                                checked={formData.explicitLyrics === 'no'}
-                                onChange={(e) => setFormData({ ...formData, explicitLyrics: e.target.value })}
+                                {...register('explicitLyrics')}
                                 className="h-4 w-4"
                             />
                             <Label htmlFor="explicitNo" className="font-normal cursor-pointer">
@@ -638,10 +658,8 @@ export default function BasicInfoStep({ formData, setFormData }: BasicInfoStepPr
                             <input
                                 type="radio"
                                 id="explicitYes"
-                                name="explicitLyrics"
                                 value="yes"
-                                checked={formData.explicitLyrics === 'yes'}
-                                onChange={(e) => setFormData({ ...formData, explicitLyrics: e.target.value })}
+                                {...register('explicitLyrics')}
                                 className="h-4 w-4"
                             />
                             <Label htmlFor="explicitYes" className="font-normal cursor-pointer">

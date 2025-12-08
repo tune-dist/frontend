@@ -11,22 +11,24 @@ import {
   Info,
   Music,
   Image as ImageIcon,
-  Calendar,
   Users,
   CheckCircle,
   ArrowLeft,
   ArrowRight
 } from 'lucide-react'
 
-// Types & Child Components
-import { UploadFormData, Songwriter, MandatoryChecks } from '@/components/dashboard/upload/types'
-import { submitNewRelease } from '@/lib/api/releases'
+// React Hook Form & Zod
+import { useForm, FormProvider } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { UploadFormData, uploadFormSchema, Songwriter, MandatoryChecks } from '@/components/dashboard/upload/types'
+
+// Child Components
 import BasicInfoStep from '@/components/dashboard/upload/basic-info-step'
 import AudioFileStep from '@/components/dashboard/upload/audio-file-step'
 import CoverArtStep from '@/components/dashboard/upload/cover-art-step'
-import ReleaseDetailsStep from '@/components/dashboard/upload/release-details-step'
 import CreditsStep from '@/components/dashboard/upload/credits-step'
 import ReviewStep from '@/components/dashboard/upload/review-step'
+import { submitNewRelease } from '@/lib/api/releases'
 
 // Animation variants
 const containerVariants = {
@@ -54,64 +56,50 @@ const steps = [
   { id: 1, name: 'Release Details', icon: Info },
   { id: 2, name: 'Audio File', icon: Music },
   { id: 3, name: 'Cover Art', icon: ImageIcon },
-  // { id: 4, name: 'Release Details', icon: Calendar },
   { id: 4, name: 'Credits', icon: Users },
   { id: 5, name: 'Review', icon: CheckCircle },
 ]
 
 export default function UploadPage() {
   const router = useRouter()
-  // const { user } = useAuth() // Moved prefill to BasicInfoStep, user not needed here yet
-
   const [currentStep, setCurrentStep] = useState(1)
 
-  const [formData, setFormData] = useState<UploadFormData>({
-    // Basic Info
-    numberOfSongs: '1',
-    title: '',
-    artistName: '',
-    version: '',
-    previouslyReleased: 'no',
-    primaryGenre: '',
-    secondaryGenre: '',
-    language: 'English',
-    releaseType: 'single',
-    isrc: '',
-    isExplicit: false,
-    explicitLyrics: '', // Default
-    format: '', // Added format field
-
-    // Social media & platforms
-    spotifyProfile: '',
-    appleMusicProfile: '',
-    youtubeMusicProfile: '',
-    instagramProfile: 'no',
-    instagramProfileUrl: '',
-    facebookProfile: 'no',
-    facebookProfileUrl: '',
-
-    // Files
-    audioFile: null,
-    audioFileName: '',
-    coverArt: null,
-    coverArtPreview: '',
-    dolbyAtmos: 'no',
-
-    // Multi-track support
-    tracks: [],
-
-    // Release Details
-    releaseDate: '',
-
-    // Credits
-    copyright: '',
-    producers: [], // Legacy/Unused
-    writers: [],
-    previewClipStartTime: '',
-    instrumental: 'no',  // Legacy/Unused
+  // Initialize Form
+  const form = useForm<UploadFormData>({
+    resolver: zodResolver(uploadFormSchema),
+    defaultValues: {
+      numberOfSongs: '1',
+      title: '',
+      artistName: '',
+      version: '',
+      previouslyReleased: 'no',
+      primaryGenre: '',
+      secondaryGenre: '',
+      language: '',
+      releaseType: 'single',
+      isrc: '',
+      isExplicit: false,
+      explicitLyrics: 'no',
+      format: '' as any, // Will trigger validation
+      tracks: [],
+      spotifyProfile: '',
+      appleMusicProfile: '',
+      youtubeMusicProfile: '',
+      instagramProfile: 'no',
+      facebookProfile: 'no',
+      dolbyAtmos: 'no',
+      instrumental: 'no',
+      songwriters: [{ role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }],
+      composers: [{ role: 'Composer', firstName: '', middleName: '', lastName: '' }],
+    },
+    mode: 'onChange'
   })
 
-  // Separate state for dynamic songwriters array
+  // Separate state for internal component logic (Credits step songwriters list etc)
+  // These could be moved into the form too, but for UI lists that map to a final field, local state is sometimes easier until submit.
+  // HOWEVER, preventing state loss on nav requires them to be lifted or in form. 
+  // For now we keep them here as in original, but we should sync them to form on submit or change.
+  // Ideally we refactor CreditsStep to useFieldArray. For now, let's keep passing them.
   const [songwriters, setSongwriters] = useState<Songwriter[]>([{
     role: 'Music and lyrics',
     firstName: '',
@@ -119,14 +107,12 @@ export default function UploadPage() {
     lastName: ''
   }])
 
-  const [composers, setComposers] = useState<Songwriter[]>([
-    {
-      role: 'Composer',
-      firstName: '',
-      middleName: '',
-      lastName: ''
-    }
-  ])
+  const [composers, setComposers] = useState<Songwriter[]>([{
+    role: 'Composer',
+    firstName: '',
+    middleName: '',
+    lastName: ''
+  }])
 
   const [mandatoryChecks, setMandatoryChecks] = useState<MandatoryChecks>({
     youtubeConfirmation: false,
@@ -137,9 +123,81 @@ export default function UploadPage() {
     termsAgreement: false,
   })
 
-  const handleNext = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1)
+  // Watch for bridging to old components
+  const formData = form.watch()
+  const setFormData = (data: Partial<UploadFormData>) => {
+    // Bridge for legacy components calling setFormData
+    Object.entries(data).forEach(([key, value]) => {
+      form.setValue(key as any, value, { shouldValidate: true, shouldDirty: true })
+    })
+  }
+
+  const handleNext = async () => {
+    let isValid = false
+
+    // Step-based validation
+    switch (currentStep) {
+      case 1: // Basic Info
+        isValid = await form.trigger([
+          'title', 'artistName', 'language', 'format'
+        ])
+        break
+      case 2: // Audio
+        if (formData.format === 'single') {
+          // For single, we need audioFile. 
+          // Note: 'audioFile' in zod is 'any'. We manually check if it's null.
+          // Ideally zod schema handles this with custom check, but File object is tricky in server/client boundary types.
+          if (!formData.audioFile) {
+            form.setError('audioFile', { type: 'required', message: 'Audio file is required' })
+            isValid = false
+          } else {
+            form.clearErrors('audioFile')
+            isValid = true
+          }
+        } else {
+          // EP/Album
+          if (formData.tracks.length === 0) {
+            toast.error('Please add at least one track')
+            isValid = false
+          } else {
+            isValid = true
+          }
+        }
+        break
+      case 3: // Cover Art
+        if (!formData.coverArt) {
+          form.setError('coverArt', { type: 'required', message: 'Cover art is required' })
+          isValid = false
+        } else {
+          isValid = true
+        }
+        break
+      case 4: // Credits
+        // Validate required fields in Credits step
+        if (formData.format === 'single') {
+          // For singles, validate genre and previously released
+          isValid = await form.trigger([
+            'primaryGenre', 'previouslyReleased'
+          ])
+        } else {
+          // For Albums/EPs, no required fields in Credits step currently
+          isValid = true
+        }
+        break
+      case 5: // Review
+        isValid = true
+        break
+      default:
+        isValid = true
+    }
+
+    if (isValid) {
+      if (currentStep < steps.length) {
+        setCurrentStep(currentStep + 1)
+      }
+    } else {
+      toast.error('Please fix the errors before proceeding')
+      // console.log(form.formState.errors) 
     }
   }
 
@@ -149,101 +207,45 @@ export default function UploadPage() {
     }
   }
 
-  const handleSubmit = async () => {
-    const errors: string[] = []
-
-    // Validate required fields
-    if (!formData.title?.trim()) errors.push('Please enter a song title')
-    if (!formData.artistName?.trim()) errors.push('Please enter an artist name')
-    if (!formData.primaryGenre) errors.push('Please select a primary genre')
-    if (!formData.language) errors.push('Please select a language')
-    if (!formData.coverArt) errors.push('Please upload an album cover') // TODO: Validation needed
-    // if (!formData.audioFile) errors.push('Please upload an audio file') // TODO: Validation needed
-
+  const onSubmit = async (data: UploadFormData) => {
+    // Final validations
     if (!mandatoryChecks.promoServices || !mandatoryChecks.rightsAuthorization || !mandatoryChecks.nameUsage || !mandatoryChecks.termsAgreement) {
-      errors.push('Please agree to all mandatory checkboxes at the bottom of the form')
+      toast.error('Please agree to all mandatory checkboxes')
+      return
     }
 
-    // Capitalization check logic
+    // Check capitalization checks if needed (logic from original)
     const hasIrregularCapitalization = (text: string) => {
       if (!text) return false
       return /[a-z][A-Z]/.test(text) || (text === text.toUpperCase() && text.length > 3)
     }
-    const needsCapitalizationCheck = hasIrregularCapitalization(formData.title) || hasIrregularCapitalization(formData.artistName)
+    const needsCapitalizationCheck = hasIrregularCapitalization(data.title) || hasIrregularCapitalization(data.artistName)
 
     if (needsCapitalizationCheck && !mandatoryChecks.capitalizationConfirmation) {
-      errors.push('Please confirm the non-standard capitalization')
-    }
-
-    if (errors.length > 0) {
-      toast.error(errors[0]) // Just show the first one for now
+      toast.error('Please confirm the non-standard capitalization')
       return
     }
 
     try {
       toast.loading('Submitting release...')
 
-      // Prepare songwriters
-      const writers = songwriters
+      // Prepare songwriters for API (legacy logic)
+      const allWriters = [...songwriters, ...composers]
         .filter(s => s.firstName || s.lastName)
-        .map(s => `${s.firstName} ${s.middleName} ${s.lastName}`.trim())
+        .map(s => `${s.firstName} ${s.middleName || ''} ${s.lastName}`.trim())
+        .filter(Boolean)
 
-      // Call API
+      // API Call
       await submitNewRelease({
-        ...formData,
-        coverArt: formData.coverArt!, // Assuming verified by step logic (Add validation above)
-        audioFile: formData.audioFile!, // Assuming verified by step logic
-        writers: writers.length > 0 ? writers : undefined,
-        // Map other fields as necessary if types don't match exactly
-        releaseType: formData.releaseType as any, // Use the form's releaseType
-        artistName: formData.artistName,
-        title: formData.title,
-        language: formData.language,
-        primaryGenre: formData.primaryGenre,
-        releaseDate: formData.releaseDate,
-        // ... rest of fields
-      } as any) // Casting as any for now to bypass strict mismatch, or map carefully. 
-      // Ideally we map properly. Let's do a best effort mapping:
-
-      /* 
-      const result = await submitNewSubmission({
-         title: formData.title,
-         artistName: formData.artistName,
-         numberOfSongs: formData.numberOfSongs,
-         previouslyReleased: formData.previouslyReleased,
-         releaseDate: formData.releaseDate,
-         // recordLabel: formData.recordLabel, // Not in form data yet?
-         language: formData.language,
-         primaryGenre: formData.primaryGenre,
-         secondaryGenre: formData.secondaryGenre,
-         
-         spotifyProfile: formData.spotifyProfile,
-         appleMusicProfile: formData.appleMusicProfile,
-         youtubeMusicProfile: formData.youtubeMusicProfile,
-         instagramProfile: formData.instagramProfile,
-         instagramProfileUrl: formData.instagramProfileUrl,
-         facebookProfile: formData.facebookProfile,
-         facebookProfileUrl: formData.facebookProfileUrl,
-
-         coverArt: formData.coverArt!,
-         coverArtPreview: formData.coverArtPreview,
-         audioFile: formData.audioFile!,
-         audioFileName: formData.audioFileName,
-
-         // artworkConfirmed: formData.artworkConfirmed,
-         explicitLyrics: formData.explicitLyrics,
-         // radioEdit: formData.radioEdit,
-         instrumental: formData.instrumental,
-         previewClipStartTime: formData.previewClipStartTime,
-
-         releaseType: 'single',
-         writers: writers.length > 0 ? writers : undefined,
-     })
-     */
+        ...data,
+        writers: allWriters.length > 0 ? allWriters : undefined,
+        // Ensure types match API expectations
+      } as any)
 
       toast.dismiss()
       toast.success('Release submitted successfully!')
       router.push('/dashboard/releases')
+
     } catch (error: any) {
       toast.dismiss()
       toast.error(error.message || 'Failed to submit release')
@@ -251,20 +253,23 @@ export default function UploadPage() {
   }
 
   const renderStepContent = () => {
+    // Props bridge for components not yet updated to useFormContext
+    const commonProps = {
+      formData,
+      setFormData
+    }
+
     switch (currentStep) {
       case 1:
-        return <BasicInfoStep formData={formData} setFormData={setFormData} />
+        return <BasicInfoStep {...commonProps} />
       case 2:
-        return <AudioFileStep formData={formData} setFormData={setFormData} />
+        return <AudioFileStep {...commonProps} />
       case 3:
-        return <CoverArtStep formData={formData} setFormData={setFormData} />
-      // case 4:
-      //   return <ReleaseDetailsStep formData={formData} setFormData={setFormData} />
+        return <CoverArtStep {...commonProps} />
       case 4:
         return (
           <CreditsStep
-            formData={formData}
-            setFormData={setFormData}
+            {...commonProps}
             songwriters={songwriters}
             setSongwriters={setSongwriters}
             composers={composers}
@@ -342,13 +347,15 @@ export default function UploadPage() {
         </motion.div>
 
         {/* Step Content */}
-        <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardContent className="pt-6">
-              {renderStepContent()}
-            </CardContent>
-          </Card>
-        </motion.div>
+        <FormProvider {...form}>
+          <motion.div variants={itemVariants}>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="pt-6">
+                {renderStepContent()}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </FormProvider>
 
         {/* Navigation Buttons */}
         <motion.div variants={itemVariants} className="flex items-center justify-between">
@@ -375,7 +382,7 @@ export default function UploadPage() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit}>
+              <Button onClick={form.handleSubmit(onSubmit)}>
                 Submit for Review
               </Button>
             )}
@@ -385,3 +392,4 @@ export default function UploadPage() {
     </DashboardLayout>
   )
 }
+
