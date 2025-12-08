@@ -21,7 +21,37 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
     const audioFiles = watch('audioFiles') || []
     const tracks = watch('tracks') || []
 
-    const handleAudioFileChange = (file: File) => {
+    const parseWavHeader = async (file: File): Promise<{ sampleRate: number, bitDepth: number }> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const buffer = e.target?.result as ArrayBuffer;
+                if (!buffer) return reject(new Error('Failed to read file'));
+
+                const view = new DataView(buffer);
+
+                // Check RIFF signature
+                const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+                if (riff !== 'RIFF') return reject(new Error('Invalid audio file format (Header missing RIFF)'));
+
+                // Check WAVE signature
+                const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
+                if (wave !== 'WAVE') return reject(new Error('Invalid audio file format (Header missing WAVE)'));
+
+                // Read Sample Rate (offset 24, 32-bit little-endian)
+                const sampleRate = view.getUint32(24, true);
+
+                // Read Bits Per Sample (offset 34, 16-bit little-endian)
+                const bitDepth = view.getUint16(34, true);
+
+                resolve({ sampleRate, bitDepth });
+            };
+            reader.onerror = () => reject(new Error('Error reading file header'));
+            reader.readAsArrayBuffer(file.slice(0, 44));
+        });
+    }
+
+    const handleAudioFileChange = async (file: File) => {
         // Only accept WAV files for all formats
         if (!file.type.includes('wav') && !file.name.toLowerCase().endsWith('.wav')) {
             toast.error('Only WAV files are accepted')
@@ -30,6 +60,25 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
 
         if (file.size > 500 * 1024 * 1024) {
             toast.error('File size must be less than 500MB')
+            return
+        }
+
+        try {
+            const { sampleRate, bitDepth } = await parseWavHeader(file);
+
+            if (sampleRate !== 44100) {
+                toast.error(`Invalid Sample Rate: ${sampleRate}Hz. File must be 44,100Hz.`)
+                return
+            }
+
+            if (bitDepth !== 16) {
+                toast.error(`Invalid Bit Depth: ${bitDepth}-bit. File must be 16-bit.`)
+                return
+            }
+
+        } catch (error) {
+            console.error(error)
+            toast.error('Failed to validate audio file format. Please ensure it is a valid WAV.')
             return
         }
 
