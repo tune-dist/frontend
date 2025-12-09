@@ -43,3 +43,11 @@ export async function searchGenres(query: string): Promise<Genre[]> {
     })
     return response.data
 }
+
+/**
+ * Fetch sub-genres for a specific genre by ID
+ */
+export async function getSubGenresByGenreId(genreId: string): Promise<SubGenre[]> {
+    const response = await apiClient.get(`/genres/${genreId}/sub-genres`)
+    return response.data
+}

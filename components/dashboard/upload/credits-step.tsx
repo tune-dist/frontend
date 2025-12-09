@@ -8,7 +8,7 @@ import { useFormContext, useFieldArray } from 'react-hook-form'
 import { useState, useEffect } from 'react'
 import { Music, Pencil } from 'lucide-react'
 import TrackEditModal from './track-edit-modal'
-import { getGenres, type Genre } from '@/lib/api/genres'
+import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/lib/api/genres'
 
 interface CreditsStepProps {
     formData?: UploadFormData
@@ -49,6 +49,45 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
         }
         fetchGenres()
     }, [])
+
+    // Sub-genres state
+    const [subGenres, setSubGenres] = useState<SubGenre[]>([])
+    const [subGenresLoading, setSubGenresLoading] = useState(false)
+    const primaryGenre = watch('primaryGenre')
+
+    // Fetch sub-genres when primary genre changes
+    useEffect(() => {
+        const fetchSubGenres = async () => {
+            if (!primaryGenre) {
+                setSubGenres([])
+                return
+            }
+
+            // Find the genre _id from the selected slug
+            const selectedGenre = genres.find(g => g.slug === primaryGenre)
+            if (!selectedGenre) {
+                setSubGenres([])
+                return
+            }
+
+            setSubGenresLoading(true)
+            try {
+                const fetchedSubGenres = await getSubGenresByGenreId(selectedGenre._id)
+                setSubGenres(fetchedSubGenres)
+                // Clear secondary genre if it's not in the new sub-genres list
+                const currentSecondary = watch('secondaryGenre')
+                if (currentSecondary && !fetchedSubGenres.some(sg => sg.slug === currentSecondary)) {
+                    setValue('secondaryGenre', '')
+                }
+            } catch (error) {
+                console.error('Failed to fetch sub-genres:', error)
+                setSubGenres([])
+            } finally {
+                setSubGenresLoading(false)
+            }
+        }
+        fetchSubGenres()
+    }, [primaryGenre, genres, setValue, watch])
 
     // UseFieldArray for songwriters and composers (for single format)
     const { fields: songwriterFields, append: appendSongwriter, remove: removeSongwriter } = useFieldArray({
@@ -246,23 +285,26 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
 
                             <div className="space-y-3">
                                 <Label htmlFor="secondaryGenre" className="text-lg font-semibold">
-                                    Secondary genre *
+                                    Sub-genre *
                                 </Label>
                                 <select
                                     id="secondaryGenre"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.secondaryGenre ? 'border-red-500' : ''}`}
                                     {...register('secondaryGenre')}
+                                    disabled={!primaryGenre || subGenresLoading}
                                 >
-                                    <option value="">Select another genre</option>
-                                    {genresLoading ? (
-                                        <option disabled>Loading genres...</option>
-                                    ) : (
-                                        genres.map((genre) => (
-                                            <option key={genre._id} value={genre.slug}>
-                                                {genre.name}
-                                            </option>
-                                        ))
-                                    )}
+                                    <option value="">
+                                        {!primaryGenre
+                                            ? 'Select a genre first'
+                                            : subGenresLoading
+                                                ? 'Loading sub-genres...'
+                                                : 'Select a sub-genre'}
+                                    </option>
+                                    {subGenres.map((subGenre) => (
+                                        <option key={subGenre._id} value={subGenre.slug}>
+                                            {subGenre.name}
+                                        </option>
+                                    ))}
                                 </select>
                                 {errors.secondaryGenre && <p className="text-xs text-red-500 mt-1">{String(errors.secondaryGenre.message)}</p>}
                             </div>
