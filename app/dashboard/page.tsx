@@ -162,9 +162,9 @@ export default function DashboardPage() {
                   {usageStats?.releases.canUpload ? 'Yes' : 'No'}
                 </div>
                 <CardDescription className="mt-1">
-                  {usageStats?.releases.limit === 0
+                  {usageStats?.releases?.limit === 0
                     ? 'Unlimited releases'
-                    : `${usageStats?.releases.limit ?? 0} release${(usageStats?.releases.limit ?? 0) > 1 ? 's' : ''} limit`
+                    : `${usageStats?.releases?.limit ?? 0} release${(usageStats?.releases.limit ?? 0) > 1 ? 's' : ''} limit`
                   }
                 </CardDescription>
               </CardContent>
