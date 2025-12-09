@@ -63,7 +63,7 @@ export interface ReleaseFormData {
   format?: string;
 }
 
-export type ReleaseStatus = 'draft' | 'pending_review' | 'processing' | 'approved' | 'rejected';
+export type ReleaseStatus = 'In Process' | 'Rejected' | 'Released';
 export type ReleaseType = 'single' | 'ep' | 'album' | 'compilation';
 
 export interface AudioFile {

@@ -69,13 +69,11 @@ export default function ReleasesPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved':
+      case 'Released':
         return 'bg-green-500/10 text-green-500'
-      case 'processing':
+      case 'In Process':
         return 'bg-blue-500/10 text-blue-500'
-      case 'pending_review':
-        return 'bg-yellow-500/10 text-yellow-500'
-      case 'rejected':
+      case 'Rejected':
         return 'bg-red-500/10 text-red-500'
       default:
         return 'bg-gray-500/10 text-gray-500'
@@ -144,11 +142,9 @@ export default function ReleasesPage() {
 
   const statusFilters: { value: StatusFilter; label: string; count?: number }[] = [
     { value: 'all', label: 'All' },
-    { value: 'draft', label: 'Drafts' },
-    { value: 'pending_review', label: 'Pending Review' },
-    { value: 'processing', label: 'Processing' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Rejected' },
+    { value: 'In Process', label: 'In Process' },
+    { value: 'Rejected', label: 'Rejected' },
+    { value: 'Released', label: 'Released' },
   ]
 
   return (
@@ -297,8 +293,8 @@ export default function ReleasesPage() {
                                   <Eye className="h-4 w-4" />
                                 </Button>
 
-                                {/* Submit button (only for drafts) */}
-                                {release.status === 'draft' && (
+                                {/* Submit button (only for drafts - In Process without submittedAt) */}
+                                {release.status === 'In Process' && !release.submittedAt && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -314,8 +310,8 @@ export default function ReleasesPage() {
                                   </Button>
                                 )}
 
-                                {/* Cancel button (for pending_review and processing) */}
-                                {(release.status === 'pending_review' || release.status === 'processing') && (
+                                {/* Cancel button (for In Process with submittedAt) */}
+                                {release.status === 'In Process' && release.submittedAt && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -331,8 +327,8 @@ export default function ReleasesPage() {
                                   </Button>
                                 )}
 
-                                {/* Delete button (only for drafts) */}
-                                {release.status === 'draft' && (
+                                {/* Delete button (only for drafts - In Process without submittedAt) */}
+                                {release.status === 'In Process' && !release.submittedAt && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
