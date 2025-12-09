@@ -40,10 +40,10 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
                             <span className="text-muted-foreground">Type:</span>
                             <span className="font-medium capitalize">{formData.releaseType}</span>
                         </div>
-                        <div className="flex justify-between">
+                        {/* <div className="flex justify-between">
                             <span className="text-muted-foreground">Release Date:</span>
                             <span className="font-medium">{formData.releaseDate || 'Not set'}</span>
-                        </div>
+                        </div> */}
                     </CardContent>
                 </Card>
 

@@ -232,7 +232,7 @@ export default function ReleasesPage() {
                         <TableHead>Title</TableHead>
                         <TableHead>Artist</TableHead>
                         <TableHead>Type</TableHead>
-                        <TableHead>Release Date</TableHead>
+                        {/* <TableHead>Release Date</TableHead> */}
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -270,7 +270,7 @@ export default function ReleasesPage() {
                                 {release.releaseType}
                               </span>
                             </TableCell>
-                            <TableCell className="text-muted-foreground">
+                            {/* <TableCell className="text-muted-foreground">
                               {release.releaseDate
                                 ? new Date(release.releaseDate).toLocaleDateString('en-US', {
                                   year: 'numeric',
@@ -278,7 +278,7 @@ export default function ReleasesPage() {
                                   day: 'numeric',
                                 })
                                 : 'Not set'}
-                            </TableCell>
+                            </TableCell> */}
                             <TableCell>
                               <span
                                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(release.status)}`}

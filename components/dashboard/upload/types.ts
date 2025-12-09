@@ -4,7 +4,7 @@ export const songwriterSchema = z.object({
     role: z.string().min(1, 'Role is required'),
     firstName: z.string().min(1, 'First name is required'),
     middleName: z.string().optional(),
-    lastName: z.string().min(1, 'Last name is required'),
+    lastName: z.string().optional(),
 })
 
 export type Songwriter = z.infer<typeof songwriterSchema>
@@ -64,7 +64,7 @@ export const uploadFormSchema = z.object({
     }), // Add regex validation if needed
     previouslyReleased: z.enum(['yes', 'no']),
     primaryGenre: z.string().min(1, 'Primary genre is required'),
-    secondaryGenre: z.string().optional(),
+    secondaryGenre: z.string().min(1, 'Secondary genre is required'),
     language: z.string().min(1, 'Language is required'),
     releaseType: z.string().default('single'),
     isExplicit: z.boolean().default(false),

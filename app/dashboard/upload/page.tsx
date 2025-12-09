@@ -176,8 +176,9 @@ export default function UploadPage() {
         // Validate required fields in Credits step
         if (formData.format === 'single') {
           // For singles, validate genre and previously released
+          // Also validate songwriters and composers since they are required fields in the form
           isValid = await form.trigger([
-            'primaryGenre', 'previouslyReleased'
+            'primaryGenre', 'secondaryGenre', 'previouslyReleased', 'songwriters', 'composers'
           ])
         } else {
           // For Albums/EPs, no required fields in Credits step currently
@@ -197,7 +198,7 @@ export default function UploadPage() {
       }
     } else {
       toast.error('Please fix the errors before proceeding')
-      // console.log(form.formState.errors) 
+      console.log(form.formState.errors)
     }
   }
 
@@ -250,6 +251,14 @@ export default function UploadPage() {
       toast.dismiss()
       toast.error(error.message || 'Failed to submit release')
     }
+  }
+
+  const onInvalid = (errors: any) => {
+    console.error('Form validation errors:', errors)
+    toast.error('Please fix the errors before submitting')
+    // If we are on the review step (last step), finding an error means something was missed in previous steps
+    // We can try to navigate the user to the first step with an error, or just show the toast. 
+    // Showing toast is safer for now.
   }
 
   const renderStepContent = () => {
@@ -382,7 +391,7 @@ export default function UploadPage() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={form.handleSubmit(onSubmit)}>
+              <Button onClick={form.handleSubmit(onSubmit, onInvalid)}>
                 Submit for Review
               </Button>
             )}

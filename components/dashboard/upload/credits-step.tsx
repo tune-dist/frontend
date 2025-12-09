@@ -246,7 +246,7 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
 
                             <div className="space-y-3">
                                 <Label htmlFor="secondaryGenre" className="text-lg font-semibold">
-                                    Secondary genre
+                                    Secondary genre *
                                 </Label>
                                 <select
                                     id="secondaryGenre"
@@ -264,6 +264,7 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
                                         ))
                                     )}
                                 </select>
+                                {errors.secondaryGenre && <p className="text-xs text-red-500 mt-1">{String(errors.secondaryGenre.message)}</p>}
                             </div>
                         </div>
 
@@ -286,6 +287,11 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
                                             {...register(`songwriters.${index}.firstName` as const)}
                                             className="text-sm"
                                         />
+                                        {errors.songwriters?.[index]?.firstName && (
+                                            <p className="text-xs text-red-500 mt-1">
+                                                {String(errors.songwriters[index]?.firstName?.message)}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {songwriterFields.length > 1 && (
@@ -331,6 +337,11 @@ export default function CreditsStep({ formData: propFormData, setFormData: propS
                                             {...register(`composers.${index}.firstName` as const)}
                                             className="text-sm"
                                         />
+                                        {errors.composers?.[index]?.firstName && (
+                                            <p className="text-xs text-red-500 mt-1">
+                                                {String(errors.composers[index]?.firstName?.message)}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {composerFields.length > 1 && (

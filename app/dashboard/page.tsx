@@ -195,7 +195,7 @@ export default function DashboardPage() {
                     <TableRow>
                       <TableHead>Title</TableHead>
                       <TableHead>Artist</TableHead>
-                      <TableHead>Release Date</TableHead>
+                      {/* <TableHead>Release Date</TableHead> */}
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                               {release.artistName}
                             </span>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
+                          {/* <TableCell className="text-muted-foreground">
                             {release.releaseDate
                               ? new Date(release.releaseDate).toLocaleDateString('en-US', {
                                 year: 'numeric',
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                                 day: 'numeric',
                               })
                               : 'Not set'}
-                          </TableCell>
+                          </TableCell> */}
                           <TableCell>
                             <span
                               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(release.status)}`}

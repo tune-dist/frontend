@@ -426,7 +426,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                                 name="explicitLyrics"
                                 value="no"
                                 checked={formData.explicitLyrics === 'no'}
-                                onChange={(e) => setFormData({ ...formData, explicitLyrics: e.target.value })}
+                                onChange={(e) => setFormData({ ...formData, explicitLyrics: e.target.value as any })}
                                 className="h-4 w-4"
                             />
                             <Label htmlFor="explicitNo" className="font-normal cursor-pointer">
@@ -441,7 +441,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                                 name="explicitLyrics"
                                 value="yes"
                                 checked={formData.explicitLyrics === 'yes'}
-                                onChange={(e) => setFormData({ ...formData, explicitLyrics: e.target.value })}
+                                onChange={(e) => setFormData({ ...formData, explicitLyrics: e.target.value as any })}
                                 className="h-4 w-4"
                             />
                             <Label htmlFor="explicitYes" className="font-normal cursor-pointer">
@@ -463,7 +463,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                             name="previouslyReleased"
                             value="no"
                             checked={formData.previouslyReleased === 'no'}
-                            onChange={(e) => setFormData({ ...formData, previouslyReleased: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, previouslyReleased: e.target.value as any })}
                             className="h-4 w-4 border-primary text-primary focus:ring-primary"
                         />
                         <Label htmlFor="previouslyReleased-no" className="font-normal cursor-pointer">No</Label>
@@ -475,7 +475,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                             name="previouslyReleased"
                             value="yes"
                             checked={formData.previouslyReleased === 'yes'}
-                            onChange={(e) => setFormData({ ...formData, previouslyReleased: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, previouslyReleased: e.target.value as any })}
                             className="h-4 w-4 border-primary text-primary focus:ring-primary"
                         />
                         <Label htmlFor="previouslyReleased-yes" className="font-normal cursor-pointer">Yes</Label>
