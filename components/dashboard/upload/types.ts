@@ -50,12 +50,30 @@ export const trackSchema = z.object({
 
 export type Track = z.infer<typeof trackSchema>
 
+// Artist Profile Schema for rich metadata storage
+export const artistProfileSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    image: z.string().optional(),
+    url: z.string().optional(),
+    followers: z.number().optional(), // For Spotify
+    track: z.string().optional(), // For Apple/YouTube (description/genre)
+})
+
+export type ArtistProfile = z.infer<typeof artistProfileSchema>
+
 export const uploadFormSchema = z.object({
     // Basic Info
     numberOfSongs: z.string().default('1'),
     title: z.string().min(1, 'Title is required'),
     version: z.string().optional(),
     artistName: z.string().min(1, 'Artist Name is required'),
+    artists: z.array(z.object({
+        name: z.string().min(1, 'Artist name is required'),
+        spotifyProfile: z.union([z.string(), artistProfileSchema]).optional(),
+        appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
+        youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
+    })).default([]), // Additional artists (premium feature)
     isrc: z.string().optional().refine((val) => {
         if (!val || val.trim() === '') return true;
         return /^[A-Z]{2}-[A-Z0-9]{3}-\d{2}-\d{5}$/i.test(val);
@@ -76,9 +94,9 @@ export const uploadFormSchema = z.object({
     trackPrice: z.string().optional().default('0.99'),
 
     // Social media & platforms
-    spotifyProfile: z.string().optional(),
-    appleMusicProfile: z.string().optional(),
-    youtubeMusicProfile: z.string().optional(),
+    spotifyProfile: z.union([z.string(), artistProfileSchema]).optional(),
+    appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
+    youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
     instagramProfile: z.string().optional(),
     instagramProfileUrl: z.string().optional(),
     facebookProfile: z.string().optional(),
@@ -114,6 +132,7 @@ export const uploadFormSchema = z.object({
 })
 
 export type UploadFormData = z.infer<typeof uploadFormSchema>
+export type SecondaryArtist = z.infer<typeof uploadFormSchema>['artists'][number]
 
 export interface StepProps {
     // We will use react-hook-form context in steps, but kept for backward compatibility if needed, 

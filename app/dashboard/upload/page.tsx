@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/dashboard/dashboard-layout'
+import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -296,6 +297,79 @@ export default function UploadPage() {
       default:
         return null
     }
+  }
+
+  // Check for Free Plan Restrictions
+  const { user } = useAuth()
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(true)
+  const [canUpload, setCanUpload] = useState(true)
+
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!user) return
+
+      if (user.plan === 'free') {
+        try {
+          // Check for 'In Process' releases
+          // We fetch releases with status 'In Process'
+          const response = await import('@/lib/api/releases').then(m => m.getReleases({ status: 'In Process' }))
+
+          if (response && response.releases && response.releases.length > 0) {
+            setCanUpload(false)
+          } else {
+            setCanUpload(true)
+          }
+        } catch (error) {
+          console.error('Failed to check release eligibility', error)
+          // Default to allowing upload if check fails
+          setCanUpload(true)
+        }
+      } else {
+        setCanUpload(true)
+      }
+      setIsCheckingEligibility(false)
+    }
+
+    checkEligibility()
+  }, [user])
+
+  if (isCheckingEligibility) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!canUpload) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
+          <div className="bg-yellow-500/10 p-6 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+            <Info className="h-10 w-10 text-yellow-500" />
+          </div>
+          <h1 className="text-3xl font-bold">Release Limit Reached</h1>
+          <p className="text-muted-foreground text-lg max-w-lg mx-auto">
+            You are on the <strong>Free Plan</strong>, which allows only one active release at a time.
+            You currently have a release that is <strong>In Process</strong>.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Please wait for your current release to be distributed or rejected before uploading deeper.
+          </p>
+
+          <div className="pt-6 flex gap-4 justify-center">
+            <Button variant="outline" onClick={() => router.push('/dashboard/releases')}>
+              View My Releases
+            </Button>
+            <Button onClick={() => window.location.href = '/pricing'}>
+              Upgrade to Premium
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (

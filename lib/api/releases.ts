@@ -4,6 +4,12 @@ import { uploadFile, getAudioMetadata, getImageMetadata } from './upload';
 export interface ReleaseFormData {
   title: string;
   artistName: string;
+  artists?: Array<{
+    name: string;
+    spotifyProfile?: any;
+    appleMusicProfile?: any;
+    youtubeMusicProfile?: any;
+  }>;
   numberOfSongs?: string;
 
   // Release info
@@ -158,6 +164,16 @@ export interface CreateReleaseData {
   recordingYear?: number;
   albumTitle?: string;
   selectedPlatforms?: string[];
+
+  // PRIMARY ARTISTS
+  primaryArtists?: Array<{
+    name: string;
+    spotifyProfile?: any;
+    appleMusicProfile?: any;
+    youtubeMusicProfile?: any;
+    instagramProfile?: string;
+    facebookProfile?: string;
+  }>;
 
   // New fields
   numberOfSongs?: number;
@@ -342,6 +358,16 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.previewClipStartTime && { previewClipStartTime: formData.previewClipStartTime }),
       ...(formData.radioEdit && { radioEdit: formData.radioEdit }),
       ...(formData.instrumental && { instrumental: formData.instrumental }),
+
+      // Map artists to primaryArtists
+      ...(formData.artists && formData.artists.length > 0 && {
+        primaryArtists: formData.artists.map(artist => ({
+          name: artist.name,
+          spotifyProfile: artist.spotifyProfile,
+          appleMusicProfile: artist.appleMusicProfile,
+          youtubeMusicProfile: artist.youtubeMusicProfile,
+        }))
+      }),
     };
 
     // 5. Create release via API

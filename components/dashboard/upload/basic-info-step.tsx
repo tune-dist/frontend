@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Music, ExternalLink, Info, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Music, ExternalLink, Info, Plus, X, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { UploadFormData } from './types'
+import { UploadFormData, SecondaryArtist } from './types'
 import { useFormContext } from 'react-hook-form'
 
 interface BasicInfoStepProps {
@@ -21,6 +22,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
     // Watch values for conditional rendering
     const artistName = watch('artistName')
+    const artists = watch('artists') || []
     const title = watch('title')
     const spotifyProfile = watch('spotifyProfile')
     const appleMusicProfile = watch('appleMusicProfile')
@@ -28,29 +30,19 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const instagramProfile = watch('instagramProfile')
     const facebookProfile = watch('facebookProfile')
 
+    // Check if user can add more artists based on plan
+    const canAddMoreArtists = user?.plan !== 'free' || artists.length === 0
+
     // Prefill title with user name (logic from original, slightly adjusted)
     useEffect(() => {
-        // Only if title is empty and user has a name? Or maybe not force it? 
-        // Original logic: if (user?.fullName && !formData.title)
         if (user?.fullName && !title) {
-            setValue('title', user.fullName) // Assuming this was desired behavior, though usually title is Song Title not User Name? 
-            // The original logic did THIS: setFormData({ ...formData, title: user.fullName })
-            // Maybe they meant Artist Name? "Title" is track title. 
-            // If the user is an artist, maybe they want the artist name prefilled?
-            // The original code used `title: user.fullName`.
-            // Let's keep it but it's weird for a song title. 
-            // Actually, maybe the USER meant "Artist Name" prefill? 
-            // Let's assume the original code was correct for "Title" or maybe it was a mistake i should fix?
-            // I will prefill Artist Name if empty, seems more logical for a user profile.
-            // But strict adherence to previous behavior: title.
-            // I'll stick to original behavior but maybe check if 'artistName' is empty too?
-            // Let's set ArtistName too if empty.
-            // if (!artistName) setValue('artistName', user.fullName)
+            setValue('title', user.fullName)
         }
-    }, [user, title, setValue, artistName])
+    }, [user, title, setValue])
 
     // Search State
     const [isSearching, setIsSearching] = useState(false)
+    const [activeSearchIndex, setActiveSearchIndex] = useState<number | 'main' | null>(null)
     const [searchResults, setSearchResults] = useState<{
         spotify: any[];
         apple: any[];
@@ -59,13 +51,55 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
     const searchTimeout = useRef<NodeJS.Timeout>()
 
-    const handleArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const name = e.target.value
-        setValue('artistName', name, { shouldValidate: true })
+    // Clear search results when switching between artists
+    useEffect(() => {
+        setSearchResults({ spotify: [], apple: [], youtube: [] })
+    }, [activeSearchIndex])
 
+    // Handle adding a new artist
+    const handleAddArtist = () => {
+        if (user?.plan === 'free' && artists.length >= 0) {
+            // Free users can only have 1 artist (main artistName field)
+            return
+        }
+        const currentArtists = artists || []
+        // Add new artist object
+        setValue('artists', [...currentArtists, { name: '' }], { shouldValidate: true })
+        // Focus will be handled by auto-focusing the new input if needed, or user clicks
+    }
+
+    // Handle removing an artist
+    const handleRemoveArtist = (index: number) => {
+        const currentArtists = artists || []
+        const updated = currentArtists.filter((_, i) => i !== index)
+        setValue('artists', updated, { shouldValidate: true })
+
+        // If removing the currently searched artist, clear search
+        if (activeSearchIndex === index) {
+            setActiveSearchIndex(null)
+            setSearchResults({ spotify: [], apple: [], youtube: [] })
+        } else if (typeof activeSearchIndex === 'number' && activeSearchIndex > index) {
+            // Shift active index if removing an item before it
+            setActiveSearchIndex(activeSearchIndex - 1)
+        }
+    }
+
+    // Handle updating an artist at a specific index
+    const handleArtistChange = (index: number, name: string) => {
+        const currentArtists = [...(artists || [])]
+        currentArtists[index] = { ...currentArtists[index], name }
+        setValue('artists', currentArtists, { shouldValidate: true })
+
+        handleSearch(name, index)
+    }
+
+    const handleSearch = (name: string, index: number | 'main') => {
+        // Clear previous timeout
         if (searchTimeout.current) {
             clearTimeout(searchTimeout.current)
         }
+
+        setActiveSearchIndex(index)
 
         if (name.length > 2) {
             setIsSearching(true)
@@ -73,11 +107,16 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
-                    // Call both Spotify and YouTube search APIs in parallel via backend
-                    const [spotifyResponse, youtubeResponse] = await Promise.all([
+                    // Call Spotify, Apple Music, and YouTube search APIs in parallel via backend
+                    const [spotifyResponse, appleResponse, youtubeResponse] = await Promise.all([
                         fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`)
                             .catch(err => {
                                 console.error('Spotify search error:', err)
+                                return null
+                            }),
+                        fetch(`${apiUrl}/integrations/apple/search?q=${encodeURIComponent(name)}&limit=5`)
+                            .catch(err => {
+                                console.error('Apple Music search error:', err)
                                 return null
                             }),
                         fetch(`${apiUrl}/integrations/youtube/search?q=${encodeURIComponent(name)}&limit=5`)
@@ -88,11 +127,12 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     ])
 
                     const spotifyArtists = spotifyResponse?.ok ? await spotifyResponse.json() : []
+                    const appleArtists = appleResponse?.ok ? await appleResponse.json() : []
                     const youtubeChannels = youtubeResponse?.ok ? await youtubeResponse.json() : []
 
                     setSearchResults({
                         spotify: spotifyArtists,
-                        apple: [], // TODO: Implement Apple Music search
+                        apple: appleArtists,
                         youtube: youtubeChannels
                     })
                 } catch (error) {
@@ -106,6 +146,344 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
             setSearchResults({ spotify: [], apple: [], youtube: [] })
             setIsSearching(false)
         }
+    }
+
+    const handleMainArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const name = e.target.value
+        setValue('artistName', name, { shouldValidate: true })
+        handleSearch(name, 'main')
+    }
+
+    // Helper to render search results for a specific index (main or numeric)
+    const renderSearchResults = (index: number | 'main') => {
+        // Specific handlers for this index
+        const handleSelectProfile = (platform: 'spotify' | 'apple' | 'youtube', profile: any | 'new' | '') => {
+            let valueToSave: any = ''
+
+            if (profile === 'new') {
+                valueToSave = 'new'
+            } else if (profile === '') {
+                valueToSave = ''
+            } else {
+                // Construct the profile object based on the platform and source data
+                // We map the different API responses to our standard ArtistProfile schema
+                valueToSave = {
+                    id: profile.id,
+                    name: profile.name,
+                    image: profile.image || '',
+                    url: profile.externalUrl || profile.channelUrl || profile.url || '',
+                    followers: profile.followers,
+                    track: profile.track
+                }
+            }
+
+            if (index === 'main') {
+                if (platform === 'spotify') setValue('spotifyProfile', valueToSave, { shouldValidate: true })
+                if (platform === 'apple') setValue('appleMusicProfile', valueToSave, { shouldValidate: true })
+                if (platform === 'youtube') setValue('youtubeMusicProfile', valueToSave, { shouldValidate: true })
+            } else {
+                const currentArtists = [...(artists || [])]
+                const fieldName = platform === 'spotify' ? 'spotifyProfile' :
+                    platform === 'apple' ? 'appleMusicProfile' : 'youtubeMusicProfile'
+
+                currentArtists[index] = { ...currentArtists[index], [fieldName]: valueToSave }
+                setValue('artists', currentArtists, { shouldValidate: true })
+            }
+        }
+
+        // Get current values for this index to checking selection state
+        const getCurrentProfile = (platform: 'spotify' | 'apple' | 'youtube') => {
+            if (index === 'main') {
+                if (platform === 'spotify') return spotifyProfile
+                if (platform === 'apple') return appleMusicProfile
+                if (platform === 'youtube') return youtubeMusicProfile
+            } else {
+                if (!artists || !artists[index]) return ''
+                if (platform === 'spotify') return artists[index].spotifyProfile
+                if (platform === 'apple') return artists[index].appleMusicProfile
+                if (platform === 'youtube') return artists[index].youtubeMusicProfile
+            }
+            return ''
+        }
+
+        const currentSpotify = getCurrentProfile('spotify')
+        const currentApple = getCurrentProfile('apple')
+        const currentYoutube = getCurrentProfile('youtube')
+
+        // Render Selected View Helper
+        const renderSelectedProfile = (platform: 'spotify' | 'apple' | 'youtube', profileData: any) => {
+            if (!profileData) return null
+            if (profileData === 'new') {
+                return (
+                    <div className="bg-primary/10 border border-primary rounded-md p-3">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                <Plus className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <p className="font-medium text-primary">New Artist Profile</p>
+                                <p className="text-sm text-muted-foreground">Creating a new profile for {currentName}</p>
+                            </div>
+                            <button
+                                onClick={() => handleSelectProfile(platform, '')}
+                                className="ml-auto text-xs text-primary hover:underline hover:text-primary/80"
+                                type="button"
+                            >
+                                Change
+                            </button>
+                        </div>
+                    </div>
+                )
+            }
+
+            // If it's a string (legacy ID only), we can't show much, but we handle it gracefully or ignore if we want to force object
+            if (typeof profileData === 'string') return null
+
+            return (
+                <div className="bg-primary/10 border border-primary rounded-md p-3">
+                    <div className="flex items-center gap-3">
+                        {profileData.image ? (
+                            <img src={profileData.image} alt={profileData.name} className="h-10 w-10 rounded-full object-cover" />
+                        ) : (
+                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                <Music className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                        )}
+                        <div className="flex-1">
+                            <p className="font-medium text-primary">{profileData.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                                {profileData.followers ? `${profileData.followers.toLocaleString()} followers` : profileData.track}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
+                            <button
+                                onClick={() => handleSelectProfile(platform, '')}
+                                className="text-xs text-muted-foreground hover:text-destructive transition-colors ml-2"
+                                type="button"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+
+        const currentName = index === 'main' ? artistName : (artists && artists[index]?.name)
+        if (!currentName || currentName.length <= 2) return null
+
+        // Conditions to show the block:
+        // 1. If actively searching this index AND results exist.
+        // 2. OR if there are selected profiles for this index (Persistent View).
+        const isActiveSearch = activeSearchIndex === index && !isSearching
+        const hasResults = searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0
+        const showSearchResults = isActiveSearch && hasResults
+
+        const hasAnySelection = !!(currentSpotify || currentApple || currentYoutube)
+
+        if (!showSearchResults && !hasAnySelection) return null
+
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 space-y-6 border border-border rounded-lg p-4 bg-card/50"
+            >
+                <h4 className="font-semibold text-sm text-foreground">
+                    We found this artist on other platforms. Is this you?
+                </h4>
+
+                {/* Spotify Section */}
+                {(showSearchResults || currentSpotify) && (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <svg className="h-5 w-5 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                                </svg>
+                                <span className="text-sm font-medium">Spotify</span>
+                            </div>
+                        </div>
+
+                        {currentSpotify ? (
+                            renderSelectedProfile('spotify', currentSpotify)
+                        ) : (
+                            // Only show results if no selection exists
+                            <>
+                                {searchResults.spotify.map((artist: any) => (
+                                    <div
+                                        key={artist.id}
+                                        className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
+                                        onClick={() => handleSelectProfile('spotify', artist)}
+                                    >
+                                        <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                            <div className="h-2 w-2 rounded-full hidden" />
+                                        </div>
+                                        {artist.image ? (
+                                            <img src={artist.image} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
+                                        ) : (
+                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                                <Music className="h-5 w-5 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1">
+                                            <p className="font-medium text-foreground">{artist.name}</p>
+                                            <p className="text-sm text-muted-foreground">{(artist.followers || 0).toLocaleString()} followers</p>
+                                        </div>
+                                        <a
+                                            href={artist.externalUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-primary"
+                                            title="Open in Spotify"
+                                        >
+                                            <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                    </div>
+                                ))}
+                                <div className="space-y-2 mt-4">
+                                    <div
+                                        className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                        onClick={() => handleSelectProfile('spotify', 'new')}
+                                    >
+                                        <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                        </div>
+                                        <Label className="font-normal cursor-pointer">
+                                            This will be my first <strong>{currentName}</strong> release in Spotify.
+                                        </Label>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {/* Apple Music Section */}
+                {(showSearchResults || currentApple) && (
+                    <div className="space-y-3 pt-4 border-t border-border">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.227 15.653c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08z" />
+                                </svg>
+                                <span className="text-sm font-medium">Apple Music</span>
+                            </div>
+                        </div>
+
+                        {currentApple ? (
+                            renderSelectedProfile('apple', currentApple)
+                        ) : (
+                            <>
+                                {searchResults.apple.map((artist: any) => (
+                                    <div
+                                        key={artist.id}
+                                        className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
+                                        onClick={() => handleSelectProfile('apple', artist)}
+                                    >
+                                        <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                            <div className="h-2 w-2 rounded-full hidden" />
+                                        </div>
+                                        <img src={artist.image} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
+                                        <div className="flex-1">
+                                            <p className="font-medium text-foreground">{artist.name}</p>
+                                            <p className="text-sm text-muted-foreground">{artist.track}</p>
+                                        </div>
+                                        {artist.url && (
+                                            <a
+                                                href={artist.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-primary"
+                                                title="Open in Apple Music"
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                            </a>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="space-y-2 mt-4">
+                                    <div
+                                        className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                        onClick={() => handleSelectProfile('apple', 'new')}
+                                    >
+                                        <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                        </div>
+                                        <Label className="font-normal cursor-pointer">
+                                            This will be my first <strong>{currentName}</strong> release in Apple Music.
+                                        </Label>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {/* YouTube Section */}
+                {(showSearchResults || currentYoutube) && (
+                    <div className="space-y-3 pt-4 border-t border-border">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+                                </svg>
+                                <span className="text-sm font-medium">YouTube Music</span>
+                            </div>
+                        </div>
+
+                        {currentYoutube ? (
+                            renderSelectedProfile('youtube', currentYoutube)
+                        ) : (
+                            <>
+                                {searchResults.youtube.map((profile: any) => (
+                                    <div
+                                        key={profile.id}
+                                        className={`flex items-center gap-3 p-3 rounded-md transition-colors cursor-pointer ${currentYoutube === profile.id ? 'bg-primary/10 border border-primary' : 'bg-background hover:bg-accent'
+                                            }`}
+                                        onClick={() => handleSelectProfile('youtube', profile)}
+                                    >
+                                        <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                            <div className="h-2 w-2 rounded-full hidden" />
+                                        </div>
+                                        <img src={profile.image} alt={profile.name} className="h-10 w-10 rounded-full object-cover" />
+                                        <div className="flex-1">
+                                            <p className="font-medium text-foreground">{profile.name}</p>
+                                            <p className="text-sm text-muted-foreground">{profile.track}</p>
+                                        </div>
+                                        {profile.channelUrl && (
+                                            <a
+                                                href={profile.channelUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-primary"
+                                                title="Open in YouTube Music"
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                            </a>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="space-y-2 mt-4">
+                                    <div
+                                        className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                        onClick={() => handleSelectProfile('youtube', 'new')}
+                                    >
+                                        <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                        </div>
+                                        <Label className="font-normal cursor-pointer">
+                                            This will be my first <strong>{currentName}</strong> release in YouTube Music.
+                                        </Label>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+            </motion.div>
+        )
     }
 
     return (
@@ -134,359 +512,121 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 </div>
 
                 <div className="space-y-4">
-                    <Label htmlFor="artistName">Artist Name *</Label>
-                </div>
-                <div className="relative">
-                    <div className="relative">
-                        <Input
-                            id="artistName"
-                            placeholder="Your artist name"
-                            {...register('artistName')}
-                            onChange={(e) => {
-                                register('artistName').onChange(e) // Call original hook form handler
-                                handleArtistNameChange(e) // Call our custom search handler
-                            }}
-                            className={`${isSearching ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''}`}
-                        />
-                        {isSearching && (
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                    className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
-                                />
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="artistName">Artist Name *</Label>
+                        {user?.plan === 'free' && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <AlertCircle className="h-3 w-3" />
+                                <span>Free plan: 1 artist only</span>
                             </div>
+                        )}
+                    </div>
+                </div>
+                <div className="relative space-y-3">
+                    {/* Main Artist Field */}
+                    <div className="relative flex items-center gap-2">
+                        <div className="flex-1 relative">
+                            <Input
+                                id="artistName"
+                                placeholder="Your artist name"
+                                {...register('artistName')}
+                                onChange={(e) => {
+                                    register('artistName').onChange(e)
+                                    handleMainArtistNameChange(e)
+                                }}
+                                onFocus={() => setActiveSearchIndex('main')}
+                                className={`${isSearching && activeSearchIndex === 'main' ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''}`}
+                            />
+                            {isSearching && activeSearchIndex === 'main' && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                        className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Add Artist Button */}
+                        {canAddMoreArtists && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleAddArtist}
+                                className="shrink-0 h-10 w-10 p-0"
+                                title={user?.plan === 'free' ? 'Upgrade to add more artists' : 'Add another artist'}
+                                disabled={user?.plan === 'free'}
+                            >
+                                <Plus className="h-4 w-4" />
+                            </Button>
                         )}
                     </div>
                     {errors.artistName && <p className="text-xs text-red-500 mt-1">{errors.artistName.message}</p>}
 
-                    {/* Search Results / Platform Linking */}
-                    {artistName && artistName.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0) && (
+                    {/* Main Artist Search Results */}
+                    {renderSearchResults('main')}
+
+                    {/* Additional Artist Fields */}
+                    {artists && artists.length > 0 && (
+                        <div className="space-y-2 pl-0">
+                            {artists.map((artist, index) => (
+                                <div key={index}>
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <div className="flex-1 relative">
+                                            <Input
+                                                placeholder={`Artist ${index + 2} name`}
+                                                value={artist.name}
+                                                onChange={(e) => handleArtistChange(index, e.target.value)}
+                                                className="flex-1"
+                                                onFocus={() => setActiveSearchIndex(index)}
+                                            />
+                                            {isSearching && activeSearchIndex === index && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <motion.div
+                                                        animate={{ rotate: 360 }}
+                                                        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                                        className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRemoveArtist(index)}
+                                            className="shrink-0 h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </motion.div>
+
+                                    {/* Secondary Artist Search Results */}
+                                    {renderSearchResults(index)}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Upgrade Message for Free Users */}
+                    {user?.plan === 'free' && artists.length === 0 && (
                         <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mt-4 space-y-6 border border-border rounded-lg p-4 bg-card/50"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex items-start gap-2 p-3 bg-muted/50 rounded-md border border-border"
                         >
-                            <h4 className="font-semibold text-sm text-foreground">
-                                We found this artist on other platforms. Is this you?
-                            </h4>
-
-                            {/* Spotify Results */}
-                            {searchResults.spotify.length > 0 && (
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <svg className="h-5 w-5 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                                            </svg>
-                                            <span className="text-sm font-medium">Spotify</span>
-                                        </div>
-                                        {spotifyProfile && (
-                                            <button
-                                                onClick={() => setValue('spotifyProfile', '')}
-                                                className="text-xs text-primary hover:underline hover:text-primary/80"
-                                                type="button"
-                                            >
-                                                Change Selection
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {!spotifyProfile ? (
-                                        <>
-                                            {searchResults.spotify.map((artist: any) => (
-                                                <div
-                                                    key={artist.id}
-                                                    className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
-                                                    onClick={() => setValue('spotifyProfile', artist.id)}
-                                                >
-                                                    <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                        <div className="h-2 w-2 rounded-full hidden" />
-                                                    </div>
-                                                    {artist.image ? (
-                                                        <img src={artist.image} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
-                                                    ) : (
-                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                            <Music className="h-5 w-5 text-muted-foreground" />
-                                                        </div>
-                                                    )}
-                                                    <div className="flex-1">
-                                                        <p className="font-medium text-foreground">{artist.name}</p>
-                                                        <p className="text-sm text-muted-foreground">{(artist.followers || 0).toLocaleString()} followers</p>
-                                                    </div>
-                                                    <a
-                                                        href={artist.externalUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-primary"
-                                                        title="Open in Spotify"
-                                                    >
-                                                        <ExternalLink className="h-4 w-4" />
-                                                    </a>
-                                                </div>
-                                            ))}
-
-                                            <div className="space-y-2 mt-4">
-                                                <div
-                                                    className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                                    onClick={() => setValue('spotifyProfile', 'new')}
-                                                >
-                                                    <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                        {spotifyProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
-                                                    </div>
-                                                    <Label className="font-normal cursor-pointer">
-                                                        This will be my first <strong>{artistName}</strong> release in Spotify.
-                                                    </Label>
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        // Selected View
-                                        <div className="bg-primary/10 border border-primary rounded-md p-3">
-                                            {spotifyProfile === 'new' ? (
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                                        <Plus className="h-5 w-5 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium text-primary">New Artist Profile</p>
-                                                        <p className="text-sm text-muted-foreground">Creating a new profile for {artistName}</p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                (() => {
-                                                    const selected = searchResults.spotify.find(a => a.id === spotifyProfile)
-                                                    if (!selected) return null;
-                                                    return (
-                                                        <div className="flex items-center gap-3">
-                                                            {selected.image ? (
-                                                                <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover" />
-                                                            ) : (
-                                                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                                    <Music className="h-5 w-5 text-muted-foreground" />
-                                                                </div>
-                                                            )}
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-primary">{selected.name}</p>
-                                                                <p className="text-sm text-muted-foreground">{(selected.followers || 0).toLocaleString()} followers</p>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })()
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Apple Music Results */}
-                            {searchResults.apple.length > 0 && (
-                                <div className="space-y-3 pt-4 border-t border-border">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.227 15.653c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08z" />
-                                            </svg>
-                                            <span className="text-sm font-medium">Apple Music</span>
-                                        </div>
-                                        {appleMusicProfile && (
-                                            <button
-                                                onClick={() => setValue('appleMusicProfile', '')}
-                                                className="text-xs text-primary hover:underline hover:text-primary/80"
-                                                type="button"
-                                            >
-                                                Change Selection
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {!appleMusicProfile ? (
-                                        <>
-                                            {searchResults.apple.map((artist: any) => (
-                                                <div
-                                                    key={artist.id}
-                                                    className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
-                                                    onClick={() => setValue('appleMusicProfile', artist.id)}
-                                                >
-                                                    <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                        <div className="h-2 w-2 rounded-full hidden" />
-                                                    </div>
-                                                    <img src={artist.image} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
-                                                    <div className="flex-1">
-                                                        <p className="font-medium text-foreground">{artist.name}</p>
-                                                        <p className="text-sm text-muted-foreground">{artist.track}</p>
-                                                    </div>
-                                                    {artist.url && (
-                                                        <a
-                                                            href={artist.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-primary"
-                                                            title="Open in Apple Music"
-                                                        >
-                                                            <ExternalLink className="h-4 w-4" />
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            ))}
-
-                                            <div className="space-y-2 mt-4">
-                                                <div
-                                                    className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                                    onClick={() => setValue('appleMusicProfile', 'new')}
-                                                >
-                                                    <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                        {appleMusicProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
-                                                    </div>
-                                                    <Label className="font-normal cursor-pointer">
-                                                        This will be my first <strong>{artistName}</strong> release in Apple Music.
-                                                    </Label>
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        // Selected View
-                                        <div className="bg-primary/10 border border-primary rounded-md p-3">
-                                            {appleMusicProfile === 'new' ? (
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                                        <Plus className="h-5 w-5 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium text-primary">New Artist Profile</p>
-                                                        <p className="text-sm text-muted-foreground">Creating a new profile for {artistName}</p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                (() => {
-                                                    const selected = searchResults.apple.find(a => a.id === appleMusicProfile)
-                                                    if (!selected) return null;
-                                                    return (
-                                                        <div className="flex items-center gap-3">
-                                                            <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover" />
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-primary">{selected.name}</p>
-                                                                <p className="text-sm text-muted-foreground">{selected.track}</p>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })()
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* YouTube Results */}
-                            {searchResults.youtube.length > 0 && (
-                                <div className="space-y-3 pt-4 border-t border-border">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-                                            </svg>
-                                            <span className="text-sm font-medium">YouTube Music</span>
-                                        </div>
-                                        {youtubeMusicProfile && (
-                                            <button
-                                                onClick={() => setValue('youtubeMusicProfile', '')}
-                                                className="text-xs text-primary hover:underline hover:text-primary/80"
-                                                type="button"
-                                            >
-                                                Change Selection
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {!youtubeMusicProfile ? (
-                                        <>
-                                            {searchResults.youtube.map((profile: any) => (
-                                                <div
-                                                    key={profile.id}
-                                                    className={`flex items-center gap-3 p-3 rounded-md transition-colors cursor-pointer ${youtubeMusicProfile === profile.id ? 'bg-primary/10 border border-primary' : 'bg-background hover:bg-accent'
-                                                        }`}
-                                                    onClick={() => setValue('youtubeMusicProfile', profile.id)}
-                                                >
-                                                    <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                        <div className="h-2 w-2 rounded-full hidden" />
-                                                    </div>
-                                                    <img src={profile.image} alt={profile.name} className="h-10 w-10 rounded-full object-cover" />
-                                                    <div className="flex-1">
-                                                        <p className="font-medium text-foreground">{profile.name}</p>
-                                                        <p className="text-sm text-muted-foreground">{profile.track}</p>
-                                                    </div>
-                                                    {profile.channelUrl && (
-                                                        <a
-                                                            href={profile.channelUrl}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-primary"
-                                                            title="Open in YouTube Music"
-                                                        >
-                                                            <ExternalLink className="h-4 w-4" />
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            ))}
-
-                                            <div className="space-y-2 mt-4">
-                                                <div
-                                                    className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                                    onClick={() => setValue('youtubeMusicProfile', 'new')}
-                                                >
-                                                    <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                        {youtubeMusicProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
-                                                    </div>
-                                                    <Label className="font-normal cursor-pointer">
-                                                        This will be my first <strong>{artistName}</strong> release in YouTube Music.
-                                                    </Label>
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        // Selected View
-                                        <div className="bg-primary/10 border border-primary rounded-md p-3">
-                                            {youtubeMusicProfile === 'new' ? (
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                                        <Plus className="h-5 w-5 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium text-primary">New Artist Profile</p>
-                                                        <p className="text-sm text-muted-foreground">Creating a new profile for {artistName}</p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                (() => {
-                                                    const selected = searchResults.youtube.find(p => p.id === youtubeMusicProfile)
-                                                    if (!selected) return null;
-                                                    return (
-                                                        <div className="flex items-center gap-3">
-                                                            <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover" />
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-primary">{selected.name}</p>
-                                                                <p className="text-sm text-muted-foreground">{selected.track}</p>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })()
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                            <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div className="text-xs text-muted-foreground">
+                                <p className="font-medium">Want to add multiple artists?</p>
+                                <p>Upgrade to Premium to collaborate with unlimited artists on your releases.</p>
+                            </div>
                         </motion.div>
                     )}
                 </div>
@@ -622,17 +762,29 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="format">Format *</Label>
-                    <select
-                        id="format"
-                        className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.format ? 'border-red-500' : ''}`}
-                        {...register('format')}
-                    >
-                        <option disabled value="">Select a format</option>
+                    <div className="space-y-2">
+                        <select
+                            id="format"
+                            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.format ? 'border-red-500' : ''}`}
+                            {...register('format')}
+                        >
+                            <option disabled value="">Select a format</option>
 
-                        <option value="single">Single</option>
-                        <option value="ep">EP</option>
-                        <option value="album">Album</option>
-                    </select>
+                            <option value="single">Single</option>
+                            <option value="ep" disabled={user?.plan === 'free'}>
+                                EP {user?.plan === 'free' ? '(Premium)' : ''}
+                            </option>
+                            <option value="album" disabled={user?.plan === 'free'}>
+                                Album {user?.plan === 'free' ? '(Premium)' : ''}
+                            </option>
+                        </select>
+                        {user?.plan === 'free' && (
+                            <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
+                                <Info className="h-3 w-3 mt-0.5" />
+                                <span>Upgrade to Premium to release EPs and Albums.</span>
+                            </div>
+                        )}
+                    </div>
                     {errors.format && <p className="text-xs text-red-500 mt-1">{errors.format.message}</p>}
                 </div>
                 <div className="space-y-3 pt-6 border-t border-border">
