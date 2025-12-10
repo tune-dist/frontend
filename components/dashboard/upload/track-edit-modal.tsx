@@ -7,6 +7,7 @@ import { Track, Songwriter } from './types'
 import { useState, useRef, useEffect } from 'react'
 import { Music, X, Loader2 } from 'lucide-react'
 import { getGenres, type Genre } from '@/lib/api/genres'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface TrackEditModalProps {
     isOpen: boolean
@@ -17,6 +18,7 @@ interface TrackEditModalProps {
 }
 
 export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave }: TrackEditModalProps) {
+    const { user } = useAuth()
     // Local state for track metadata fields
     const [trackTitle, setTrackTitle] = useState(track?.title || '')
     const [language, setLanguage] = useState(track?.language || '')
@@ -30,6 +32,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     // Local state for modal editing
     const [modalArtistSearch, setModalArtistSearch] = useState(track?.artistName || '')
     const [isSearching, setIsSearching] = useState(false)
+    const [hasSearched, setHasSearched] = useState(false)
     const [searchResults, setSearchResults] = useState<{ spotify: any[]; youtube: any[] }>({ spotify: [], youtube: [] })
     const searchTimeout = useRef<NodeJS.Timeout>()
 
@@ -85,9 +88,17 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setFacebookStatus(track.facebookProfile ? 'yes' : 'no')
             setInstagramUrl(track.instagramProfile || '')
             setFacebookUrl(track.facebookProfile || '')
+
             setSearchResults({ spotify: [], youtube: [] })
+            setHasSearched(false)
+        } else if (isOpen && user?.fullName && !track?.artistName) {
+            // New track or empty artist - prefill with user name
+            const name = user.fullName
+            setModalArtistSearch(name)
+            // Trigger search
+            handleModalArtistSearch(name)
         }
-    }, [track, trackIndex])
+    }, [track, trackIndex, isOpen, user])
 
 
     const handleModalArtistSearch = async (name: string) => {
@@ -119,11 +130,13 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     setSearchResults({ spotify: [], youtube: [] })
                 } finally {
                     setIsSearching(false)
+                    setHasSearched(true)
                 }
             }, 500)
         } else {
             setSearchResults({ spotify: [], youtube: [] })
             setIsSearching(false)
+            setHasSearched(false)
         }
     }
 
@@ -217,6 +230,18 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                 </div>
                             )}
                         </div>
+
+                        {/* Artist Not Found Message */}
+                        {hasSearched && !isSearching &&
+                            searchResults.spotify.length === 0 &&
+                            searchResults.youtube.length === 0 &&
+                            modalArtistSearch.length > 2 && (
+                                <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                                        Artist not found. Please upload music via a distributor to create a Spotify profile
+                                    </p>
+                                </div>
+                            )}
 
                         {/* Rich Search Results */}
                         {modalArtistSearch && modalArtistSearch.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.youtube.length > 0) && (

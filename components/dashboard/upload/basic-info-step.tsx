@@ -33,15 +33,12 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     // Check if user can add more artists based on plan
     const canAddMoreArtists = user?.plan !== 'free' || artists.length === 0
 
-    // Prefill title with user name (logic from original, slightly adjusted)
-    useEffect(() => {
-        if (user?.fullName && !title) {
-            setValue('title', user.fullName)
-        }
-    }, [user, title, setValue])
+
+
 
     // Search State
     const [isSearching, setIsSearching] = useState(false)
+    const [hasSearched, setHasSearched] = useState(false)
     const [activeSearchIndex, setActiveSearchIndex] = useState<number | 'main' | null>(null)
     const [searchResults, setSearchResults] = useState<{
         spotify: any[];
@@ -140,13 +137,25 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     setSearchResults({ spotify: [], apple: [], youtube: [] })
                 } finally {
                     setIsSearching(false)
+                    setHasSearched(true)
                 }
             }, 1000)
         } else {
             setSearchResults({ spotify: [], apple: [], youtube: [] })
             setIsSearching(false)
+            setHasSearched(false)
         }
     }
+
+
+
+    // Prefill artistName with user name and trigger search
+    useEffect(() => {
+        if (user?.fullName && !artistName) {
+            setValue('artistName', user.fullName)
+            handleSearch(user.fullName, 'main')
+        }
+    }, [user, artistName, setValue])
 
     const handleMainArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
@@ -564,6 +573,19 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         )}
                     </div>
                     {errors.artistName && <p className="text-xs text-red-500 mt-1">{errors.artistName.message}</p>}
+
+                    {/* Artist Not Found Message */}
+                    {activeSearchIndex === 'main' && hasSearched && !isSearching &&
+                        searchResults.spotify.length === 0 &&
+                        searchResults.apple.length === 0 &&
+                        searchResults.youtube.length === 0 &&
+                        artistName.length > 2 && (
+                            <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                                <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                                    Artist not found. Please upload music via a distributor to create a Spotify profile
+                                </p>
+                            </div>
+                        )}
 
                     {/* Main Artist Search Results */}
                     {renderSearchResults('main')}
