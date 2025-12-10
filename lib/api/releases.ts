@@ -69,7 +69,7 @@ export interface ReleaseFormData {
   format?: string;
 }
 
-export type ReleaseStatus = 'In Process' | 'Rejected' | 'Released';
+export type ReleaseStatus = 'In Process' | 'Approved' | 'Rejected' | 'Released';
 export type ReleaseType = 'single' | 'ep' | 'album' | 'compilation';
 
 export interface AudioFile {
@@ -422,5 +422,23 @@ export const cancelRelease = async (id: string): Promise<Release> => {
 // Delete release (draft only)
 export const deleteRelease = async (id: string): Promise<{ message: string }> => {
   const response = await apiClient.delete<{ message: string }>(`/releases/${id}`);
+  return response.data;
+};
+
+// Approve release (Admin only)
+export const approveRelease = async (id: string): Promise<Release> => {
+  const response = await apiClient.post<Release>(`/releases/${id}/approve`);
+  return response.data;
+};
+
+// Reject release (Admin only)
+export const rejectRelease = async (id: string, reason: string): Promise<Release> => {
+  const response = await apiClient.post<Release>(`/releases/${id}/reject`, { reason });
+  return response.data;
+};
+
+// Mark release as distributed (Admin only)
+export const releaseRelease = async (id: string): Promise<Release> => {
+  const response = await apiClient.post<Release>(`/releases/${id}/release`);
   return response.data;
 };

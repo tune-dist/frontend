@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 import DashboardLayout from '@/components/dashboard/dashboard-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -15,8 +16,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Loader2, Plus, Filter, Eye, Trash2, Send, XCircle, Music } from 'lucide-react'
-import { getReleases, deleteRelease, submitRelease, cancelRelease, Release, ReleaseStatus } from '@/lib/api/releases'
+
+import { Loader2, Plus, Filter, Eye, Trash2, Send, XCircle, Music, CheckCircle, UploadCloud, Ban } from 'lucide-react'
+import { getReleases, deleteRelease, submitRelease, cancelRelease, approveRelease, rejectRelease, releaseRelease, Release, ReleaseStatus } from '@/lib/api/releases'
 
 // Animation variants
 const containerVariants = {
@@ -47,6 +49,7 @@ export default function ReleasesPage() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const { user } = useAuth()
 
   const fetchReleases = async () => {
     try {
@@ -71,6 +74,8 @@ export default function ReleasesPage() {
     switch (status) {
       case 'Released':
         return 'bg-green-500/10 text-green-500'
+      case 'Approved':
+        return 'bg-purple-500/10 text-purple-500'
       case 'In Process':
         return 'bg-blue-500/10 text-blue-500'
       case 'Rejected':
@@ -140,9 +145,53 @@ export default function ReleasesPage() {
     }
   }
 
+  const handleApprove = async (id: string) => {
+    if (!confirm('Approve this release?')) return
+    try {
+      setActionLoading(id)
+      await approveRelease(id)
+      toast.success('Release approved')
+      fetchReleases()
+    } catch (error) {
+      toast.error('Failed to approve release')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleReject = async (id: string) => {
+    const reason = prompt('Enter rejection reason:')
+    if (!reason) return
+    try {
+      setActionLoading(id)
+      await rejectRelease(id, reason)
+      toast.success('Release rejected')
+      fetchReleases()
+    } catch (error) {
+      toast.error('Failed to reject release')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleRelease = async (id: string) => {
+    if (!confirm('Mark this release as distributed/released?')) return
+    try {
+      setActionLoading(id)
+      await releaseRelease(id)
+      toast.success('Release marked as distributed')
+      fetchReleases()
+    } catch (error) {
+      toast.error('Failed to release')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const statusFilters: { value: StatusFilter; label: string; count?: number }[] = [
     { value: 'all', label: 'All' },
     { value: 'In Process', label: 'In Process' },
+    { value: 'Approved', label: 'Approved' },
     { value: 'Rejected', label: 'Rejected' },
     { value: 'Released', label: 'Released' },
   ]
@@ -165,12 +214,14 @@ export default function ReleasesPage() {
               Manage all your music releases in one place
             </p>
           </div>
-          <Link href="/dashboard/upload">
-            <Button size="lg" className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Release
-            </Button>
-          </Link>
+          {user?.role !== 'release_manager' && (
+            <Link href="/dashboard/upload">
+              <Button size="lg" className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Release
+              </Button>
+            </Link>
+          )}
         </motion.div>
 
         {/* Filters */}
@@ -241,12 +292,14 @@ export default function ReleasesPage() {
                               <Music className="h-12 w-12 text-muted-foreground/50" />
                               <p className="text-lg font-medium">No releases found</p>
                               <p className="text-sm">Start by creating your first release</p>
-                              <Link href="/dashboard/upload" className="mt-4">
-                                <Button>
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Create Release
-                                </Button>
-                              </Link>
+                              {user?.role !== 'release_manager' && (
+                                <Link href="/dashboard/upload" className="mt-4">
+                                  <Button>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Create Release
+                                  </Button>
+                                </Link>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -343,6 +396,52 @@ export default function ReleasesPage() {
                                       <Trash2 className="h-4 w-4" />
                                     )}
                                   </Button>
+                                )}
+                                {/* Admin/Manager Actions */}
+                                {(user?.role === 'release_manager' || user?.role === 'admin' || user?.role === 'super_admin') && (
+                                  <>
+                                    {/* Approve Button (Admin Only) */}
+                                    {(user?.role === 'admin' || user?.role === 'super_admin') && release.status === 'In Process' && release.submittedAt && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleApprove(release._id)}
+                                        disabled={actionLoading === release._id}
+                                        title="Approve Release"
+                                        className="text-purple-500 hover:text-purple-600 hover:bg-purple-500/10"
+                                      >
+                                        {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                                      </Button>
+                                    )}
+
+                                    {/* Reject Button (Admin Only) */}
+                                    {(user?.role === 'admin' || user?.role === 'super_admin') && release.status === 'In Process' && release.submittedAt && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleReject(release._id)}
+                                        disabled={actionLoading === release._id}
+                                        title="Reject Release"
+                                        className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                      >
+                                        {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                                      </Button>
+                                    )}
+
+                                    {/* Release Button (Admins + Release Manager) */}
+                                    {release.status === 'Approved' && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleRelease(release._id)}
+                                        disabled={actionLoading === release._id}
+                                        title="Mark as Distributed"
+                                        className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                                      >
+                                        {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+                                      </Button>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             </TableCell>
