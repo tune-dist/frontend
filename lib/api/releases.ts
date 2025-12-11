@@ -11,6 +11,7 @@ export interface ReleaseFormData {
     youtubeMusicProfile?: any;
   }>;
   numberOfSongs?: string;
+  userId?: string;
 
   // Release info
   previouslyReleased?: string;
@@ -208,6 +209,9 @@ export interface CreateReleaseData {
 
   // Multi-track
   tracks?: TrackPayload[];
+
+  // Optional userId override (e.g. for admin/testing)
+  userId?: string;
 }
 
 export interface ReleasesResponse {
@@ -225,6 +229,7 @@ export interface GetReleasesParams {
   status?: ReleaseStatus;
   page?: number;
   limit?: number;
+  userId?: string;
 }
 
 // Process and submit new release with file uploads
@@ -360,14 +365,16 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.instrumental && { instrumental: formData.instrumental }),
 
       // Map artists to primaryArtists
-      ...(formData.artists && formData.artists.length > 0 && {
-        primaryArtists: formData.artists.map(artist => ({
+      ...(formData.artists &&
+        formData.artists.length > 0 && {
+        primaryArtists: formData.artists.map((artist) => ({
           name: artist.name,
           spotifyProfile: artist.spotifyProfile,
           appleMusicProfile: artist.appleMusicProfile,
           youtubeMusicProfile: artist.youtubeMusicProfile,
-        }))
+        })),
       }),
+      ...(formData.userId && { userId: formData.userId }),
     };
 
     // 5. Create release via API
@@ -378,7 +385,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     throw new Error(
       error.response?.data?.message ||
       error.message ||
-      'Failed to submit release. Please try again.'
+      "Failed to submit release. Please try again."
     );
   }
 };

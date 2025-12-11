@@ -54,7 +54,10 @@ export default function ReleasesPage() {
   const fetchReleases = async () => {
     try {
       setLoading(true)
-      const params = statusFilter !== 'all' ? { status: statusFilter } : {}
+      const params: any = statusFilter !== 'all' ? { status: statusFilter } : {}
+      if (user?._id) {
+        params.userId = user._id
+      }
       const response = await getReleases(params)
       console.log(response)
       setReleases(response.releases)

@@ -109,6 +109,8 @@ export default function UploadPage() {
       composers: [
         { role: "Composer", firstName: "", middleName: "", lastName: "" },
       ],
+      copyright: process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow",
+      producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow"],
     },
     mode: "onChange",
   });
@@ -468,13 +470,12 @@ export default function UploadPage() {
                     <div key={step.id} className="flex items-center">
                       <div className="flex flex-col items-center">
                         <div
-                          className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                            isActive
-                              ? "bg-primary text-primary-foreground"
-                              : isCompleted
+                          className={`h-10 w-10 rounded-full flex items-center justify-center ${isActive
+                            ? "bg-primary text-primary-foreground"
+                            : isCompleted
                               ? "bg-primary/20 text-primary"
                               : "bg-muted text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           <Icon className="h-5 w-5" />
                         </div>
@@ -484,9 +485,8 @@ export default function UploadPage() {
                       </div>
                       {index < steps.length - 1 && (
                         <div
-                          className={`h-0.5 w-12 mx-2 ${
-                            isCompleted ? "bg-primary" : "bg-muted"
-                          }`}
+                          className={`h-0.5 w-12 mx-2 ${isCompleted ? "bg-primary" : "bg-muted"
+                            }`}
                         />
                       )}
                     </div>
@@ -512,8 +512,20 @@ export default function UploadPage() {
                     <Input
                       id="copyright"
                       placeholder="© Your label Name"
-                      {...register("copyright")}
+                      {...register("copyright", {
+                        onChange: (e) => {
+                          const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";
+                          if (user?.plan === 'free' && e.target.value !== defaultValue) {
+                            toast.error("Upgrade to paid plan to customize copyright", { id: "copyright-warning" });
+                          }
+                        }
+                      })}
                     />
+                    {user?.plan === 'free' && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Purchase a paid plan to customize Copyright.
+                      </p>
+                    )}
                   </div>
 
                   {/* Producers */}
@@ -522,8 +534,20 @@ export default function UploadPage() {
                     <Input
                       id="producers"
                       placeholder="℗ Your label Name"
-                      {...register("producers.0")}
+                      {...register("producers.0", {
+                        onChange: (e) => {
+                          const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";
+                          if (user?.plan === 'free' && e.target.value !== defaultValue) {
+                            toast.error("Upgrade to paid plan to customize producers", { id: "producers-warning" });
+                          }
+                        }
+                      })}
                     />
+                    {user?.plan === 'free' && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Purchase a paid plan to customize Producers.
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
