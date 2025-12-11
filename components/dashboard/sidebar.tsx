@@ -12,7 +12,9 @@ import {
   User,
   Menu,
   X,
+  LogOut,
 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -25,6 +27,17 @@ const navigation = [
 export default function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { user } = useAuth()
+  // const router = useRouter()
+
+  // const handleLogout = async () => {
+  //   try {
+  //     await logout()
+  //     router.push('/login')
+  //   } catch (error) {
+  //     console.error('Logout failed:', error)
+  //   }
+  // }
 
   return (
     <>
@@ -69,26 +82,33 @@ export default function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-3 py-4">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              )
-            })}
+            {navigation
+              .filter(item => {
+                if (user?.role === 'release_manager') {
+                  return ['Dashboard', 'My Releases'].includes(item.name)
+                }
+                return true
+              })
+              .map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {item.name}
+                  </Link>
+                )
+              })}
           </nav>
 
           {/* User Section */}
@@ -98,10 +118,18 @@ export default function Sidebar() {
                 <User className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">Divyanshu</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  Artist
-                </p>
+                <p className="text-sm font-medium truncate">{user?.fullName || 'User'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground truncate">
+                    Artist
+                  </p>
+                  {/* <button
+                    onClick={handleLogout}
+                    className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
+                  >
+                    <LogOut className="h-3 w-3" />
+                  </button> */}
+                </div>
               </div>
             </div>
           </div>

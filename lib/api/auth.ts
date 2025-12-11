@@ -16,6 +16,7 @@ export interface User {
   email: string;
   fullName: string;
   plan: 'free' | 'pro' | 'enterprise';
+  role: 'super_admin' | 'admin' | 'release_manager' | 'artist';
   planStartDate?: string;
   usage: {
     releasesThisMonth: number;
@@ -63,9 +64,9 @@ export const forgotPassword = async (email: string): Promise<{ message: string }
 
 // Reset password
 export const resetPassword = async (token: string, password: string): Promise<{ message: string }> => {
-  const response = await apiClient.post<{ message: string }>('/auth/reset-password', { 
-    token, 
-    password 
+  const response = await apiClient.post<{ message: string }>('/auth/reset-password', {
+    token,
+    password
   });
   return response.data;
 };

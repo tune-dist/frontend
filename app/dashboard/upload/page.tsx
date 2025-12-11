@@ -1,15 +1,42 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import toast from 'react-hot-toast'
-import { useRouter } from 'next/navigation'
-import DashboardLayout from '@/components/dashboard/dashboard-layout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Upload, Music, Image as ImageIcon, Info, Calendar, Users, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Info,
+  Music,
+  Image as ImageIcon,
+  Users,
+  CheckCircle,
+  ArrowLeft,
+  ArrowRight,
+} from "lucide-react";
+
+// React Hook Form & Zod
+import { useForm, FormProvider, useFormContext } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  UploadFormData,
+  uploadFormSchema,
+  Songwriter,
+  MandatoryChecks,
+} from "@/components/dashboard/upload/types";
+
+// Child Components
+import BasicInfoStep from "@/components/dashboard/upload/basic-info-step";
+import AudioFileStep from "@/components/dashboard/upload/audio-file-step";
+import CoverArtStep from "@/components/dashboard/upload/cover-art-step";
+import CreditsStep from "@/components/dashboard/upload/credits-step";
+import ReviewStep from "@/components/dashboard/upload/review-step";
+import { submitNewRelease } from "@/lib/api/releases";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 // Animation variants
 const containerVariants = {
@@ -20,7 +47,7 @@ const containerVariants = {
       staggerChildren: 0.1,
     },
   },
-}
+};
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -31,290 +58,382 @@ const itemVariants = {
       duration: 0.5,
     },
   },
-}
+};
 
 const steps = [
-  { id: 1, name: 'Basic Info', icon: Info },
-  { id: 2, name: 'Audio File', icon: Music },
-  { id: 3, name: 'Cover Art', icon: ImageIcon },
-  { id: 4, name: 'Release Details', icon: Calendar },
-  { id: 5, name: 'Credits', icon: Users },
-  { id: 6, name: 'Review', icon: CheckCircle },
-]
+  { id: 1, name: "Release Details", icon: Info },
+  { id: 2, name: "Audio File", icon: Music },
+  { id: 3, name: "Cover Art", icon: ImageIcon },
+  { id: 4, name: "Credits", icon: Users },
+  { id: 5, name: "Review", icon: CheckCircle },
+];
 
 export default function UploadPage() {
-  const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
-  const [formData, setFormData] = useState<any>({
-    // Basic Info
-    title: '',
-    artistName: '',
-    genres: [],
-    language: 'English',
-    releaseType: 'single',
-    isExplicit: false,
-    
-    // Files (these would be uploaded via API)
-    audioFile: null,
-    coverArt: null,
-    
-    // Release Details
-    releaseDate: '',
-    
-    // Credits
-    producers: [],
-    writers: [],
-  })
+  const router = useRouter();
+  const [currentStep, setCurrentStep] = useState(1);
 
-  const handleNext = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1)
+  // Initialize Form
+
+  const form = useForm<UploadFormData>({
+    resolver: zodResolver(uploadFormSchema),
+    defaultValues: {
+      numberOfSongs: "1",
+      title: "",
+      artistName: "",
+      version: "",
+      previouslyReleased: "no",
+      primaryGenre: "",
+      secondaryGenre: "",
+      language: "",
+      releaseType: "single",
+      isrc: "",
+      isExplicit: false,
+      explicitLyrics: "no",
+      format: "" as any, // Will trigger validation
+      tracks: [],
+      spotifyProfile: "",
+      appleMusicProfile: "",
+      youtubeMusicProfile: "",
+      instagramProfile: "no",
+      facebookProfile: "no",
+      dolbyAtmos: "no",
+      instrumental: "no",
+      songwriters: [
+        {
+          role: "Music and lyrics",
+          firstName: "",
+          middleName: "",
+          lastName: "",
+        },
+      ],
+      composers: [
+        { role: "Composer", firstName: "", middleName: "", lastName: "" },
+      ],
+    },
+    mode: "onChange",
+  });
+
+  const {
+    register,
+    control,
+    watch,
+    setValue,
+    formState: { errors },
+  } = form;
+
+  // Separate state for internal component logic (Credits step songwriters list etc)
+  // These could be moved into the form too, but for UI lists that map to a final field, local state is sometimes easier until submit.
+  // HOWEVER, preventing state loss on nav requires them to be lifted or in form.
+  // For now we keep them here as in original, but we should sync them to form on submit or change.
+  // Ideally we refactor CreditsStep to useFieldArray. For now, let's keep passing them.
+  const [songwriters, setSongwriters] = useState<Songwriter[]>([
+    {
+      role: "Music and lyrics",
+      firstName: "",
+      middleName: "",
+      lastName: "",
+    },
+  ]);
+
+  const [composers, setComposers] = useState<Songwriter[]>([
+    {
+      role: "Composer",
+      firstName: "",
+      middleName: "",
+      lastName: "",
+    },
+  ]);
+
+  const [mandatoryChecks, setMandatoryChecks] = useState<MandatoryChecks>({
+    youtubeConfirmation: false,
+    capitalizationConfirmation: false,
+    promoServices: false,
+    rightsAuthorization: false,
+    nameUsage: false,
+    termsAgreement: false,
+  });
+
+  // Watch for bridging to old components
+  const formData = form.watch();
+  const setFormData = (data: Partial<UploadFormData>) => {
+    // Bridge for legacy components calling setFormData
+    Object.entries(data).forEach(([key, value]) => {
+      form.setValue(key as any, value, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    });
+  };
+
+  const handleNext = async () => {
+    let isValid = false;
+
+    // Step-based validation
+    switch (currentStep) {
+      case 1: // Basic Info
+        isValid = await form.trigger([
+          "title",
+          "artistName",
+          "language",
+          "format",
+        ]);
+        break;
+      case 2: // Audio
+        if (formData.format === "single") {
+          // For single, we need audioFile.
+          // Note: 'audioFile' in zod is 'any'. We manually check if it's null.
+          // Ideally zod schema handles this with custom check, but File object is tricky in server/client boundary types.
+          if (!formData.audioFile) {
+            form.setError("audioFile", {
+              type: "required",
+              message: "Audio file is required",
+            });
+            isValid = false;
+          } else {
+            form.clearErrors("audioFile");
+            isValid = true;
+          }
+        } else {
+          // EP/Album
+          if (formData.tracks.length === 0) {
+            toast.error("Please add at least one track");
+            isValid = false;
+          } else {
+            isValid = true;
+          }
+        }
+        break;
+      case 3: // Cover Art
+        if (!formData.coverArt) {
+          form.setError("coverArt", {
+            type: "required",
+            message: "Cover art is required",
+          });
+          isValid = false;
+        } else {
+          isValid = true;
+        }
+        break;
+      case 4: // Credits
+        // Validate required fields in Credits step
+        if (formData.format === "single") {
+          // For singles, validate genre and previously released
+          // Also validate songwriters and composers since they are required fields in the form
+          isValid = await form.trigger([
+            "primaryGenre",
+            "secondaryGenre",
+            "previouslyReleased",
+            "songwriters",
+            "composers",
+          ]);
+        } else {
+          // For Albums/EPs, no required fields in Credits step currently
+          isValid = true;
+        }
+        break;
+      case 5: // Review
+        isValid = true;
+        break;
+      default:
+        isValid = true;
     }
-  }
+
+    if (isValid) {
+      if (currentStep < steps.length) {
+        setCurrentStep(currentStep + 1);
+      }
+    } else {
+      toast.error("Please fix the errors before proceeding");
+      console.log(form.formState.errors);
+    }
+  };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(currentStep - 1);
     }
-  }
+  };
 
-  const handleSubmit = async () => {
-    toast.error('Upload endpoint not yet implemented. Backend needs to be completed first.')
-    // This will be implemented once the backend upload endpoints are ready
-  }
+  const onSubmit = async (data: UploadFormData) => {
+    // Final validations
+    if (
+      !mandatoryChecks.promoServices ||
+      !mandatoryChecks.rightsAuthorization ||
+      !mandatoryChecks.nameUsage ||
+      !mandatoryChecks.termsAgreement
+    ) {
+      toast.error("Please agree to all mandatory checkboxes");
+      return;
+    }
+
+    // Check capitalization checks if needed (logic from original)
+    const hasIrregularCapitalization = (text: string) => {
+      if (!text) return false;
+      return (
+        /[a-z][A-Z]/.test(text) ||
+        (text === text.toUpperCase() && text.length > 3)
+      );
+    };
+    const needsCapitalizationCheck =
+      hasIrregularCapitalization(data.title) ||
+      hasIrregularCapitalization(data.artistName);
+
+    if (
+      needsCapitalizationCheck &&
+      !mandatoryChecks.capitalizationConfirmation
+    ) {
+      toast.error("Please confirm the non-standard capitalization");
+      return;
+    }
+
+    try {
+      toast.loading("Submitting release...");
+
+      // Prepare songwriters for API (legacy logic)
+      const allWriters = [...songwriters, ...composers]
+        .filter((s) => s.firstName || s.lastName)
+        .map((s) => `${s.firstName} ${s.middleName || ""} ${s.lastName}`.trim())
+        .filter(Boolean);
+
+      // API Call
+      await submitNewRelease({
+        ...data,
+        writers: allWriters.length > 0 ? allWriters : undefined,
+        // Ensure types match API expectations
+      } as any);
+
+      toast.dismiss();
+      toast.success("Release submitted successfully!");
+      router.push("/dashboard/releases");
+    } catch (error: any) {
+      toast.dismiss();
+      toast.error(error.message || "Failed to submit release");
+    }
+  };
+
+  const onInvalid = (errors: any) => {
+    console.error("Form validation errors:", errors);
+    toast.error("Please fix the errors before submitting");
+    // If we are on the review step (last step), finding an error means something was missed in previous steps
+    // We can try to navigate the user to the first step with an error, or just show the toast.
+    // Showing toast is safer for now.
+  };
 
   const renderStepContent = () => {
+    // Props bridge for components not yet updated to useFormContext
+    const commonProps = {
+      formData,
+      setFormData,
+    };
+
     switch (currentStep) {
       case 1:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Basic Information</h3>
-            <p className="text-muted-foreground">Let's start with the basics about your release</p>
-            
-            <div className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Track/Album Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="artistName">Artist Name *</Label>
-                <Input
-                  id="artistName"
-                  placeholder="Your artist name"
-                  value={formData.artistName}
-                  onChange={(e) => setFormData({ ...formData, artistName: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="releaseType">Release Type *</Label>
-                <select
-                  id="releaseType"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={formData.releaseType}
-                  onChange={(e) => setFormData({ ...formData, releaseType: e.target.value })}
-                >
-                  <option value="single">Single</option>
-                  <option value="ep">EP</option>
-                  <option value="album">Album</option>
-                  <option value="compilation">Compilation</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="language">Language *</Label>
-                <Input
-                  id="language"
-                  placeholder="e.g., English"
-                  value={formData.language}
-                  onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isExplicit"
-                  checked={formData.isExplicit}
-                  onChange={(e) => setFormData({ ...formData, isExplicit: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <Label htmlFor="isExplicit">Contains explicit content</Label>
-              </div>
-            </div>
-          </div>
-        )
-
+        return <BasicInfoStep {...commonProps} />;
       case 2:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Audio File Upload</h3>
-            <p className="text-muted-foreground">Upload your high-quality audio file</p>
-            
-            <div className="mt-6">
-              <div className="border-2 border-dashed border-border rounded-lg p-12 text-center">
-                <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-lg font-medium mb-2">Drag & drop your audio file here</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Supported formats: WAV, MP3, FLAC, AIFF (Max 500MB)
-                </p>
-                <Button variant="outline">Browse Files</Button>
-              </div>
-              
-              <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                <p className="text-sm text-yellow-600 dark:text-yellow-500">
-                  <strong>Note:</strong> Upload endpoints are not yet implemented in the backend. 
-                  This feature will be available once the backend upload module is completed.
-                </p>
-              </div>
-            </div>
-          </div>
-        )
-
+        return <AudioFileStep {...commonProps} />;
       case 3:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Cover Art Upload</h3>
-            <p className="text-muted-foreground">Add eye-catching cover art for your release</p>
-            
-            <div className="mt-6">
-              <div className="border-2 border-dashed border-border rounded-lg p-12 text-center">
-                <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-lg font-medium mb-2">Upload your cover art</p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Required: 3000x3000px, JPG or PNG (Max 10MB)
-                </p>
-                <Button variant="outline">Browse Images</Button>
-              </div>
-              
-              <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <p className="text-sm text-blue-600 dark:text-blue-500">
-                  <strong>Tip:</strong> Use high-resolution square images (1:1 aspect ratio) for best results across all platforms.
-                </p>
-              </div>
-            </div>
-          </div>
-        )
-
+        return <CoverArtStep {...commonProps} />;
       case 4:
         return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Release Details</h3>
-            <p className="text-muted-foreground">When do you want to release your music?</p>
-            
-            <div className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <Label htmlFor="releaseDate">Release Date *</Label>
-                <Input
-                  id="releaseDate"
-                  type="date"
-                  value={formData.releaseDate}
-                  onChange={(e) => setFormData({ ...formData, releaseDate: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Must be at least 7 days from today
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="genres">Genres *</Label>
-                <Input
-                  id="genres"
-                  placeholder="e.g., Pop, Electronic (comma-separated)"
-                  onChange={(e) => setFormData({ ...formData, genres: e.target.value.split(',').map((g: string) => g.trim()) })}
-                />
-              </div>
-            </div>
-          </div>
-        )
-
+          <CreditsStep
+            {...commonProps}
+            songwriters={songwriters}
+            setSongwriters={setSongwriters}
+            composers={composers}
+            setComposers={setComposers}
+          />
+        );
       case 5:
         return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Credits & Metadata</h3>
-            <p className="text-muted-foreground">Give credit to everyone involved</p>
-            
-            <div className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <Label htmlFor="producers">Producers (Optional)</Label>
-                <Input
-                  id="producers"
-                  placeholder="Comma-separated names"
-                  onChange={(e) => setFormData({ ...formData, producers: e.target.value.split(',').map((p: string) => p.trim()) })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="writers">Writers/Composers (Optional)</Label>
-                <Input
-                  id="writers"
-                  placeholder="Comma-separated names"
-                  onChange={(e) => setFormData({ ...formData, writers: e.target.value.split(',').map((w: string) => w.trim()) })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="copyright">Copyright (Optional)</Label>
-                <Input
-                  id="copyright"
-                  placeholder="© 2025 Your Name"
-                  value={formData.copyright}
-                  onChange={(e) => setFormData({ ...formData, copyright: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-        )
-
-      case 6:
-        return (
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Review & Submit</h3>
-            <p className="text-muted-foreground">Review your release information before submitting</p>
-            
-            <div className="mt-6 space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Release Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Title:</span>
-                    <span className="font-medium">{formData.title || 'Not set'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Artist:</span>
-                    <span className="font-medium">{formData.artistName || 'Not set'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type:</span>
-                    <span className="font-medium capitalize">{formData.releaseType}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Release Date:</span>
-                    <span className="font-medium">{formData.releaseDate || 'Not set'}</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                <p className="text-sm text-yellow-600 dark:text-yellow-500">
-                  <strong>Backend Integration Required:</strong> The upload and submission features require the backend upload endpoints to be completed first.
-                </p>
-              </div>
-            </div>
-          </div>
-        )
-
+          <ReviewStep
+            formData={formData}
+            mandatoryChecks={mandatoryChecks}
+            setMandatoryChecks={setMandatoryChecks}
+          />
+        );
       default:
-        return null
+        return null;
     }
+  };
+
+  // Check for Free Plan Restrictions
+  const { user } = useAuth();
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
+  const [canUpload, setCanUpload] = useState(true);
+
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!user) return;
+
+      if (user.plan === "free") {
+        try {
+          // Check for 'In Process' releases
+          // We fetch releases with status 'In Process'
+          const response = await import("@/lib/api/releases").then((m) =>
+            m.getReleases({ status: "In Process" })
+          );
+
+          if (response && response.releases && response.releases.length > 0) {
+            setCanUpload(false);
+          } else {
+            setCanUpload(true);
+          }
+        } catch (error) {
+          console.error("Failed to check release eligibility", error);
+          // Default to allowing upload if check fails
+          setCanUpload(true);
+        }
+      } else {
+        setCanUpload(true);
+      }
+      setIsCheckingEligibility(false);
+    };
+
+    checkEligibility();
+  }, [user]);
+
+  if (isCheckingEligibility) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!canUpload) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
+          <div className="bg-yellow-500/10 p-6 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+            <Info className="h-10 w-10 text-yellow-500" />
+          </div>
+          <h1 className="text-3xl font-bold">Release Limit Reached</h1>
+          <p className="text-muted-foreground text-lg max-w-lg mx-auto">
+            You are on the <strong>Free Plan</strong>, which allows only one
+            active release at a time. You currently have a release that is{" "}
+            <strong>In Process</strong>.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Please wait for your current release to be distributed or rejected
+            before uploading deeper.
+          </p>
+
+          <div className="pt-6 flex gap-4 justify-center">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard/releases")}
+            >
+              View My Releases
+            </Button>
+            <Button onClick={() => (window.location.href = "/pricing")}>
+              Upgrade to Premium
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (
@@ -341,35 +460,37 @@ export default function UploadPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 {steps.map((step, index) => {
-                  const Icon = step.icon
-                  const isActive = step.id === currentStep
-                  const isCompleted = step.id < currentStep
-                  
+                  const Icon = step.icon;
+                  const isActive = step.id === currentStep;
+                  const isCompleted = step.id < currentStep;
+
                   return (
                     <div key={step.id} className="flex items-center">
                       <div className="flex flex-col items-center">
                         <div
                           className={`h-10 w-10 rounded-full flex items-center justify-center ${
                             isActive
-                              ? 'bg-primary text-primary-foreground'
+                              ? "bg-primary text-primary-foreground"
                               : isCompleted
-                              ? 'bg-primary/20 text-primary'
-                              : 'bg-muted text-muted-foreground'
+                              ? "bg-primary/20 text-primary"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           <Icon className="h-5 w-5" />
                         </div>
-                        <span className="text-xs mt-2 text-center max-w-[80px]">{step.name}</span>
+                        <span className="text-xs mt-2 text-center max-w-[80px]">
+                          {step.name}
+                        </span>
                       </div>
                       {index < steps.length - 1 && (
                         <div
                           className={`h-0.5 w-12 mx-2 ${
-                            isCompleted ? 'bg-primary' : 'bg-muted'
+                            isCompleted ? "bg-primary" : "bg-muted"
                           }`}
                         />
                       )}
                     </div>
-                  )
+                  );
                 })}
               </div>
             </CardContent>
@@ -377,16 +498,44 @@ export default function UploadPage() {
         </motion.div>
 
         {/* Step Content */}
-        <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardContent className="pt-6">
-              {renderStepContent()}
-            </CardContent>
-          </Card>
-        </motion.div>
+        <FormProvider {...form}>
+          <motion.div variants={itemVariants}>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardContent className="pt-6">{renderStepContent()}</CardContent>
+            </Card>
+            {currentStep == 4 && (
+              <Card className="mt-4 border-border/50 bg-card/50 backdrop-blur-sm">
+                <CardContent className="pt-3">
+                  {/* Copyright - always show */}
+                  <div className="space-y-1 ">
+                    <Label htmlFor="copyright">Copyright</Label>
+                    <Input
+                      id="copyright"
+                      placeholder="© Your label Name"
+                      {...register("copyright")}
+                    />
+                  </div>
+
+                  {/* Producers */}
+                  <div className="space-y-2">
+                    <Label htmlFor="producers">Producers</Label>
+                    <Input
+                      id="producers"
+                      placeholder="℗ Your label Name"
+                      {...register("producers.0")}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </motion.div>
+        </FormProvider>
 
         {/* Navigation Buttons */}
-        <motion.div variants={itemVariants} className="flex items-center justify-between">
+        <motion.div
+          variants={itemVariants}
+          className="flex items-center justify-between"
+        >
           <Button
             variant="outline"
             onClick={handlePrevious}
@@ -397,12 +546,9 @@ export default function UploadPage() {
           </Button>
 
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => router.push('/dashboard')}
-            >
-              Save as Draft
-            </Button>
+            {/* <Button variant="outline" onClick={() => router.push("/dashboard")}>
+                Save as Draft
+              </Button> */}
 
             {currentStep < steps.length ? (
               <Button onClick={handleNext}>
@@ -410,7 +556,7 @@ export default function UploadPage() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit}>
+              <Button onClick={form.handleSubmit(onSubmit, onInvalid)}>
                 Submit for Review
               </Button>
             )}
@@ -418,6 +564,5 @@ export default function UploadPage() {
         </motion.div>
       </motion.div>
     </DashboardLayout>
-  )
+  );
 }
-
