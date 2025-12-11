@@ -92,7 +92,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
             setSearchResults({ spotify: [], youtube: [] })
             setHasSearched(false)
-        } else if (isOpen && user?.fullName && !track?.artistName) {
+        } else if (isOpen && user?.fullName) {
             // New track or empty artist - prefill with user name
             const name = user.fullName
             setModalArtistSearch(name)

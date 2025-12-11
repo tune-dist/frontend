@@ -350,7 +350,7 @@ export default function ReleasesPage() {
                                 </Button>
 
                                 {/* Submit button (only for drafts - In Process without submittedAt) */}
-                                {release.status === 'In Process' && !release.submittedAt && (
+                                {release.status === 'In Process' && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
