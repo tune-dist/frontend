@@ -2,7 +2,17 @@ import { z } from 'zod'
 
 export const songwriterSchema = z.object({
     role: z.string().min(1, 'Role is required'),
-    firstName: z.string().min(1, 'First name is required'),
+    firstName: z.string()
+        .min(1, 'Name is required')
+        .refine((val) => {
+            // Strict regex: 
+            // ^[a-zA-Z]{3,} : First name (letters only, min 3 chars)
+            // [ ] : Exactly one space
+            // [a-zA-Z]{3,}$ : Last name (letters only, min 3 chars)
+            return /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/.test(val.trim());
+        }, {
+            message: 'Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each. No special characters or numbers.'
+        }),
     middleName: z.string().optional(),
     lastName: z.string().optional(),
 })
@@ -28,7 +38,8 @@ export const trackSchema = z.object({
     language: z.string().optional(), // Per-track language
     isrc: z.string().optional().refine((val) => {
         if (!val || val.trim() === '') return true;
-        return /^[A-Z]{2}-[A-Z0-9]{3}-\d{2}-\d{5}$/i.test(val);
+        // Allow alphanumeric in all segments as per 'XX-XXX-XX-XXXXX' request
+        return /^[A-Z0-9]{2}-[A-Z0-9]{3}-[A-Z0-9]{2}-[A-Z0-9]{5}$/i.test(val);
     }, {
         message: 'ISRC must be in format: XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)'
     }),
@@ -76,7 +87,8 @@ export const uploadFormSchema = z.object({
     })).default([]), // Additional artists (premium feature)
     isrc: z.string().optional().refine((val) => {
         if (!val || val.trim() === '') return true;
-        return /^[A-Z]{2}-[A-Z0-9]{3}-\d{2}-\d{5}$/i.test(val);
+        // Allow alphanumeric in all segments as per 'XX-XXX-XX-XXXXX' request
+        return /^[A-Z0-9]{2}-[A-Z0-9]{3}-[A-Z0-9]{2}-[A-Z0-9]{5}$/i.test(val);
     }, {
         message: 'ISRC must be in format: XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)'
     }), // Add regex validation if needed

@@ -512,6 +512,7 @@ export default function UploadPage() {
                     <Input
                       id="copyright"
                       placeholder="© Your label Name"
+                      readOnly={user?.plan === 'free'}
                       {...register("copyright", {
                         onChange: (e) => {
                           const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";
@@ -534,6 +535,7 @@ export default function UploadPage() {
                     <Input
                       id="producers"
                       placeholder="℗ Your label Name"
+                      readOnly={user?.plan === 'free'}
                       {...register("producers.0", {
                         onChange: (e) => {
                           const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";

@@ -280,7 +280,7 @@ export default function CreditsStep({
                       if (checked) {
                         // Pre-fill with default from env if empty
                         if (!watch("isrc")) {
-                          setValue("isrc", process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZK6P2500001");
+                          setValue("isrc", process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001");
                         }
                       } else {
                         setValue("isrc", "");
@@ -304,7 +304,7 @@ export default function CreditsStep({
                     // Better UX: Allow typing but show error/warning immediately.
                     {...register("isrc", {
                       onChange: (e) => {
-                        if (user?.plan === 'free' && e.target.value !== (process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZK6P2500001")) {
+                        if (user?.plan === 'free' && e.target.value !== (process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")) {
                           toast.error("Upgrade to paid plan to use custom ISRC", { id: "isrc-warning" });
                         }
                       }
@@ -589,9 +589,29 @@ export default function CreditsStep({
               <div className="grid grid-cols-1 gap-1">
                 <Input
                   placeholder="HH:MM:SS"
-                  {...register("previewClipStartTime")}
+                  type="text"
+                  {...register("previewClipStartTime", {
+                    onChange: (e) => {
+                      let v = e.target.value.replace(/\D/g, ""); // only digits
+
+                      // limit to HHMMSS (6 digits)
+                      if (v.length > 6) v = v.slice(0, 6);
+
+                      let hh = v.substring(0, 2);
+                      let mm = v.substring(2, 4);
+                      let ss = v.substring(4, 6);
+
+                      let formatted = "";
+                      if (hh) formatted = hh;
+                      if (mm) formatted += ":" + mm;
+                      if (ss) formatted += ":" + ss;
+
+                      e.target.value = formatted;
+                    },
+                  })}
                   className="text-sm"
                 />
+
               </div>
             </div>
           </>

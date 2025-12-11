@@ -8,6 +8,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Music, X, Loader2 } from 'lucide-react'
 import { getGenres, type Genre } from '@/lib/api/genres'
 import { useAuth } from '@/contexts/AuthContext'
+import { toast } from 'react-hot-toast'
 
 interface TrackEditModalProps {
     isOpen: boolean
@@ -150,8 +151,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         }
 
         // ISRC Format: XX-XXX-XX-XXXXX
-        // 2 letters, dash, 3 alphanumeric, dash, 2 digits, dash, 5 digits
-        const isrcPattern = /^[A-Z]{2}-[A-Z0-9]{3}-\d{2}-\d{5}$/i
+        // Allow alphanumeric in all segments
+        const isrcPattern = /^[A-Z0-9]{2}-[A-Z0-9]{3}-[A-Z0-9]{2}-[A-Z0-9]{5}$/i
 
         if (!isrcPattern.test(value)) {
             setIsrcError('ISRC must be in format: XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)')
@@ -164,7 +165,28 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         if (track && trackIndex !== null) {
             // Check for ISRC validation error
             if (isrcError) {
-                return // Don't save if there's an ISRC error
+                toast.error("Please fix ISRC error before saving")
+                return
+            }
+
+            // Strict Songwriter/Composer Validation Regex
+            // First Name (3+ letters) + Space + Last Name (3+ letters)
+            const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
+
+            // Validate Songwriters
+            for (const sw of modalSongwriters) {
+                if (!nameRegex.test(sw.firstName?.trim() || '')) {
+                    toast.error(`Invalid Songwriter name: "${sw.firstName}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
+                    return
+                }
+            }
+
+            // Validate Composers
+            for (const comp of modalComposers) {
+                if (!nameRegex.test(comp.firstName?.trim() || '')) {
+                    toast.error(`Invalid Composer name: "${comp.firstName}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
+                    return
+                }
             }
 
             const updatedTrack: Track = {
@@ -764,13 +786,17 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     {/* Preview Clip Start Time */}
                     <div className="space-y-3 pt-4 border-t">
                         <Label htmlFor="track-preview-time" className="text-lg font-semibold">
-                            Preview clip start time <span className="text-muted-foreground font-normal">(TikTok, Apple Music, iTunes)</span>
+                            Preview clip start time <span className="text-muted-foreground font-normal">(Start time in seconds)</span>
                         </Label>
                         <Input
                             id="track-preview-time"
-                            placeholder="HH:MM:SS"
+                            placeholder="0"
                             value={previewClipStartTime}
-                            onChange={(e) => setPreviewClipStartTime(e.target.value)}
+                            onChange={(e) => {
+                                // Enforce numbers only
+                                const val = e.target.value.replace(/[^0-9]/g, '')
+                                setPreviewClipStartTime(val)
+                            }}
                         />
                     </div>
 
