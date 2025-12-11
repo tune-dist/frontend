@@ -157,11 +157,7 @@ export default function DashboardPage() {
                   {usageStats?.storage.usedFormatted || "0 MB"}
                 </div>
                 <CardDescription className="mt-1">
-                  {usageStats?.plan &&
-                    `${
-                      usageStats.plan.charAt(0).toUpperCase() +
-                      usageStats.plan.slice(1)
-                    } Plan`}
+                  {usageStats?.plan && `${usageStats.plan.charAt(0).toUpperCase() + usageStats.plan.slice(1)} Plan`}
                 </CardDescription>
               </CardContent>
             </Card>
@@ -180,11 +176,10 @@ export default function DashboardPage() {
                   {usageStats?.releases.canUpload ? "Yes" : "No"}
                 </div>
                 <CardDescription className="mt-1">
-                  {usageStats?.releases.limit === 0
-                    ? "Unlimited releases"
-                    : `${usageStats?.releases.limit ?? 0} release${
-                        (usageStats?.releases.limit ?? 0) > 1 ? "s" : ""
-                      } limit`}
+                  {usageStats?.releases?.limit === 0
+                    ? 'Unlimited releases'
+                    : `${usageStats?.releases?.limit ?? 0} release${(usageStats?.releases.limit ?? 0) > 1 ? 's' : ''} limit`
+                  }
                 </CardDescription>
               </CardContent>
             </Card>
