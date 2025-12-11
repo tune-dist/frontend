@@ -149,13 +149,40 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
 
 
-    // Prefill artistName with user name and trigger search
+    // Prefill artistName Logic
     useEffect(() => {
-        if (user?.fullName && !artistName) {
-            setValue('artistName', user.fullName)
-            handleSearch(user.fullName, 'main')
+        const checkAndPrefillArtist = async () => {
+            // If explicit artist name is already set, don't override unless needed logic enforcement
+            if (artistName) return
+
+            if (user?.plan === 'free') {
+                try {
+                    // Import dynamically to avoid circular deps if any, or just use import
+                    const { getReleases } = await import('@/lib/api/releases')
+                    // Fetch user's releases to find previous artist name
+                    const response = await getReleases({ limit: 1, userId: user._id })
+                    if (response && response.releases.length > 0) {
+                        const previousArtist = response.releases[0].artistName
+                        if (previousArtist) {
+                            setValue('artistName', previousArtist)
+                            handleSearch(previousArtist, 'main')
+                        }
+                    } else if (user?.fullName) {
+                        // Fallback for first time free user? 
+                        // Requirement says: "remove that functionality [pre-filling logged in user name]... set prefilled with artist that we have filled in previous released music"
+                        // So only prefill if previous release exists.
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch releases for artist prefill", error)
+                }
+            }
+            // For non-free users, we do NOT prefill default name anymore.
         }
-    }, [user, artistName, setValue])
+
+        if (user) {
+            checkAndPrefillArtist()
+        }
+    }, [user, setValue])
 
     const handleMainArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value

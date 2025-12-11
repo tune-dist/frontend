@@ -161,9 +161,9 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                     <h4 className="text-base font-semibold">
                         Upload your audio file <span className="text-muted-foreground font-normal">(WAV only)</span>
                     </h4>
-                    <p className="text-sm text-primary">
+                    {/* <p className="text-sm text-primary">
                         <a href="#" className="underline">Already have an ISRC code?</a>
-                    </p>
+                    </p> */}
 
                     {/* Single Upload Logic */}
                     {format === 'single' ? (

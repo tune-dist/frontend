@@ -54,7 +54,10 @@ export default function ReleasesPage() {
   const fetchReleases = async () => {
     try {
       setLoading(true)
-      const params = statusFilter !== 'all' ? { status: statusFilter } : {}
+      const params: any = statusFilter !== 'all' ? { status: statusFilter } : {}
+      if (user?._id) {
+        params.userId = user._id
+      }
       const response = await getReleases(params)
       console.log(response)
       setReleases(response.releases)
@@ -347,7 +350,7 @@ export default function ReleasesPage() {
                                 </Button>
 
                                 {/* Submit button (only for drafts - In Process without submittedAt) */}
-                                {release.status === 'In Process' && !release.submittedAt && (
+                                {release.status === 'In Process' && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
