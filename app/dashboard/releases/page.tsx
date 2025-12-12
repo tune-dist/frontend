@@ -54,7 +54,10 @@ export default function ReleasesPage() {
   const fetchReleases = async () => {
     try {
       setLoading(true)
-      const params = statusFilter !== 'all' ? { status: statusFilter } : {}
+      const params: any = statusFilter !== 'all' ? { status: statusFilter } : {}
+      if (user?._id) {
+        params.userId = user._id
+      }
       const response = await getReleases(params)
       console.log(response)
       setReleases(response.releases)
@@ -214,7 +217,7 @@ export default function ReleasesPage() {
               Manage all your music releases in one place
             </p>
           </div>
-          {user?.role !== 'release_manager' && (
+          {user?.role !== 'release_manager' && (statusFilter === 'all' || statusFilter === 'In Process') && (
             <Link href="/dashboard/upload">
               <Button size="lg" className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -292,7 +295,7 @@ export default function ReleasesPage() {
                               <Music className="h-12 w-12 text-muted-foreground/50" />
                               <p className="text-lg font-medium">No releases found</p>
                               <p className="text-sm">Start by creating your first release</p>
-                              {user?.role !== 'release_manager' && (
+                              {user?.role !== 'release_manager' && (statusFilter === 'all' || statusFilter === 'In Process') && (
                                 <Link href="/dashboard/upload" className="mt-4">
                                   <Button>
                                     <Plus className="h-4 w-4 mr-2" />
@@ -338,13 +341,15 @@ export default function ReleasesPage() {
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
                                 {/* View button (always available) */}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  title="View details"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
+                                <Link href={`/dashboard/releases/${release._id}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    title="View details"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </Link>
 
                                 {/* Submit button (only for drafts - In Process without submittedAt) */}
                                 {release.status === 'In Process' && !release.submittedAt && (

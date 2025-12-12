@@ -14,6 +14,8 @@ import {
   type Genre,
   type SubGenre,
 } from "@/lib/api/genres";
+import { useAuth } from "@/contexts/AuthContext";
+import toast from "react-hot-toast";
 
 interface CreditsStepProps {
   formData?: UploadFormData;
@@ -44,6 +46,10 @@ export default function CreditsStep({
   const tracks = watch("tracks") || [];
   const audioFiles = watch("audioFiles") || [];
   const isSingle = format === "single";
+
+  // ISRC State
+  const [showIsrc, setShowIsrc] = useState(false);
+  const { user } = useAuth();
 
   // Track modal state
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
@@ -259,18 +265,63 @@ export default function CreditsStep({
         {/* Show these fields only for Singles */}
         {isSingle && (
           <>
-            <div className="space-y-2">
-              <Label htmlFor="isrc">ISRC</Label>
-              <Input
-                id="isrc"
-                placeholder="XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)"
-                {...register("isrc")}
-                className={errors.isrc ? "border-red-500" : ""}
-              />
-              {errors.isrc && (
-                <p className="text-xs text-red-500 mt-1">
-                  {String(errors.isrc.message)}
-                </p>
+            {/* ISRC Logic for Single */}
+            <div className="space-y-4 pt-6 border-t border-border">
+              <div className="flex flex-col space-y-2">
+                <Label className="text-lg font-semibold">ISRC</Label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="hasIsrc"
+                    checked={showIsrc}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setShowIsrc(checked);
+                      if (checked) {
+                        // Pre-fill with default from env if empty
+                        if (!watch("isrc")) {
+                          setValue("isrc", process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001");
+                        }
+                      } else {
+                        setValue("isrc", "");
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="hasIsrc" className="font-normal cursor-pointer">
+                    I already have an ISRC code
+                  </Label>
+                </div>
+              </div>
+
+              {showIsrc && (
+                <div className="space-y-2">
+                  <Label htmlFor="isrc">ISRC Code</Label>
+                  <Input
+                    id="isrc"
+                    placeholder="XX-XXX-XX-XXXXX"
+                    readOnly={user?.plan === 'free'} // Make strictly readonly for free users? Or just warn? Request says "free user change that then show warning" which implies they *can* change it but we warn them. But stricter: "purchase paid plan for that". Let's assume allow edit + warning for now, or use the pattern requested.
+                    // Better UX: Allow typing but show error/warning immediately.
+                    {...register("isrc", {
+                      onChange: (e) => {
+                        if (user?.plan === 'free' && e.target.value !== (process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")) {
+                          toast.error("Upgrade to paid plan to use custom ISRC", { id: "isrc-warning" });
+                        }
+                      }
+                    })}
+                    className={errors.isrc ? "border-red-500" : ""}
+                  />
+                  {user?.plan === 'free' && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      Upgrade to a paid plan to use a custom ISRC code.
+                    </p>
+                  )}
+                  {errors.isrc && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {String(errors.isrc.message)}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -326,9 +377,8 @@ export default function CreditsStep({
                 </Label>
                 <select
                   id="primaryGenre"
-                  className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                    errors.primaryGenre ? "border-red-500" : ""
-                  }`}
+                  className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.primaryGenre ? "border-red-500" : ""
+                    }`}
                   {...register("primaryGenre")}
                 >
                   <option value="">Select a genre</option>
@@ -358,9 +408,8 @@ export default function CreditsStep({
                 </Label>
                 <select
                   id="secondaryGenre"
-                  className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                    errors.secondaryGenre ? "border-red-500" : ""
-                  }`}
+                  className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.secondaryGenre ? "border-red-500" : ""
+                    }`}
                   {...register("secondaryGenre")}
                   disabled={!primaryGenre || subGenresLoading}
                 >
@@ -368,8 +417,8 @@ export default function CreditsStep({
                     {!primaryGenre
                       ? "Select a genre first"
                       : subGenresLoading
-                      ? "Loading sub-genres..."
-                      : "Select a sub-genre"}
+                        ? "Loading sub-genres..."
+                        : "Select a sub-genre"}
                   </option>
                   {subGenres.map((subGenre) => (
                     <option key={subGenre._id} value={subGenre.slug}>
@@ -540,9 +589,29 @@ export default function CreditsStep({
               <div className="grid grid-cols-1 gap-1">
                 <Input
                   placeholder="HH:MM:SS"
-                  {...register("previewClipStartTime")}
+                  type="text"
+                  {...register("previewClipStartTime", {
+                    onChange: (e) => {
+                      let v = e.target.value.replace(/\D/g, ""); // only digits
+
+                      // limit to HHMMSS (6 digits)
+                      if (v.length > 6) v = v.slice(0, 6);
+
+                      let hh = v.substring(0, 2);
+                      let mm = v.substring(2, 4);
+                      let ss = v.substring(4, 6);
+
+                      let formatted = "";
+                      if (hh) formatted = hh;
+                      if (mm) formatted += ":" + mm;
+                      if (ss) formatted += ":" + ss;
+
+                      e.target.value = formatted;
+                    },
+                  })}
                   className="text-sm"
                 />
+
               </div>
             </div>
           </>

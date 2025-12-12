@@ -37,7 +37,7 @@ apiClient.interceptors.response.use(
         window.location.href = '/auth';
       }
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -46,13 +46,16 @@ export default apiClient;
 
 // Helper to handle API errors
 export const getErrorMessage = (error: unknown): string => {
+  console.log('getErrorDebug:', error); // Debug log
   if (axios.isAxiosError(error)) {
+    console.log('Is Axios Error:', true);
     const axiosError = error as AxiosError<{ message?: string; error?: string }>;
-    return axiosError.response?.data?.message || 
-           axiosError.response?.data?.error || 
-           axiosError.message || 
-           'An error occurred';
+    return axiosError.response?.data?.message ||
+      axiosError.response?.data?.error ||
+      axiosError.message ||
+      'An error occurred';
   }
+  console.log('Is Axios Error:', false);
   return 'An unexpected error occurred';
 };
 
