@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { UploadFormData, Songwriter, Track, AudioFile } from "./types";
 import { useFormContext, useFieldArray } from "react-hook-form";
 import { useState, useEffect } from "react";
-import { Music, Pencil } from "lucide-react";
+import { Music, Pencil, Trash2 } from "lucide-react";
 import TrackEditModal from "./track-edit-modal";
 import {
   getGenres,
@@ -24,6 +24,7 @@ interface CreditsStepProps {
   setSongwriters?: (data: Songwriter[]) => void;
   composers?: Songwriter[];
   setComposers?: (data: Songwriter[]) => void;
+  usedArtists?: string[];
 }
 
 export default function CreditsStep({
@@ -33,6 +34,7 @@ export default function CreditsStep({
   setSongwriters: propSetSongwriters,
   composers: propComposers,
   setComposers: propSetComposers,
+  usedArtists,
 }: CreditsStepProps) {
   const {
     register,
@@ -228,15 +230,31 @@ export default function CreditsStep({
                     {track.artistName || "No artist set"}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openTrackModal(index)}
-                  type="button"
-                >
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit Track
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openTrackModal(index)}
+                    type="button"
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit Track
+                  </Button>
+                  {tracks.length > 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const updatedTracks = tracks.filter((_, i) => i !== index);
+                        setValue("tracks", updatedTracks);
+                      }}
+                      type="button"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -625,6 +643,10 @@ export default function CreditsStep({
         track={editingTrackIndex !== null ? tracks[editingTrackIndex] : null}
         trackIndex={editingTrackIndex}
         onSave={saveTrackModal}
+        usedArtists={usedArtists}
+        allTracks={tracks}
+        mainArtistName={watch("artistName")}
+        featuringArtists={watch("artists")}
       />
     </div>
   );

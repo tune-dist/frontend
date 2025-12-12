@@ -35,9 +35,9 @@ import CoverArtStep from "@/components/dashboard/upload/cover-art-step";
 import CreditsStep from "@/components/dashboard/upload/credits-step";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage } from "@/lib/api/releases";
+import { getPlanLimits, getPlanByKey } from "@/lib/api/plans";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { PLAN_LIMITS } from "@/config/plans";
 
 // Animation variants
 const containerVariants = {
@@ -196,7 +196,7 @@ export default function UploadPage() {
         if (isValid) {
           // Check Artist Limits
           const planKey = (user?.plan as string) || 'free';
-          const limits = PLAN_LIMITS[planKey] || PLAN_LIMITS['free'];
+          const limits = await getPlanLimits(planKey);
 
           if (limits.artistLimit < Infinity) {
             const currentArtists = [formData.artistName, ...(formData.artists || []).map((a: any) => a.name)].filter(Boolean);
@@ -273,8 +273,133 @@ export default function UploadPage() {
             "composers",
           ]);
         } else {
-          // For Albums/EPs, no required fields in Credits step currently
-          isValid = true;
+          // For Albums/EPs, validate all tracks have required metadata
+          if (formData.tracks.length === 0) {
+            toast.error("Please add at least one track");
+            isValid = false;
+          } else {
+            // Check each track for required fields
+            const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/;
+            let hasError = false;
+
+            for (let i = 0; i < formData.tracks.length; i++) {
+              const track = formData.tracks[i];
+
+              if (!track.title?.trim()) {
+                toast.error(`Track ${i + 1}: Title is required`);
+                hasError = true;
+                break;
+              }
+
+              if (!track.artistName?.trim()) {
+                toast.error(`Track ${i + 1}: Artist name is required`);
+                hasError = true;
+                break;
+              }
+
+              if (!track.primaryGenre) {
+                toast.error(`Track ${i + 1}: Primary genre is required`);
+                hasError = true;
+                break;
+              }
+
+              if (!track.secondaryGenre) {
+                toast.error(`Track ${i + 1}: Sub-genre is required`);
+                hasError = true;
+                break;
+              }
+
+              // Check songwriters
+              if (!track.songwriters || track.songwriters.length === 0) {
+                toast.error(`Track ${i + 1}: At least one songwriter is required`);
+                hasError = true;
+                break;
+              }
+
+              for (const sw of track.songwriters) {
+                if (!sw.firstName?.trim()) {
+                  toast.error(`Track ${i + 1}: Songwriter name cannot be empty`);
+                  hasError = true;
+                  break;
+                }
+                if (!nameRegex.test(sw.firstName.trim())) {
+                  toast.error(`Track ${i + 1}: Invalid songwriter name "${sw.firstName}". Must be "Firstname Lastname"`);
+                  hasError = true;
+                  break;
+                }
+              }
+
+              if (hasError) break;
+
+              // Validate composers if provided
+              if (track.composers) {
+                for (const comp of track.composers) {
+                  if (comp.firstName?.trim() && !nameRegex.test(comp.firstName.trim())) {
+                    toast.error(`Track ${i + 1}: Invalid composer name "${comp.firstName}". Must be "Firstname Lastname"`);
+                    hasError = true;
+                    break;
+                  }
+                }
+              }
+
+              if (hasError) break;
+            }
+
+            isValid = !hasError;
+          }
+        }
+
+        // Validate Artist Limit for all formats
+        if (isValid) {
+          const planKey = (user?.plan as string) || 'free';
+          const limits = await getPlanLimits(planKey);
+
+          if (limits.artistLimit < Infinity) {
+            // Collect all unique artists in this release
+            const releaseArtists: string[] = [];
+
+            // Add main artist
+            if (formData.artistName?.trim()) {
+              releaseArtists.push(formData.artistName.trim());
+            }
+
+            // Add featuring artists
+            if (formData.artists && formData.artists.length > 0) {
+              formData.artists.forEach((artist: any) => {
+                if (artist.name?.trim()) {
+                  releaseArtists.push(artist.name.trim());
+                }
+              });
+            }
+
+            // Add track artists (for albums/EPs)
+            if (formData.tracks && formData.tracks.length > 0) {
+              formData.tracks.forEach((track: any) => {
+                if (track.artistName?.trim()) {
+                  releaseArtists.push(track.artistName.trim());
+                }
+              });
+            }
+
+            // Get unique artists
+            const uniqueArtists = new Set(releaseArtists);
+
+            // Count new artists
+            let newArtistsCount = 0;
+            for (const artist of Array.from(uniqueArtists)) {
+              if (!usedArtists.includes(artist)) {
+                newArtistsCount++;
+              }
+            }
+
+            // Check if exceeds limit
+            const totalUsedCount = usedArtists.length;
+            if ((totalUsedCount + newArtistsCount) > limits.artistLimit) {
+              const planName = planKey === 'creator_plus' ? 'Creator+' : planKey.charAt(0).toUpperCase() + planKey.slice(1);
+              toast.error(`You have reached your artist limit (${limits.artistLimit}) for the ${planName} plan.`);
+              isValid = false;
+            }
+          }
         }
         break;
       case 5: // Review
@@ -389,6 +514,7 @@ export default function UploadPage() {
             setSongwriters={setSongwriters}
             composers={composers}
             setComposers={setComposers}
+            usedArtists={usedArtists}
           />
         );
       case 5:
@@ -404,38 +530,67 @@ export default function UploadPage() {
     }
   };
 
-  // Check for Free Plan Restrictions
+  // Check for Plan Restrictions
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
   const [canUpload, setCanUpload] = useState(true);
+  const [planInfo, setPlanInfo] = useState<{ key: string; title: string; allowConcurrent: boolean } | null>(null);
 
   useEffect(() => {
     const checkEligibility = async () => {
       if (!user) return;
 
       const planKey = (user?.plan as string) || 'free';
-      const limits = PLAN_LIMITS[planKey] || PLAN_LIMITS['free'];
 
-      // If plan allows concurrent uploads, we don't block based on 'In Process' status
-      if (limits.allowConcurrent) {
-        setCanUpload(true);
-      } else {
-        // Fallback to original logic for plans that don't allow concurrent (e.g. Free)
-        try {
-          // Check for 'In Process' releases
-          const response = await import("@/lib/api/releases").then((m) =>
-            m.getReleases({ status: "In Process" })
-          );
+      try {
+        const limits = await getPlanLimits(planKey);
+        const plan = await getPlanByKey(planKey);
 
-          if (response && response.releases && response.releases.length > 0) {
-            setCanUpload(false);
-          } else {
+        const planTitle = plan?.title || planKey.charAt(0).toUpperCase() + planKey.slice(1).replace('_', ' ');
+
+        // Debug logging
+        console.log('Plan eligibility check:', {
+          planKey,
+          planTitle,
+          allowConcurrent: limits.allowConcurrent,
+          limits,
+          planFromDB: plan?.limits
+        });
+
+        setPlanInfo({
+          key: planKey,
+          title: planTitle,
+          allowConcurrent: limits.allowConcurrent,
+        });
+
+        // If plan allows concurrent uploads, we don't block based on 'In Process' status
+        if (limits.allowConcurrent) {
+          console.log('Plan allows concurrent uploads, allowing access');
+          setCanUpload(true);
+        } else {
+          console.log('Plan does not allow concurrent uploads, checking for In Process releases');
+          // For plans that don't allow concurrent (e.g. Free)
+          try {
+            // Check for 'In Process' releases
+            const response = await import("@/lib/api/releases").then((m) =>
+              m.getReleases({ status: "In Process" })
+            );
+
+            if (response && response.releases && response.releases.length > 0) {
+              setCanUpload(false);
+            } else {
+              setCanUpload(true);
+            }
+          } catch (error) {
+            console.error("Failed to check release eligibility", error);
             setCanUpload(true);
           }
-        } catch (error) {
-          console.error("Failed to check release eligibility", error);
-          setCanUpload(true);
         }
+      } catch (error) {
+        console.error("Failed to fetch plan limits:", error);
+        // Default to allowing upload if plan fetch fails
+        setCanUpload(true);
       }
+
       setIsCheckingEligibility(false);
     };
 
@@ -461,7 +616,7 @@ export default function UploadPage() {
           </div>
           <h1 className="text-3xl font-bold">Release Limit Reached</h1>
           <p className="text-muted-foreground text-lg max-w-lg mx-auto">
-            You are on the <strong>Free Plan</strong>, which allows only one
+            You are on the <strong>{planInfo?.title || 'Free Plan'}</strong>, which allows only one
             active release at a time. You currently have a release that is{" "}
             <strong>In Process</strong>.
           </p>

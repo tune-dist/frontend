@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label'
 import { Track, Songwriter } from './types'
 import { useState, useRef, useEffect } from 'react'
 import { Music, X, Loader2 } from 'lucide-react'
-import { getGenres, type Genre } from '@/lib/api/genres'
+import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/lib/api/genres'
 import { useAuth } from '@/contexts/AuthContext'
+import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
 
 interface TrackEditModalProps {
@@ -16,15 +17,36 @@ interface TrackEditModalProps {
     track: Track | null
     trackIndex: number | null
     onSave: (updatedTrack: Track, songwriters: Songwriter[], composers: Songwriter[]) => void
+    usedArtists?: string[]
+    allTracks?: Track[]
+    mainArtistName?: string
+    featuringArtists?: Array<{ name: string }>
 }
 
-export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave }: TrackEditModalProps) {
+export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave, usedArtists = [], allTracks = [], mainArtistName = '', featuringArtists = [] }: TrackEditModalProps) {
     const { user } = useAuth()
+    const [planLimits, setPlanLimits] = useState({ artistLimit: 1, allowConcurrent: false, allowedFormats: ['single'] })
+
+    // Fetch plan limits on mount
+    useEffect(() => {
+        const fetchPlanLimits = async () => {
+            if (!user?.plan) return
+            try {
+                const limits = await getPlanLimits(user.plan)
+                setPlanLimits(limits)
+            } catch (error) {
+                console.error('Failed to fetch plan limits:', error)
+            }
+        }
+        fetchPlanLimits()
+    }, [user?.plan])
+
     // Local state for track metadata fields
     const [trackTitle, setTrackTitle] = useState(track?.title || '')
     const [language, setLanguage] = useState(track?.language || '')
     const [isrc, setIsrc] = useState(track?.isrc || '')
     const [isrcError, setIsrcError] = useState('')
+    const [showIsrc, setShowIsrc] = useState(!!track?.isrc)
     const [previouslyReleased, setPreviouslyReleased] = useState(track?.previouslyReleased || 'no')
     const [primaryGenre, setPrimaryGenre] = useState(track?.primaryGenre || '')
     const [secondaryGenre, setSecondaryGenre] = useState(track?.secondaryGenre || '')
@@ -34,17 +56,20 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [modalArtistSearch, setModalArtistSearch] = useState(track?.artistName || '')
     const [isSearching, setIsSearching] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
-    const [searchResults, setSearchResults] = useState<{ spotify: any[]; youtube: any[] }>({ spotify: [], youtube: [] })
+    const [searchResults, setSearchResults] = useState<{ spotify: any[]; apple: any[]; youtube: any[] }>({ spotify: [], apple: [], youtube: [] })
     const searchTimeout = useRef<NodeJS.Timeout>()
 
     const [modalSongwriters, setModalSongwriters] = useState<Songwriter[]>(
         track?.songwriters || [{ role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }]
     )
+    const [songwriterErrors, setSongwriterErrors] = useState<string[]>([])
     const [modalComposers, setModalComposers] = useState<Songwriter[]>(
         track?.composers || [{ role: 'Composer', firstName: '', middleName: '', lastName: '' }]
     )
+    const [composerErrors, setComposerErrors] = useState<string[]>([])
 
     const [modalSpotifyProfile, setModalSpotifyProfile] = useState(track?.spotifyProfile || '')
+    const [modalAppleMusicProfile, setModalAppleMusicProfile] = useState(track?.appleMusicProfile || '')
     const [modalYoutubeProfile, setModalYoutubeProfile] = useState(track?.youtubeMusicProfile || '')
     const [instagramStatus, setInstagramStatus] = useState(track?.instagramProfile ? 'yes' : 'no')
     const [facebookStatus, setFacebookStatus] = useState(track?.facebookProfile ? 'yes' : 'no')
@@ -54,6 +79,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     // Genres state
     const [genres, setGenres] = useState<Genre[]>([])
     const [genresLoading, setGenresLoading] = useState(true)
+    const [subGenres, setSubGenres] = useState<SubGenre[]>([])
+    const [subGenresLoading, setSubGenresLoading] = useState(false)
 
     // Fetch genres on mount
     useEffect(() => {
@@ -70,36 +97,76 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         fetchGenres()
     }, [])
 
+    // Fetch sub-genres when primary genre changes
+    useEffect(() => {
+        const fetchSubGenres = async () => {
+            if (!primaryGenre) {
+                setSubGenres([])
+                return
+            }
+
+            // Find the genre _id from the selected slug
+            const selectedGenre = genres.find((g) => g.slug === primaryGenre)
+            if (!selectedGenre) {
+                setSubGenres([])
+                return
+            }
+
+            setSubGenresLoading(true)
+            try {
+                const fetchedSubGenres = await getSubGenresByGenreId(selectedGenre._id)
+                setSubGenres(fetchedSubGenres)
+                // Clear secondary genre if it's not in the new sub-genres list
+                if (
+                    secondaryGenre &&
+                    !fetchedSubGenres.some((sg) => sg.slug === secondaryGenre)
+                ) {
+                    setSecondaryGenre('')
+                }
+            } catch (error) {
+                console.error('Failed to fetch sub-genres:', error)
+                setSubGenres([])
+            } finally {
+                setSubGenresLoading(false)
+            }
+        }
+        fetchSubGenres()
+    }, [primaryGenre, genres, secondaryGenre])
+
     // Update state when track changes (switching between different tracks)
     useEffect(() => {
         if (track) {
             setTrackTitle(track.title || '')
             setLanguage(track.language || '')
             setIsrc(track.isrc || '')
+            setShowIsrc(!!track.isrc)
             setPreviouslyReleased(track.previouslyReleased || 'no')
             setPrimaryGenre(track.primaryGenre || '')
             setSecondaryGenre(track.secondaryGenre || '')
             setPreviewClipStartTime(track.previewClipStartTime || '')
             setModalArtistSearch(track.artistName || '')
             setModalSongwriters(track.songwriters || [{ role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }])
+            setSongwriterErrors([])
             setModalComposers(track.composers || [{ role: 'Composer', firstName: '', middleName: '', lastName: '' }])
+            setComposerErrors([])
             setModalSpotifyProfile(track.spotifyProfile || '')
+            setModalAppleMusicProfile(track.appleMusicProfile || '')
             setModalYoutubeProfile(track.youtubeMusicProfile || '')
             setInstagramStatus(track.instagramProfile ? 'yes' : 'no')
             setFacebookStatus(track.facebookProfile ? 'yes' : 'no')
             setInstagramUrl(track.instagramProfile || '')
             setFacebookUrl(track.facebookProfile || '')
 
-            setSearchResults({ spotify: [], youtube: [] })
+            setSearchResults({ spotify: [], apple: [], youtube: [] })
             setHasSearched(false)
-        } else if (isOpen && user?.fullName) {
-            // New track or empty artist - prefill with user name
+        } else if (isOpen && user?.fullName && planLimits.artistLimit === 1) {
+            // New track or empty artist - prefill with user name ONLY if artistLimit is 1
             const name = user.fullName
             setModalArtistSearch(name)
             // Trigger search
             handleModalArtistSearch(name)
         }
-    }, [track, trackIndex, isOpen, user])
+    }, [track, trackIndex, isOpen, user, planLimits.artistLimit])
 
 
     const handleModalArtistSearch = async (name: string) => {
@@ -114,28 +181,31 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             searchTimeout.current = setTimeout(async () => {
                 try {
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-                    const [spotifyResponse, youtubeResponse] = await Promise.all([
+                    const [spotifyResponse, appleResponse, youtubeResponse] = await Promise.all([
                         fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null),
+                        fetch(`${apiUrl}/integrations/apple/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null),
                         fetch(`${apiUrl}/integrations/youtube/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null)
                     ])
 
                     const spotifyArtists = spotifyResponse?.ok ? await spotifyResponse.json() : []
+                    const appleArtists = appleResponse?.ok ? await appleResponse.json() : []
                     const youtubeChannels = youtubeResponse?.ok ? await youtubeResponse.json() : []
 
                     setSearchResults({
                         spotify: spotifyArtists,
+                        apple: appleArtists,
                         youtube: youtubeChannels
                     })
                 } catch (error) {
                     console.error('Search error:', error)
-                    setSearchResults({ spotify: [], youtube: [] })
+                    setSearchResults({ spotify: [], apple: [], youtube: [] })
                 } finally {
                     setIsSearching(false)
                     setHasSearched(true)
                 }
             }, 500)
         } else {
-            setSearchResults({ spotify: [], youtube: [] })
+            setSearchResults({ spotify: [], apple: [], youtube: [] })
             setIsSearching(false)
             setHasSearched(false)
         }
@@ -161,8 +231,41 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         }
     }
 
+    const validateName = (name: string): string => {
+        if (!name.trim()) {
+            return ''
+        }
+        // Strict validation: First Name (3+ letters) + Space + Last Name (3+ letters)
+        const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
+        if (!nameRegex.test(name.trim())) {
+            return 'Must be "Firstname Lastname" (letters only, min 3 chars each)'
+        }
+        return ''
+    }
+
     const handleSave = () => {
         if (track && trackIndex !== null) {
+            // Validate required fields
+            if (!trackTitle.trim()) {
+                toast.error("Track title is required")
+                return
+            }
+
+            if (!modalArtistSearch.trim()) {
+                toast.error("Artist name is required")
+                return
+            }
+
+            if (!primaryGenre) {
+                toast.error("Primary genre is required")
+                return
+            }
+
+            if (!secondaryGenre) {
+                toast.error("Sub-genre is required")
+                return
+            }
+
             // Check for ISRC validation error
             if (isrcError) {
                 toast.error("Please fix ISRC error before saving")
@@ -173,19 +276,86 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             // First Name (3+ letters) + Space + Last Name (3+ letters)
             const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
 
-            // Validate Songwriters
+            // Validate Songwriters (at least one required)
+            if (modalSongwriters.length === 0) {
+                toast.error("At least one songwriter is required")
+                return
+            }
+
             for (const sw of modalSongwriters) {
-                if (!nameRegex.test(sw.firstName?.trim() || '')) {
+                if (!sw.firstName?.trim()) {
+                    toast.error("Songwriter name cannot be empty")
+                    return
+                }
+                if (!nameRegex.test(sw.firstName.trim())) {
                     toast.error(`Invalid Songwriter name: "${sw.firstName}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
                     return
                 }
             }
 
-            // Validate Composers
+            // Validate Composers (if provided, must be valid)
             for (const comp of modalComposers) {
-                if (!nameRegex.test(comp.firstName?.trim() || '')) {
+                if (comp.firstName?.trim() && !nameRegex.test(comp.firstName.trim())) {
                     toast.error(`Invalid Composer name: "${comp.firstName}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
                     return
+                }
+            }
+
+            // Validate Artist Limit
+            if (planLimits.artistLimit < Infinity) {
+                // Collect ALL artists in this release:
+                // 1. Main artist from basic info
+                // 2. Featuring artists from basic info
+                // 3. Artists from other tracks (excluding current track being edited)
+                // 4. The new artist for this track
+
+                const releaseArtists: string[] = [];
+
+                // Add main artist from basic info
+                if (mainArtistName?.trim()) {
+                    releaseArtists.push(mainArtistName.trim());
+                }
+
+                // Add featuring artists from basic info
+                if (featuringArtists && featuringArtists.length > 0) {
+                    featuringArtists.forEach(artist => {
+                        if (artist.name?.trim()) {
+                            releaseArtists.push(artist.name.trim());
+                        }
+                    });
+                }
+
+                // Add artists from other tracks
+                const otherTracksArtists = allTracks
+                    .filter((_, idx) => idx !== trackIndex)
+                    .map(t => t.artistName)
+                    .filter((name): name is string => typeof name === 'string' && name.trim().length > 0);
+
+                releaseArtists.push(...otherTracksArtists);
+
+                // Add the new artist name for this track
+                if (modalArtistSearch.trim()) {
+                    releaseArtists.push(modalArtistSearch.trim());
+                }
+
+                // Get unique artists in this release
+                const uniqueArtistsInRelease = new Set(releaseArtists);
+
+                // Count how many NEW artists this would introduce
+                let newArtistsCount = 0;
+                for (const artist of Array.from(uniqueArtistsInRelease)) {
+                    if (!usedArtists.includes(artist)) {
+                        newArtistsCount++;
+                    }
+                }
+
+                // Check if total would exceed limit
+                const totalUsedCount = usedArtists.length;
+                if ((totalUsedCount + newArtistsCount) > planLimits.artistLimit) {
+                    const planKey = (user?.plan as string) || 'free';
+                    const planName = planKey === 'creator_plus' ? 'Creator+' : planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                    toast.error(`You have reached your artist limit (${planLimits.artistLimit}) for the ${planName} plan.`);
+                    return;
                 }
             }
 
@@ -200,6 +370,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 secondaryGenre,
                 previewClipStartTime,
                 spotifyProfile: modalSpotifyProfile,
+                appleMusicProfile: modalAppleMusicProfile,
                 youtubeMusicProfile: modalYoutubeProfile,
                 instagramProfile: instagramStatus === 'yes' ? instagramUrl : '',
                 facebookProfile: facebookStatus === 'yes' ? facebookUrl : ''
@@ -256,6 +427,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         {/* Artist Not Found Message */}
                         {hasSearched && !isSearching &&
                             searchResults.spotify.length === 0 &&
+                            searchResults.apple.length === 0 &&
                             searchResults.youtube.length === 0 &&
                             modalArtistSearch.length > 2 && (
                                 <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
@@ -266,7 +438,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             )}
 
                         {/* Rich Search Results */}
-                        {modalArtistSearch && modalArtistSearch.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.youtube.length > 0) && (
+                        {modalArtistSearch && modalArtistSearch.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0) && (
                             <div className="mt-4 space-y-6 border border-border rounded-lg p-4 bg-card/50">
                                 <h4 className="font-semibold text-sm text-foreground">
                                     We found this artist on other platforms. Is this you?
@@ -360,6 +532,107 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                                 <div className="flex-1">
                                                                     <p className="font-medium text-primary">{selected.name}</p>
                                                                     <p className="text-sm text-muted-foreground">{(selected.followers || 0).toLocaleString()} followers</p>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })()
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Apple Music Results */}
+                                {searchResults.apple.length > 0 && (
+                                    <div className="space-y-3 pt-4 border-t border-border">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.227 15.653c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08z" />
+                                                </svg>
+                                                <span className="text-sm font-medium">Apple Music</span>
+                                            </div>
+                                            {modalAppleMusicProfile && (
+                                                <button
+                                                    onClick={() => setModalAppleMusicProfile('')}
+                                                    className="text-xs text-primary hover:underline hover:text-primary/80"
+                                                    type="button"
+                                                >
+                                                    Change Selection
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {!modalAppleMusicProfile ? (
+                                            <>
+                                                {searchResults.apple.map((artist: any) => (
+                                                    <div
+                                                        key={artist.id}
+                                                        className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
+                                                        onClick={() => setModalAppleMusicProfile(artist.id)}
+                                                    >
+                                                        <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                                            <div className="h-2 w-2 rounded-full hidden" />
+                                                        </div>
+                                                        {artist.image ? (
+                                                            <img src={artist.image} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
+                                                        ) : (
+                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                                                <Music className="h-5 w-5 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex-1">
+                                                            <p className="font-medium text-foreground">{artist.name}</p>
+                                                            <p className="text-sm text-muted-foreground">{artist.track || 'Apple Music Artist'}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                <div className="space-y-2 mt-4">
+                                                    <div
+                                                        className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                                        onClick={() => setModalAppleMusicProfile('new')}
+                                                    >
+                                                        <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                                            {modalAppleMusicProfile === 'new' && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                        </div>
+                                                        <Label className="font-normal cursor-pointer">
+                                                            This will be my first <strong>{modalArtistSearch}</strong> release on Apple Music.
+                                                        </Label>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="bg-primary/10 border border-primary rounded-md p-3">
+                                                {modalAppleMusicProfile === 'new' ? (
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                                            <Music className="h-5 w-5 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-primary">New Artist Profile</p>
+                                                            <p className="text-sm text-muted-foreground">Creating a new profile for {modalArtistSearch}</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    (() => {
+                                                        const selected = searchResults.apple.find(a => a.id === modalAppleMusicProfile)
+                                                        if (!selected) return null;
+                                                        return (
+                                                            <div className="flex items-center gap-3">
+                                                                {selected.image ? (
+                                                                    <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover" />
+                                                                ) : (
+                                                                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                                                        <Music className="h-5 w-5 text-muted-foreground" />
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex-1">
+                                                                    <p className="font-medium text-primary">{selected.name}</p>
+                                                                    <p className="text-sm text-muted-foreground">{selected.track || 'Apple Music Artist'}</p>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
@@ -616,17 +889,60 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     </div>
 
                     {/* ISRC */}
-                    <div className="space-y-2">
-                        <Label htmlFor="track-isrc">ISRC</Label>
-                        <Input
-                            id="track-isrc"
-                            placeholder="XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)"
-                            value={isrc}
-                            onChange={(e) => handleISRCChange(e.target.value)}
-                            className={isrcError ? 'border-red-500' : ''}
-                        />
-                        {isrcError && (
-                            <p className="text-xs text-red-500 mt-1">{isrcError}</p>
+                    <div className="space-y-4 pt-4 border-t border-border">
+                        <div className="flex flex-col space-y-2">
+                            <Label className="text-lg font-semibold">ISRC</Label>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="hasIsrc"
+                                    checked={showIsrc}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked
+                                        setShowIsrc(checked)
+                                        if (checked) {
+                                            // Pre-fill with default from env if empty
+                                            if (!isrc) {
+                                                setIsrc(process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")
+                                            }
+                                        } else {
+                                            setIsrc('')
+                                            setIsrcError('')
+                                        }
+                                    }}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <Label htmlFor="hasIsrc" className="font-normal cursor-pointer">
+                                    I already have an ISRC code
+                                </Label>
+                            </div>
+                        </div>
+
+                        {showIsrc && (
+                            <div className="space-y-2">
+                                <Label htmlFor="track-isrc">ISRC Code</Label>
+                                <Input
+                                    id="track-isrc"
+                                    placeholder="XX-XXX-XX-XXXXX"
+                                    readOnly={user?.plan === 'free'}
+                                    value={isrc}
+                                    onChange={(e) => {
+                                        handleISRCChange(e.target.value)
+                                        if (user?.plan === 'free' && e.target.value !== (process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")) {
+                                            toast.error("Upgrade to paid plan to use custom ISRC", { id: "isrc-warning" })
+                                        }
+                                    }}
+                                    className={isrcError ? 'border-red-500' : ''}
+                                />
+                                {user?.plan === 'free' && (
+                                    <p className="text-xs text-amber-600 mt-1">
+                                        Upgrade to a paid plan to use a custom ISRC code.
+                                    </p>
+                                )}
+                                {isrcError && (
+                                    <p className="text-xs text-red-500 mt-1">{isrcError}</p>
+                                )}
+                            </div>
                         )}
                     </div>
 
@@ -661,7 +977,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                     {/* Primary Genre */}
                     <div className="space-y-2">
-                        <Label htmlFor="track-genre">Primary Genre</Label>
+                        <Label htmlFor="track-genre">Primary Genre *</Label>
                         <select
                             id="track-genre"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -681,25 +997,28 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </select>
                     </div>
 
-                    {/* Secondary Genre */}
+                    {/* Secondary Genre (Sub-genre) */}
                     <div className="space-y-2">
-                        <Label htmlFor="track-genre-2">Secondary Genre (optional)</Label>
+                        <Label htmlFor="track-genre-2">Sub-genre *</Label>
                         <select
                             id="track-genre-2"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             value={secondaryGenre}
                             onChange={(e) => setSecondaryGenre(e.target.value)}
+                            disabled={!primaryGenre || subGenresLoading}
                         >
-                            <option value="">Select another genre</option>
-                            {genresLoading ? (
-                                <option disabled>Loading genres...</option>
-                            ) : (
-                                genres.map((genre) => (
-                                    <option key={genre._id} value={genre.slug}>
-                                        {genre.name}
-                                    </option>
-                                ))
-                            )}
+                            <option value="">
+                                {!primaryGenre
+                                    ? "Select a genre first"
+                                    : subGenresLoading
+                                        ? "Loading sub-genres..."
+                                        : "Select a sub-genre"}
+                            </option>
+                            {subGenres.map((subGenre) => (
+                                <option key={subGenre._id} value={subGenre.slug}>
+                                    {subGenre.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -718,13 +1037,26 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                         const updated = [...modalSongwriters]
                                         updated[idx].firstName = e.target.value
                                         setModalSongwriters(updated)
+                                        // Validate immediately
+                                        const errors = [...songwriterErrors]
+                                        errors[idx] = validateName(e.target.value)
+                                        setSongwriterErrors(errors)
                                     }}
+                                    className={songwriterErrors[idx] ? 'border-red-500' : ''}
                                 />
+                                {songwriterErrors[idx] && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        {songwriterErrors[idx]}
+                                    </p>
+                                )}
                                 {modalSongwriters.length > 1 && (
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setModalSongwriters(modalSongwriters.filter((_, i) => i !== idx))}
+                                        onClick={() => {
+                                            setModalSongwriters(modalSongwriters.filter((_, i) => i !== idx))
+                                            setSongwriterErrors(songwriterErrors.filter((_, i) => i !== idx))
+                                        }}
                                         className="text-destructive hover:text-destructive"
                                         type="button"
                                     >
@@ -735,7 +1067,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         ))}
                         <Button
                             variant="outline"
-                            onClick={() => setModalSongwriters([...modalSongwriters, { role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }])}
+                            onClick={() => {
+                                setModalSongwriters([...modalSongwriters, { role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }])
+                                setSongwriterErrors([...songwriterErrors, ''])
+                            }}
                             className="text-primary hover:text-primary"
                             type="button"
                         >
@@ -758,13 +1093,26 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                         const updated = [...modalComposers]
                                         updated[idx].firstName = e.target.value
                                         setModalComposers(updated)
+                                        // Validate immediately
+                                        const errors = [...composerErrors]
+                                        errors[idx] = validateName(e.target.value)
+                                        setComposerErrors(errors)
                                     }}
+                                    className={composerErrors[idx] ? 'border-red-500' : ''}
                                 />
+                                {composerErrors[idx] && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        {composerErrors[idx]}
+                                    </p>
+                                )}
                                 {modalComposers.length > 1 && (
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setModalComposers(modalComposers.filter((_, i) => i !== idx))}
+                                        onClick={() => {
+                                            setModalComposers(modalComposers.filter((_, i) => i !== idx))
+                                            setComposerErrors(composerErrors.filter((_, i) => i !== idx))
+                                        }}
                                         className="text-destructive hover:text-destructive"
                                         type="button"
                                     >
@@ -775,7 +1123,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         ))}
                         <Button
                             variant="outline"
-                            onClick={() => setModalComposers([...modalComposers, { role: 'Composer', firstName: '', middleName: '', lastName: '' }])}
+                            onClick={() => {
+                                setModalComposers([...modalComposers, { role: 'Composer', firstName: '', middleName: '', lastName: '' }])
+                                setComposerErrors([...composerErrors, ''])
+                            }}
                             className="text-primary hover:text-primary"
                             type="button"
                         >
@@ -784,20 +1135,39 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     </div>
 
                     {/* Preview Clip Start Time */}
-                    <div className="space-y-3 pt-4 border-t">
-                        <Label htmlFor="track-preview-time" className="text-lg font-semibold">
-                            Preview clip start time <span className="text-muted-foreground font-normal">(Start time in seconds)</span>
+                    <div className="space-y-3 pt-6 border-t border-border">
+                        <Label className="text-lg font-semibold">
+                            Preview clip start time{" "}
+                            <span className="text-muted-foreground font-normal">
+                                (TikTok, Apple Music, iTunes)
+                            </span>
                         </Label>
-                        <Input
-                            id="track-preview-time"
-                            placeholder="0"
-                            value={previewClipStartTime}
-                            onChange={(e) => {
-                                // Enforce numbers only
-                                const val = e.target.value.replace(/[^0-9]/g, '')
-                                setPreviewClipStartTime(val)
-                            }}
-                        />
+
+                        <div className="grid grid-cols-1 gap-1">
+                            <Input
+                                placeholder="HH:MM:SS"
+                                type="text"
+                                value={previewClipStartTime}
+                                onChange={(e) => {
+                                    let v = e.target.value.replace(/\D/g, "") // only digits
+
+                                    // limit to HHMMSS (6 digits)
+                                    if (v.length > 6) v = v.slice(0, 6)
+
+                                    let hh = v.substring(0, 2)
+                                    let mm = v.substring(2, 4)
+                                    let ss = v.substring(4, 6)
+
+                                    let formatted = ""
+                                    if (hh) formatted = hh
+                                    if (mm) formatted += ":" + mm
+                                    if (ss) formatted += ":" + ss
+
+                                    setPreviewClipStartTime(formatted)
+                                }}
+                                className="text-sm"
+                            />
+                        </div>
                     </div>
 
 

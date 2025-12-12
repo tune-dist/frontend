@@ -9,7 +9,7 @@ import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock } from 'lucide-re
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
 import { useFormContext } from 'react-hook-form'
-import { PLAN_LIMITS } from '@/config/plans'
+import { getPlanLimits } from '@/lib/api/plans'
 
 interface BasicInfoStepProps {
     // Keeping these optional for compatibility, but we primarily use context
@@ -33,15 +33,31 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const instagramProfile = watch('instagramProfile')
     const facebookProfile = watch('facebookProfile')
 
+    // Plan limits state
+    const [planLimits, setPlanLimits] = useState<{ artistLimit: number; allowConcurrent: boolean; allowedFormats: string[] } | null>(null)
     const planKey = user?.plan || 'free'
-    const planLimits = PLAN_LIMITS[planKey] || PLAN_LIMITS['free']
-    const allowedFormats = planLimits.allowedFormats
+    const allowedFormats = planLimits?.allowedFormats || ['single']
+
+    // Fetch plan limits on mount and when plan changes
+    useEffect(() => {
+        const fetchPlanLimits = async () => {
+            try {
+                const limits = await getPlanLimits(planKey)
+                setPlanLimits(limits)
+            } catch (error) {
+                console.error('Failed to fetch plan limits:', error)
+                // Fallback to default (free plan)
+                setPlanLimits({ artistLimit: 1, allowConcurrent: false, allowedFormats: ['single'] })
+            }
+        }
+        fetchPlanLimits()
+    }, [planKey])
 
     // Check if user can add more artists based on plan
-    const canAddMoreArtists = artists.length < (planLimits.artistLimit - 1) // -1 because main artist is separate field
+    const canAddMoreArtists = planLimits ? artists.length < (planLimits.artistLimit - 1) : false // -1 because main artist is separate field
 
     // Check if main artist name should be locked (Single artist plan + already used artist)
-    const isArtistLocked = planLimits.artistLimit === 1 && usedArtists.length > 0;
+    const isArtistLocked = planLimits?.artistLimit === 1 && usedArtists.length > 0;
 
 
 
@@ -67,7 +83,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const handleAddArtist = () => {
         // Validation logic is now: Check total artists (1 main + N secondary) against limit
         // Current count = 1 (main) + artists.length
-        if ((1 + (artists?.length || 0)) >= planLimits.artistLimit) {
+        if (planLimits && (1 + (artists?.length || 0)) >= planLimits.artistLimit) {
             // Limit reached
             return
         }
@@ -161,29 +177,35 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
 
 
-    // Prefill artistName Logic
+    // Prefill artistName Logic - ONLY if artistLimit is exactly 1
     useEffect(() => {
         const checkAndPrefillArtist = () => {
+            // Don't prefill if plan limits haven't loaded yet
+            if (!planLimits) return
+            
             // If explicit artist name is already set, don't override
             if (artistName) return
 
             console.log('Checking prefill:', { planLimit: planLimits.artistLimit, usedArtistsLen: usedArtists.length, usedArtists });
 
-            // If plan allows only 1 artist AND we have a used artist
+            // ONLY prefill if plan allows exactly 1 artist AND we have a used artist
+            // This means only Free Plan users get auto-filled
             if (planLimits.artistLimit === 1 && usedArtists.length > 0) {
                 const previousArtist = usedArtists[0];
                 if (previousArtist) {
-                    console.log('Prefilling artist:', previousArtist);
+                    console.log('Prefilling artist (artistLimit === 1):', previousArtist);
                     setValue('artistName', previousArtist, { shouldValidate: true })
                     handleSearch(previousArtist, 'main')
                 }
+            } else {
+                console.log('Skipping prefill - artistLimit is not 1:', planLimits.artistLimit);
             }
         }
 
-        if (user) {
+        if (user && planLimits) {
             checkAndPrefillArtist()
         }
-    }, [user, setValue, planLimits.artistLimit, usedArtists, artistName, handleSearch])
+    }, [user, setValue, planLimits, usedArtists, artistName, handleSearch])
 
     const handleMainArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
@@ -553,7 +575,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         <Label htmlFor="artistName">Artist Name *</Label>
                         <div className="flex items-center justify-between">
                             <Label htmlFor="artistName">Artist Name *</Label>
-                            {planLimits.artistLimit < Infinity && (
+                            {planLimits && planLimits.artistLimit < Infinity && (
                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                     <AlertCircle className="h-3 w-3" />
                                     <span>Plan limit: {planLimits.artistLimit} artist{planLimits.artistLimit > 1 ? 's' : ''} only</span>
