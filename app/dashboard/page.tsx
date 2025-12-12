@@ -1,10 +1,16 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import toast from 'react-hot-toast'
-import DashboardLayout from '@/components/dashboard/dashboard-layout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import toast from "react-hot-toast";
+import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -12,11 +18,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { TrendingUp, DollarSign, Globe, Music, Loader2 } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
-import { getReleases, Release } from '@/lib/api/releases'
-import { getUsageStats, UsageStats } from '@/lib/api/users'
+} from "@/components/ui/table";
+import { TrendingUp, DollarSign, Globe, Music, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getReleases, Release } from "@/lib/api/releases";
+import { getUsageStats, UsageStats } from "@/lib/api/users";
 
 // Animation variants
 const containerVariants = {
@@ -27,7 +33,7 @@ const containerVariants = {
       staggerChildren: 0.1,
     },
   },
-}
+};
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -38,13 +44,13 @@ const itemVariants = {
       duration: 0.5,
     },
   },
-}
+};
 
 export default function DashboardPage() {
-  const { user } = useAuth()
-  const [releases, setReleases] = useState<Release[]>([])
-  const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth();
+  const [releases, setReleases] = useState<Release[]>([]);
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,40 +58,41 @@ export default function DashboardPage() {
         const [releasesData, statsData] = await Promise.all([
           getReleases({ limit: 5 }),
           getUsageStats(),
-        ])
-        setReleases(releasesData.releases)
-        setUsageStats(statsData)
+        ]);
+        setReleases(releasesData.releases);
+        setUsageStats(statsData);
       } catch (error) {
-        toast.error('Failed to fetch dashboard data')
-        console.error(error)
+        toast.error("Failed to fetch dashboard data");
+        console.error(error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'distributed':
-        return 'bg-green-500/10 text-green-500'
-      case 'processing':
-        return 'bg-blue-500/10 text-blue-500'
-      case 'pending_review':
-        return 'bg-yellow-500/10 text-yellow-500'
-      case 'rejected':
-        return 'bg-red-500/10 text-red-500'
+      case "distributed":
+        return "bg-green-500/10 text-green-500";
+      case "processing":
+        return "bg-blue-500/10 text-blue-500";
+      case "pending_review":
+        return "bg-yellow-500/10 text-yellow-500";
+      case "rejected":
+        return "bg-red-500/10 text-red-500";
       default:
-        return 'bg-gray-500/10 text-gray-500'
+        return "bg-gray-500/10 text-gray-500";
     }
-  }
+  };
 
   const formatStatus = (status: string) => {
-    return status.split('_').map(word =>
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ')
-  }
+    return status
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
 
   if (loading) {
     return (
@@ -94,7 +101,7 @@ export default function DashboardPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </DashboardLayout>
-    )
+    );
   }
 
   return (
@@ -108,7 +115,8 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <motion.div variants={itemVariants}>
           <h1 className="text-3xl font-bold mb-2">
-            Welcome back, <span className="animated-gradient">{user?.fullName}!</span>
+            Welcome back,{" "}
+            <span className="animated-gradient">{user?.fullName}!</span>
           </h1>
           <p className="text-muted-foreground">
             Here's what's happening with your music today.
@@ -126,7 +134,9 @@ export default function DashboardPage() {
                 <Music className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{usageStats?.releases.total || 0}</div>
+                <div className="text-2xl font-bold">
+                  {usageStats?.releases.total || 0}
+                </div>
                 <CardDescription className="mt-1">
                   {usageStats?.releases.used || 0} this month
                 </CardDescription>
@@ -137,11 +147,15 @@ export default function DashboardPage() {
           <motion.div variants={itemVariants}>
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Storage Used
+                </CardTitle>
                 <DollarSign className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{usageStats?.storage.usedFormatted || '0 MB'}</div>
+                <div className="text-2xl font-bold">
+                  {usageStats?.storage.usedFormatted || "0 MB"}
+                </div>
                 <CardDescription className="mt-1">
                   {usageStats?.plan && `${usageStats.plan.charAt(0).toUpperCase() + usageStats.plan.slice(1)} Plan`}
                 </CardDescription>
@@ -159,12 +173,12 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {usageStats?.releases.canUpload ? 'Yes' : 'No'}
+                  {usageStats?.releases.canUpload ? "Yes" : "No"}
                 </div>
                 <CardDescription className="mt-1">
-                  {usageStats?.releases.limit === 0
+                  {usageStats?.releases?.limit === 0
                     ? 'Unlimited releases'
-                    : `${usageStats?.releases.limit ?? 0} release${(usageStats?.releases.limit ?? 0) > 1 ? 's' : ''} limit`
+                    : `${usageStats?.releases?.limit ?? 0} release${(usageStats?.releases.limit ?? 0) > 1 ? 's' : ''} limit`
                   }
                 </CardDescription>
               </CardContent>
@@ -202,7 +216,10 @@ export default function DashboardPage() {
                   <TableBody>
                     {releases?.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        <TableCell
+                          colSpan={4}
+                          className="text-center text-muted-foreground py-8"
+                        >
                           No releases yet. Start by uploading your first track!
                         </TableCell>
                       </TableRow>
@@ -228,7 +245,9 @@ export default function DashboardPage() {
                           </TableCell> */}
                           <TableCell>
                             <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(release.status)}`}
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
+                                release.status
+                              )}`}
                             >
                               {formatStatus(release.status)}
                             </span>
@@ -244,5 +263,5 @@ export default function DashboardPage() {
         </motion.div>
       </motion.div>
     </DashboardLayout>
-  )
+  );
 }

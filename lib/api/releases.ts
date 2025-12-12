@@ -1,5 +1,5 @@
-import apiClient from '../api-client';
-import { uploadFile, getAudioMetadata, getImageMetadata } from './upload';
+import apiClient from "../api-client";
+import { uploadFile, getAudioMetadata, getImageMetadata } from "./upload";
 
 export interface ReleaseFormData {
   title: string;
@@ -70,8 +70,8 @@ export interface ReleaseFormData {
   format?: string;
 }
 
-export type ReleaseStatus = 'In Process' | 'Approved' | 'Rejected' | 'Released';
-export type ReleaseType = 'single' | 'ep' | 'album' | 'compilation';
+export type ReleaseStatus = "In Process" | "Approved" | "Rejected" | "Released";
+export type ReleaseType = "single" | "ep" | "album" | "compilation";
 
 export interface AudioFile {
   url: string;
@@ -238,8 +238,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     // 1. Upload audio file (if single/present)
     let audioData: AudioFile | undefined = undefined;
     if (formData.audioFile) {
-      console.log('Uploading audio file...');
-      const audioUrl = await uploadFile(formData.audioFile, 'audio');
+      console.log("Uploading audio file...");
+      const audioUrl = await uploadFile(formData.audioFile, "audio");
       const audioMetadata = await getAudioMetadata(formData.audioFile);
       audioData = {
         url: audioUrl,
@@ -251,43 +251,46 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     }
 
     // 2. Upload cover art
-    console.log('Uploading cover art...');
-    const coverUrl = await uploadFile(formData.coverArt, 'cover');
+    console.log("Uploading cover art...");
+    const coverUrl = await uploadFile(formData.coverArt, "cover");
     const coverMetadata = await getImageMetadata(formData.coverArt);
 
     // 3. Process Tracks (if any)
     let tracksPayload: TrackPayload[] = [];
     if (formData.tracks && formData.tracks.length > 0) {
       console.log(`Processing ${formData.tracks.length} tracks...`);
-      tracksPayload = await Promise.all(formData.tracks.map(async (track: any) => {
-        let trackAudioData = null;
-        if (track.audioFile) {
-          const url = await uploadFile(track.audioFile, 'audio');
-          const metadata = await getAudioMetadata(track.audioFile);
-          trackAudioData = {
-            url,
-            filename: track.audioFile.name,
-            size: track.audioFile.size,
-            duration: metadata.duration,
-            format: metadata.format
+      tracksPayload = await Promise.all(
+        formData.tracks.map(async (track: any) => {
+          let trackAudioData = null;
+          if (track.audioFile) {
+            const url = await uploadFile(track.audioFile, "audio");
+            const metadata = await getAudioMetadata(track.audioFile);
+            trackAudioData = {
+              url,
+              filename: track.audioFile.name,
+              size: track.audioFile.size,
+              duration: metadata.duration,
+              format: metadata.format,
+            };
+          }
+          return {
+            title: track.title,
+            artistName: track.artistName,
+            audioFile: trackAudioData,
+            isExplicit:
+              track.explicitLyrics === "yes" || track.isExplicit === true,
+            isInstrumental: track.isInstrumental === "yes",
+            previewStartTime: track.previewStartTime,
+            price: track.price,
+            songwriters: track.songwriters,
+            composers: track.composers,
+            previouslyReleased: track.previouslyReleased,
+            originalReleaseDate: track.originalReleaseDate,
+            primaryGenre: track.primaryGenre,
+            secondaryGenre: track.secondaryGenre,
           };
-        }
-        return {
-          title: track.title,
-          artistName: track.artistName,
-          audioFile: trackAudioData,
-          isExplicit: track.explicitLyrics === 'yes' || track.isExplicit === true,
-          isInstrumental: track.isInstrumental === 'yes',
-          previewStartTime: track.previewStartTime,
-          price: track.price,
-          songwriters: track.songwriters,
-          composers: track.composers,
-          previouslyReleased: track.previouslyReleased,
-          originalReleaseDate: track.originalReleaseDate,
-          primaryGenre: track.primaryGenre,
-          secondaryGenre: track.secondaryGenre,
-        };
-      }));
+        })
+      );
     }
 
     // 4. Prepare release data
@@ -296,7 +299,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       artistName: formData.artistName,
       language: formData.language,
       releaseType: formData.releaseType,
-      isExplicit: formData.explicitLyrics === 'yes',
+      isExplicit: formData.explicitLyrics === "yes",
       releaseDate: formData.releaseDate,
 
       audioFile: audioData,
@@ -315,14 +318,22 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       tracks: tracksPayload,
 
       // Optional fields mapping
-      ...(formData.featuredArtists && { featuredArtists: formData.featuredArtists }),
+      ...(formData.featuredArtists && {
+        featuredArtists: formData.featuredArtists,
+      }),
 
       // Map labelName from recordLabel if not present
-      ...(formData.labelName ? { labelName: formData.labelName } : (formData.recordLabel && { labelName: formData.recordLabel })),
+      ...(formData.labelName
+        ? { labelName: formData.labelName }
+        : formData.recordLabel && { labelName: formData.recordLabel }),
 
       ...(formData.trackNumber && { trackNumber: formData.trackNumber }),
-      ...(formData.originalReleaseDate && { originalReleaseDate: formData.originalReleaseDate }),
-      ...(formData.distributionTerritories && { distributionTerritories: formData.distributionTerritories }),
+      ...(formData.originalReleaseDate && {
+        originalReleaseDate: formData.originalReleaseDate,
+      }),
+      ...(formData.distributionTerritories && {
+        distributionTerritories: formData.distributionTerritories,
+      }),
       ...(formData.catalogNumber && { catalogNumber: formData.catalogNumber }),
       ...(formData.barcode && { barcode: formData.barcode }),
       ...(formData.isrc && { isrc: formData.isrc }),
@@ -331,23 +342,45 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.copyright && { copyright: formData.copyright }),
       ...(formData.recordingYear && { recordingYear: formData.recordingYear }),
       ...(formData.albumTitle && { albumTitle: formData.albumTitle }),
-      ...(formData.selectedPlatforms && { selectedPlatforms: formData.selectedPlatforms }),
+      ...(formData.selectedPlatforms && {
+        selectedPlatforms: formData.selectedPlatforms,
+      }),
 
       // New fields specific to releases
-      ...(formData.numberOfSongs && { numberOfSongs: parseInt(formData.numberOfSongs || '1') || 1 }),
-      ...(formData.socialMediaPack !== undefined && { socialMediaPack: formData.socialMediaPack }),
+      ...(formData.numberOfSongs && {
+        numberOfSongs: parseInt(formData.numberOfSongs || "1") || 1,
+      }),
+      ...(formData.socialMediaPack !== undefined && {
+        socialMediaPack: formData.socialMediaPack,
+      }),
 
       // Flat fields mapping
       ...(formData.primaryGenre && { primaryGenre: formData.primaryGenre }),
-      ...(formData.secondaryGenre && { secondaryGenre: formData.secondaryGenre }),
+      ...(formData.secondaryGenre && {
+        secondaryGenre: formData.secondaryGenre,
+      }),
 
-      ...(formData.spotifyProfile && { spotifyProfile: formData.spotifyProfile }),
-      ...(formData.appleMusicProfile && { appleMusicProfile: formData.appleMusicProfile }),
-      ...(formData.youtubeMusicProfile && { youtubeMusicProfile: formData.youtubeMusicProfile }),
-      ...(formData.instagramProfile && { instagramProfile: formData.instagramProfile }),
-      ...(formData.instagramProfileUrl && { instagramProfileUrl: formData.instagramProfileUrl }),
-      ...(formData.facebookProfile && { facebookProfile: formData.facebookProfile }),
-      ...(formData.facebookProfileUrl && { facebookProfileUrl: formData.facebookProfileUrl }),
+      ...(formData.spotifyProfile && {
+        spotifyProfile: formData.spotifyProfile,
+      }),
+      ...(formData.appleMusicProfile && {
+        appleMusicProfile: formData.appleMusicProfile,
+      }),
+      ...(formData.youtubeMusicProfile && {
+        youtubeMusicProfile: formData.youtubeMusicProfile,
+      }),
+      ...(formData.instagramProfile && {
+        instagramProfile: formData.instagramProfile,
+      }),
+      ...(formData.instagramProfileUrl && {
+        instagramProfileUrl: formData.instagramProfileUrl,
+      }),
+      ...(formData.facebookProfile && {
+        facebookProfile: formData.facebookProfile,
+      }),
+      ...(formData.facebookProfileUrl && {
+        facebookProfileUrl: formData.facebookProfileUrl,
+      }),
 
       socialPlatforms: {
         spotifyProfile: formData.spotifyProfile,
@@ -359,8 +392,12 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         facebookProfileUrl: formData.facebookProfileUrl,
       },
 
-      ...(formData.artworkConfirmed !== undefined && { artworkConfirmed: formData.artworkConfirmed }),
-      ...(formData.previewClipStartTime && { previewClipStartTime: formData.previewClipStartTime }),
+      ...(formData.artworkConfirmed !== undefined && {
+        artworkConfirmed: formData.artworkConfirmed,
+      }),
+      ...(formData.previewClipStartTime && {
+        previewClipStartTime: formData.previewClipStartTime,
+      }),
       ...(formData.radioEdit && { radioEdit: formData.radioEdit }),
       ...(formData.instrumental && { instrumental: formData.instrumental }),
 
@@ -378,10 +415,10 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     };
 
     // 5. Create release via API
-    console.log('Creating release...', releaseData);
+    console.log("Creating release...", releaseData);
     return createRelease(releaseData);
   } catch (error: any) {
-    console.error('Release submission failed:', error);
+    console.error("Release submission failed:", error);
     throw new Error(
       error.response?.data?.message ||
       error.message ||
@@ -391,8 +428,12 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
 };
 
 // Get all user releases
-export const getReleases = async (params?: GetReleasesParams): Promise<ReleasesResponse> => {
-  const response = await apiClient.get<ReleasesResponse>('/releases', { params });
+export const getReleases = async (
+  params?: GetReleasesParams
+): Promise<ReleasesResponse> => {
+  const response = await apiClient.get<ReleasesResponse>("/releases", {
+    params,
+  });
   return response.data;
 };
 
@@ -403,13 +444,18 @@ export const getRelease = async (id: string): Promise<Release> => {
 };
 
 // Create new release (draft)
-export const createRelease = async (data: CreateReleaseData): Promise<Release> => {
-  const response = await apiClient.post<Release>('/releases', data);
+export const createRelease = async (
+  data: CreateReleaseData
+): Promise<Release> => {
+  const response = await apiClient.post<Release>("/releases", data);
   return response.data;
 };
 
 // Update release (draft only)
-export const updateRelease = async (id: string, data: Partial<CreateReleaseData>): Promise<Release> => {
+export const updateRelease = async (
+  id: string,
+  data: Partial<CreateReleaseData>
+): Promise<Release> => {
   const response = await apiClient.put<Release>(`/releases/${id}`, data);
   return response.data;
 };
@@ -427,8 +473,12 @@ export const cancelRelease = async (id: string): Promise<Release> => {
 };
 
 // Delete release (draft only)
-export const deleteRelease = async (id: string): Promise<{ message: string }> => {
-  const response = await apiClient.delete<{ message: string }>(`/releases/${id}`);
+export const deleteRelease = async (
+  id: string
+): Promise<{ message: string }> => {
+  const response = await apiClient.delete<{ message: string }>(
+    `/releases/${id}`
+  );
   return response.data;
 };
 
@@ -439,8 +489,13 @@ export const approveRelease = async (id: string): Promise<Release> => {
 };
 
 // Reject release (Admin only)
-export const rejectRelease = async (id: string, reason: string): Promise<Release> => {
-  const response = await apiClient.post<Release>(`/releases/${id}/reject`, { reason });
+export const rejectRelease = async (
+  id: string,
+  reason: string
+): Promise<Release> => {
+  const response = await apiClient.post<Release>(`/releases/${id}/reject`, {
+    reason,
+  });
   return response.data;
 };
 

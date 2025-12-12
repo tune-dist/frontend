@@ -621,8 +621,8 @@ export default function UploadPage() {
 
           <div className="flex gap-2">
             {/* <Button variant="outline" onClick={() => router.push("/dashboard")}>
-              Save as Draft
-            </Button> */}
+                Save as Draft
+              </Button> */}
 
             {currentStep < steps.length ? (
               <Button onClick={handleNext}>
