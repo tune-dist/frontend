@@ -449,3 +449,10 @@ export const releaseRelease = async (id: string): Promise<Release> => {
   const response = await apiClient.post<Release>(`/releases/${id}/release`);
   return response.data;
 };
+
+// Get artist usage
+export const getArtistUsage = async (): Promise<{ artists: string[] }> => {
+  const response = await apiClient.get<{ artists: string[] }>('/releases/artists/usage');
+  return response.data;
+};
+

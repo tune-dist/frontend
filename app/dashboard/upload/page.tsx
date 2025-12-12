@@ -34,9 +34,10 @@ import AudioFileStep from "@/components/dashboard/upload/audio-file-step";
 import CoverArtStep from "@/components/dashboard/upload/cover-art-step";
 import CreditsStep from "@/components/dashboard/upload/credits-step";
 import ReviewStep from "@/components/dashboard/upload/review-step";
-import { submitNewRelease } from "@/lib/api/releases";
+import { submitNewRelease, getArtistUsage } from "@/lib/api/releases";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { PLAN_LIMITS } from "@/config/plans";
 
 // Animation variants
 const containerVariants = {
@@ -70,6 +71,7 @@ const steps = [
 
 export default function UploadPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
 
   // Initialize Form
@@ -155,6 +157,17 @@ export default function UploadPage() {
     termsAgreement: false,
   });
 
+  const [usedArtists, setUsedArtists] = useState<string[]>([]);
+
+  // Fetch used artists on mount
+  useEffect(() => {
+    if (user) {
+      getArtistUsage()
+        .then((data) => setUsedArtists(data.artists))
+        .catch((err) => console.error("Failed to fetch artist usage", err));
+    }
+  }, [user]);
+
   // Watch for bridging to old components
   const formData = form.watch();
   const setFormData = (data: Partial<UploadFormData>) => {
@@ -179,6 +192,37 @@ export default function UploadPage() {
           "language",
           "format",
         ]);
+
+        if (isValid) {
+          // Check Artist Limits
+          const planKey = (user?.plan as string) || 'free';
+          const limits = PLAN_LIMITS[planKey] || PLAN_LIMITS['free'];
+
+          if (limits.artistLimit < Infinity) {
+            const currentArtists = [formData.artistName, ...(formData.artists || []).map((a: any) => a.name)].filter(Boolean);
+
+            // Count how many NEW artists are being introduced
+            let newArtistsCount = 0;
+            const uniqueCurrentArtists = new Set(currentArtists);
+
+            for (const artist of Array.from(uniqueCurrentArtists)) {
+              // Normalize check (case insensitive or exact? backend uses distinct so exact usually, but let's assume exact for now)
+              if (!usedArtists.includes(artist as string)) {
+                newArtistsCount++;
+              }
+            }
+
+            // Total unique artists user WILL have after this release
+            // = (already used artists count) + (newly unique artists in this release)
+            // Actually simple check: Used + New <= Limit
+            const totalUsedCount = usedArtists.length;
+
+            if ((totalUsedCount + newArtistsCount) > limits.artistLimit) {
+              toast.error(`You have reached your artist limit (${limits.artistLimit}) for the ${planKey === 'creator_plus' ? 'Creator+' : planKey} plan.`);
+              isValid = false;
+            }
+          }
+        }
         break;
       case 2: // Audio
         if (formData.format === "single") {
@@ -326,7 +370,9 @@ export default function UploadPage() {
     const commonProps = {
       formData,
       setFormData,
+      usedArtists,
     };
+
 
     switch (currentStep) {
       case 1:
@@ -359,7 +405,6 @@ export default function UploadPage() {
   };
 
   // Check for Free Plan Restrictions
-  const { user } = useAuth();
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
   const [canUpload, setCanUpload] = useState(true);
 
@@ -367,10 +412,16 @@ export default function UploadPage() {
     const checkEligibility = async () => {
       if (!user) return;
 
-      if (user.plan === "free") {
+      const planKey = (user?.plan as string) || 'free';
+      const limits = PLAN_LIMITS[planKey] || PLAN_LIMITS['free'];
+
+      // If plan allows concurrent uploads, we don't block based on 'In Process' status
+      if (limits.allowConcurrent) {
+        setCanUpload(true);
+      } else {
+        // Fallback to original logic for plans that don't allow concurrent (e.g. Free)
         try {
           // Check for 'In Process' releases
-          // We fetch releases with status 'In Process'
           const response = await import("@/lib/api/releases").then((m) =>
             m.getReleases({ status: "In Process" })
           );
@@ -382,11 +433,8 @@ export default function UploadPage() {
           }
         } catch (error) {
           console.error("Failed to check release eligibility", error);
-          // Default to allowing upload if check fails
           setCanUpload(true);
         }
-      } else {
-        setCanUpload(true);
       }
       setIsCheckingEligibility(false);
     };

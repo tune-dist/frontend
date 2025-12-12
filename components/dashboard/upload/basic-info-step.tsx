@@ -1,22 +1,25 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Music, ExternalLink, Info, Plus, X, AlertCircle } from 'lucide-react'
+import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
 import { useFormContext } from 'react-hook-form'
+import { PLAN_LIMITS } from '@/config/plans'
 
 interface BasicInfoStepProps {
     // Keeping these optional for compatibility, but we primarily use context
     formData?: UploadFormData
     setFormData?: (data: UploadFormData) => void
+    usedArtists?: string[]
 }
 
-export default function BasicInfoStep({ formData: propFormData, setFormData: propSetFormData }: BasicInfoStepProps) {
+
+export default function BasicInfoStep({ formData: propFormData, setFormData: propSetFormData, usedArtists = [] }: BasicInfoStepProps) {
     const { user } = useAuth()
     const { register, formState: { errors }, watch, setValue } = useFormContext<UploadFormData>()
 
@@ -30,8 +33,15 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const instagramProfile = watch('instagramProfile')
     const facebookProfile = watch('facebookProfile')
 
+    const planKey = user?.plan || 'free'
+    const planLimits = PLAN_LIMITS[planKey] || PLAN_LIMITS['free']
+    const allowedFormats = planLimits.allowedFormats
+
     // Check if user can add more artists based on plan
-    const canAddMoreArtists = user?.plan !== 'free' || artists.length === 0
+    const canAddMoreArtists = artists.length < (planLimits.artistLimit - 1) // -1 because main artist is separate field
+
+    // Check if main artist name should be locked (Single artist plan + already used artist)
+    const isArtistLocked = planLimits.artistLimit === 1 && usedArtists.length > 0;
 
 
 
@@ -55,8 +65,10 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
     // Handle adding a new artist
     const handleAddArtist = () => {
-        if (user?.plan === 'free' && artists.length >= 0) {
-            // Free users can only have 1 artist (main artistName field)
+        // Validation logic is now: Check total artists (1 main + N secondary) against limit
+        // Current count = 1 (main) + artists.length
+        if ((1 + (artists?.length || 0)) >= planLimits.artistLimit) {
+            // Limit reached
             return
         }
         const currentArtists = artists || []
@@ -90,7 +102,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         handleSearch(name, index)
     }
 
-    const handleSearch = (name: string, index: number | 'main') => {
+    const handleSearch = useCallback((name: string, index: number | 'main') => {
         // Clear previous timeout
         if (searchTimeout.current) {
             clearTimeout(searchTimeout.current)
@@ -98,7 +110,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
         setActiveSearchIndex(index)
 
-        if (name.length > 2) {
+        if (name.length >= 2) {
             setIsSearching(true)
             searchTimeout.current = setTimeout(async () => {
                 try {
@@ -145,44 +157,33 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
             setIsSearching(false)
             setHasSearched(false)
         }
-    }
+    }, [searchTimeout, setActiveSearchIndex, setIsSearching, setSearchResults, setHasSearched])
 
 
 
     // Prefill artistName Logic
     useEffect(() => {
-        const checkAndPrefillArtist = async () => {
-            // If explicit artist name is already set, don't override unless needed logic enforcement
+        const checkAndPrefillArtist = () => {
+            // If explicit artist name is already set, don't override
             if (artistName) return
 
-            if (user?.plan === 'free') {
-                try {
-                    // Import dynamically to avoid circular deps if any, or just use import
-                    const { getReleases } = await import('@/lib/api/releases')
-                    // Fetch user's releases to find previous artist name
-                    const response = await getReleases({ limit: 1, userId: user._id })
-                    if (response && response.releases.length > 0) {
-                        const previousArtist = response.releases[0].artistName
-                        if (previousArtist) {
-                            setValue('artistName', previousArtist)
-                            handleSearch(previousArtist, 'main')
-                        }
-                    } else if (user?.fullName) {
-                        // Fallback for first time free user? 
-                        // Requirement says: "remove that functionality [pre-filling logged in user name]... set prefilled with artist that we have filled in previous released music"
-                        // So only prefill if previous release exists.
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch releases for artist prefill", error)
+            console.log('Checking prefill:', { planLimit: planLimits.artistLimit, usedArtistsLen: usedArtists.length, usedArtists });
+
+            // If plan allows only 1 artist AND we have a used artist
+            if (planLimits.artistLimit === 1 && usedArtists.length > 0) {
+                const previousArtist = usedArtists[0];
+                if (previousArtist) {
+                    console.log('Prefilling artist:', previousArtist);
+                    setValue('artistName', previousArtist, { shouldValidate: true })
+                    handleSearch(previousArtist, 'main')
                 }
             }
-            // For non-free users, we do NOT prefill default name anymore.
         }
 
         if (user) {
             checkAndPrefillArtist()
         }
-    }, [user, setValue])
+    }, [user, setValue, planLimits.artistLimit, usedArtists, artistName, handleSearch])
 
     const handleMainArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
@@ -307,7 +308,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         }
 
         const currentName = index === 'main' ? artistName : (artists && artists[index]?.name)
-        if (!currentName || currentName.length <= 2) return null
+        if (!currentName || currentName.length < 2) return null
 
         // Conditions to show the block:
         // 1. If actively searching this index AND results exist.
@@ -550,12 +551,15 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <Label htmlFor="artistName">Artist Name *</Label>
-                        {user?.plan === 'free' && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <AlertCircle className="h-3 w-3" />
-                                <span>Free plan: 1 artist only</span>
-                            </div>
-                        )}
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="artistName">Artist Name *</Label>
+                            {planLimits.artistLimit < Infinity && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <AlertCircle className="h-3 w-3" />
+                                    <span>Plan limit: {planLimits.artistLimit} artist{planLimits.artistLimit > 1 ? 's' : ''} only</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="relative space-y-3">
@@ -570,8 +574,9 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                     register('artistName').onChange(e)
                                     handleMainArtistNameChange(e)
                                 }}
-                                onFocus={() => setActiveSearchIndex('main')}
-                                className={`${isSearching && activeSearchIndex === 'main' ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''}`}
+                                onFocus={() => !isArtistLocked && setActiveSearchIndex('main')}
+                                readOnly={isArtistLocked}
+                                className={`${isSearching && activeSearchIndex === 'main' ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''} ${isArtistLocked ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
                             />
                             {isSearching && activeSearchIndex === 'main' && (
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -580,6 +585,12 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                         transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                                         className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
                                     />
+                                </div>
+                            )}
+
+                            {isArtistLocked && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" title="Artist name locked to your plan">
+                                    <Lock className="h-4 w-4" />
                                 </div>
                             )}
                         </div>
@@ -592,8 +603,8 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                 size="sm"
                                 onClick={handleAddArtist}
                                 className="shrink-0 h-10 w-10 p-0"
-                                title={user?.plan === 'free' ? 'Upgrade to add more artists' : 'Add another artist'}
-                                disabled={user?.plan === 'free'}
+                                title={!canAddMoreArtists ? 'Upgrade to add more artists' : 'Add another artist'}
+                                disabled={!canAddMoreArtists}
                             >
                                 <Plus className="h-4 w-4" />
                             </Button>
@@ -606,7 +617,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         searchResults.spotify.length === 0 &&
                         searchResults.apple.length === 0 &&
                         searchResults.youtube.length === 0 &&
-                        artistName.length > 2 && (
+                        artistName.length >= 2 && (
                             <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
                                 <p className="text-sm text-yellow-600 dark:text-yellow-400">
                                     Artist not found. Please upload music via a distributor to create a Spotify profile
@@ -820,17 +831,17 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                             <option disabled value="">Select a format</option>
 
                             <option value="single">Single</option>
-                            <option value="ep" disabled={user?.plan === 'free'}>
-                                EP {user?.plan === 'free' ? '(Premium)' : ''}
+                            <option value="ep" disabled={!allowedFormats.includes('ep')}>
+                                EP {!allowedFormats.includes('ep') ? `(Creator+ Plan)` : ''}
                             </option>
-                            <option value="album" disabled={user?.plan === 'free'}>
-                                Album {user?.plan === 'free' ? '(Premium)' : ''}
+                            <option value="album" disabled={!allowedFormats.includes('album')}>
+                                Album {!allowedFormats.includes('album') ? `(Creator+ Plan)` : ''}
                             </option>
                         </select>
-                        {user?.plan === 'free' && (
+                        {!allowedFormats.includes('album') && (
                             <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
                                 <Info className="h-3 w-3 mt-0.5" />
-                                <span>Upgrade to Premium to release EPs and Albums.</span>
+                                <span>Upgrade to Creator+ or higher to release EPs and Albums.</span>
                             </div>
                         )}
                     </div>
