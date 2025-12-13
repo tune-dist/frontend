@@ -206,7 +206,7 @@ export default function UploadPage() {
           fieldsToValidate.push("featuringArtist");
         }
 
-        isValid = await form.trigger(fieldsToValidate);
+        isValid = await form.trigger(fieldsToValidate as any);
 
         // Manually check featuredArtist if required by plan (form.trigger doesn't pick up dynamic validation)
         if (isValid && fieldRules.featuredArtists?.required && !formData.featuringArtist?.trim()) {

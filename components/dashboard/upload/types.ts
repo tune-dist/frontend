@@ -22,9 +22,16 @@ export type Songwriter = z.infer<typeof songwriterSchema>
 // Audio File Schema (just the file, no metadata)
 export const audioFileSchema = z.object({
     id: z.string(),
-    file: z.any(), // File object
+    file: z.any(), // File object (kept for reference/initial display)
     fileName: z.string(),
-    size: z.number().optional()
+    size: z.number().optional(),
+    // Fields from Chunk Upload response
+    path: z.string().optional(),
+    duration: z.number().optional(),
+    resolution: z.object({
+        width: z.number().optional(),
+        heigth: z.number().optional() // matching backend typo for consistency
+    }).optional()
 })
 
 export type AudioFile = z.infer<typeof audioFileSchema>

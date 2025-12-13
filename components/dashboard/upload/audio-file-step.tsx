@@ -1,4 +1,6 @@
-'use client'
+
+import { useState } from 'react'
+import { uploadFileInChunks } from '@/lib/upload/chunk-uploader'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -14,6 +16,9 @@ interface AudioFileStepProps {
 
 export default function AudioFileStep({ formData: propFormData, setFormData: propSetFormData }: AudioFileStepProps) {
     const { setValue, watch, formState: { errors } } = useFormContext<UploadFormData>()
+    const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
+    const [isUploading, setIsUploading] = useState(false)
+
 
     const format = watch('format')
     const audioFile = watch('audioFile')
@@ -63,51 +68,80 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
             return
         }
 
+        // Validate WAV header (optional, moved before upload for UX)
         try {
             const { sampleRate, bitDepth } = await parseWavHeader(file);
-
             if (sampleRate !== 44100) {
                 toast.error(`Invalid Sample Rate: ${sampleRate}Hz. File must be 44,100Hz.`)
                 return
             }
-
             if (bitDepth !== 16) {
                 toast.error(`Invalid Bit Depth: ${bitDepth}-bit. File must be 16-bit.`)
                 return
             }
-
         } catch (error) {
             console.error(error)
+            // Allow proceed if header check fails? Or block? 
+            // Logic in original was block. keeping it consistent.
             toast.error('Failed to validate audio file format. Please ensure it is a valid WAV.')
             return
         }
 
-        if (format === 'single' || !format) {
-            // Single Mode - store in single audioFile field
-            setValue('audioFile', file, { shouldValidate: true })
-            setValue('audioFileName', file.name, { shouldValidate: true })
-        } else {
-            // Multi-track Mode - store file in audioFiles[] and create track metadata in tracks[]
-            const fileId = crypto.randomUUID()
+        const fileId = crypto.randomUUID()
+        setIsUploading(true)
+        setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
 
-            // Store audio file
-            const newAudioFile: AudioFile = {
-                id: fileId,
-                file: file,
-                fileName: file.name,
-                size: file.size
-            }
-            setValue('audioFiles', [...audioFiles, newAudioFile], { shouldValidate: true })
+        try {
+            // Start Chunked Upload
+            const result = await uploadFileInChunks(file, '', (progress) => {
+                setUploadProgress(prev => ({ ...prev, [fileId]: progress }))
+            });
 
-            // Create track metadata (separate from audio file)
-            const newTrack: Track = {
-                id: crypto.randomUUID(),
-                title: file.name.replace(/\.[^/.]+$/, ""), // Default title from filename
-                audioFileId: fileId, // Reference to the audio file
+            // Upload complete, update form
+            if (format === 'single' || !format) {
+                setValue('audioFile', {
+                    file: file, // Keep file ref for UI if needed, but path is what matters for backend
+                    fileName: file.name,
+                    size: file.size,
+                    path: result.path,
+                    duration: result.metaData?.duration,
+                    resolution: result.metaData?.resolution
+                }, { shouldValidate: true })
+                setValue('audioFileName', file.name, { shouldValidate: true })
+            } else {
+                const newAudioFile: AudioFile = {
+                    id: fileId,
+                    file: file,
+                    fileName: file.name,
+                    size: file.size,
+                    path: result.path,
+                    duration: result.metaData?.duration,
+                    resolution: result.metaData?.resolution
+                }
+                setValue('audioFiles', [...audioFiles, newAudioFile], { shouldValidate: true })
+
+                const newTrack: Track = {
+                    id: crypto.randomUUID(),
+                    title: file.name.replace(/\.[^/.]+$/, ""),
+                    audioFileId: fileId,
+                }
+                setValue('tracks', [...tracks, newTrack], { shouldValidate: true })
             }
-            setValue('tracks', [...tracks, newTrack], { shouldValidate: true })
+
+            toast.success(`Upload complete: ${file.name}`)
+
+        } catch (error: any) {
+            console.error(error)
+            toast.error(`Upload failed: ${error.message || 'Unknown error'}`)
+        } finally {
+            setIsUploading(false)
+            setUploadProgress(prev => {
+                const newProgress = { ...prev };
+                delete newProgress[fileId];
+                return newProgress;
+            })
         }
-        toast.success(`Track added: ${file.name}`)
+
     }
 
     const handleAudioFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -176,11 +210,20 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                     onDrop={handleAudioFileDrop}
                                     onDragOver={handleAudioFileDragOver}
                                 >
-                                    <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                    <p className="text-base font-medium mb-1">Select an audio file</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Or drag audio file here to upload
-                                    </p>
+                                    {isUploading ? (
+                                        <div className="text-center">
+                                            <p className="text-base font-medium mb-1">Uploading...</p>
+                                            <p className="text-sm text-muted-foreground">Please wait while we process your file</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                                            <p className="text-base font-medium mb-1">Select an audio file</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Or drag audio file here to upload
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -190,9 +233,24 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                             <div className="flex-1">
                                                 <p className="font-medium">{audioFileName}</p>
                                                 {audioFile && (
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {((audioFile as File).size / 1024 / 1024).toFixed(2)} MB
-                                                    </p>
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {((audioFile as any).size / 1024 / 1024).toFixed(2)} MB
+                                                        </p>
+                                                        {((audioFile as any).path) && (
+                                                            <p className="text-xs text-green-600 flex items-center gap-1">
+                                                                ✓ Uploaded
+                                                            </p>
+                                                        )}
+                                                        {uploadProgress[(audioFile as any).id] !== undefined && (
+                                                            <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full bg-primary transition-all duration-300"
+                                                                    style={{ width: `${uploadProgress[(audioFile as any).id]}%` }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                             <Button
@@ -234,9 +292,22 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                                 <Music className="h-8 w-8 text-primary" />
                                                 <div className="flex-1">
                                                     <p className="font-medium">{index + 1}. {track.title || 'Untitled'}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {audioFile?.fileName} • {audioFile?.size ? ((audioFile.size / 1024 / 1024).toFixed(2) + ' MB') : ''}
-                                                    </p>
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {audioFile?.fileName} • {audioFile?.size ? ((audioFile.size / 1024 / 1024).toFixed(2) + ' MB') : ''}
+                                                        </p>
+                                                        {uploadProgress[audioFile?.id || ''] !== undefined && (
+                                                            <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full bg-primary transition-all duration-300"
+                                                                    style={{ width: `${uploadProgress[audioFile?.id || '']}%` }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        {audioFile?.path && (
+                                                            <p className="text-xs text-green-600">✓ Uploaded</p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <Button
                                                     variant="outline"
