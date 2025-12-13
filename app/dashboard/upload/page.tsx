@@ -35,7 +35,7 @@ import CoverArtStep from "@/components/dashboard/upload/cover-art-step";
 import CreditsStep from "@/components/dashboard/upload/credits-step";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage } from "@/lib/api/releases";
-import { getPlanLimits, getPlanByKey } from "@/lib/api/plans";
+import { getPlanLimits, getPlanByKey, getPlanFieldRules } from "@/lib/api/plans";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
@@ -186,18 +186,39 @@ export default function UploadPage() {
     // Step-based validation
     switch (currentStep) {
       case 1: // Basic Info
-        isValid = await form.trigger([
+        // Fetch plan data first to know what fields are required
+        const planKey = (user?.plan as string) || 'free';
+        const [limits, fieldRules] = await Promise.all([
+          getPlanLimits(planKey, true),
+          getPlanFieldRules(planKey, true)
+        ]);
+
+        // Build validation fields array based on plan
+        const fieldsToValidate = [
           "title",
           "artistName",
           "language",
           "format",
-        ]);
+        ];
+
+        // Add featuredArtist to validation if required by plan
+        if (fieldRules.featuredArtists?.required) {
+          fieldsToValidate.push("featuringArtist");
+        }
+
+        isValid = await form.trigger(fieldsToValidate);
+
+        // Manually check featuredArtist if required by plan (form.trigger doesn't pick up dynamic validation)
+        if (isValid && fieldRules.featuredArtists?.required && !formData.featuringArtist?.trim()) {
+          form.setError("featuringArtist", {
+            type: "required",
+            message: "Featuring artist is required",
+          });
+          isValid = false;
+        }
 
         if (isValid) {
           // Check Artist Limits
-          const planKey = (user?.plan as string) || 'free';
-          const limits = await getPlanLimits(planKey);
-
           if (limits.artistLimit < Infinity) {
             const currentArtists = [formData.artistName, ...(formData.artists || []).map((a: any) => a.name)].filter(Boolean);
 

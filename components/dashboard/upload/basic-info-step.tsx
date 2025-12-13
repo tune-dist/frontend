@@ -9,7 +9,7 @@ import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock } from 'lucide-re
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
 import { useFormContext } from 'react-hook-form'
-import { getPlanLimits } from '@/lib/api/plans'
+import { getPlanLimits, getPlanFieldRules } from '@/lib/api/plans'
 
 interface BasicInfoStepProps {
     // Keeping these optional for compatibility, but we primarily use context
@@ -35,30 +35,53 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
     // Plan limits state
     const [planLimits, setPlanLimits] = useState<{ artistLimit: number; allowConcurrent: boolean; allowedFormats: string[] } | null>(null)
+    const [fieldRules, setFieldRules] = useState<Record<string, any>>({})
     const planKey = user?.plan || 'free'
     const allowedFormats = planLimits?.allowedFormats || ['single']
 
     // Fetch plan limits on mount and when plan changes
     useEffect(() => {
-        const fetchPlanLimits = async () => {
+        const fetchPlanData = async () => {
             try {
-                const limits = await getPlanLimits(planKey)
+                const [limits, rules] = await Promise.all([
+                    getPlanLimits(planKey, true), // Force refresh
+                    getPlanFieldRules(planKey, true) // Force refresh to get latest from DB
+                ])
                 setPlanLimits(limits)
+                setFieldRules(rules)
+                console.log('Loaded fieldRules:', rules) // Debug log
             } catch (error) {
-                console.error('Failed to fetch plan limits:', error)
+                console.error('Failed to fetch plan data:', error)
                 // Fallback to default (free plan)
                 setPlanLimits({ artistLimit: 1, allowConcurrent: false, allowedFormats: ['single'] })
+                setFieldRules({})
             }
         }
-        fetchPlanLimits()
+        fetchPlanData()
     }, [planKey])
 
     // Check if user can add more artists based on plan
     const canAddMoreArtists = planLimits ? artists.length < (planLimits.artistLimit - 1) : false // -1 because main artist is separate field
 
+    // Check if featured artists are allowed by plan fieldRules
+    const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false
+
     // Check if main artist name should be locked (Single artist plan + already used artist)
     const isArtistLocked = planLimits?.artistLimit === 1 && usedArtists.length > 0;
 
+    // Update featuringArtist validation when fieldRules change
+    useEffect(() => {
+        if (Object.keys(fieldRules).length > 0) {
+            console.log('Registering featuringArtist with validation:', {
+                required: fieldRules.featuredArtists?.required,
+                message: fieldRules.featuredArtists?.required ? 'Featuring artist is required' : 'Not required'
+            });
+            // Re-register the field with updated validation
+            register('featuringArtist', {
+                required: fieldRules.featuredArtists?.required ? 'Featuring artist is required' : false
+            });
+        }
+    }, [fieldRules, register]);
 
 
 
@@ -81,7 +104,13 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
     // Handle adding a new artist
     const handleAddArtist = () => {
-        // Validation logic is now: Check total artists (1 main + N secondary) against limit
+        // First check if featured artists are allowed by plan
+        if (fieldRules.featuredArtists?.allow === false) {
+            // Featured artists not allowed by plan
+            return
+        }
+
+        // Then check artist limit: Check total artists (1 main + N secondary) against limit
         // Current count = 1 (main) + artists.length
         if (planLimits && (1 + (artists?.length || 0)) >= planLimits.artistLimit) {
             // Limit reached
@@ -182,7 +211,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         const checkAndPrefillArtist = () => {
             // Don't prefill if plan limits haven't loaded yet
             if (!planLimits) return
-            
+
             // If explicit artist name is already set, don't override
             if (artistName) return
 
@@ -618,7 +647,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         </div>
 
                         {/* Add Artist Button */}
-                        {canAddMoreArtists && (
+                        {canAddMoreArtists && areFeaturedArtistsAllowed && (
                             <Button
                                 type="button"
                                 variant="outline"
@@ -633,6 +662,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         )}
                     </div>
                     {errors.artistName && <p className="text-xs text-red-500 mt-1">{errors.artistName.message}</p>}
+
 
                     {/* Artist Not Found Message */}
                     {activeSearchIndex === 'main' && hasSearched && !isSearching &&
@@ -698,7 +728,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     )}
 
                     {/* Upgrade Message for Free Users */}
-                    {user?.plan === 'free' && artists.length === 0 && (
+                    {(user?.plan === 'free' && artists.length === 0) || (!areFeaturedArtistsAllowed && artists.length === 0) && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -811,14 +841,25 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         </div>
                     </div>
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="featuringArtist">Featuring Artist</Label>
-                    <Input
-                        id="featuringArtist"
-                        placeholder="Enter Featuring Artist"
-                        {...register('featuringArtist')}
-                    />
-                </div>
+
+                {/* Featuring Artist - Only show if allowed by plan */}
+                {areFeaturedArtistsAllowed && (
+                    <div className="space-y-2">
+                        <Label htmlFor="featuringArtist">
+                            Featuring Artist{fieldRules.featuredArtists?.required && ' *'}
+                        </Label>
+                        <Input
+                            id="featuringArtist"
+                            placeholder="Enter Featuring Artist"
+                            {...register('featuringArtist')}
+                            className={errors.featuringArtist ? 'border-red-500' : ''}
+                        />
+                        {errors.featuringArtist && (
+                            <p className="text-xs text-red-500 mt-1">{errors.featuringArtist.message}</p>
+                        )}
+                    </div>
+                )}
+
                 <div className="space-y-2">
                     <Label htmlFor="language">Language *</Label>
                     <select

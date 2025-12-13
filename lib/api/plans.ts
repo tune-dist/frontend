@@ -43,7 +43,7 @@ let planLimitsMapCache: Record<string, PlanLimitsMap> | null = null;
  */
 export async function getAllPlans(forceRefresh = false): Promise<Plan[]> {
   const now = Date.now();
-  
+
   // Return cached data if available and not expired
   if (!forceRefresh && plansCache && (now - plansCacheTimestamp) < CACHE_DURATION) {
     return plansCache;
@@ -82,14 +82,14 @@ export async function getPlanByKey(key: string, forceRefresh = false): Promise<P
  */
 export async function getPlanLimitsMap(forceRefresh = false): Promise<Record<string, PlanLimitsMap>> {
   const now = Date.now();
-  
+
   // Return cached map if available and not expired
   if (!forceRefresh && planLimitsMapCache && (now - plansCacheTimestamp) < CACHE_DURATION) {
     return planLimitsMapCache;
   }
 
   const plans = await getAllPlans(forceRefresh);
-  
+
   // Convert plans to limits map format
   const map: Record<string, PlanLimitsMap> = {};
   for (const plan of plans) {
@@ -99,7 +99,7 @@ export async function getPlanLimitsMap(forceRefresh = false): Promise<Record<str
       allowedFormats: plan.limits?.allowedFormats ?? ['single'],
     };
   }
-  
+
   planLimitsMapCache = map;
   return map;
 }
@@ -115,6 +115,15 @@ export async function getPlanLimits(planKey: string, forceRefresh = false): Prom
     allowConcurrent: false,
     allowedFormats: ['single'],
   };
+}
+
+/**
+ * Get field rules for a specific plan key
+ * Returns the fieldRules object from the plan
+ */
+export async function getPlanFieldRules(planKey: string, forceRefresh = false): Promise<Record<string, any>> {
+  const plan = await getPlanByKey(planKey, forceRefresh);
+  return plan?.fieldRules || {};
 }
 
 /**
