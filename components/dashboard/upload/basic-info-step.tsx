@@ -65,6 +65,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
     // Check if featured artists are allowed by plan fieldRules
     const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false
+    const isExplicitAllowed = fieldRules.isExplicit?.allow !== false
 
     // Check if main artist name should be locked (Single artist plan + already used artist)
     const isArtistLocked = planLimits?.artistLimit === 1 && usedArtists.length > 0;
@@ -910,39 +911,45 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     </div>
                     {errors.format && <p className="text-xs text-red-500 mt-1">{errors.format.message}</p>}
                 </div>
-                <div className="space-y-3 pt-6 border-t border-border">
-                    <Label className="text-lg font-semibold">
-                        Explicit lyrics
-                    </Label>
+                {/* Explicit Lyrics - Only show if allowed by plan */}
+                {isExplicitAllowed && (
+                    <div className="space-y-3 pt-6 border-t border-border">
+                        <Label className="text-lg font-semibold">
+                            Explicit lyrics{fieldRules.isExplicit?.required && ' *'}
+                        </Label>
 
-                    <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="radio"
-                                id="explicitNo"
-                                value="no"
-                                {...register('explicitLyrics')}
-                                className="h-4 w-4"
-                            />
-                            <Label htmlFor="explicitNo" className="font-normal cursor-pointer">
-                                No
-                            </Label>
-                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="explicitNo"
+                                    value="no"
+                                    {...register('explicitLyrics')}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="explicitNo" className="font-normal cursor-pointer">
+                                    No
+                                </Label>
+                            </div>
 
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="radio"
-                                id="explicitYes"
-                                value="yes"
-                                {...register('explicitLyrics')}
-                                className="h-4 w-4"
-                            />
-                            <Label htmlFor="explicitYes" className="font-normal cursor-pointer">
-                                Yes
-                            </Label>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="explicitYes"
+                                    value="yes"
+                                    {...register('explicitLyrics')}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="explicitYes" className="font-normal cursor-pointer">
+                                    Yes
+                                </Label>
+                            </div>
                         </div>
+                        {errors.explicitLyrics && (
+                            <p className="text-xs text-red-500 mt-1">{errors.explicitLyrics.message}</p>
+                        )}
                     </div>
-                </div>
+                )}
             </div>
         </div>
     )

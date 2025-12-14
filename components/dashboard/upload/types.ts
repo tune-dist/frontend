@@ -105,7 +105,7 @@ export const uploadFormSchema = z.object({
     language: z.string().min(1, 'Language is required'),
     releaseType: z.string().default('single'),
     isExplicit: z.boolean().default(false),
-    explicitLyrics: z.enum(['yes', 'no']).default('no'),
+    explicitLyrics: z.string().optional(),
     format: z.enum(['single', 'ep', 'album'], {
         errorMap: () => ({ message: 'Format is required' })
     }),
