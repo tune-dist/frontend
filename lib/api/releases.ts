@@ -1,5 +1,6 @@
 import apiClient from "../api-client";
 import { uploadFile, getAudioMetadata, getImageMetadata } from "./upload";
+import { uploadFileInChunks } from '@/lib/upload/chunk-uploader';
 
 export interface ReleaseFormData {
   title: string;
@@ -235,65 +236,118 @@ export interface GetReleasesParams {
 // Process and submit new release with file uploads
 export const submitNewRelease = async (formData: ReleaseFormData) => {
   try {
-    // 1. Upload audio file (if single/present)
+    // 1. Process audio file (if single/present)
+    // Audio files are now uploaded via chunks, so they already have a 'path' property
     let audioData: AudioFile | undefined = undefined;
     if (formData.audioFile) {
-      console.log("Uploading audio file...");
-      const audioUrl = await uploadFile(formData.audioFile, "audio");
-      const audioMetadata = await getAudioMetadata(formData.audioFile);
-      audioData = {
-        url: audioUrl,
-        filename: formData.audioFile.name,
-        size: formData.audioFile.size,
-        duration: audioMetadata.duration,
-        format: audioMetadata.format,
-      };
+      const audioFileData = formData.audioFile as any;
+
+      // Check if audio was already uploaded via chunks (has 'path' property)
+      if (audioFileData.path) {
+        console.log("Using chunked-uploaded audio file...");
+        // The path from chunk upload is relative (/uploads/filename)
+        // We need to construct the full URL
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        audioData = {
+          url: `${baseUrl}${audioFileData.path}`,
+          filename: audioFileData.fileName || audioFileData.file?.name || "audio.wav",
+          size: audioFileData.size || audioFileData.file?.size || 0,
+          duration: audioFileData.duration || 0,
+          format: "wav",
+        };
+      } else if (audioFileData instanceof File) {
+        // Fallback: if it's a File object, upload it using chunks
+        console.log("Uploading audio file (standard)...");
+        const result = await uploadFileInChunks(audioFileData, '');
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        audioData = {
+          url: `${baseUrl}${result.path}`,
+          filename: audioFileData.name,
+          size: audioFileData.size,
+          duration: result.metaData?.duration || 0,
+          format: "wav", // Presumed format or extract from metadata if available
+        };
+      }
     }
 
     // 2. Upload cover art
     console.log("Uploading cover art...");
-    const coverUrl = await uploadFile(formData.coverArt, "cover");
-    const coverMetadata = await getImageMetadata(formData.coverArt);
+    let coverUrl: string;
+    const coverArtData = formData.coverArt as any;
+
+    if (coverArtData.path) {
+      // Already uploaded via chunks in the UI step
+      console.log("Using pre-uploaded chunk cover art...");
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      coverUrl = `${baseUrl}${coverArtData.path}`;
+    } else if (formData.coverArt instanceof File) {
+      // Fallback: upload standard files via chunks too
+      console.log("Cover art not pre-uploaded, uploading via chunks...");
+      const result = await uploadFileInChunks(formData.coverArt, '');
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      coverUrl = `${baseUrl}${result.path}`;
+    } else {
+      throw new Error("Invalid cover art data");
+    }
+    const coverMetadata = await getImageMetadata(formData.coverArt instanceof File ? formData.coverArt : (coverArtData.file || new File([], "temp")));
 
     // 3. Process Tracks (if any)
     let tracksPayload: TrackPayload[] = [];
     if (formData.tracks && formData.tracks.length > 0) {
       console.log(`Processing ${formData.tracks.length} tracks...`);
-      tracksPayload = await Promise.all(
-        formData.tracks.map(async (track: any) => {
-          let trackAudioData = null;
-          if (track.audioFile) {
-            const url = await uploadFile(track.audioFile, "audio");
-            const metadata = await getAudioMetadata(track.audioFile);
+
+      // Build a map of audioFileId to audioFile for quick lookup
+      const audioFilesMap = new Map();
+      if ((formData as any).audioFiles && Array.isArray((formData as any).audioFiles)) {
+        ((formData as any).audioFiles as any[]).forEach(af => {
+          if (af.id) {
+            audioFilesMap.set(af.id, af);
+          }
+        });
+      }
+
+      tracksPayload = formData.tracks.map((track: any) => {
+        let trackAudioData = null;
+
+        // Look up the audio file using audioFileId
+        if (track.audioFileId && audioFilesMap.has(track.audioFileId)) {
+          const audioFile = audioFilesMap.get(track.audioFileId);
+
+          if (audioFile.path) {
+            // Audio was uploaded via chunks
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
             trackAudioData = {
-              url,
-              filename: track.audioFile.name,
-              size: track.audioFile.size,
-              duration: metadata.duration,
-              format: metadata.format,
+              url: `${baseUrl}${audioFile.path}`,
+              filename: audioFile.fileName || "audio.wav",
+              size: audioFile.size || 0,
+              duration: audioFile.duration || 0,
+              format: "wav",
             };
           }
-          return {
-            title: track.title,
-            artistName: track.artistName,
-            audioFile: trackAudioData,
-            isExplicit:
-              track.explicitLyrics === "yes" || track.isExplicit === true,
-            isInstrumental: track.isInstrumental === "yes",
-            previewStartTime: track.previewStartTime,
-            price: track.price,
-            songwriters: track.songwriters,
-            composers: track.composers,
-            previouslyReleased: track.previouslyReleased,
-            originalReleaseDate: track.originalReleaseDate,
-            primaryGenre: track.primaryGenre,
-            secondaryGenre: track.secondaryGenre,
-          };
-        })
-      );
+        }
+
+        return {
+          title: track.title,
+          artistName: track.artistName,
+          audioFile: trackAudioData,
+          isExplicit:
+            track.explicitLyrics === "yes" || track.isExplicit === true,
+          isInstrumental: track.isInstrumental === "yes",
+          previewStartTime: track.previewStartTime,
+          price: track.price,
+          songwriters: track.songwriters,
+          composers: track.composers,
+          previouslyReleased: track.previouslyReleased,
+          originalReleaseDate: track.originalReleaseDate,
+          primaryGenre: track.primaryGenre,
+          secondaryGenre: track.secondaryGenre,
+        };
+      });
     }
 
     // 4. Prepare release data
+    // Note: We explicitly construct releaseData to avoid sending unwanted properties
+    // like audioFiles array, File objects, or chunk upload metadata
     const releaseData: CreateReleaseData = {
       title: formData.title,
       artistName: formData.artistName,
@@ -302,6 +356,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       isExplicit: formData.explicitLyrics === "yes",
       releaseDate: formData.releaseDate,
 
+      // Use the processed audioData (already converted from chunk upload path)
       audioFile: audioData,
 
       coverArt: {
@@ -315,6 +370,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         format: coverMetadata.format,
       },
 
+      // Use the processed tracks payload (already has audio files resolved)
       tracks: tracksPayload,
 
       // Optional fields mapping
@@ -415,7 +471,16 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     };
 
     // 5. Create release via API
-    console.log("Creating release...", releaseData);
+    console.log("Creating release with data:", JSON.stringify(releaseData, null, 2));
+
+    // Double-check we can JSON serialize (this will fail if File objects are present)
+    try {
+      JSON.stringify(releaseData);
+    } catch (e) {
+      console.error("Release data contains non-serializable objects:", e);
+      throw new Error("Release data contains File objects or other non-serializable data");
+    }
+
     return createRelease(releaseData);
   } catch (error: any) {
     console.error("Release submission failed:", error);

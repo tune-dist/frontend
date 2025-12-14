@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Mail, Lock, User, Loader2 } from 'lucide-react'
+import { Mail, Lock, User, Loader2, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -27,6 +27,7 @@ const signupSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  role: z.string().optional(),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -73,7 +74,7 @@ export default function AuthPage() {
   const onSignup = async (data: SignupFormData) => {
     setIsLoading(true)
     try {
-      await registerUser(data.email, data.password, data.fullName)
+      await registerUser(data.email, data.password, data.fullName, data.role)
       toast.success('Account created successfully!')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Registration failed')
@@ -238,6 +239,24 @@ export default function AuthPage() {
                         {signupErrors.password.message}
                       </p>
                     )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-role">Role</Label>
+                    <div className="relative">
+                      <Shield className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <select
+                        id="signup-role"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10"
+                        {...registerSignup('role')}
+                        defaultValue="artist"
+                      >
+                        <option value="artist">Artist</option>
+                        <option value="release_manager">Release Manager</option>
+                        <option value="admin">Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                      </select>
+                    </div>
                   </div>
 
                   <Button
