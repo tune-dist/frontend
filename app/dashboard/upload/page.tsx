@@ -158,13 +158,21 @@ export default function UploadPage() {
   });
 
   const [usedArtists, setUsedArtists] = useState<string[]>([]);
+  const [fieldRules, setFieldRules] = useState<Record<string, any>>({});
 
-  // Fetch used artists on mount
+  // Fetch used artists and field rules on mount
   useEffect(() => {
     if (user) {
+      // Fetch artists
       getArtistUsage()
         .then((data) => setUsedArtists(data.artists))
         .catch((err) => console.error("Failed to fetch artist usage", err));
+
+      // Fetch field rules
+      const planKey = (user.plan as string) || 'free';
+      getPlanFieldRules(planKey, true)
+        .then((rules) => setFieldRules(rules))
+        .catch((err) => console.error("Failed to fetch field rules", err));
     }
   }, [user]);
 
@@ -185,7 +193,7 @@ export default function UploadPage() {
 
     // Step-based validation
     switch (currentStep) {
-      case 1: // Basic Info
+      case 1: { // Basic Info
         // Fetch plan data first to know what fields are required
         const planKey = (user?.plan as string) || 'free';
         const [limits, fieldRules] = await Promise.all([
@@ -255,6 +263,7 @@ export default function UploadPage() {
           }
         }
         break;
+      }
       case 2: // Audio
         if (formData.format === "single") {
           // For single, we need audioFile.
@@ -295,14 +304,64 @@ export default function UploadPage() {
         // Validate required fields in Credits step
         if (formData.format === "single") {
           // For singles, validate genre and previously released
-          // Also validate songwriters and composers since they are required fields in the form
-          isValid = await form.trigger([
+          // Also validate songwriters and composers based on fieldRules
+          const fieldsToValidate = [
             "primaryGenre",
             "secondaryGenre",
             "previouslyReleased",
-            "songwriters",
-            "composers",
-          ]);
+          ];
+
+          // Conditional validation based on fieldRules
+          // Check songwriters (writers)
+          const writersAllowed = fieldRules.songwriters?.allow !== false;
+          const writersRequired = fieldRules.songwriters?.required !== false;
+          if (writersAllowed) {
+            // If required, we should convert to required array check via zod manually or check length
+            if (writersRequired && (!formData.songwriters || formData.songwriters.length === 0)) {
+              toast.error("At least one songwriter is required");
+              isValid = false;
+              break; // Stop here
+            }
+            // If present, validate content via trigger if needed, or rely on form submit
+            fieldsToValidate.push("songwriters");
+          }
+
+          // Check composers
+          const composersAllowed = fieldRules.composers?.allow !== false;
+          const composersRequired = fieldRules.composers?.required !== false;
+          if (composersAllowed) {
+            if (composersRequired && (!formData.composers || formData.composers.length === 0)) {
+              toast.error("At least one composer is required");
+              isValid = false;
+              break;
+            }
+            fieldsToValidate.push("composers");
+          }
+
+          // Check producers
+          const producersAllowed = fieldRules.producers?.allow !== false;
+          const producersRequired = fieldRules.producers?.required !== false;
+          if (producersAllowed) {
+            if (producersRequired && (!formData.producers || formData.producers.length === 0)) {
+              form.setError("producers", { type: "required", message: "At least one producer is required" });
+              isValid = false;
+              break;
+            }
+            fieldsToValidate.push("producers");
+          }
+
+          // Check copyright
+          const copyrightAllowed = fieldRules.copyright?.allow !== false;
+          const copyrightRequired = fieldRules.copyright?.required === true;
+          if (copyrightAllowed) {
+            if (copyrightRequired && !formData.copyright) {
+              form.setError("copyright", { type: "required", message: "Copyright is required" });
+              isValid = false;
+              break;
+            }
+          }
+
+          isValid = await form.trigger(fieldsToValidate as any);
         } else {
           // For Albums/EPs, validate all tracks have required metadata
           if (formData.tracks.length === 0) {
@@ -546,6 +605,7 @@ export default function UploadPage() {
             composers={composers}
             setComposers={setComposers}
             usedArtists={usedArtists}
+            fieldRules={fieldRules}
           />
         );
       case 5:
@@ -740,51 +800,61 @@ export default function UploadPage() {
             {currentStep == 4 && (
               <Card className="mt-4 border-border/50 bg-card/50 backdrop-blur-sm">
                 <CardContent className="pt-3">
-                  {/* Copyright - always show */}
-                  <div className="space-y-1 ">
-                    <Label htmlFor="copyright">Copyright</Label>
-                    <Input
-                      id="copyright"
-                      placeholder="© Your label Name"
-                      readOnly={user?.plan === 'free'}
-                      {...register("copyright", {
-                        onChange: (e) => {
-                          const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";
-                          if (user?.plan === 'free' && e.target.value !== defaultValue) {
-                            toast.error("Upgrade to paid plan to customize copyright", { id: "copyright-warning" });
+                  {/* Copyright - always show if allowed */}
+                  {fieldRules.copyright?.allow !== false && (
+                    <div className="space-y-1 ">
+                      <Label htmlFor="copyright">Copyright{fieldRules.copyright?.required && ' *'}</Label>
+                      <Input
+                        id="copyright"
+                        placeholder="© Your label Name"
+                        readOnly={user?.plan === 'free'}
+                        {...register("copyright", {
+                          onChange: (e) => {
+                            const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";
+                            if (user?.plan === 'free' && e.target.value !== defaultValue) {
+                              toast.error("Upgrade to paid plan to customize copyright", { id: "copyright-warning" });
+                            }
                           }
-                        }
-                      })}
-                    />
-                    {user?.plan === 'free' && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        Purchase a paid plan to customize Copyright.
-                      </p>
-                    )}
-                  </div>
+                        })}
+                      />
+                      {user?.plan === 'free' && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          Purchase a paid plan to customize Copyright.
+                        </p>
+                      )}
+                      {errors.copyright && <p className="text-xs text-red-500 mt-1">{errors.copyright.message}</p>}
+                    </div>
+                  )}
 
-                  {/* Producers */}
-                  <div className="space-y-2">
-                    <Label htmlFor="producers">Producers</Label>
-                    <Input
-                      id="producers"
-                      placeholder="℗ Your label Name"
-                      readOnly={user?.plan === 'free'}
-                      {...register("producers.0", {
-                        onChange: (e) => {
-                          const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";
-                          if (user?.plan === 'free' && e.target.value !== defaultValue) {
-                            toast.error("Upgrade to paid plan to customize producers", { id: "producers-warning" });
+                  {/* Producers - always show if allowed */}
+                  {fieldRules.producers?.allow !== false && (
+                    <div className="space-y-2 mt-4">
+                      <Label htmlFor="producers">Producers{fieldRules.producers?.required && ' *'}</Label>
+                      <Input
+                        id="producers"
+                        placeholder="℗ Your label Name"
+                        readOnly={user?.plan === 'free'}
+                        {...register("producers.0", {
+                          onChange: (e) => {
+                            const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";
+                            if (user?.plan === 'free' && e.target.value !== defaultValue) {
+                              toast.error("Upgrade to paid plan to customize producers", { id: "producers-warning" });
+                            }
                           }
-                        }
-                      })}
-                    />
-                    {user?.plan === 'free' && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        Purchase a paid plan to customize Producers.
-                      </p>
-                    )}
-                  </div>
+                        })}
+                      />
+                      {user?.plan === 'free' && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          Purchase a paid plan to customize Producers.
+                        </p>
+                      )}
+                      {errors.producers && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {errors.producers.message || (Array.isArray(errors.producers) && errors.producers[0]?.message)}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

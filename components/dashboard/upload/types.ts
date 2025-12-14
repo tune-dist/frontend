@@ -91,14 +91,13 @@ export const uploadFormSchema = z.object({
         spotifyProfile: z.union([z.string(), artistProfileSchema]).optional(),
         appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
         youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
-    })).default([]), // Additional artists (premium feature)
+    })).default([]),
     isrc: z.string().optional().refine((val) => {
         if (!val || val.trim() === '') return true;
-        // Allow alphanumeric in all segments as per 'XX-XXX-XX-XXXXX' request
         return /^[A-Z0-9]{2}-[A-Z0-9]{3}-[A-Z0-9]{2}-[A-Z0-9]{5}$/i.test(val);
     }, {
         message: 'ISRC must be in format: XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)'
-    }), // Add regex validation if needed
+    }),
     previouslyReleased: z.enum(['yes', 'no']),
     primaryGenre: z.string().min(1, 'Primary genre is required'),
     secondaryGenre: z.string().min(1, 'Secondary genre is required'),
@@ -117,23 +116,25 @@ export const uploadFormSchema = z.object({
     appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
     youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
     instagramProfile: z.string().optional(),
-    instagramProfileUrl: z.string().optional(),
+    instagramProfileUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
     facebookProfile: z.string().optional(),
-    facebookProfileUrl: z.string().optional(),
+    facebookProfileUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
 
     // Files (Legacy for Single / First track)
-    audioFile: z.any().optional(), // Refined validation in component or refine here if browser capable
+    audioFile: z.any().optional(), // Refined validation in component
     audioFileName: z.string().optional(),
     coverArt: z.any().optional(), // Refined validation in component
     coverArtPreview: z.string().optional(),
     dolbyAtmos: z.string().optional(),
 
     // Multi-track support
-    audioFiles: z.array(audioFileSchema).default([]), // Audio files for albums/EPs (separate from metadata)
-    tracks: z.array(trackSchema).default([]), // Track metadata only
+    audioFiles: z.array(audioFileSchema).default([]),
+    tracks: z.array(trackSchema).default([]),
 
     // Release Details
     releaseDate: z.string().optional(),
+    labelName: z.string().optional(),
+    distributionTerritories: z.array(z.string()).default(['Worldwide']),
 
     // Credits
     previewClipStartTime: z.string().optional(),
