@@ -550,8 +550,16 @@ export default function UploadPage() {
     try {
       toast.loading("Submitting release...");
 
-      // Prepare songwriters for API (legacy logic)
-      const allWriters = [...songwriters, ...composers]
+      // Prepare songwriters for API
+      // Use data.songwriters from react-hook-form state
+      const writers = (data.songwriters || [])
+        .filter((s) => s.firstName || s.lastName)
+        .map((s) => `${s.firstName} ${s.middleName || ""} ${s.lastName}`.trim())
+        .filter(Boolean);
+
+      // Prepare composers for API
+      // Use data.composers from react-hook-form state
+      const composersList = (data.composers || [])
         .filter((s) => s.firstName || s.lastName)
         .map((s) => `${s.firstName} ${s.middleName || ""} ${s.lastName}`.trim())
         .filter(Boolean);
@@ -559,7 +567,9 @@ export default function UploadPage() {
       // API Call
       await submitNewRelease({
         ...data,
-        writers: allWriters.length > 0 ? allWriters : undefined,
+        writers: writers.length > 0 ? writers : [],
+        composers: composersList.length > 0 ? composersList : [],
+        producers: data.producers && data.producers.length > 0 ? data.producers : [],
         // Ensure types match API expectations
       } as any);
 

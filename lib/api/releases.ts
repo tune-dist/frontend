@@ -63,6 +63,8 @@ export interface ReleaseFormData {
   barcode?: string;
   isrc?: string;
   writers?: string[];
+  producers?: string[];
+  composers?: string[];
   publisher?: string;
   copyright?: string;
   recordingYear?: number;
@@ -117,6 +119,8 @@ export interface Release {
   featuredArtists?: string[];
   labelName?: string;
   language: string;
+  primaryGenre: string;
+  secondaryGenre?: string;
   releaseType: ReleaseType;
   isExplicit: boolean;
   audioFile?: AudioFile; // Optional
@@ -161,6 +165,8 @@ export interface CreateReleaseData {
   barcode?: string;
   isrc?: string;
   writers?: string[];
+  producers?: string[];
+  composers?: string[];
   publisher?: string;
   copyright?: string;
   recordingYear?: number;
@@ -352,16 +358,19 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       title: formData.title,
       artistName: formData.artistName,
       language: formData.language,
+      primaryGenre: formData.primaryGenre,
+      secondaryGenre: formData.secondaryGenre,
       releaseType: formData.releaseType,
       isExplicit: formData.explicitLyrics === "yes",
-      releaseDate: formData.releaseDate,
+      releaseDate: formData.releaseDate || new Date().toISOString(),
+      genres: [formData.primaryGenre, formData.secondaryGenre].filter(Boolean) as string[],
 
       // Use the processed audioData (already converted from chunk upload path)
       audioFile: audioData,
 
       coverArt: {
         url: coverUrl,
-        filename: formData.coverArt.name,
+        filename: formData.coverArt.name || (formData.coverArt as any).fileName || "cover.jpg",
         size: formData.coverArt.size,
         dimensions: {
           width: coverMetadata.width,
@@ -394,6 +403,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.barcode && { barcode: formData.barcode }),
       ...(formData.isrc && { isrc: formData.isrc }),
       ...(formData.writers && { writers: formData.writers }),
+      ...(formData.producers && { producers: formData.producers }),
+      ...(formData.composers && { composers: formData.composers }),
       ...(formData.publisher && { publisher: formData.publisher }),
       ...(formData.copyright && { copyright: formData.copyright }),
       ...(formData.recordingYear && { recordingYear: formData.recordingYear }),
@@ -410,11 +421,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         socialMediaPack: formData.socialMediaPack,
       }),
 
-      // Flat fields mapping
-      ...(formData.primaryGenre && { primaryGenre: formData.primaryGenre }),
-      ...(formData.secondaryGenre && {
-        secondaryGenre: formData.secondaryGenre,
-      }),
+
 
       ...(formData.spotifyProfile && {
         spotifyProfile: formData.spotifyProfile,
@@ -425,7 +432,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.youtubeMusicProfile && {
         youtubeMusicProfile: formData.youtubeMusicProfile,
       }),
-      ...(formData.instagramProfile && {
+      ...(formData.instagramProfile && formData.instagramProfile !== "no" && {
         instagramProfile: formData.instagramProfile,
       }),
       ...(formData.instagramProfileUrl && {
