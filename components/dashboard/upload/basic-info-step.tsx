@@ -164,17 +164,17 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                     // Call Spotify, Apple Music, and YouTube search APIs in parallel via backend
                     const [spotifyResponse, appleResponse, youtubeResponse] = await Promise.all([
-                        fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`)
+                        fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=15`)
                             .catch(err => {
                                 console.error('Spotify search error:', err)
                                 return null
                             }),
-                        fetch(`${apiUrl}/integrations/apple/search?q=${encodeURIComponent(name)}&limit=5`)
+                        fetch(`${apiUrl}/integrations/apple/search?q=${encodeURIComponent(name)}&limit=15`)
                             .catch(err => {
                                 console.error('Apple Music search error:', err)
                                 return null
                             }),
-                        fetch(`${apiUrl}/integrations/youtube/search?q=${encodeURIComponent(name)}&limit=5`)
+                        fetch(`${apiUrl}/integrations/youtube/search?q=${encodeURIComponent(name)}&limit=15`)
                             .catch(err => {
                                 console.error('YouTube search error:', err)
                                 return null
@@ -912,44 +912,43 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     {errors.format && <p className="text-xs text-red-500 mt-1">{errors.format.message}</p>}
                 </div>
                 {/* Explicit Lyrics - Only show if allowed by plan */}
-                {isExplicitAllowed && (
-                    <div className="space-y-3 pt-6 border-t border-border">
-                        <Label className="text-lg font-semibold">
-                            Explicit lyrics{fieldRules.isExplicit?.required && ' *'}
-                        </Label>
+                <div className="space-y-3 pt-6 border-t border-border">
+                    <Label className="text-lg font-semibold">
+                        Explicit lyrics <span className="text-red-500">*</span>
+                    </Label>
 
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="explicitNo"
-                                    value="no"
-                                    {...register('explicitLyrics')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="explicitNo" className="font-normal cursor-pointer">
-                                    No
-                                </Label>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="explicitYes"
-                                    value="yes"
-                                    {...register('explicitLyrics')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="explicitYes" className="font-normal cursor-pointer">
-                                    Yes
-                                </Label>
-                            </div>
+                    <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="radio"
+                                id="explicitNo"
+                                value="no"
+                                {...register('explicitLyrics')}
+                                className="h-4 w-4"
+                            />
+                            <Label htmlFor="explicitNo" className="font-normal cursor-pointer">
+                                No
+                            </Label>
                         </div>
-                        {errors.explicitLyrics && (
-                            <p className="text-xs text-red-500 mt-1">{errors.explicitLyrics.message}</p>
-                        )}
+
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="radio"
+                                id="explicitYes"
+                                value="yes"
+                                {...register('explicitLyrics')}
+                                className="h-4 w-4"
+                            />
+                            <Label htmlFor="explicitYes" className="font-normal cursor-pointer">
+                                Yes
+                            </Label>
+                        </div>
                     </div>
-                )}
+                    {errors.explicitLyrics && (
+                        <p className="text-xs text-red-500 mt-1">{errors.explicitLyrics.message}</p>
+                    )}
+                </div>
+
             </div>
         </div>
     )

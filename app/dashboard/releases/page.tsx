@@ -146,41 +146,41 @@ export default function ReleasesPage() {
     }
   };
 
-  const handleSubmit = async (id: string) => {
-    if (!confirm("Submit this release for review?")) {
-      return;
-    }
+  // const handleSubmit = async (id: string) => {
+  //   if (!confirm("Submit this release for review?")) {
+  //     return;
+  //   }
 
-    try {
-      setActionLoading(id);
-      await submitRelease(id);
-      toast.success("Release submitted for review");
-      fetchReleases();
-    } catch (error) {
-      toast.error("Failed to submit release");
-      console.error(error);
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  //   try {
+  //     setActionLoading(id);
+  //     await submitRelease(id);
+  //     toast.success("Release submitted for review");
+  //     fetchReleases();
+  //   } catch (error) {
+  //     toast.error("Failed to submit release");
+  //     console.error(error);
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
 
-  const handleCancel = async (id: string) => {
-    if (!confirm("Cancel this release submission?")) {
-      return;
-    }
+  // const handleCancel = async (id: string) => {
+  //   if (!confirm("Cancel this release submission?")) {
+  //     return;
+  //   }
 
-    try {
-      setActionLoading(id);
-      await cancelRelease(id);
-      toast.success("Release submission cancelled");
-      fetchReleases();
-    } catch (error) {
-      toast.error("Failed to cancel release");
-      console.error(error);
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  //   try {
+  //     setActionLoading(id);
+  //     await cancelRelease(id);
+  //     toast.success("Release submission cancelled");
+  //     fetchReleases();
+  //   } catch (error) {
+  //     toast.error("Failed to cancel release");
+  //     console.error(error);
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
 
   const handleApprove = async (id: string) => {
     if (!confirm("Approve this release?")) return;
@@ -230,12 +230,12 @@ export default function ReleasesPage() {
     label: string;
     count?: number;
   }[] = [
-    { value: "all", label: "All" },
-    { value: "In Process", label: "In Process" },
-    { value: "Approved", label: "Approved" },
-    { value: "Rejected", label: "Rejected" },
-    { value: "Released", label: "Released" },
-  ];
+      { value: "all", label: "All" },
+      { value: "In Process", label: "In Process" },
+      { value: "Approved", label: "Approved" },
+      { value: "Rejected", label: "Rejected" },
+      { value: "Released", label: "Released" },
+    ];
 
   return (
     <DashboardLayout>
@@ -413,7 +413,7 @@ export default function ReleasesPage() {
                                 </Link>
 
                                 {/* Submit button (only for drafts - In Process without submittedAt) */}
-                                {release.status === "In Process" &&
+                                {/* {release.status === "In Process" &&
                                   !release.submittedAt && (
                                     <Button
                                       variant="ghost"
@@ -428,10 +428,10 @@ export default function ReleasesPage() {
                                         <Send className="h-4 w-4" />
                                       )}
                                     </Button>
-                                  )}
+                                  )} */}
 
                                 {/* Cancel button (for In Process with submittedAt) */}
-                                {release.status === "In Process" &&
+                                {/* {release.status === "In Process" &&
                                   release.submittedAt && (
                                     <Button
                                       variant="ghost"
@@ -446,7 +446,7 @@ export default function ReleasesPage() {
                                         <XCircle className="h-4 w-4" />
                                       )}
                                     </Button>
-                                  )}
+                                  )} */}
 
                                 {/* Delete button (only for drafts - In Process without submittedAt) */}
                                 {release.status === "In Process" &&
@@ -470,58 +470,58 @@ export default function ReleasesPage() {
                                 {(user?.role === "release_manager" ||
                                   user?.role === "admin" ||
                                   user?.role === "super_admin") && (
-                                  <>
-                                    {/* Approve Button (Admin Only) */}
-                                    {(user?.role === "admin" ||
-                                      user?.role === "super_admin") &&
-                                      release.status === "In Process" &&
-                                      release.submittedAt && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() =>
-                                            handleApprove(release._id)
-                                          }
-                                          disabled={
-                                            actionLoading === release._id
-                                          }
-                                          title="Approve Release"
-                                          className="text-purple-500 hover:text-purple-600 hover:bg-purple-500/10"
-                                        >
-                                          {actionLoading === release._id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <CheckCircle className="h-4 w-4" />
-                                          )}
-                                        </Button>
-                                      )}
+                                    <>
+                                      {/* Approve Button (Admin Only) */}
+                                      {(user?.role === "admin" ||
+                                        user?.role === "release_manager") &&
+                                        release.status === "In Process" &&
+                                        release.submittedAt && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              handleApprove(release._id)
+                                            }
+                                            disabled={
+                                              actionLoading === release._id
+                                            }
+                                            title="Approve Release"
+                                            className="text-purple-500 hover:text-purple-600 hover:bg-purple-500/10"
+                                          >
+                                            {actionLoading === release._id ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <CheckCircle className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        )}
 
-                                    {/* Reject Button (Admin Only) */}
-                                    {(user?.role === "admin" ||
-                                      user?.role === "super_admin") &&
-                                      release.status === "In Process" &&
-                                      release.submittedAt && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() =>
-                                            handleReject(release._id)
-                                          }
-                                          disabled={
-                                            actionLoading === release._id
-                                          }
-                                          title="Reject Release"
-                                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                                        >
-                                          {actionLoading === release._id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <Ban className="h-4 w-4" />
-                                          )}
-                                        </Button>
-                                      )}
+                                      {/* Reject Button (Admin Only) */}
+                                      {(user?.role === "admin" ||
+                                        user?.role === "release_manager") &&
+                                        release.status === "In Process" &&
+                                        release.submittedAt && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              handleReject(release._id)
+                                            }
+                                            disabled={
+                                              actionLoading === release._id
+                                            }
+                                            title="Reject Release"
+                                            className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                          >
+                                            {actionLoading === release._id ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <Ban className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        )}
 
-                                    {/* Release Button (Admins + Release Manager) */}
+                                      {/* Release Button (Admins + Release Manager)
                                     {release.status === "Approved" && (
                                       <Button
                                         variant="ghost"
@@ -539,9 +539,9 @@ export default function ReleasesPage() {
                                           <UploadCloud className="h-4 w-4" />
                                         )}
                                       </Button>
-                                    )}
-                                  </>
-                                )}
+                                    )} */}
+                                    </>
+                                  )}
                               </div>
                             </TableCell>
                           </TableRow>

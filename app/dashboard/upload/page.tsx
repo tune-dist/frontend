@@ -227,7 +227,7 @@ export default function UploadPage() {
         }
 
         // Check explicit lyrics validation using 'isExplicit' rule from API
-        if (fieldRules.isExplicit?.required && (!formData.explicitLyrics || formData.explicitLyrics === '')) {
+        if (!formData.explicitLyrics || formData.explicitLyrics === '') {
           form.setError("explicitLyrics", {
             type: "required",
             message: "Explicit lyrics is required",
