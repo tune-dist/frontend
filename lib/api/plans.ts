@@ -19,6 +19,14 @@ export interface Plan {
   version: number;
   enforceFrom?: Date;
   isActive: boolean;
+
+  // Display fields
+  description?: string;
+  priceDisplay?: string;
+  period?: string;
+  features?: string[];
+  ctaLabel?: string;
+  isPopular?: boolean;
   createdAt: string;
   updatedAt: string;
 }

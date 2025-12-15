@@ -1,10 +1,10 @@
-'use client'
-
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Image as ImageIcon } from 'lucide-react'
+import { Image as ImageIcon, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData } from './types'
 import { useFormContext } from 'react-hook-form'
+import { uploadFileInChunks, uploadFileDirectly } from '@/lib/upload/chunk-uploader'
 
 interface CoverArtStepProps {
     formData?: UploadFormData
@@ -13,11 +13,13 @@ interface CoverArtStepProps {
 
 export default function CoverArtStep({ formData: propFormData, setFormData: propSetFormData }: CoverArtStepProps) {
     const { setValue, watch, formState: { errors } } = useFormContext<UploadFormData>()
+    const [isUploading, setIsUploading] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState(0)
 
     const coverArtPreview = watch('coverArtPreview')
     const coverArt = watch('coverArt')
 
-    const handleCoverArtChange = (file: File) => {
+    const handleCoverArtChange = async (file: File) => {
         console.log('🖼️ Album cover upload started:', file.name)
 
         if (!file.type.startsWith('image/')) {
@@ -31,17 +33,64 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         }
 
         const reader = new FileReader()
-        reader.onloadend = () => {
+        reader.onloadend = async () => {
             const img = new Image()
-            img.onload = () => {
+            img.onload = async () => {
                 if (img.width < 1000 || img.height < 1000) {
                     toast.error('Image dimensions must be at least 1000x1000 pixels')
                     return
                 }
 
-                setValue('coverArt', file, { shouldValidate: true })
+                // Initial preview set
                 setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
-                toast.success('Cover art selected')
+
+                // Conditional Upload Logic
+                const COVER_CHUNK_THRESHOLD = 5 * 1024 * 1024; // 5MB
+
+                console.log(`[CoverArt] Starting upload for ${file.name} (${file.size} bytes)`);
+                setIsUploading(true);
+                setUploadProgress(0);
+
+                try {
+                    let result;
+
+                    if (file.size > COVER_CHUNK_THRESHOLD) {
+                        console.log("Cover art > 5MB, using chunk uploader...");
+                        result = await uploadFileInChunks(file, '', (progress) => {
+                            console.log(`[CoverArt] Chunk Progress: ${progress}%`);
+                            setUploadProgress(progress);
+                        });
+                    } else {
+                        console.log("Cover art <= 5MB, using direct uploader...");
+                        result = await uploadFileDirectly(file, (progress) => {
+                            console.log(`[CoverArt] Direct Progress: ${progress}%`);
+                            setUploadProgress(progress);
+                        });
+                    }
+
+                    console.log('[CoverArt] Upload complete. Result:', result);
+
+                    if (!result || !result.path) {
+                        throw new Error('Upload completed but no path returned');
+                    }
+
+                    // Store file AND path
+                    setValue('coverArt', {
+                        file: file,
+                        path: result.path,
+                        fileName: file.name,
+                        size: file.size
+                    } as any, { shouldValidate: true });
+
+                    toast.success('Cover art uploaded successfully');
+                } catch (error) {
+                    console.error('[CoverArt] Upload failed:', error);
+                    toast.error(`Failed to upload: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    setValue('coverArt', null, { shouldValidate: true });
+                    setValue('coverArtPreview', '', { shouldValidate: true });
+                } finally {
+                    setIsUploading(false);
+                }
             }
             img.src = reader.result as string
         }
@@ -123,21 +172,38 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                                 </div>
                             )}
                             <div className="flex justify-center gap-3">
-                                <Button
-                                    variant="outline"
-                                    onClick={handleCoverArtClick}
-                                    type="button"
-                                >
-                                    Change Image
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={handleRemove}
-                                    type="button"
-                                    className="text-destructive hover:text-destructive"
-                                >
-                                    Remove
-                                </Button>
+                                {isUploading ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                            <span className="text-sm text-primary">Uploading... {Math.round(uploadProgress)}%</span>
+                                        </div>
+                                        <div className="w-full max-w-[200px] h-1 bg-muted rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-primary transition-all duration-300 ease-in-out"
+                                                style={{ width: `${uploadProgress}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleCoverArtClick}
+                                            type="button"
+                                        >
+                                            Change Image
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleRemove}
+                                            type="button"
+                                            className="text-destructive hover:text-destructive"
+                                        >
+                                            Remove
+                                        </Button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}

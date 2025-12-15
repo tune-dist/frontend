@@ -90,7 +90,7 @@ export default function UploadPage() {
       releaseType: "single",
       isrc: "",
       isExplicit: false,
-      explicitLyrics: "no",
+      explicitLyrics: "" as any,
       format: "" as any, // Will trigger validation
       tracks: [],
       spotifyProfile: "",
@@ -208,12 +208,22 @@ export default function UploadPage() {
 
         isValid = await form.trigger(fieldsToValidate as any);
 
-        // Manually check featuredArtist if required by plan (form.trigger doesn't pick up dynamic validation)
-        if (isValid && fieldRules.featuredArtists?.required && !formData.featuringArtist?.trim()) {
+        // Manually check featuredArtist if required by plan
+        // form.trigger doesn't pick up dynamic validation because the Zod schema defines it as optional
+        if (fieldRules.featuredArtists?.required && !formData.featuringArtist?.trim()) {
           form.setError("featuringArtist", {
             type: "required",
             message: "Featuring artist is required",
-          });
+          }, { shouldFocus: true });
+          isValid = false;
+        }
+
+        // Check explicit lyrics validation using 'isExplicit' rule from API
+        if (fieldRules.isExplicit?.required && (!formData.explicitLyrics || formData.explicitLyrics === '')) {
+          form.setError("explicitLyrics", {
+            type: "required",
+            message: "Explicit lyrics is required",
+          }, { shouldFocus: true });
           isValid = false;
         }
 

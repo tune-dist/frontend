@@ -87,3 +87,35 @@ export const uploadFileInChunks = async (
 
     throw new Error('Upload completed but no path returned.');
 };
+
+export const uploadFileDirectly = async (
+    file: File,
+    onProgress?: UploadProgressCallback
+): Promise<UploadCompleteResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axios.post(`${API_URL}/chunk_files/single`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+            if (onProgress && progressEvent.total) {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                onProgress(percentCompleted);
+            }
+        }
+    });
+
+    if (response.data && response.data.path) {
+        return {
+            path: response.data.path,
+            metaData: {
+                duration: response.data.metaData?.duration,
+                resolution: response.data.metaData?.resolution
+            }
+        };
+    }
+
+    throw new Error('Direct upload completed but no path returned.');
+};

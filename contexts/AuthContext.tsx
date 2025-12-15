@@ -12,7 +12,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string, role?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initAuth = async () => {
       const token = Cookies.get(config.tokenKey);
-      
+
       if (token) {
         try {
           const userData = await getMe();
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
         }
       }
-      
+
       setLoading(false);
     };
 
@@ -49,13 +49,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       const response = await apiLogin({ email, password });
-      
+
       // Store token in cookie
       Cookies.set(config.tokenKey, response.access_token, {
         expires: 7, // 7 days
         sameSite: 'lax',
       });
-      
+
       setUser(response.user);
       router.push('/dashboard');
     } catch (error) {
@@ -63,10 +63,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (email: string, password: string, fullName: string) => {
+  const register = async (email: string, password: string, fullName: string, role?: string) => {
     try {
-      await apiRegister({ email, password, fullName });
-      
+      await apiRegister({ email, password, fullName, role });
+
       // After successful registration, log the user in
       await login(email, password);
     } catch (error) {
