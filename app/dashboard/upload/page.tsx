@@ -157,7 +157,7 @@ export default function UploadPage() {
     termsAgreement: false,
   });
 
-  const [usedArtists, setUsedArtists] = useState<string[]>([]);
+  const [usedArtists, setUsedArtists] = useState<any[]>([]);
   const [fieldRules, setFieldRules] = useState<Record<string, any>>({});
 
   // Fetch used artists and field rules on mount
@@ -246,7 +246,12 @@ export default function UploadPage() {
 
             for (const artist of Array.from(uniqueCurrentArtists)) {
               // Normalize check (case insensitive or exact? backend uses distinct so exact usually, but let's assume exact for now)
-              if (!usedArtists.includes(artist as string)) {
+              const isUsed = usedArtists.some(used => {
+                const usedName = typeof used === 'string' ? used : used.name;
+                return usedName === artist;
+              });
+
+              if (!isUsed) {
                 newArtistsCount++;
               }
             }
@@ -477,7 +482,13 @@ export default function UploadPage() {
             // Count new artists
             let newArtistsCount = 0;
             for (const artist of Array.from(uniqueArtists)) {
-              if (!usedArtists.includes(artist)) {
+              // Normalize check: usedArtists can be string[] or object[]
+              const isUsed = usedArtists.some(used => {
+                const usedName = typeof used === 'string' ? used : used.name;
+                return usedName === artist;
+              });
+
+              if (!isUsed) {
                 newArtistsCount++;
               }
             }
