@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UploadFormData, Songwriter, Track, AudioFile } from "./types";
+import { UploadFormData, Songwriter, Track } from "./types";
 import { useFormContext, useFieldArray } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { Music, Pencil, Trash2 } from "lucide-react";
@@ -25,6 +25,7 @@ interface CreditsStepProps {
   composers?: Songwriter[];
   setComposers?: (data: Songwriter[]) => void;
   usedArtists?: string[];
+  fieldRules?: Record<string, any>;
 }
 
 export default function CreditsStep({
@@ -35,6 +36,7 @@ export default function CreditsStep({
   composers: propComposers,
   setComposers: propSetComposers,
   usedArtists,
+  fieldRules = {},
 }: CreditsStepProps) {
   const {
     register,
@@ -46,7 +48,6 @@ export default function CreditsStep({
 
   const format = watch("format");
   const tracks = watch("tracks") || [];
-  const audioFiles = watch("audioFiles") || [];
   const isSingle = format === "single";
 
   // ISRC State
@@ -318,8 +319,7 @@ export default function CreditsStep({
                   <Input
                     id="isrc"
                     placeholder="XX-XXX-XX-XXXXX"
-                    readOnly={user?.plan === 'free'} // Make strictly readonly for free users? Or just warn? Request says "free user change that then show warning" which implies they *can* change it but we warn them. But stricter: "purchase paid plan for that". Let's assume allow edit + warning for now, or use the pattern requested.
-                    // Better UX: Allow typing but show error/warning immediately.
+                    readOnly={user?.plan === 'free'}
                     {...register("isrc", {
                       onChange: (e) => {
                         if (user?.plan === 'free' && e.target.value !== (process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")) {
@@ -391,7 +391,7 @@ export default function CreditsStep({
             <div className="space-y-4 mt-6">
               <div className="space-y-3">
                 <Label htmlFor="primaryGenre" className="text-lg font-semibold">
-                  Primary genre *
+                  Primary genre <span className="text-red-500">*</span>
                 </Label>
                 <select
                   id="primaryGenre"
@@ -422,7 +422,7 @@ export default function CreditsStep({
                   htmlFor="secondaryGenre"
                   className="text-lg font-semibold"
                 >
-                  Sub-genre *
+                  Sub-genre <span className="text-red-500">*</span>
                 </Label>
                 <select
                   id="secondaryGenre"
@@ -453,108 +453,116 @@ export default function CreditsStep({
             </div>
 
             {/* Songwriters */}
-            <div className="space-y-4 pt-6 border-t border-border">
-              <div>
-                <Label className="text-lg font-semibold">
-                  Songwriter/Author
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Real names, not stage names
-                </p>
-              </div>
+            {fieldRules.songwriters?.allow !== false && (
+              <div className="space-y-4 pt-6 border-t border-border">
+                <div>
+                  <Label className="text-lg font-semibold">
+                    Songwriter/Author
+                    {fieldRules.songwriters?.required !== false && <span className="text-red-500 ml-1">*</span>}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Real names, not stage names
+                  </p>
+                </div>
 
-              {songwriterFields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="space-y-3 p-4 rounded-lg border border-border bg-accent/5"
-                >
-                  <div className="grid grid-cols-1 gap-1">
-                    <Input
-                      placeholder="Enter First name and last name *"
-                      {...register(`songwriters.${index}.firstName` as const)}
-                      className="text-sm"
-                    />
-                    {errors.songwriters?.[index]?.firstName && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {String(errors.songwriters[index]?.firstName?.message)}
-                      </p>
+                {songwriterFields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="space-y-3 p-4 rounded-lg border border-border bg-accent/5"
+                  >
+                    <div className="grid grid-cols-1 gap-1">
+                      <Input
+                        placeholder={`Enter First name and last name${fieldRules.songwriters?.required !== false ? ' *' : ''}`}
+                        {...register(`songwriters.${index}.firstName` as const)}
+                        className="text-sm"
+                      />
+                      {errors.songwriters?.[index]?.firstName && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {String(errors.songwriters[index]?.firstName?.message)}
+                        </p>
+                      )}
+                    </div>
+
+                    {songwriterFields.length > 1 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeSongwriter(index)}
+                        className="text-destructive hover:text-destructive"
+                        type="button"
+                      >
+                        Remove songwriter
+                      </Button>
                     )}
                   </div>
+                ))}
 
-                  {songwriterFields.length > 1 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeSongwriter(index)}
-                      className="text-destructive hover:text-destructive"
-                      type="button"
-                    >
-                      Remove songwriter
-                    </Button>
-                  )}
-                </div>
-              ))}
-
-              <Button
-                variant="outline"
-                onClick={addSongwriter}
-                className="text-primary hover:text-primary"
-                type="button"
-              >
-                + Add another songwriter
-              </Button>
-            </div>
+                <Button
+                  variant="outline"
+                  onClick={addSongwriter}
+                  className="text-primary hover:text-primary"
+                  type="button"
+                >
+                  + Add another songwriter
+                </Button>
+              </div>
+            )}
 
             {/* Composers */}
-            <div className="space-y-4 pt-6 border-t border-border">
-              <div>
-                <Label className="text-lg font-semibold">Composer</Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Real names, not stage names
-                </p>
-              </div>
+            {fieldRules.composers?.allow !== false && (
+              <div className="space-y-4 pt-6 border-t border-border">
+                <div>
+                  <Label className="text-lg font-semibold">
+                    Composer
+                    {fieldRules.composers?.required !== false && <span className="text-red-500 ml-1">*</span>}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Real names, not stage names
+                  </p>
+                </div>
 
-              {composerFields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="space-y-3 p-4 rounded-lg border border-border bg-accent/5"
-                >
-                  <div className="grid grid-cols-1 gap-1">
-                    <Input
-                      placeholder="Enter First name and last name"
-                      {...register(`composers.${index}.firstName` as const)}
-                      className="text-sm"
-                    />
-                    {errors.composers?.[index]?.firstName && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {String(errors.composers[index]?.firstName?.message)}
-                      </p>
+                {composerFields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="space-y-3 p-4 rounded-lg border border-border bg-accent/5"
+                  >
+                    <div className="grid grid-cols-1 gap-1">
+                      <Input
+                        placeholder={`Enter First name and last name ${fieldRules.composers?.required !== false ? '*' : ''}`}
+                        {...register(`composers.${index}.firstName` as const)}
+                        className="text-sm"
+                      />
+                      {errors.composers?.[index]?.firstName && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {String(errors.composers[index]?.firstName?.message)}
+                        </p>
+                      )}
+                    </div>
+
+                    {composerFields.length > 1 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeComposer(index)}
+                        className="text-destructive hover:text-destructive"
+                        type="button"
+                      >
+                        Remove Composer
+                      </Button>
                     )}
                   </div>
+                ))}
 
-                  {composerFields.length > 1 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeComposer(index)}
-                      className="text-destructive hover:text-destructive"
-                      type="button"
-                    >
-                      Remove Composer
-                    </Button>
-                  )}
-                </div>
-              ))}
-
-              <Button
-                variant="outline"
-                onClick={addComposer}
-                className="text-primary hover:text-primary"
-                type="button"
-              >
-                + Add Composer
-              </Button>
-            </div>
+                <Button
+                  variant="outline"
+                  onClick={addComposer}
+                  className="text-primary hover:text-primary"
+                  type="button"
+                >
+                  + Add Composer
+                </Button>
+              </div>
+            )}
 
             {/* Instrumental */}
             <div className="space-y-3 pt-6 border-t border-border">
@@ -627,16 +635,19 @@ export default function CreditsStep({
                       e.target.value = formatted;
                     },
                   })}
-                  className="text-sm"
+                  className="text-sm border-input"
                 />
-
+                {errors.previewClipStartTime && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.previewClipStartTime.message}
+                  </p>
+                )}
               </div>
             </div>
           </>
         )}
       </div>
 
-      {/* Track Modal */}
       <TrackEditModal
         isOpen={isTrackModalOpen}
         onClose={() => setIsTrackModalOpen(false)}

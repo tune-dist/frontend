@@ -397,7 +397,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                     {/* Track Title */}
                     <div className="space-y-2">
-                        <Label htmlFor="track-title">Track Title *</Label>
+                        <Label htmlFor="track-title">Track Title <span className="text-red-500">*</span></Label>
                         <Input
                             id="track-title"
                             placeholder="Enter track title"
@@ -977,7 +977,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                     {/* Primary Genre */}
                     <div className="space-y-2">
-                        <Label htmlFor="track-genre">Primary Genre *</Label>
+                        <Label htmlFor="track-genre">Primary Genre <span className="text-red-500">*</span></Label>
                         <select
                             id="track-genre"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -999,7 +999,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                     {/* Secondary Genre (Sub-genre) */}
                     <div className="space-y-2">
-                        <Label htmlFor="track-genre-2">Sub-genre *</Label>
+                        <Label htmlFor="track-genre-2">Sub-genre <span className="text-red-500">*</span></Label>
                         <select
                             id="track-genre-2"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -1025,7 +1025,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     {/* Songwriters */}
                     <div className="space-y-3 pt-4 border-t">
                         <div>
-                            <Label className="text-lg font-semibold">Songwriter/Author</Label>
+                            <Label className="text-lg font-semibold">Songwriter/Author <span className="text-red-500">*</span></Label>
                             <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
                         </div>
                         {modalSongwriters.map((songwriter, idx) => (

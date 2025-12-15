@@ -582,7 +582,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
             <div className="space-y-4 mt-6">
                 <div className="space-y-2">
-                    <Label htmlFor="title">Track/Album Title *</Label>
+                    <Label htmlFor="title">Track/Album Title <span className="text-red-500">*</span></Label>
                     <Input
                         id="title"
                         placeholder="Enter title"
@@ -602,9 +602,9 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="artistName">Artist Name *</Label>
+                        <Label htmlFor="artistName">Artist Name <span className="text-red-500">*</span></Label>
                         <div className="flex items-center justify-between">
-                            <Label htmlFor="artistName">Artist Name *</Label>
+                            <Label htmlFor="artistName">Artist Name <span className="text-red-500">*</span></Label>
                             {planLimits && planLimits.artistLimit < Infinity && (
                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                     <AlertCircle className="h-3 w-3" />
@@ -847,7 +847,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 {areFeaturedArtistsAllowed && (
                     <div className="space-y-2">
                         <Label htmlFor="featuringArtist">
-                            Featuring Artist{fieldRules.featuredArtists?.required && ' *'}
+                            Featuring Artist{fieldRules.featuredArtists?.required && <span className="text-red-500 ml-1">*</span>}
                         </Label>
                         <Input
                             id="featuringArtist"
@@ -862,7 +862,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 )}
 
                 <div className="space-y-2">
-                    <Label htmlFor="language">Language *</Label>
+                    <Label htmlFor="language">Language <span className="text-red-500">*</span></Label>
                     <select
                         id="language"
                         className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.language ? 'border-red-500' : ''}`}
@@ -885,7 +885,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     {errors.language && <p className="text-xs text-red-500 mt-1">{errors.language.message}</p>}
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="format">Format *</Label>
+                    <Label htmlFor="format">Format <span className="text-red-500">*</span></Label>
                     <div className="space-y-2">
                         <select
                             id="format"
