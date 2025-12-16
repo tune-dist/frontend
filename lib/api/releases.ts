@@ -133,6 +133,7 @@ export interface Release {
   barcode?: string;
   isrc?: string;
   writers?: string[];
+  composers?: string[];
   publisher?: string;
   copyright?: string;
   recordingYear?: number;

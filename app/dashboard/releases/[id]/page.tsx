@@ -167,10 +167,17 @@ export default function ReleaseDetailsPage() {
                                         <span className="font-medium">{release.barcode}</span>
                                     </div>
                                 )}
-                                {release.catalogNumber && (
+                                <div className="flex justify-between items-center py-2 border-b border-border/50">
+                                    <span className="text-muted-foreground">Catalog #</span>
+                                    <span className="font-medium">{release.catalogNumber}</span>
+                                </div>
+
+                                {release.composers && release.composers.length > 0 && (
                                     <div className="flex justify-between items-center py-2 border-b border-border/50">
-                                        <span className="text-muted-foreground">Catalog #</span>
-                                        <span className="font-medium">{release.catalogNumber}</span>
+                                        <span className="text-muted-foreground">Composers</span>
+                                        <span className="font-medium text-right max-w-[60%] truncate">
+                                            {release.composers.join(', ')}
+                                        </span>
                                     </div>
                                 )}
                             </CardContent>

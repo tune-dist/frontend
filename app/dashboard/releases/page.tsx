@@ -324,10 +324,11 @@ export default function ReleasesPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[80px]">Poster</TableHead>
                         <TableHead>Title</TableHead>
                         <TableHead>Artist</TableHead>
-                        <TableHead>Type</TableHead>
-                        {/* <TableHead>Release Date</TableHead> */}
+                        <TableHead>UPC</TableHead>
+                        <TableHead>ISRC</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -336,7 +337,7 @@ export default function ReleasesPage() {
                       {releases.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={6}
+                            colSpan={7}
                             className="text-center text-muted-foreground py-12"
                           >
                             <div className="flex flex-col items-center gap-2">
@@ -366,6 +367,21 @@ export default function ReleasesPage() {
                       ) : (
                         releases.map((release) => (
                           <TableRow key={release._id}>
+                            <TableCell>
+                              <div className="h-12 w-12 rounded-md overflow-hidden bg-muted relative">
+                                {release.coverArt?.url ? (
+                                  <img
+                                    src={release.coverArt.url}
+                                    alt={release.title}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-full w-full flex items-center justify-center bg-muted">
+                                    <Music className="h-6 w-6 text-muted-foreground/50" />
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell className="font-medium">
                               {release.title}
                             </TableCell>
@@ -375,19 +391,15 @@ export default function ReleasesPage() {
                               </span>
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm capitalize">
-                                {release.releaseType}
+                              <span className="text-sm font-mono text-muted-foreground">
+                                {release.barcode || '-'}
                               </span>
                             </TableCell>
-                            {/* <TableCell className="text-muted-foreground">
-                              {release.releaseDate
-                                ? new Date(release.releaseDate).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                                : 'Not set'}
-                            </TableCell> */}
+                            <TableCell>
+                              <span className="text-sm font-mono text-muted-foreground">
+                                {release.isrc || '-'}
+                              </span>
+                            </TableCell>
                             <TableCell>
                               <span
                                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
