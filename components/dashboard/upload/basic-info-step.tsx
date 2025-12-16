@@ -5,7 +5,8 @@ import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock } from 'lucide-react'
+import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock, UserCheck } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
 import { useFormContext } from 'react-hook-form'
@@ -752,44 +753,120 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 <div className="relative space-y-3">
                     {/* Main Artist Field */}
                     <div className="relative flex items-center gap-2">
-                        <div className="flex-1 relative">
-                            <Input
-                                id="artistName"
-                                placeholder="Your artist name"
-                                {...register('artistName')}
-                                onChange={(e) => {
-                                    register('artistName').onChange(e)
-                                    handleMainArtistNameChange(e)
-                                }}
-                                onFocus={() => !isArtistLocked && setActiveSearchIndex('main')}
-                                readOnly={isArtistLocked}
-                                className={`${isSearching && activeSearchIndex === 'main' ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''} ${isArtistLocked ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
-                            />
-                            {isSearching && activeSearchIndex === 'main' && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                    <motion.div
-                                        animate={{ rotate: 360 }}
-                                        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                        className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
-                                    />
-                                </div>
+                        <div className="flex-1 relative space-y-2">
+                            {/* Artist Selection Dropdown - Show if we have used artists */}
+                            {usedArtists.length > 0 && (
+                                <Select
+                                    value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === artistName) ? artistName : (isArtistLocked ? '' : 'new')}
+                                    onValueChange={(val) => {
+                                        if (val === 'new') {
+                                            if (!isArtistLocked) {
+                                                setValue('artistName', '', { shouldValidate: true })
+                                                setActiveSearchIndex('main')
+                                            }
+                                        } else {
+                                            // Find the full artist object
+                                            const selectedArtist = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === val);
+                                            if (selectedArtist) {
+                                                const name = typeof selectedArtist === 'string' ? selectedArtist : selectedArtist.name;
+                                                setValue('artistName', name, { shouldValidate: true });
+
+                                                // Auto-fill profiles if available
+                                                if (typeof selectedArtist === 'object') {
+                                                    console.log('Auto-filling profiles for', name);
+                                                    if (selectedArtist.spotifyProfile) setValue('spotifyProfile', selectedArtist.spotifyProfile);
+                                                    if (selectedArtist.appleMusicProfile) setValue('appleMusicProfile', selectedArtist.appleMusicProfile);
+                                                    if (selectedArtist.youtubeMusicProfile) setValue('youtubeMusicProfile', selectedArtist.youtubeMusicProfile);
+                                                    if (selectedArtist.instagramProfile) {
+                                                        if (typeof selectedArtist.instagramProfile === 'string' && selectedArtist.instagramProfile.startsWith('http')) {
+                                                            setValue('instagramProfile', 'yes');
+                                                            setValue('instagramProfileUrl', selectedArtist.instagramProfile);
+                                                        } else {
+                                                            setValue('instagramProfile', selectedArtist.instagramProfile);
+                                                        }
+                                                    }
+                                                    if (selectedArtist.facebookProfile) {
+                                                        if (typeof selectedArtist.facebookProfile === 'string' && selectedArtist.facebookProfile.startsWith('http')) {
+                                                            setValue('facebookProfile', 'yes');
+                                                            setValue('facebookProfileUrl', selectedArtist.facebookProfile);
+                                                        } else {
+                                                            setValue('facebookProfile', selectedArtist.facebookProfile);
+                                                        }
+                                                    }
+                                                }
+                                                // Trigger search to hydrate legacy profiles if needed, or just to visually confirm
+                                                handleSearch(name, 'main');
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className={errors.artistName ? 'border-red-500' : ''}>
+                                        <SelectValue placeholder="Select an artist" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {usedArtists.map((artist, i) => {
+                                            const name = typeof artist === 'string' ? artist : artist.name;
+                                            return (
+                                                <SelectItem key={i} value={name}>
+                                                    <div className="flex items-center gap-2">
+                                                        <UserCheck className="h-4 w-4 text-primary" />
+                                                        <span>{name}</span>
+                                                    </div>
+                                                </SelectItem>
+                                            )
+                                        })}
+                                        {!isArtistLocked && (
+                                            <SelectItem value="new">
+                                                <div className="flex items-center gap-2 text-muted-foreground">
+                                                    <Plus className="h-4 w-4" />
+                                                    <span>Create New Artist</span>
+                                                </div>
+                                            </SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
                             )}
 
-                            {isArtistLocked && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" title="Artist name locked to your plan">
-                                    <Lock className="h-4 w-4" />
+                            {/* Manual Input - Show if NO used artists OR if 'new' is selected/active (and not locked) */}
+                            {/* If locked, we don't show input at all if we have a dropdown, ensuring user picks from dropdown */}
+                            {/* Actually if locked, `isArtistLocked` is true. Above dropdown handles selection. */}
+                            {/* We show input if: usedArtists is empty OR (artistName is not in usedArtists AND not locked) */}
+
+                            {(!usedArtists.length || (!usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artistName) && !isArtistLocked)) && (
+                                <div className="relative">
+                                    <Input
+                                        id="artistName"
+                                        placeholder="Your artist name"
+                                        {...register('artistName')}
+                                        onChange={(e) => {
+                                            register('artistName').onChange(e)
+                                            handleMainArtistNameChange(e)
+                                        }}
+                                        onFocus={() => !isArtistLocked && setActiveSearchIndex('main')}
+                                        readOnly={isArtistLocked}
+                                        className={`${isSearching && activeSearchIndex === 'main' ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''} ${isArtistLocked ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
+                                    />
+                                    {isSearching && activeSearchIndex === 'main' && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                                className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
 
-                        {/* Add Artist Button */}
+                        {/* Add Artist Button (for secondary artists) */}
                         {canAddMoreArtists && areFeaturedArtistsAllowed && (
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={handleAddArtist}
-                                className="shrink-0 h-10 w-10 p-0"
+                                className="shrink-0 h-10 w-10 p-0 self-start mt-2" // align with top if multiline
                                 title={!canAddMoreArtists ? 'Upgrade to add more artists' : 'Add another artist'}
                                 disabled={!canAddMoreArtists}
                             >

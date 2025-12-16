@@ -475,7 +475,7 @@ export default function ReleasesPage() {
                                       {(user?.role === "admin" ||
                                         user?.role === "release_manager") &&
                                         release.status === "In Process" &&
-                                        release.submittedAt && (
+                                        (
                                           <Button
                                             variant="ghost"
                                             size="sm"
