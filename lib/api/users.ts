@@ -37,3 +37,14 @@ export const getUsageStats = async (): Promise<UsageStats> => {
   return response.data;
 };
 
+// Get list of users with filters
+export const getUsers = async (params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+  status?: string;
+}) => {
+  const response = await apiClient.get<any>('/users', { params });
+  return response.data;
+};

@@ -22,6 +22,7 @@ const navigation = [
   { name: 'Upload Music', href: '/dashboard/upload', icon: Upload },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
+  { name: 'Users', href: '/dashboard/users', icon: User }, // Using User icon for now, ideally 'Users' icon
 ]
 
 export default function Sidebar() {
@@ -85,8 +86,17 @@ export default function Sidebar() {
             {navigation
               .filter(item => {
                 if (user?.role === 'release_manager') {
-                  return ['Dashboard', 'My Releases'].includes(item.name)
+                  return ['Dashboard', 'My Releases', 'Upload Music'].includes(item.name)
                 }
+
+                if (user?.role === 'super_admin') {
+                  // Super admin sees Users, but not Upload Music
+                  if (item.name === 'Upload Music') return false;
+                  return true;
+                }
+
+                // Default behavior for other users (e.g., artists)
+                if (item.name === 'Users') return false; // Hide Users tab for non-super_admin
                 return true
               })
               .map((item) => {

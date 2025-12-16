@@ -374,7 +374,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
             if (!profileData) return null
             if (profileData === 'new') {
                 return (
-                    <div className="bg-primary/10 border border-primary rounded-md p-3">
+                    <div className="bg-primary/10 border border-primary rounded-md p-3 flex-1 flex flex-col justify-center">
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                                 <Plus className="h-5 w-5 text-primary" />
@@ -398,7 +398,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
             // Handle legacy string (URL) - Render a "Linked" card
             if (typeof profileData === 'string') {
                 return (
-                    <div className="bg-primary/10 border border-primary rounded-md p-3">
+                    <div className="bg-primary/10 border border-primary rounded-md p-3 flex-1 flex flex-col justify-center">
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                                 {/* Platform specific icon or generic link icon could go here */}
@@ -440,7 +440,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
             }
 
             return (
-                <div className="bg-primary/10 border border-primary rounded-md p-3">
+                <div className="bg-primary/10 border border-primary rounded-md p-3 flex-1 flex flex-col justify-center">
                     <div className="flex items-center gap-3">
                         {profileData.image ? (
                             <img src={profileData.image} alt={profileData.name} className="h-10 w-10 rounded-full object-cover" />
@@ -516,10 +516,10 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         <div className="h-12 bg-muted/20 rounded-md animate-pulse" />
                     </div>
                 ) : (
-                    <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Spotify Section */}
                         {(showSearchResults || currentSpotify) && (
-                            <div className="space-y-3">
+                            <div className={`space-y-3 flex flex-col h-full ${currentSpotify ? '' : 'md:col-span-3'}`}>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <svg className="h-5 w-5 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
@@ -585,7 +585,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                         {/* Apple Music Section */}
                         {(showSearchResults || currentApple) && (
-                            <div className="space-y-3 pt-4 border-t border-border">
+                            <div className={`space-y-3 flex flex-col h-full ${currentApple ? '' : 'md:col-span-3'}`}>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
@@ -646,7 +646,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                         {/* YouTube Section */}
                         {(showSearchResults || currentYoutube) && (
-                            <div className="space-y-3 pt-4 border-t border-border">
+                            <div className={`space-y-3 flex flex-col h-full ${currentYoutube ? '' : 'md:col-span-3'}`}>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
@@ -705,7 +705,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                 )}
                             </div>
                         )}
-                    </>
+                    </div>
                 )}
             </motion.div>
         )

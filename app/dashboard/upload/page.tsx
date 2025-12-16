@@ -71,8 +71,15 @@ const steps = [
 
 export default function UploadPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+
+  useEffect(() => {
+    if (!loading && user?.role === 'super_admin') {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
 
   // Initialize Form
 
@@ -708,6 +715,17 @@ export default function UploadPage() {
 
     checkEligibility();
   }, [user]);
+
+
+  if (loading || user?.role === 'super_admin') {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (isCheckingEligibility) {
     return (

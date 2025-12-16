@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useForm } from 'react-hook-form'
@@ -44,8 +45,16 @@ const itemVariants = {
 }
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, loading } = useAuth()
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!loading && user?.role === 'release_manager') {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
 
   const {
     register,

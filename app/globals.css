@@ -18,6 +18,10 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 280 100% 65%;
     --radius: 0.5rem;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
   }
 }
 

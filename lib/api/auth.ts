@@ -25,6 +25,8 @@ export interface User {
     storageUsed: number;
   };
   isEmailVerified: boolean;
+  isActive: boolean;
+  isSuspended: boolean;
   createdAt: string;
   updatedAt: string;
 }
