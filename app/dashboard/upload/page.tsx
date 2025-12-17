@@ -195,6 +195,20 @@ export default function UploadPage() {
     });
   };
 
+  const scrollToError = () => {
+    // Wait a bit for React to update the DOM with error states/classes
+    setTimeout(() => {
+      const firstError = document.querySelector(".border-red-500, [aria-invalid='true'], .text-red-500");
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+        // If it's an input, focus it
+        if (firstError instanceof HTMLInputElement || firstError instanceof HTMLTextAreaElement || firstError instanceof HTMLSelectElement) {
+          firstError.focus();
+        }
+      }
+    }, 100);
+  };
+
   const handleNext = async () => {
     let isValid = false;
 
@@ -274,6 +288,10 @@ export default function UploadPage() {
             }
           }
         }
+
+        if (!isValid) {
+          scrollToError();
+        }
         break;
       }
       case 2: // Audio
@@ -310,6 +328,10 @@ export default function UploadPage() {
           isValid = false;
         } else {
           isValid = true;
+        }
+
+        if (!isValid) {
+          scrollToError();
         }
         break;
       case 4: // Credits
@@ -509,6 +531,10 @@ export default function UploadPage() {
             }
           }
         }
+
+        if (!isValid) {
+          scrollToError();
+        }
         break;
       case 5: // Review
         isValid = true;
@@ -534,78 +560,22 @@ export default function UploadPage() {
   };
 
   const onSubmit = async (data: UploadFormData) => {
-    // Final validations
-    if (
-      !mandatoryChecks.promoServices ||
-      !mandatoryChecks.rightsAuthorization ||
-      !mandatoryChecks.nameUsage ||
-      !mandatoryChecks.termsAgreement
-    ) {
-      toast.error("Please agree to all mandatory checkboxes");
-      return;
-    }
-
-    // Check capitalization checks if needed (logic from original)
-    const hasIrregularCapitalization = (text: string) => {
-      if (!text) return false;
-      return (
-        /[a-z][A-Z]/.test(text) ||
-        (text === text.toUpperCase() && text.length > 3)
-      );
-    };
-    const needsCapitalizationCheck =
-      hasIrregularCapitalization(data.title) ||
-      hasIrregularCapitalization(data.artistName);
-
-    if (
-      needsCapitalizationCheck &&
-      !mandatoryChecks.capitalizationConfirmation
-    ) {
-      toast.error("Please confirm the non-standard capitalization");
-      return;
-    }
-
     try {
-      toast.loading("Submitting release...");
-
-      // Prepare songwriters for API
-      // Use data.songwriters from react-hook-form state
-      const writers = (data.songwriters || [])
-        .filter((s) => s.firstName || s.lastName)
-        .map((s) => `${s.firstName} ${s.middleName || ""} ${s.lastName}`.trim())
-        .filter(Boolean);
-
-      // Prepare composers for API
-      // Use data.composers from react-hook-form state
-      const composersList = (data.composers || [])
-        .filter((s) => s.firstName || s.lastName)
-        .map((s) => `${s.firstName} ${s.middleName || ""} ${s.lastName}`.trim())
-        .filter(Boolean);
-
-      // API Call
-      await submitNewRelease({
-        ...data,
-        writers: writers.length > 0 ? writers : [],
-        composers: composersList.length > 0 ? composersList : [],
-        producers: data.producers && data.producers.length > 0 ? data.producers : [],
-        // Ensure types match API expectations
-      } as any);
-
-      toast.dismiss();
+      // Last check - ensure explicitLyrics is mapped to isExplicit
+      // We do this inside submitNewRelease but let's be safe
+      const response = await submitNewRelease(data);
       toast.success("Release submitted successfully!");
       router.push("/dashboard/releases");
     } catch (error: any) {
-      toast.dismiss();
+      console.error("Submission error:", error);
       toast.error(error.message || "Failed to submit release");
+      scrollToError();
     }
   };
 
   const onInvalid = (errors: any) => {
-    console.error("Form validation errors:", errors);
-    toast.error("Please fix the errors before submitting");
-    // If we are on the review step (last step), finding an error means something was missed in previous steps
-    // We can try to navigate the user to the first step with an error, or just show the toast.
-    // Showing toast is safer for now.
+    console.log("Form Errors:", errors);
+    scrollToError();
   };
 
   const renderStepContent = () => {
@@ -773,165 +743,184 @@ export default function UploadPage() {
 
   return (
     <DashboardLayout>
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-6 max-w-4xl mx-auto"
-      >
-        {/* Header */}
-        <motion.div variants={itemVariants}>
-          <h1 className="text-3xl font-bold mb-2">
-            <span className="animated-gradient">Upload</span> New Release
-          </h1>
-          <p className="text-muted-foreground">
-            Follow the steps to upload and distribute your music
-          </p>
-        </motion.div>
+      <div className="min-h-screen bg-background p-4 lg:p-6">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-6 max-w-4xl mx-auto"
+        >
+          {/* Header */}
+          <motion.div variants={itemVariants}>
+            <h1 className="text-3xl font-bold mb-2">
+              <span className="animated-gradient">Upload</span> New Release
+            </h1>
+            <p className="text-muted-foreground">
+              Follow the steps to upload and distribute your music
+            </p>
+          </motion.div>
 
-        {/* Progress Steps */}
-        <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                {steps.map((step, index) => {
-                  const Icon = step.icon;
-                  const isActive = step.id === currentStep;
-                  const isCompleted = step.id < currentStep;
-
-                  return (
-                    <div key={step.id} className="flex items-center">
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`h-10 w-10 rounded-full flex items-center justify-center ${isActive
-                            ? "bg-primary text-primary-foreground"
-                            : isCompleted
-                              ? "bg-primary/20 text-primary"
-                              : "bg-muted text-muted-foreground"
-                            }`}
-                        >
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <span className="text-xs mt-2 text-center max-w-[80px]">
-                          {step.name}
-                        </span>
-                      </div>
-                      {index < steps.length - 1 && (
-                        <div
-                          className={`h-0.5 w-12 mx-2 ${isCompleted ? "bg-primary" : "bg-muted"
-                            }`}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Step Content */}
-        <FormProvider {...form}>
+          {/* Progress Steps */}
           <motion.div variants={itemVariants}>
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-              <CardContent className="pt-6">{renderStepContent()}</CardContent>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  {steps.map((step, index) => {
+                    const Icon = step.icon;
+                    const isActive = step.id === currentStep;
+                    const isCompleted = step.id < currentStep;
+
+                    return (
+                      <div key={step.id} className="flex items-center">
+                        <div className="flex flex-col items-center">
+                          <div
+                            className={`h-10 w-10 rounded-full flex items-center justify-center ${isActive
+                              ? "bg-primary text-primary-foreground"
+                              : isCompleted
+                                ? "bg-primary/20 text-primary"
+                                : "bg-muted text-muted-foreground"
+                              }`}
+                          >
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <span className="text-xs mt-2 text-center max-w-[80px]">
+                            {step.name}
+                          </span>
+                        </div>
+                        {index < steps.length - 1 && (
+                          <div
+                            className={`h-0.5 w-12 mx-2 ${isCompleted ? "bg-primary" : "bg-muted"
+                              }`}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
             </Card>
-            {currentStep == 4 && (
-              <Card className="mt-4 border-border/50 bg-card/50 backdrop-blur-sm">
-                <CardContent className="pt-3">
-                  {/* Copyright - always show if allowed */}
-                  {fieldRules.copyright?.allow !== false && (
-                    <div className="space-y-1 ">
-                      <Label htmlFor="copyright">Copyright{fieldRules.copyright?.required && ' *'}</Label>
-                      <Input
-                        id="copyright"
-                        placeholder="© Your label Name"
-                        readOnly={user?.plan === 'free'}
-                        {...register("copyright", {
-                          onChange: (e) => {
-                            const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";
-                            if (user?.plan === 'free' && e.target.value !== defaultValue) {
-                              toast.error("Upgrade to paid plan to customize copyright", { id: "copyright-warning" });
-                            }
-                          }
-                        })}
-                      />
-                      {user?.plan === 'free' && (
-                        <p className="text-xs text-amber-600 mt-1">
-                          Purchase a paid plan to customize Copyright.
-                        </p>
-                      )}
-                      {errors.copyright && <p className="text-xs text-red-500 mt-1">{errors.copyright.message}</p>}
-                    </div>
-                  )}
-
-                  {/* Producers - always show if allowed */}
-                  {fieldRules.producers?.allow !== false && (
-                    <div className="space-y-2 mt-4">
-                      <Label htmlFor="producers">Producers{fieldRules.producers?.required && ' *'}</Label>
-                      <Input
-                        id="producers"
-                        placeholder="℗ Your label Name"
-                        readOnly={user?.plan === 'free'}
-                        {...register("producers.0", {
-                          onChange: (e) => {
-                            const defaultValue = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow";
-                            if (user?.plan === 'free' && e.target.value !== defaultValue) {
-                              toast.error("Upgrade to paid plan to customize producers", { id: "producers-warning" });
-                            }
-                          }
-                        })}
-                      />
-                      {user?.plan === 'free' && (
-                        <p className="text-xs text-amber-600 mt-1">
-                          Purchase a paid plan to customize Producers.
-                        </p>
-                      )}
-                      {errors.producers && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {errors.producers.message || (Array.isArray(errors.producers) && errors.producers[0]?.message)}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
           </motion.div>
-        </FormProvider>
 
-        {/* Navigation Buttons */}
-        <motion.div
-          variants={itemVariants}
-          className="flex items-center justify-between"
-        >
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Previous
-          </Button>
+          {/* Form Context & Native Form Wrapper */}
+          <FormProvider {...form}>
+            <form
+              onSubmit={(e) => {
+                if (currentStep < 5) {
+                  e.preventDefault();
+                  handleNext();
+                } else {
+                  form.handleSubmit(onSubmit, onInvalid)(e);
+                }
+              }}
+              className="space-y-6"
+            >
+              {/* Step Content */}
+              <motion.div variants={itemVariants}>
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                  <CardContent className="pt-6">
+                    <motion.div
+                      key={currentStep}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {renderStepContent()}
+                    </motion.div>
+                  </CardContent>
+                </Card>
 
-          <div className="flex gap-2">
-            {/* <Button variant="outline" onClick={() => router.push("/dashboard")}>
-                Save as Draft
-              </Button> */}
+                {currentStep === 4 && (
+                  <Card className="mt-4 border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="pt-3">
+                      {/* Copyright - always show if allowed */}
+                      {fieldRules.copyright?.allow !== false && (
+                        <div className="space-y-1">
+                          <Label htmlFor="copyright">
+                            Copyright{fieldRules.copyright?.required && " *"}
+                          </Label>
+                          <Input
+                            id="copyright"
+                            placeholder="© Your label Name"
+                            readOnly={user?.plan === "free"}
+                            {...register("copyright")}
+                          />
+                          {user?.plan === "free" && (
+                            <p className="text-xs text-amber-600 mt-1">
+                              Purchase a paid plan to customize Copyright.
+                            </p>
+                          )}
+                          {errors.copyright && (
+                            <p className="text-xs text-red-500 mt-1">
+                              {errors.copyright.message}
+                            </p>
+                          )}
+                        </div>
+                      )}
 
-            {currentStep < steps.length ? (
-              <Button onClick={handleNext}>
-                Next
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            ) : (
-              <Button onClick={form.handleSubmit(onSubmit, onInvalid)}>
-                Submit for Review
-              </Button>
-            )}
-          </div>
+                      {/* Producers - always show if allowed */}
+                      {fieldRules.producers?.allow !== false && (
+                        <div className="space-y-2 mt-4">
+                          <Label htmlFor="producers">
+                            Producers{fieldRules.producers?.required && " *"}
+                          </Label>
+                          <Input
+                            id="producers"
+                            placeholder="℗ Your label Name"
+                            readOnly={user?.plan === "free"}
+                            {...register("producers.0")}
+                          />
+                          {user?.plan === "free" && (
+                            <p className="text-xs text-amber-600 mt-1">
+                              Purchase a paid plan to customize Producers.
+                            </p>
+                          )}
+                          {errors.producers && (
+                            <p className="text-xs text-red-500 mt-1">
+                              {errors.producers.message ||
+                                (Array.isArray(errors.producers) &&
+                                  errors.producers[0]?.message)}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </motion.div>
+
+              {/* Navigation Buttons */}
+              <motion.div
+                variants={itemVariants}
+                className="flex items-center justify-between"
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={currentStep === 1}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+
+                <div className="flex gap-2">
+                  {currentStep < 5 ? (
+                    <Button type="submit">
+                      Next
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  ) : (
+                    <Button type="submit">
+                      Submit for Review
+                    </Button>
+                  )}
+                </div>
+              </motion.div>
+            </form>
+          </FormProvider>
         </motion.div>
-      </motion.div>
+      </div>
     </DashboardLayout>
   );
 }

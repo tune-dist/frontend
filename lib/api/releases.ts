@@ -26,9 +26,9 @@ export interface ReleaseFormData {
 
   // Social media & platforms
   socialMediaPack?: boolean;
-  spotifyProfile?: string;
-  appleMusicProfile?: string;
-  youtubeMusicProfile?: string;
+  spotifyProfile?: any;
+  appleMusicProfile?: any;
+  youtubeMusicProfile?: any;
   instagramProfile?: string;
   instagramProfileUrl?: string;
   facebookProfile?: string;
@@ -191,9 +191,9 @@ export interface CreateReleaseData {
   socialMediaPack?: boolean;
 
   // Flat social fields
-  spotifyProfile?: string;
-  appleMusicProfile?: string;
-  youtubeMusicProfile?: string;
+  spotifyProfile?: any;
+  appleMusicProfile?: any;
+  youtubeMusicProfile?: any;
   instagramProfile?: string;
   instagramProfileUrl?: string;
   facebookProfile?: string;
@@ -203,9 +203,9 @@ export interface CreateReleaseData {
   secondaryGenre?: string;
 
   socialPlatforms?: {
-    spotifyProfile?: string;
-    appleMusicProfile?: string;
-    youtubeMusicProfile?: string;
+    spotifyProfile?: any;
+    appleMusicProfile?: any;
+    youtubeMusicProfile?: any;
     instagramProfile?: string;
     instagramProfileUrl?: string;
     facebookProfile?: string;
@@ -344,8 +344,14 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           isInstrumental: track.isInstrumental === "yes",
           previewStartTime: track.previewStartTime,
           price: track.price,
-          songwriters: track.songwriters,
-          composers: track.composers,
+          songwriters: track.songwriters?.map((sw: any) => ({
+            firstName: sw.firstName,
+            lastName: sw.lastName || ''
+          })),
+          composers: track.composers?.map((sw: any) => ({
+            firstName: sw.firstName,
+            lastName: sw.lastName || ''
+          })),
           previouslyReleased: track.previouslyReleased,
           originalReleaseDate: track.originalReleaseDate,
           primaryGenre: track.primaryGenre,
@@ -406,9 +412,21 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.catalogNumber && { catalogNumber: formData.catalogNumber }),
       ...(formData.barcode && { barcode: formData.barcode }),
       ...(formData.isrc && { isrc: formData.isrc }),
-      ...(formData.writers && { writers: formData.writers }),
+      // Map songwriters to writers as string array (FirstName LastName only)
+      ...(formData.songwriters && {
+        writers: formData.songwriters.map((sw: any) =>
+          `${sw.firstName} ${sw.lastName || ''}`.trim()
+        ).filter(Boolean)
+      }),
+
       ...(formData.producers && { producers: formData.producers }),
-      ...(formData.composers && { composers: formData.composers }),
+
+      // Map composers as string array (FirstName LastName only)
+      ...(formData.composers && {
+        composers: formData.composers.map((sw: any) =>
+          `${sw.firstName} ${sw.lastName || ''}`.trim()
+        ).filter(Boolean)
+      }),
       ...(formData.publisher && { publisher: formData.publisher }),
       ...(formData.copyright && { copyright: formData.copyright }),
       ...(formData.recordingYear && { recordingYear: formData.recordingYear }),

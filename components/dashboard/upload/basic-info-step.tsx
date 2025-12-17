@@ -68,8 +68,11 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false
     const isExplicitAllowed = fieldRules.isExplicit?.allow !== false
 
-    // Check if main artist name should be locked (Single artist plan + already used artist)
-    const isArtistLocked = planLimits?.artistLimit === 1 && usedArtists.length > 0;
+    // Check if main artist name should be locked (Limit reached)
+    const isArtistLocked = !!planLimits && usedArtists.length >= planLimits.artistLimit;
+
+    // Check if current artist is from the roster
+    const isArtistFromRoster = usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artistName);
 
     // Update featuringArtist validation when fieldRules change
     useEffect(() => {
@@ -323,6 +326,11 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 valueToSave = 'new'
             } else if (profile === '') {
                 valueToSave = ''
+                // Force a search if results are empty to ensure user has options after clearing
+                const currentName = index === 'main' ? artistName : (artists && artists[index]?.name)
+                if (currentName && (!searchResults[platform === 'spotify' ? 'spotify' : platform === 'apple' ? 'apple' : 'youtube'] || searchResults[platform === 'spotify' ? 'spotify' : platform === 'apple' ? 'apple' : 'youtube'].length === 0)) {
+                    handleSearch(currentName, index)
+                }
             } else if (typeof profile === 'string') {
                 // Handle manual URL entry
                 valueToSave = profile
@@ -386,7 +394,17 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                 <p className="font-medium text-primary">New Artist Profile</p>
                                 <p className="text-sm text-muted-foreground">Creating a new profile for {currentName}</p>
                             </div>
-                            {/* Locked: Change button removed */}
+                            {!isArtistFromRoster && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleSelectProfile(platform, '')}
+                                    className="h-8 text-xs text-muted-foreground hover:text-red-500"
+                                >
+                                    Change
+                                </Button>
+                            )}
                         </div>
                     </div>
                 )
@@ -421,9 +439,19 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                     {profileData}
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                                 <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                {/* Locked: Remove button removed */}
+                                {!isArtistFromRoster && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleSelectProfile(platform, '')}
+                                        className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500"
+                                    >
+                                        Change
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -446,9 +474,19 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                 {profileData.followers ? `${profileData.followers.toLocaleString()} followers` : profileData.track}
                             </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                             <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                            {/* Locked: Remove button removed */}
+                            {!isArtistFromRoster && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleSelectProfile(platform, '')}
+                                    className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500"
+                                >
+                                    Change
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -506,7 +544,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Spotify Section */}
                         {(showSearchResults || currentSpotify) && (
-                            <div className={`space-y-3 flex flex-col h-full ${currentSpotify ? '' : 'md:col-span-3'}`}>
+                            <div className="space-y-3 flex flex-col h-full">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <svg className="h-5 w-5 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
@@ -593,7 +631,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                         {/* Apple Music Section */}
                         {(showSearchResults || currentApple) && (
-                            <div className={`space-y-3 flex flex-col h-full ${currentApple ? '' : 'md:col-span-3'}`}>
+                            <div className="space-y-3 flex flex-col h-full">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
@@ -675,7 +713,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                         {/* YouTube Section */}
                         {(showSearchResults || currentYoutube) && (
-                            <div className={`space-y-3 flex flex-col h-full ${currentYoutube ? '' : 'md:col-span-3'}`}>
+                            <div className="space-y-3 flex flex-col h-full">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
@@ -805,75 +843,85 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         <div className="flex-1 relative space-y-2">
                             {/* Artist Selection Dropdown - Show if we have used artists */}
                             {usedArtists.length > 0 && (
-                                <Select
-                                    value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === artistName) ? artistName : (isArtistLocked ? '' : 'new')}
-                                    onValueChange={(val) => {
-                                        if (val === 'new') {
-                                            if (!isArtistLocked) {
-                                                setValue('artistName', '', { shouldValidate: true })
-                                                setActiveSearchIndex('main')
-                                            }
-                                        } else {
-                                            // Find the full artist object
-                                            const selectedArtist = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === val);
-                                            if (selectedArtist) {
-                                                const name = typeof selectedArtist === 'string' ? selectedArtist : selectedArtist.name;
-                                                setValue('artistName', name, { shouldValidate: true });
-
-                                                // Auto-fill profiles if available
-                                                if (typeof selectedArtist === 'object') {
-                                                    console.log('Auto-filling profiles for', name);
-                                                    if (selectedArtist.spotifyProfile) setValue('spotifyProfile', selectedArtist.spotifyProfile);
-                                                    if (selectedArtist.appleMusicProfile) setValue('appleMusicProfile', selectedArtist.appleMusicProfile);
-                                                    if (selectedArtist.youtubeMusicProfile) setValue('youtubeMusicProfile', selectedArtist.youtubeMusicProfile);
-                                                    if (selectedArtist.instagramProfile) {
-                                                        if (typeof selectedArtist.instagramProfile === 'string' && selectedArtist.instagramProfile.startsWith('http')) {
-                                                            setValue('instagramProfile', 'yes');
-                                                            setValue('instagramProfileUrl', selectedArtist.instagramProfile);
-                                                        } else {
-                                                            setValue('instagramProfile', selectedArtist.instagramProfile);
-                                                        }
-                                                    }
-                                                    if (selectedArtist.facebookProfile) {
-                                                        if (typeof selectedArtist.facebookProfile === 'string' && selectedArtist.facebookProfile.startsWith('http')) {
-                                                            setValue('facebookProfile', 'yes');
-                                                            setValue('facebookProfileUrl', selectedArtist.facebookProfile);
-                                                        } else {
-                                                            setValue('facebookProfile', selectedArtist.facebookProfile);
-                                                        }
-                                                    }
+                                <div className="relative">
+                                    <Select
+                                        value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === artistName) ? artistName : (isArtistLocked ? '' : 'new')}
+                                        onValueChange={(val) => {
+                                            if (val === 'new') {
+                                                if (!isArtistLocked) {
+                                                    setValue('artistName', '', { shouldValidate: true })
+                                                    setValue('spotifyProfile', '')
+                                                    setValue('appleMusicProfile', '')
+                                                    setValue('youtubeMusicProfile', '')
+                                                    setValue('instagramProfile', '')
+                                                    setValue('facebookProfile', '')
+                                                    setValue('instagramProfileUrl', '')
+                                                    setValue('facebookProfileUrl', '')
+                                                    setActiveSearchIndex('main')
                                                 }
-                                                // Trigger search to hydrate legacy profiles if needed, or just to visually confirm
-                                                handleSearch(name, 'main');
+                                            } else {
+                                                // Find the full artist object
+                                                const selectedArtist = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === val);
+                                                if (selectedArtist) {
+                                                    const name = typeof selectedArtist === 'string' ? selectedArtist : selectedArtist.name;
+                                                    setValue('artistName', name, { shouldValidate: true });
+
+                                                    // Auto-fill profiles if available
+                                                    if (typeof selectedArtist === 'object') {
+                                                        console.log('Auto-filling profiles for', name);
+                                                        if (selectedArtist.spotifyProfile) setValue('spotifyProfile', selectedArtist.spotifyProfile);
+                                                        if (selectedArtist.appleMusicProfile) setValue('appleMusicProfile', selectedArtist.appleMusicProfile);
+                                                        if (selectedArtist.youtubeMusicProfile) setValue('youtubeMusicProfile', selectedArtist.youtubeMusicProfile);
+                                                        if (selectedArtist.instagramProfile) {
+                                                            if (typeof selectedArtist.instagramProfile === 'string' && selectedArtist.instagramProfile.startsWith('http')) {
+                                                                setValue('instagramProfile', 'yes');
+                                                                setValue('instagramProfileUrl', selectedArtist.instagramProfile);
+                                                            } else {
+                                                                setValue('instagramProfile', selectedArtist.instagramProfile);
+                                                            }
+                                                        }
+                                                        if (selectedArtist.facebookProfile) {
+                                                            if (typeof selectedArtist.facebookProfile === 'string' && selectedArtist.facebookProfile.startsWith('http')) {
+                                                                setValue('facebookProfile', 'yes');
+                                                                setValue('facebookProfileUrl', selectedArtist.facebookProfile);
+                                                            } else {
+                                                                setValue('facebookProfile', selectedArtist.facebookProfile);
+                                                            }
+                                                        }
+                                                    }
+                                                    // Trigger search to hydrate legacy profiles if needed, or just to visually confirm
+                                                    handleSearch(name, 'main');
+                                                }
                                             }
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className={errors.artistName ? 'border-red-500' : ''}>
-                                        <SelectValue placeholder="Select an artist" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {usedArtists.map((artist, i) => {
-                                            const name = typeof artist === 'string' ? artist : artist.name;
-                                            return (
-                                                <SelectItem key={i} value={name}>
-                                                    <div className="flex items-center gap-2">
-                                                        <UserCheck className="h-4 w-4 text-primary" />
-                                                        <span>{name}</span>
+                                        }}
+                                    >
+                                        <SelectTrigger className={errors.artistName ? 'border-red-500' : ''}>
+                                            <SelectValue placeholder="Select an artist" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {usedArtists.map((artist, i) => {
+                                                const name = typeof artist === 'string' ? artist : artist.name;
+                                                return (
+                                                    <SelectItem key={i} value={name}>
+                                                        <div className="flex items-center gap-2">
+                                                            <UserCheck className="h-4 w-4 text-primary" />
+                                                            <span>{name}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                )
+                                            })}
+                                            {!isArtistLocked && (
+                                                <SelectItem value="new">
+                                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                                        <Plus className="h-4 w-4" />
+                                                        <span>Create New Artist</span>
                                                     </div>
                                                 </SelectItem>
-                                            )
-                                        })}
-                                        {!isArtistLocked && (
-                                            <SelectItem value="new">
-                                                <div className="flex items-center gap-2 text-muted-foreground">
-                                                    <Plus className="h-4 w-4" />
-                                                    <span>Create New Artist</span>
-                                                </div>
-                                            </SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    {/* Removed Change Artist button for roster selection as per user feedback */}
+                                </div>
                             )}
 
                             {/* Manual Input - Show if NO used artists OR if 'new' is selected/active (and not locked) */}
@@ -895,7 +943,22 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                         readOnly={isArtistLocked || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile}
                                         className={`${isSearching && activeSearchIndex === 'main' ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''} ${(isArtistLocked || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
                                     />
-                                    {isSearching && activeSearchIndex === 'main' && (
+                                    {(!!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) && !isArtistLocked && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setValue('artistName', '');
+                                                setValue('spotifyProfile', '');
+                                                setValue('appleMusicProfile', '');
+                                                setValue('youtubeMusicProfile', '');
+                                                setActiveSearchIndex('main');
+                                            }}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary hover:text-primary/80 font-medium"
+                                        >
+                                            Change Artist
+                                        </button>
+                                    )}
+                                    {isSearching && activeSearchIndex === 'main' && !(!!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                             <motion.div
                                                 animate={{ rotate: 360 }}

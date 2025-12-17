@@ -70,7 +70,10 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
 
         // Validate WAV header (optional, moved before upload for UX)
         try {
+            const parsingToastId = toast.loading('Checking audio format...')
             const { sampleRate, bitDepth } = await parseWavHeader(file);
+            toast.dismiss(parsingToastId)
+
             if (sampleRate !== 44100) {
                 toast.error(`Invalid Sample Rate: ${sampleRate}Hz. File must be 44,100Hz.`)
                 return

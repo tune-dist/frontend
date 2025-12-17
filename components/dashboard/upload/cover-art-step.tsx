@@ -35,6 +35,11 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         const reader = new FileReader()
         reader.onloadend = async () => {
             const img = new Image()
+            img.onerror = () => {
+                console.error('🖼️ Image load error - possibly unsupported format or corrupted file');
+                toast.error('Failed to load image. If you are using a phone, please ensure it is a standard JPG or PNG file.');
+                setIsUploading(false);
+            }
             img.onload = async () => {
                 if (img.width < 1000 || img.height < 1000) {
                     toast.error('Image dimensions must be at least 1000x1000 pixels')
