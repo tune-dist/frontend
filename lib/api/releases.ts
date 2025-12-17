@@ -13,6 +13,7 @@ export interface ReleaseFormData {
   }>;
   numberOfSongs?: string;
   userId?: string;
+  version?: string;
 
   // Release info
   previouslyReleased?: string;
@@ -151,6 +152,7 @@ export interface Release {
 export interface CreateReleaseData {
   title: string;
   artistName: string;
+  version?: string;
   featuredArtists?: string[];
   labelName?: string;
   language: string;
@@ -358,6 +360,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     const releaseData: CreateReleaseData = {
       title: formData.title,
       artistName: formData.artistName,
+      version: formData.version,
       language: formData.language,
       primaryGenre: formData.primaryGenre,
       secondaryGenre: formData.secondaryGenre,

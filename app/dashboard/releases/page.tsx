@@ -84,7 +84,7 @@ export default function ReleasesPage() {
       setLoading(true);
       const params: any =
         statusFilter !== "all" ? { status: statusFilter } : {};
-      if (user?._id && user.role !== "super_admin" && user.role !== "admin") {
+      if (user?._id && user.role !== "super_admin" && user.role !== "admin" && user.role !== "release_manager") {
         params.userId = user._id;
       }
       const response = await getReleases(params);

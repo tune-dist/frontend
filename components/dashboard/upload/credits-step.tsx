@@ -299,7 +299,7 @@ export default function CreditsStep({
                       if (checked) {
                         // Pre-fill with default from env if empty
                         if (!watch("isrc")) {
-                          setValue("isrc", process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001");
+                          setValue("isrc", process.env.NEXT_PUBLIC_DEFAULT_ISRC);
                         }
                       } else {
                         setValue("isrc", "");

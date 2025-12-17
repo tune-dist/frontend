@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock, UserCheck } from 'lucide-react'
+import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock, UserCheck, Link as LinkIcon } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
@@ -323,6 +323,9 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 valueToSave = 'new'
             } else if (profile === '') {
                 valueToSave = ''
+            } else if (typeof profile === 'string') {
+                // Handle manual URL entry
+                valueToSave = profile
             } else {
                 // Construct the profile object based on the platform and source data
                 // We map the different API responses to our standard ArtistProfile schema
@@ -383,13 +386,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                 <p className="font-medium text-primary">New Artist Profile</p>
                                 <p className="text-sm text-muted-foreground">Creating a new profile for {currentName}</p>
                             </div>
-                            <button
-                                onClick={() => handleSelectProfile(platform, '')}
-                                className="ml-auto text-xs text-primary hover:underline hover:text-primary/80"
-                                type="button"
-                            >
-                                Change
-                            </button>
+                            {/* Locked: Change button removed */}
                         </div>
                     </div>
                 )
@@ -418,21 +415,15 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                     </svg>
                                 )}
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                                 <p className="font-medium text-primary">Profile Linked</p>
-                                <p className="text-sm text-muted-foreground truncate max-w-[200px]" title={profileData}>
+                                <p className="text-sm text-muted-foreground truncate" title={profileData}>
                                     {profileData}
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                <button
-                                    onClick={() => handleSelectProfile(platform, '')}
-                                    className="text-xs text-muted-foreground hover:text-destructive transition-colors ml-2"
-                                    type="button"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
+                                {/* Locked: Remove button removed */}
                             </div>
                         </div>
                     </div>
@@ -449,21 +440,15 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                 <Music className="h-5 w-5 text-muted-foreground" />
                             </div>
                         )}
-                        <div className="flex-1">
-                            <p className="font-medium text-primary">{profileData.name}</p>
-                            <p className="text-sm text-muted-foreground">
+                        <div className="flex-1 min-w-0">
+                            <p className="font-medium text-primary truncate">{profileData.name}</p>
+                            <p className="text-sm text-muted-foreground truncate">
                                 {profileData.followers ? `${profileData.followers.toLocaleString()} followers` : profileData.track}
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                            <button
-                                onClick={() => handleSelectProfile(platform, '')}
-                                className="text-xs text-muted-foreground hover:text-destructive transition-colors ml-2"
-                                type="button"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
+                            {/* Locked: Remove button removed */}
                         </div>
                     </div>
                 </div>
@@ -477,9 +462,11 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         // 1. If actively searching this index.
         // 2. OR if there are results (and not searching).
         // 3. OR if there are selected profiles for this index (Persistent View).
+        // NOW UPDATED: Always show if active search index matches, to allow manual entry even if no results.
         const isActiveSearch = activeSearchIndex === index
-        const hasResults = searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0
-        const showSearchResults = isActiveSearch && (hasResults || isSearching)
+        // const hasResults = searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0
+        // const showSearchResults = isActiveSearch && (hasResults || isSearching)
+        const showSearchResults = isActiveSearch // Always show when active to allow manual entry
 
         const hasAnySelection = !!(currentSpotify || currentApple || currentYoutube)
 
@@ -566,16 +553,37 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 </a>
                                             </div>
                                         ))}
-                                        <div className="space-y-2 mt-4">
+                                        <div className="space-y-3 mt-3 pt-3 border-t border-border/50">
                                             <div
-                                                className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                                className="flex items-center gap-3 p-3 rounded-md hover:bg-accent cursor-pointer transition-colors"
                                                 onClick={() => handleSelectProfile('spotify', 'new')}
                                             >
-                                                <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                                <div className="h-10 w-10 rounded-full border border-dashed border-primary flex items-center justify-center bg-primary/5">
+                                                    <Plus className="h-5 w-5 text-primary" />
                                                 </div>
-                                                <Label className="font-normal cursor-pointer">
-                                                    This will be my first <strong>{currentName}</strong> release in Spotify.
-                                                </Label>
+                                                <div className="flex-1">
+                                                    <p className="font-medium text-foreground">Create New Profile</p>
+                                                    <p className="text-sm text-muted-foreground">Create a new Spotify profile for <strong>{currentName}</strong></p>
+                                                </div>
+                                            </div>
+                                            <div className="px-1">
+                                                <Label className="text-xs font-medium text-foreground mb-1.5 block px-2">Or paste Spotify URL</Label>
+                                                <div className="relative">
+                                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                                    <Input
+                                                        placeholder="https://open.spotify.com/artist/..."
+                                                        className="h-9 text-sm pl-9"
+                                                        onBlur={(e) => {
+                                                            if (e.target.value) handleSelectProfile('spotify', e.target.value)
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault()
+                                                                if (e.currentTarget.value) handleSelectProfile('spotify', e.currentTarget.value)
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </>
@@ -627,16 +635,37 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 )}
                                             </div>
                                         ))}
-                                        <div className="space-y-2 mt-4">
+                                        <div className="space-y-3 mt-3 pt-3 border-t border-border/50">
                                             <div
-                                                className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                                className="flex items-center gap-3 p-3 rounded-md hover:bg-accent cursor-pointer transition-colors"
                                                 onClick={() => handleSelectProfile('apple', 'new')}
                                             >
-                                                <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                                <div className="h-10 w-10 rounded-full border border-dashed border-primary flex items-center justify-center bg-primary/5">
+                                                    <Plus className="h-5 w-5 text-primary" />
                                                 </div>
-                                                <Label className="font-normal cursor-pointer">
-                                                    This will be my first <strong>{currentName}</strong> release in Apple Music.
-                                                </Label>
+                                                <div className="flex-1">
+                                                    <p className="font-medium text-foreground">Create New Profile</p>
+                                                    <p className="text-sm text-muted-foreground">Create a new Apple Music profile for <strong>{currentName}</strong></p>
+                                                </div>
+                                            </div>
+                                            <div className="px-1">
+                                                <Label className="text-xs font-medium text-foreground mb-1.5 block px-2">Or paste Apple Music URL</Label>
+                                                <div className="relative">
+                                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                                    <Input
+                                                        placeholder="https://music.apple.com/artist/..."
+                                                        className="h-9 text-sm pl-9"
+                                                        onBlur={(e) => {
+                                                            if (e.target.value) handleSelectProfile('apple', e.target.value)
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault()
+                                                                if (e.currentTarget.value) handleSelectProfile('apple', e.currentTarget.value)
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </>
@@ -689,16 +718,37 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 )}
                                             </div>
                                         ))}
-                                        <div className="space-y-2 mt-4">
+                                        <div className="space-y-3 mt-3 pt-3 border-t border-border/50">
                                             <div
-                                                className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                                className="flex items-center gap-3 p-3 rounded-md hover:bg-accent cursor-pointer transition-colors"
                                                 onClick={() => handleSelectProfile('youtube', 'new')}
                                             >
-                                                <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
+                                                <div className="h-10 w-10 rounded-full border border-dashed border-primary flex items-center justify-center bg-primary/5">
+                                                    <Plus className="h-5 w-5 text-primary" />
                                                 </div>
-                                                <Label className="font-normal cursor-pointer">
-                                                    This will be my first <strong>{currentName}</strong> release in YouTube Music.
-                                                </Label>
+                                                <div className="flex-1">
+                                                    <p className="font-medium text-foreground">Create New Profile</p>
+                                                    <p className="text-sm text-muted-foreground">Create a new YouTube Music profile for <strong>{currentName}</strong></p>
+                                                </div>
+                                            </div>
+                                            <div className="px-1">
+                                                <Label className="text-xs font-medium text-foreground mb-1.5 block px-2">Or paste YouTube URL</Label>
+                                                <div className="relative">
+                                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                                    <Input
+                                                        placeholder="https://music.youtube.com/channel/..."
+                                                        className="h-9 text-sm pl-9"
+                                                        onBlur={(e) => {
+                                                            if (e.target.value) handleSelectProfile('youtube', e.target.value)
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault()
+                                                                if (e.currentTarget.value) handleSelectProfile('youtube', e.currentTarget.value)
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </>
@@ -738,8 +788,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="artistName">Artist Name <span className="text-red-500">*</span></Label>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between w-full">
                             <Label htmlFor="artistName">Artist Name <span className="text-red-500">*</span></Label>
                             {planLimits && planLimits.artistLimit < Infinity && (
                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -843,8 +892,8 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                             handleMainArtistNameChange(e)
                                         }}
                                         onFocus={() => !isArtistLocked && setActiveSearchIndex('main')}
-                                        readOnly={isArtistLocked}
-                                        className={`${isSearching && activeSearchIndex === 'main' ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''} ${isArtistLocked ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
+                                        readOnly={isArtistLocked || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile}
+                                        className={`${isSearching && activeSearchIndex === 'main' ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''} ${(isArtistLocked || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
                                     />
                                     {isSearching && activeSearchIndex === 'main' && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -1125,8 +1174,11 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 </div>
                 {/* Explicit Lyrics - Only show if allowed by plan */}
                 <div className="space-y-3 pt-6 border-t border-border">
-                    <Label className="text-lg font-semibold">
+                    <Label className="text-lg font-semibold flex items-center gap-2">
                         Explicit lyrics <span className="text-red-500">*</span>
+                        <span className="inline-flex items-center justify-center bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800">
+                            18+
+                        </span>
                     </Label>
 
                     <div className="space-y-2">
