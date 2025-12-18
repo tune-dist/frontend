@@ -15,7 +15,7 @@ interface AudioFileStepProps {
 }
 
 export default function AudioFileStep({ formData: propFormData, setFormData: propSetFormData }: AudioFileStepProps) {
-    const { setValue, watch, formState: { errors } } = useFormContext<UploadFormData>()
+    const { setValue, watch, getValues, formState: { errors } } = useFormContext<UploadFormData>()
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
     const [isUploading, setIsUploading] = useState(false)
 
@@ -56,102 +56,113 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
         });
     }
 
-    const handleAudioFileChange = async (file: File) => {
-        // Only accept WAV files for all formats
-        if (!file.type.includes('wav') && !file.name.toLowerCase().endsWith('.wav')) {
-            toast.error('Only WAV files are accepted')
-            return
-        }
+    const handleAudioFileChange = async (incomingFiles: File | FileList) => {
+        const files = incomingFiles instanceof FileList ? Array.from(incomingFiles) : [incomingFiles]
 
-        if (file.size > 500 * 1024 * 1024) {
-            toast.error('File size must be less than 500MB')
-            return
-        }
+        if (files.length === 0) return
 
-        // Validate WAV header (optional, moved before upload for UX)
-        try {
-            const parsingToastId = toast.loading('Checking audio format...')
-            const { sampleRate, bitDepth } = await parseWavHeader(file);
-            toast.dismiss(parsingToastId)
-
-            if (sampleRate !== 44100) {
-                toast.error(`Invalid Sample Rate: ${sampleRate}Hz. File must be 44,100Hz.`)
-                return
-            }
-            if (bitDepth !== 16) {
-                toast.error(`Invalid Bit Depth: ${bitDepth}-bit. File must be 16-bit.`)
-                return
-            }
-        } catch (error) {
-            console.error(error)
-            // Allow proceed if header check fails? Or block? 
-            // Logic in original was block. keeping it consistent.
-            toast.error('Failed to validate audio file format. Please ensure it is a valid WAV.')
-            return
-        }
-
-        const fileId = crypto.randomUUID()
         setIsUploading(true)
-        setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
 
-        try {
-            // Start Chunked Upload
-            const result = await uploadFileInChunks(file, '', (progress) => {
-                setUploadProgress(prev => ({ ...prev, [fileId]: progress }))
-            });
-
-            // Upload complete, update form
-            if (format === 'single' || !format) {
-                setValue('audioFile', {
-                    file: file, // Keep file ref for UI if needed, but path is what matters for backend
-                    fileName: file.name,
-                    size: file.size,
-                    path: result.path,
-                    duration: result.metaData?.duration,
-                    resolution: result.metaData?.resolution
-                }, { shouldValidate: true })
-                setValue('audioFileName', file.name, { shouldValidate: true })
-            } else {
-                const newAudioFile: AudioFile = {
-                    id: fileId,
-                    file: file,
-                    fileName: file.name,
-                    size: file.size,
-                    path: result.path,
-                    duration: result.metaData?.duration,
-                    resolution: result.metaData?.resolution
-                }
-                setValue('audioFiles', [...audioFiles, newAudioFile], { shouldValidate: true })
-
-                const newTrack: Track = {
-                    id: crypto.randomUUID(),
-                    title: file.name.replace(/\.[^/.]+$/, ""),
-                    audioFileId: fileId,
-                }
-                setValue('tracks', [...tracks, newTrack], { shouldValidate: true })
+        for (const file of files) {
+            // Only accept WAV files for all formats
+            if (!file.type.includes('wav') && !file.name.toLowerCase().endsWith('.wav')) {
+                toast.error(`File rejected: ${file.name}. Only WAV files are accepted.`)
+                continue
             }
 
-            toast.success(`Upload complete: ${file.name}`)
+            if (file.size > 500 * 1024 * 1024) {
+                toast.error(`File rejected: ${file.name}. Size must be less than 500MB.`)
+                continue
+            }
 
-        } catch (error: any) {
-            console.error(error)
-            toast.error(`Upload failed: ${error.message || 'Unknown error'}`)
-        } finally {
-            setIsUploading(false)
-            setUploadProgress(prev => {
-                const newProgress = { ...prev };
-                delete newProgress[fileId];
-                return newProgress;
-            })
+            // Validate WAV header
+            try {
+                const parsingToastId = toast.loading(`Checking audio format for ${file.name}...`)
+                const { sampleRate, bitDepth } = await parseWavHeader(file);
+                toast.dismiss(parsingToastId)
+
+                if (sampleRate !== 44100) {
+                    toast.error(`Invalid Sample Rate for ${file.name}: ${sampleRate}Hz. File must be 44,100Hz.`)
+                    continue
+                }
+                if (bitDepth !== 16) {
+                    toast.error(`Invalid Bit Depth for ${file.name}: ${bitDepth}-bit. File must be 16-bit.`)
+                    continue
+                }
+            } catch (error) {
+                console.error(error)
+                toast.error(`Failed to validate ${file.name}. Please ensure it is a valid WAV.`)
+                continue
+            }
+
+            const fileId = crypto.randomUUID()
+            setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
+
+            try {
+                // Start Chunked Upload
+                const result = await uploadFileInChunks(file, '', (progress) => {
+                    setUploadProgress(prev => ({ ...prev, [fileId]: progress }))
+                });
+
+                // Upload complete, update form
+                if (format === 'single' || !format) {
+                    setValue('audioFile', {
+                        file: file,
+                        fileName: file.name,
+                        size: file.size,
+                        path: result.path,
+                        duration: result.metaData?.duration,
+                        resolution: result.metaData?.resolution
+                    }, { shouldValidate: true })
+                    setValue('audioFileName', file.name, { shouldValidate: true })
+                    break
+                } else {
+                    const currentAudioFiles = getValues('audioFiles') || []
+                    const currentTracks = getValues('tracks') || []
+
+                    const newAudioFile: AudioFile = {
+                        id: fileId,
+                        file: file,
+                        fileName: file.name,
+                        size: file.size,
+                        path: result.path,
+                        duration: result.metaData?.duration,
+                        resolution: result.metaData?.resolution
+                    }
+                    setValue('audioFiles', [...currentAudioFiles, newAudioFile], { shouldValidate: true })
+
+                    const newTrack: Track = {
+                        id: crypto.randomUUID(),
+                        title: "", // Empty title as requested
+                        audioFileId: fileId,
+                        writers: [],
+                        composers: [],
+                    }
+                    setValue('tracks', [...currentTracks, newTrack], { shouldValidate: true })
+                }
+
+                toast.success(`Upload complete: ${file.name}`)
+
+            } catch (error: any) {
+                console.error(error)
+                toast.error(`Upload failed for ${file.name}: ${error.message || 'Unknown error'}`)
+            } finally {
+                setUploadProgress(prev => {
+                    const newProgress = { ...prev };
+                    delete newProgress[fileId];
+                    return newProgress;
+                })
+            }
         }
 
+        setIsUploading(false)
     }
 
     const handleAudioFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault()
-        const file = e.dataTransfer.files[0]
-        if (file) {
-            handleAudioFileChange(file)
+        const files = e.dataTransfer.files
+        if (files && files.length > 0) {
+            handleAudioFileChange(files)
         }
     }
 
@@ -163,10 +174,13 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
         const input = document.createElement('input')
         input.type = 'file'
         input.accept = 'audio/wav,.wav'
+        if (format !== 'single') {
+            input.multiple = true
+        }
         input.onchange = (e) => {
-            const file = (e.target as HTMLInputElement).files?.[0]
-            if (file) {
-                handleAudioFileChange(file)
+            const files = (e.target as HTMLInputElement).files
+            if (files && files.length > 0) {
+                handleAudioFileChange(files)
             }
         }
         input.click()

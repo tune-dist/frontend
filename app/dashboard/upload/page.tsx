@@ -90,15 +90,10 @@ export default function UploadPage() {
       title: "",
       artistName: "",
       version: "",
-      previouslyReleased: "no",
+      previouslyReleased: undefined,
       primaryGenre: "",
       secondaryGenre: "",
       language: "",
-      releaseType: "single",
-      isrc: "",
-      isExplicit: false,
-      explicitLyrics: "" as any,
-      format: "" as any, // Will trigger validation
       tracks: [],
       spotifyProfile: "",
       appleMusicProfile: "",
@@ -107,17 +102,8 @@ export default function UploadPage() {
       facebookProfile: "no",
       dolbyAtmos: "no",
       instrumental: "no",
-      songwriters: [
-        {
-          role: "Music and lyrics",
-          firstName: "",
-          middleName: "",
-          lastName: "",
-        },
-      ],
-      composers: [
-        { role: "Composer", firstName: "", middleName: "", lastName: "" },
-      ],
+      writers: [],
+      composers: [],
       copyright: process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow",
       producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow"],
     },
@@ -137,23 +123,8 @@ export default function UploadPage() {
   // HOWEVER, preventing state loss on nav requires them to be lifted or in form.
   // For now we keep them here as in original, but we should sync them to form on submit or change.
   // Ideally we refactor CreditsStep to useFieldArray. For now, let's keep passing them.
-  const [songwriters, setSongwriters] = useState<Songwriter[]>([
-    {
-      role: "Music and lyrics",
-      firstName: "",
-      middleName: "",
-      lastName: "",
-    },
-  ]);
-
-  const [composers, setComposers] = useState<Songwriter[]>([
-    {
-      role: "Composer",
-      firstName: "",
-      middleName: "",
-      lastName: "",
-    },
-  ]);
+  const [writers, setWriters] = useState<string[]>([]);
+  const [composers, setComposers] = useState<string[]>([]);
 
   const [mandatoryChecks, setMandatoryChecks] = useState<MandatoryChecks>({
     youtubeConfirmation: false,
@@ -351,13 +322,13 @@ export default function UploadPage() {
           const writersRequired = fieldRules.songwriters?.required !== false;
           if (writersAllowed) {
             // If required, we should convert to required array check via zod manually or check length
-            if (writersRequired && (!formData.songwriters || formData.songwriters.length === 0)) {
+            if (writersRequired && (!formData.writers || formData.writers.length === 0)) {
               toast.error("At least one songwriter is required");
               isValid = false;
               break; // Stop here
             }
             // If present, validate content via trigger if needed, or rely on form submit
-            fieldsToValidate.push("songwriters");
+            fieldsToValidate.push("writers");
           }
 
           // Check composers
@@ -433,21 +404,21 @@ export default function UploadPage() {
                 break;
               }
 
-              // Check songwriters
-              if (!track.songwriters || track.songwriters.length === 0) {
-                toast.error(`Track ${i + 1}: At least one songwriter is required`);
+              // Check songwriters (now called writers)
+              if (!track.writers || track.writers.length === 0) {
+                toast.error(`Track ${i + 1}: At least one writer is required`);
                 hasError = true;
                 break;
               }
 
-              for (const sw of track.songwriters) {
-                if (!sw.firstName?.trim()) {
-                  toast.error(`Track ${i + 1}: Songwriter name cannot be empty`);
+              for (const sw of track.writers) {
+                if (!sw?.trim()) {
+                  toast.error(`Track ${i + 1}: Writer name cannot be empty`);
                   hasError = true;
                   break;
                 }
-                if (!nameRegex.test(sw.firstName.trim())) {
-                  toast.error(`Track ${i + 1}: Invalid songwriter name "${sw.firstName}". Must be "Firstname Lastname"`);
+                if (!nameRegex.test(sw.trim())) {
+                  toast.error(`Track ${i + 1}: Invalid writer name "${sw}". Must be "Firstname Lastname"`);
                   hasError = true;
                   break;
                 }
@@ -458,8 +429,8 @@ export default function UploadPage() {
               // Validate composers if provided
               if (track.composers) {
                 for (const comp of track.composers) {
-                  if (comp.firstName?.trim() && !nameRegex.test(comp.firstName.trim())) {
-                    toast.error(`Track ${i + 1}: Invalid composer name "${comp.firstName}". Must be "Firstname Lastname"`);
+                  if (comp?.trim() && !nameRegex.test(comp.trim())) {
+                    toast.error(`Track ${i + 1}: Invalid composer name "${comp}". Must be "Firstname Lastname"`);
                     hasError = true;
                     break;
                   }
@@ -560,9 +531,11 @@ export default function UploadPage() {
   };
 
   const onSubmit = async (data: UploadFormData) => {
+    console.log(data, 'datatat')
     try {
       // Last check - ensure explicitLyrics is mapped to isExplicit
       // We do this inside submitNewRelease but let's be safe
+      console.log(data, 'datatat')
       const response = await submitNewRelease(data as any);
       toast.success("Release submitted successfully!");
       router.push("/dashboard/releases");
@@ -598,8 +571,8 @@ export default function UploadPage() {
         return (
           <CreditsStep
             {...commonProps}
-            songwriters={songwriters}
-            setSongwriters={setSongwriters}
+            writers={writers}
+            setWriters={setWriters}
             composers={composers}
             setComposers={setComposers}
             usedArtists={usedArtists}
@@ -837,7 +810,7 @@ export default function UploadPage() {
                       {fieldRules.copyright?.allow !== false && (
                         <div className="space-y-1">
                           <Label htmlFor="copyright">
-                            Copyright{fieldRules.copyright?.required && " *"}
+                            Copyright©{fieldRules.copyright?.required && " *"}
                           </Label>
                           <Input
                             id="copyright"
@@ -862,7 +835,7 @@ export default function UploadPage() {
                       {fieldRules.producers?.allow !== false && (
                         <div className="space-y-2 mt-4">
                           <Label htmlFor="producers">
-                            Producers{fieldRules.producers?.required && " *"}
+                            Producers℗{fieldRules.producers?.required && " *"}
                           </Label>
                           <Input
                             id="producers"

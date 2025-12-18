@@ -20,10 +20,10 @@ import toast from "react-hot-toast";
 interface CreditsStepProps {
   formData?: UploadFormData;
   setFormData?: (data: UploadFormData) => void;
-  songwriters?: Songwriter[];
-  setSongwriters?: (data: Songwriter[]) => void;
-  composers?: Songwriter[];
-  setComposers?: (data: Songwriter[]) => void;
+  writers?: string[];
+  setWriters?: (data: string[]) => void;
+  composers?: string[];
+  setComposers?: (data: string[]) => void;
   usedArtists?: string[];
   fieldRules?: Record<string, any>;
 }
@@ -31,8 +31,8 @@ interface CreditsStepProps {
 export default function CreditsStep({
   formData: propFormData,
   setFormData: propSetFormData,
-  songwriters: propSongwriters,
-  setSongwriters: propSetSongwriters,
+  writers: propWriters,
+  setWriters: propSetWriters,
   composers: propComposers,
   setComposers: propSetComposers,
   usedArtists,
@@ -121,14 +121,14 @@ export default function CreditsStep({
     fetchSubGenres();
   }, [primaryGenre, genres, setValue, watch]);
 
-  // UseFieldArray for songwriters and composers (for single format)
+  // UseFieldArray for writers and composers (for single format)
   const {
-    fields: songwriterFields,
-    append: appendSongwriter,
-    remove: removeSongwriter,
+    fields: writerFields,
+    append: appendWriter,
+    remove: removeWriter,
   } = useFieldArray({
     control,
-    name: "songwriters",
+    name: "writers",
   });
 
   const {
@@ -140,22 +140,19 @@ export default function CreditsStep({
     name: "composers",
   });
 
-  const addSongwriter = () => {
-    appendSongwriter({
-      role: "Music and lyrics",
-      firstName: "",
-      middleName: "",
-      lastName: "",
-    });
+  // Ensure at least one writer for singles if none exist
+  useEffect(() => {
+    if (isSingle && writerFields.length === 0) {
+      appendWriter("");
+    }
+  }, [isSingle, writerFields.length, appendWriter]);
+
+  const addWriter = () => {
+    appendWriter("");
   };
 
   const addComposer = () => {
-    appendComposer({
-      role: "Composer",
-      firstName: "",
-      middleName: "",
-      lastName: "",
-    });
+    appendComposer("");
   };
 
   const openTrackModal = (index: number) => {
@@ -165,14 +162,14 @@ export default function CreditsStep({
 
   const saveTrackModal = (
     updatedTrack: Track,
-    songwriters: Songwriter[],
-    composers: Songwriter[]
+    writers: string[],
+    composers: string[]
   ) => {
     if (editingTrackIndex !== null) {
       const updatedTracks = [...tracks];
       updatedTracks[editingTrackIndex] = {
         ...updatedTrack,
-        songwriters,
+        writers,
         composers,
       };
       setValue("tracks", updatedTracks);
@@ -246,8 +243,15 @@ export default function CreditsStep({
                       variant="outline"
                       size="sm"
                       onClick={() => {
+                        const trackToRemove = tracks[index];
                         const updatedTracks = tracks.filter((_, i) => i !== index);
-                        setValue("tracks", updatedTracks);
+                        const currentAudioFiles = watch("audioFiles") || [];
+                        const updatedAudioFiles = currentAudioFiles.filter(
+                          (af: any) => af.id !== trackToRemove.audioFileId
+                        );
+
+                        setValue("tracks", updatedTracks, { shouldValidate: true });
+                        setValue("audioFiles", updatedAudioFiles, { shouldValidate: true });
                       }}
                       type="button"
                       className="text-destructive hover:text-destructive"
@@ -260,23 +264,6 @@ export default function CreditsStep({
             );
           })}
 
-          {/* Add Track Button */}
-          <Button
-            variant="outline"
-            onClick={() => {
-              const newTrack: Track = {
-                id: crypto.randomUUID(),
-                title: "",
-                audioFileId: "", // Will be linked later
-              };
-              setValue("tracks", [...tracks, newTrack]);
-              openTrackModal(tracks.length);
-            }}
-            className="w-full text-primary hover:text-primary"
-            type="button"
-          >
-            + Add track
-          </Button>
         </div>
       )}
 
@@ -452,7 +439,7 @@ export default function CreditsStep({
               </div>
             </div>
 
-            {/* Songwriters */}
+            {/* Writers */}
             {fieldRules.songwriters?.allow !== false && (
               <div className="space-y-4 pt-6 border-t border-border">
                 <div>
@@ -465,7 +452,7 @@ export default function CreditsStep({
                   </p>
                 </div>
 
-                {songwriterFields.map((field, index) => (
+                {writerFields.map((field, index) => (
                   <div
                     key={field.id}
                     className="space-y-3 p-4 rounded-lg border border-border bg-accent/5"
@@ -473,25 +460,25 @@ export default function CreditsStep({
                     <div className="grid grid-cols-1 gap-1">
                       <Input
                         placeholder={`Enter First name and last name${fieldRules.songwriters?.required !== false ? ' *' : ''}`}
-                        {...register(`songwriters.${index}.firstName` as const)}
+                        {...register(`writers.${index}` as const)}
                         className="text-sm"
                       />
-                      {errors.songwriters?.[index]?.firstName && (
+                      {errors.writers?.[index] && (
                         <p className="text-xs text-red-500 mt-1">
-                          {String(errors.songwriters[index]?.firstName?.message)}
+                          {String(errors.writers[index]?.message)}
                         </p>
                       )}
                     </div>
 
-                    {songwriterFields.length > 1 && (
+                    {writerFields.length > 1 && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => removeSongwriter(index)}
+                        onClick={() => removeWriter(index)}
                         className="text-destructive hover:text-destructive"
                         type="button"
                       >
-                        Remove songwriter
+                        Remove writer
                       </Button>
                     )}
                   </div>
@@ -499,11 +486,11 @@ export default function CreditsStep({
 
                 <Button
                   variant="outline"
-                  onClick={addSongwriter}
+                  onClick={addWriter}
                   className="text-primary hover:text-primary"
                   type="button"
                 >
-                  + Add another songwriter
+                  + Add another writer
                 </Button>
               </div>
             )}
@@ -529,12 +516,12 @@ export default function CreditsStep({
                     <div className="grid grid-cols-1 gap-1">
                       <Input
                         placeholder={`Enter First name and last name ${fieldRules.composers?.required !== false ? '*' : ''}`}
-                        {...register(`composers.${index}.firstName` as const)}
+                        {...register(`composers.${index}` as const)}
                         className="text-sm"
                       />
-                      {errors.composers?.[index]?.firstName && (
+                      {errors.composers?.[index] && (
                         <p className="text-xs text-red-500 mt-1">
-                          {String(errors.composers[index]?.firstName?.message)}
+                          {String(errors.composers[index]?.message)}
                         </p>
                       )}
                     </div>

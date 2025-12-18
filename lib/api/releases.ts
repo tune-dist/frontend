@@ -72,7 +72,6 @@ export interface ReleaseFormData {
   albumTitle?: string;
   selectedPlatforms?: string[];
   format?: string;
-  songwriters?: any[];
 }
 
 export type ReleaseStatus = "In Process" | "Approved" | "Rejected" | "Released";
@@ -107,9 +106,12 @@ export interface TrackPayload {
   isInstrumental: boolean;
   previewStartTime?: string;
   price?: string;
-  songwriters?: any[];
-  composers?: any[];
-  // Add other fields as needed
+  writers?: string[];
+  composers?: string[];
+  primaryGenre?: string;
+  secondaryGenre?: string;
+  previouslyReleased?: string;
+  originalReleaseDate?: string;
 }
 
 export interface Release {
@@ -147,6 +149,14 @@ export interface Release {
   approvedAt?: string;
   createdAt: string;
   updatedAt: string;
+  primaryArtists?: Array<{
+    name: string;
+    spotifyProfile?: any;
+    appleMusicProfile?: any;
+    youtubeMusicProfile?: any;
+    instagramProfile?: string;
+    facebookProfile?: string;
+  }>;
   // Multi-track
   tracks?: TrackPayload[];
 }
@@ -247,71 +257,7 @@ export interface GetReleasesParams {
 // Process and submit new release with file uploads
 export const submitNewRelease = async (formData: ReleaseFormData) => {
   try {
-    // 1. Process audio file (if single/present)
-    // Audio files are now uploaded via chunks, so they already have a 'path' property
-    let audioData: AudioFile | undefined = undefined;
-    if (formData.audioFile) {
-      const audioFileData = formData.audioFile as any;
-
-      // Check if audio was already uploaded via chunks (has 'path' property)
-      if (audioFileData.path) {
-        console.log("Using chunked-uploaded audio file...");
-        // The path from chunk upload is relative (/uploads/filename)
-        // We need to construct the full URL
-        const baseUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-        audioData = {
-          url: `${baseUrl}${audioFileData.path}`,
-          filename:
-            audioFileData.fileName || audioFileData.file?.name || "audio.wav",
-          size: audioFileData.size || audioFileData.file?.size || 0,
-          duration: audioFileData.duration || 0,
-          format: "wav",
-        };
-      } else if (audioFileData instanceof File) {
-        // Fallback: if it's a File object, upload it using chunks
-        console.log("Uploading audio file (standard)...");
-        const result = await uploadFileInChunks(audioFileData, "");
-        const baseUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-        audioData = {
-          url: `${baseUrl}${result.path}`,
-          filename: audioFileData.name,
-          size: audioFileData.size,
-          duration: result.metaData?.duration || 0,
-          format: "wav", // Presumed format or extract from metadata if available
-        };
-      }
-    }
-
-    // 2. Upload cover art
-    console.log("Uploading cover art...");
-    let coverUrl: string;
-    const coverArtData = formData.coverArt as any;
-
-    if (coverArtData.path) {
-      // Already uploaded via chunks in the UI step
-      console.log("Using pre-uploaded chunk cover art...");
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-      coverUrl = `${baseUrl}${coverArtData.path}`;
-    } else if (formData.coverArt instanceof File) {
-      // Fallback: upload standard files via chunks too
-      console.log("Cover art not pre-uploaded, uploading via chunks...");
-      const result = await uploadFileInChunks(formData.coverArt, "");
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-      coverUrl = `${baseUrl}${result.path}`;
-    } else {
-      throw new Error("Invalid cover art data");
-    }
-    const coverMetadata = await getImageMetadata(
-      formData.coverArt instanceof File
-        ? formData.coverArt
-        : coverArtData.file || new File([], "temp")
-    );
-
-    // 3. Process Tracks (if any)
+    // 1. Process Tracks (if any) - MOVE EARLY TO AVOID HOISTING ISSUES
     let tracksPayload: TrackPayload[] = [];
     if (formData.tracks && formData.tracks.length > 0) {
       console.log(`Processing ${formData.tracks.length} tracks...`);
@@ -357,16 +303,10 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           isExplicit:
             track.explicitLyrics === "yes" || track.isExplicit === true,
           isInstrumental: track.isInstrumental === "yes",
-          previewStartTime: track.previewStartTime,
+          previewStartTime: track.previewClipStartTime,
           price: track.price,
-          songwriters: track.songwriters?.map((sw: any) => ({
-            firstName: sw.firstName,
-            lastName: sw.lastName || "",
-          })),
-          composers: track.composers?.map((sw: any) => ({
-            firstName: sw.firstName,
-            lastName: sw.lastName || "",
-          })),
+          writers: track.writers,
+          composers: track.composers,
           previouslyReleased: track.previouslyReleased,
           originalReleaseDate: track.originalReleaseDate,
           primaryGenre: track.primaryGenre,
@@ -375,24 +315,90 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       });
     }
 
+    // 2. Process audio file (if single/present)
+    let audioData: AudioFile | undefined = undefined;
+    if (formData.audioFile) {
+      const audioFileData = formData.audioFile as any;
+
+      if (audioFileData.path) {
+        const baseUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        audioData = {
+          url: `${baseUrl}${audioFileData.path}`,
+          filename:
+            audioFileData.fileName || audioFileData.file?.name || "audio.wav",
+          size: audioFileData.size || audioFileData.file?.size || 0,
+          duration: audioFileData.duration || 0,
+          format: "wav",
+        };
+      } else if (audioFileData instanceof File) {
+        const result = await uploadFileInChunks(audioFileData, "");
+        const baseUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        audioData = {
+          url: `${baseUrl}${result.path}`,
+          filename: audioFileData.name,
+          size: audioFileData.size,
+          duration: result.metaData?.duration || 0,
+          format: "wav",
+        };
+      }
+    }
+
+    // Fallback for single releases if root audio is missing but tracks exist
+    if (
+      !audioData &&
+      (formData.format === "single" || formData.releaseType === "single") &&
+      tracksPayload.length > 0
+    ) {
+      console.log("Promoting track 1 audio to root for single release...");
+      audioData = tracksPayload[0].audioFile || undefined;
+    }
+
+    // 3. Upload cover art
+    console.log("Uploading cover art...");
+    let coverUrl: string;
+    const coverArtData = formData.coverArt as any;
+
+    if (coverArtData.path) {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      coverUrl = `${baseUrl}${coverArtData.path}`;
+    } else if (formData.coverArt instanceof File) {
+      const result = await uploadFileInChunks(formData.coverArt, "");
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      coverUrl = `${baseUrl}${result.path}`;
+    } else {
+      throw new Error("Invalid cover art data");
+    }
+
+    const coverMetadata = await getImageMetadata(
+      formData.coverArt instanceof File
+        ? formData.coverArt
+        : coverArtData.file || new File([], "temp")
+    );
+
     // 4. Prepare release data
-    // Note: We explicitly construct releaseData to avoid sending unwanted properties
-    // like audioFiles array, File objects, or chunk upload metadata
     const releaseData: CreateReleaseData = {
       title: formData.title,
       artistName: formData.artistName,
       version: formData.version,
-      language: formData.language,
-      primaryGenre: formData.primaryGenre,
-      secondaryGenre: formData.secondaryGenre,
-      releaseType: formData.releaseType,
+      ...(formData.language && { language: formData.language }),
+      ...(formData.primaryGenre && { primaryGenre: formData.primaryGenre }),
+      ...(formData.secondaryGenre && { secondaryGenre: formData.secondaryGenre }),
+      releaseType: formData.format as any || formData.releaseType || "single",
       isExplicit: formData.explicitLyrics === "yes",
       releaseDate: formData.releaseDate || new Date().toISOString(),
-      genres: [formData.primaryGenre, formData.secondaryGenre].filter(
+      genres: (([formData.primaryGenre, formData.secondaryGenre].filter(
         Boolean
-      ) as string[],
+      ).length > 0
+        ? [formData.primaryGenre, formData.secondaryGenre]
+        : (formData.format === "single" || formData.releaseType === "single") && tracksPayload.length > 0
+          ? [tracksPayload[0].primaryGenre, tracksPayload[0].secondaryGenre]
+          : []
+      ).filter(Boolean) as string[]),
 
-      // Use the processed audioData (already converted from chunk upload path)
       audioFile: audioData,
 
       coverArt: {
@@ -409,15 +415,12 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         format: coverMetadata.format,
       },
 
-      // Use the processed tracks payload (already has audio files resolved)
       tracks: tracksPayload,
 
-      // Optional fields mapping
       ...(formData.featuredArtists && {
         featuredArtists: formData.featuredArtists,
       }),
 
-      // Map labelName from recordLabel if not present
       ...(formData.labelName
         ? { labelName: formData.labelName }
         : formData.recordLabel && { labelName: formData.recordLabel }),
@@ -432,21 +435,9 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.catalogNumber && { catalogNumber: formData.catalogNumber }),
       ...(formData.barcode && { barcode: formData.barcode }),
       ...(formData.isrc && { isrc: formData.isrc }),
-      // Map songwriters to writers as string array (FirstName LastName only)
-      ...(formData.songwriters && {
-        writers: formData.songwriters
-          .map((sw: any) => `${sw.firstName} ${sw.lastName || ""}`.trim())
-          .filter(Boolean),
-      }),
-
+      ...(formData.writers && { writers: formData.writers }),
       ...(formData.producers && { producers: formData.producers }),
-
-      // Map composers as string array (FirstName LastName only)
-      ...(formData.composers && {
-        composers: formData.composers
-          .map((sw: any) => `${sw.firstName} ${sw.lastName || ""}`.trim())
-          .filter(Boolean),
-      }),
+      ...(formData.composers && { composers: formData.composers }),
       ...(formData.publisher && { publisher: formData.publisher }),
       ...(formData.copyright && { copyright: formData.copyright }),
       ...(formData.recordingYear && { recordingYear: formData.recordingYear }),
@@ -455,7 +446,6 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         selectedPlatforms: formData.selectedPlatforms,
       }),
 
-      // New fields specific to releases
       ...(formData.numberOfSongs && {
         numberOfSongs: parseInt(formData.numberOfSongs || "1") || 1,
       }),
@@ -474,8 +464,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       }),
       ...(formData.instagramProfile &&
         formData.instagramProfile !== "no" && {
-          instagramProfile: formData.instagramProfile,
-        }),
+        instagramProfile: formData.instagramProfile,
+      }),
       ...(formData.instagramProfileUrl && {
         instagramProfileUrl: formData.instagramProfileUrl,
       }),
@@ -505,16 +495,15 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.radioEdit && { radioEdit: formData.radioEdit }),
       ...(formData.instrumental && { instrumental: formData.instrumental }),
 
-      // Map artists to primaryArtists
       ...(formData.artists &&
         formData.artists.length > 0 && {
-          primaryArtists: formData.artists.map((artist) => ({
-            name: artist.name,
-            spotifyProfile: artist.spotifyProfile,
-            appleMusicProfile: artist.appleMusicProfile,
-            youtubeMusicProfile: artist.youtubeMusicProfile,
-          })),
-        }),
+        primaryArtists: formData.artists.map((artist) => ({
+          name: artist.name,
+          spotifyProfile: artist.spotifyProfile,
+          appleMusicProfile: artist.appleMusicProfile,
+          youtubeMusicProfile: artist.youtubeMusicProfile,
+        })),
+      }),
       ...(formData.userId && { userId: formData.userId }),
     };
 
@@ -524,7 +513,6 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       JSON.stringify(releaseData, null, 2)
     );
 
-    // Double-check we can JSON serialize (this will fail if File objects are present)
     try {
       JSON.stringify(releaseData);
     } catch (e) {
@@ -539,8 +527,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     console.error("Release submission failed:", error);
     throw new Error(
       error.response?.data?.message ||
-        error.message ||
-        "Failed to submit release. Please try again."
+      error.message ||
+      "Failed to submit release. Please try again."
     );
   }
 };

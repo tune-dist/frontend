@@ -1,23 +1,15 @@
 import { z } from 'zod'
 
-export const songwriterSchema = z.object({
-    role: z.string().min(1, 'Role is required'),
-    firstName: z.string()
-        .min(1, 'Name is required')
-        .refine((val) => {
-            // Strict regex: 
-            // ^[a-zA-Z]{3,} : First name (letters only, min 3 chars)
-            // [ ] : Exactly one space
-            // [a-zA-Z]{3,}$ : Last name (letters only, min 3 chars)
-            return /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/.test(val.trim());
-        }, {
-            message: 'Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each. No special characters or numbers.'
-        }),
-    middleName: z.string().optional(),
-    lastName: z.string().optional(),
-})
+export const songwriterSchema = z.string()
+    .min(1, 'Name is required')
+    .refine((val) => {
+        // Strict regex: "^[a-zA-Z]{3,} [a-zA-Z]{3,}$"
+        return /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/.test(val.trim());
+    }, {
+        message: 'Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.'
+    });
 
-export type Songwriter = z.infer<typeof songwriterSchema>
+export type Songwriter = string;
 
 // Audio File Schema (just the file, no metadata)
 export const audioFileSchema = z.object({
@@ -54,8 +46,8 @@ export const trackSchema = z.object({
     originalReleaseDate: z.string().optional(),
     primaryGenre: z.string().optional(),
     secondaryGenre: z.string().optional(),
-    songwriters: z.array(songwriterSchema).optional(),
-    composers: z.array(songwriterSchema).optional(),
+    writers: z.array(z.string()).optional(),
+    composers: z.array(z.string()).optional(),
     isInstrumental: z.string().optional(),
     previewClipStartTime: z.string().optional(),
     // Social media profiles per track
@@ -98,10 +90,10 @@ export const uploadFormSchema = z.object({
     }, {
         message: 'ISRC must be in format: XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)'
     }),
-    previouslyReleased: z.enum(['yes', 'no']),
-    primaryGenre: z.string().min(1, 'Primary genre is required'),
-    secondaryGenre: z.string().min(1, 'Secondary genre is required'),
-    language: z.string().min(1, 'Language is required'),
+    previouslyReleased: z.enum(['yes', 'no']).optional(),
+    primaryGenre: z.string().optional(),
+    secondaryGenre: z.string().optional(),
+    language: z.string().optional(),
     releaseType: z.string().default('single'),
     isExplicit: z.boolean().default(false),
     explicitLyrics: z.string().optional(),
@@ -142,13 +134,62 @@ export const uploadFormSchema = z.object({
     instrumental: z.string().optional(),
 
     // Detailed Credits (UI State managed by FieldArray)
-    songwriters: z.array(songwriterSchema).default([{ role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }]),
-    composers: z.array(songwriterSchema).default([{ role: 'Composer', firstName: '', middleName: '', lastName: '' }]),
+    writers: z.array(z.string()).default([]),
+    composers: z.array(z.string()).default([]),
 
     // Legacy/Other
     producers: z.array(z.string()).optional(),
-    writers: z.array(z.string()).optional(),
     selectedPlatforms: z.array(z.string()).optional(),
+}).superRefine((data, ctx) => {
+    if (data.format === 'single') {
+        if (!data.primaryGenre) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Primary genre is required for single releases",
+                path: ["primaryGenre"]
+            });
+        }
+        if (!data.secondaryGenre) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Secondary genre is required for single releases",
+                path: ["secondaryGenre"]
+            });
+        }
+        if (!data.language) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Language is required for single releases",
+                path: ["language"]
+            });
+        }
+        if (!data.previouslyReleased) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Release history is required for single releases",
+                path: ["previouslyReleased"]
+            });
+        }
+        if (!data.writers || data.writers.length === 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "At least one writer is required",
+                path: ["writers"]
+            });
+        } else {
+            // Check if any writer has an empty name
+            data.writers.forEach((writer, index) => {
+                const result = songwriterSchema.safeParse(writer);
+                if (!result.success) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: result.error.errors[0].message,
+                        path: ["writers", index]
+                    });
+                }
+            });
+        }
+    }
 })
 
 export type UploadFormData = z.infer<typeof uploadFormSchema>

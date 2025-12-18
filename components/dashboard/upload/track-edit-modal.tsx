@@ -16,7 +16,7 @@ interface TrackEditModalProps {
     onClose: () => void
     track: Track | null
     trackIndex: number | null
-    onSave: (updatedTrack: Track, songwriters: Songwriter[], composers: Songwriter[]) => void
+    onSave: (updatedTrack: Track, writers: string[], composers: string[]) => void
     usedArtists?: string[]
     allTracks?: Track[]
     mainArtistName?: string
@@ -59,12 +59,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [searchResults, setSearchResults] = useState<{ spotify: any[]; apple: any[]; youtube: any[] }>({ spotify: [], apple: [], youtube: [] })
     const searchTimeout = useRef<NodeJS.Timeout>()
 
-    const [modalSongwriters, setModalSongwriters] = useState<Songwriter[]>(
-        track?.songwriters || [{ role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }]
+    const [modalWriters, setModalWriters] = useState<string[]>(
+        track?.writers || ['']
     )
-    const [songwriterErrors, setSongwriterErrors] = useState<string[]>([])
-    const [modalComposers, setModalComposers] = useState<Songwriter[]>(
-        track?.composers || [{ role: 'Composer', firstName: '', middleName: '', lastName: '' }]
+    const [writerErrors, setWriterErrors] = useState<string[]>([])
+    const [modalComposers, setModalComposers] = useState<string[]>(
+        track?.composers || ['']
     )
     const [composerErrors, setComposerErrors] = useState<string[]>([])
 
@@ -145,9 +145,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setSecondaryGenre(track.secondaryGenre || '')
             setPreviewClipStartTime(track.previewClipStartTime || '')
             setModalArtistSearch(track.artistName || '')
-            setModalSongwriters(track.songwriters || [{ role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }])
-            setSongwriterErrors([])
-            setModalComposers(track.composers || [{ role: 'Composer', firstName: '', middleName: '', lastName: '' }])
+            setModalWriters(track.writers && track.writers.length > 0 ? track.writers : [''])
+            setWriterErrors([])
+            setModalComposers(track.composers && track.composers.length > 0 ? track.composers : [''])
             setComposerErrors([])
             setModalSpotifyProfile(track.spotifyProfile || '')
             setModalAppleMusicProfile(track.appleMusicProfile || '')
@@ -167,6 +167,18 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             handleModalArtistSearch(name)
         }
     }, [track, trackIndex, isOpen, user, planLimits.artistLimit])
+
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden'
+        } else {
+            document.body.style.overflow = 'unset'
+        }
+        return () => {
+            document.body.style.overflow = 'unset'
+        }
+    }, [isOpen])
 
 
     const handleModalArtistSearch = async (name: string) => {
@@ -276,27 +288,27 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             // First Name (3+ letters) + Space + Last Name (3+ letters)
             const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
 
-            // Validate Songwriters (at least one required)
-            if (modalSongwriters.length === 0) {
-                toast.error("At least one songwriter is required")
+            // Validate Writers (at least one required)
+            if (modalWriters.length === 0) {
+                toast.error("At least one writer is required")
                 return
             }
 
-            for (const sw of modalSongwriters) {
-                if (!sw.firstName?.trim()) {
-                    toast.error("Songwriter name cannot be empty")
+            for (const sw of modalWriters) {
+                if (!sw?.trim()) {
+                    toast.error("Writer name cannot be empty")
                     return
                 }
-                if (!nameRegex.test(sw.firstName.trim())) {
-                    toast.error(`Invalid Songwriter name: "${sw.firstName}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
+                if (!nameRegex.test(sw.trim())) {
+                    toast.error(`Invalid Writer name: "${sw}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
                     return
                 }
             }
 
             // Validate Composers (if provided, must be valid)
             for (const comp of modalComposers) {
-                if (comp.firstName?.trim() && !nameRegex.test(comp.firstName.trim())) {
-                    toast.error(`Invalid Composer name: "${comp.firstName}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
+                if (comp?.trim() && !nameRegex.test(comp.trim())) {
+                    toast.error(`Invalid Composer name: "${comp}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
                     return
                 }
             }
@@ -375,7 +387,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 instagramProfile: instagramStatus === 'yes' ? instagramUrl : '',
                 facebookProfile: facebookStatus === 'yes' ? facebookUrl : ''
             }
-            onSave(updatedTrack, modalSongwriters, modalComposers)
+            onSave(updatedTrack, modalWriters, modalComposers)
             onClose()
         }
     }
@@ -383,8 +395,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     if (!isOpen || !track || trackIndex === null) return null
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-background rounded-lg max-w-2xl w-full my-8 p-6">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-[#1a1c23] border border-border/50 shadow-2xl rounded-xl max-w-2xl w-full my-8 p-6 animate-in fade-in zoom-in duration-200">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold">Edit Track Metadata</h3>
                     <Button variant="ghost" size="sm" onClick={onClose} type="button">
@@ -1022,45 +1034,45 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </select>
                     </div>
 
-                    {/* Songwriters */}
+                    {/* Writers */}
                     <div className="space-y-3 pt-4 border-t">
                         <div>
-                            <Label className="text-lg font-semibold">Songwriter/Author <span className="text-red-500">*</span></Label>
+                            <Label className="text-lg font-semibold">Writer/Author <span className="text-red-500">*</span></Label>
                             <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
                         </div>
-                        {modalSongwriters.map((songwriter, idx) => (
+                        {modalWriters.map((writer, idx) => (
                             <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
                                 <Input
                                     placeholder="Enter First name and last name *"
-                                    value={songwriter.firstName}
+                                    value={writer}
                                     onChange={(e) => {
-                                        const updated = [...modalSongwriters]
-                                        updated[idx].firstName = e.target.value
-                                        setModalSongwriters(updated)
+                                        const updated = [...modalWriters]
+                                        updated[idx] = e.target.value
+                                        setModalWriters(updated)
                                         // Validate immediately
-                                        const errors = [...songwriterErrors]
+                                        const errors = [...writerErrors]
                                         errors[idx] = validateName(e.target.value)
-                                        setSongwriterErrors(errors)
+                                        setWriterErrors(errors)
                                     }}
-                                    className={songwriterErrors[idx] ? 'border-red-500' : ''}
+                                    className={writerErrors[idx] ? 'border-red-500' : ''}
                                 />
-                                {songwriterErrors[idx] && (
+                                {writerErrors[idx] && (
                                     <p className="text-xs text-red-500 mt-1">
-                                        {songwriterErrors[idx]}
+                                        {writerErrors[idx]}
                                     </p>
                                 )}
-                                {modalSongwriters.length > 1 && (
+                                {modalWriters.length > 1 && (
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => {
-                                            setModalSongwriters(modalSongwriters.filter((_, i) => i !== idx))
-                                            setSongwriterErrors(songwriterErrors.filter((_, i) => i !== idx))
+                                            setModalWriters(modalWriters.filter((_, i) => i !== idx))
+                                            setWriterErrors(writerErrors.filter((_, i) => i !== idx))
                                         }}
                                         className="text-destructive hover:text-destructive"
                                         type="button"
                                     >
-                                        Remove songwriter
+                                        Remove writer
                                     </Button>
                                 )}
                             </div>
@@ -1068,13 +1080,13 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         <Button
                             variant="outline"
                             onClick={() => {
-                                setModalSongwriters([...modalSongwriters, { role: 'Music and lyrics', firstName: '', middleName: '', lastName: '' }])
-                                setSongwriterErrors([...songwriterErrors, ''])
+                                setModalWriters([...modalWriters, ''])
+                                setWriterErrors([...writerErrors, ''])
                             }}
                             className="text-primary hover:text-primary"
                             type="button"
                         >
-                            + Add another songwriter
+                            + Add another writer
                         </Button>
                     </div>
 
@@ -1088,10 +1100,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
                                 <Input
                                     placeholder="Enter First name and last name"
-                                    value={composer.firstName}
+                                    value={composer}
                                     onChange={(e) => {
                                         const updated = [...modalComposers]
-                                        updated[idx].firstName = e.target.value
+                                        updated[idx] = e.target.value
                                         setModalComposers(updated)
                                         // Validate immediately
                                         const errors = [...composerErrors]
@@ -1124,7 +1136,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         <Button
                             variant="outline"
                             onClick={() => {
-                                setModalComposers([...modalComposers, { role: 'Composer', firstName: '', middleName: '', lastName: '' }])
+                                setModalComposers([...modalComposers, ''])
                                 setComposerErrors([...composerErrors, ''])
                             }}
                             className="text-primary hover:text-primary"
