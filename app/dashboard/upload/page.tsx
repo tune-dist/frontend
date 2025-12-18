@@ -563,7 +563,7 @@ export default function UploadPage() {
     try {
       // Last check - ensure explicitLyrics is mapped to isExplicit
       // We do this inside submitNewRelease but let's be safe
-      const response = await submitNewRelease(data);
+      const response = await submitNewRelease(data as any);
       toast.success("Release submitted successfully!");
       router.push("/dashboard/releases");
     } catch (error: any) {

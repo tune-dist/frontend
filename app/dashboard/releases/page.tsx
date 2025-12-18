@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,9 +32,10 @@ import {
   Send,
   XCircle,
   Music,
-  CheckCircle,
   UploadCloud,
   Ban,
+  X,
+  CheckCircle,
 } from "lucide-react";
 import {
   getReleases,
@@ -47,6 +48,14 @@ import {
   Release,
   ReleaseStatus,
 } from "@/lib/api/releases";
+import { getUsers } from "@/lib/api/users";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Animation variants
 const containerVariants = {
@@ -76,15 +85,26 @@ export default function ReleasesPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [selectedUserId, setSelectedUserId] = useState<string>("all");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { user } = useAuth();
+
+  const isPrivileged =
+    user?.role === "super_admin" ||
+    user?.role === "admin" ||
+    user?.role === "release_manager";
 
   const fetchReleases = async () => {
     try {
       setLoading(true);
       const params: any =
         statusFilter !== "all" ? { status: statusFilter } : {};
-      if (user?._id && user.role !== "super_admin" && user.role !== "admin" && user.role !== "release_manager") {
+
+      if (selectedUserId !== "all") {
+        params.userId = selectedUserId;
+      } else if (user?._id && !isPrivileged) {
         params.userId = user._id;
       }
       const response = await getReleases(params);
@@ -100,7 +120,21 @@ export default function ReleasesPage() {
 
   useEffect(() => {
     fetchReleases();
-  }, [statusFilter]);
+  }, [statusFilter, selectedUserId]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (isPrivileged) {
+        try {
+          const response = await getUsers({ limit: 100 });
+          setUsers(response.users || []);
+        } catch (error) {
+          console.error("Failed to fetch users:", error);
+        }
+      }
+    };
+    fetchUsers();
+  }, [isPrivileged]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -230,12 +264,12 @@ export default function ReleasesPage() {
     label: string;
     count?: number;
   }[] = [
-      { value: "all", label: "All" },
-      { value: "In Process", label: "In Process" },
-      { value: "Approved", label: "Approved" },
-      { value: "Rejected", label: "Rejected" },
-      { value: "Released", label: "Released" },
-    ];
+    { value: "all", label: "All" },
+    { value: "In Process", label: "In Process" },
+    { value: "Approved", label: "Approved" },
+    { value: "Rejected", label: "Rejected" },
+    { value: "Released", label: "Released" },
+  ];
 
   return (
     <DashboardLayout>
@@ -275,23 +309,54 @@ export default function ReleasesPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Filter className="h-5 w-5" />
-                <CardTitle>Filter by Status</CardTitle>
+                <CardTitle>Filters</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {statusFilters.map((filter) => (
-                  <Button
-                    key={filter.value}
-                    variant={
-                      statusFilter === filter.value ? "default" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => setStatusFilter(filter.value)}
-                  >
-                    {filter.label}
-                  </Button>
-                ))}
+              <div className="flex flex-wrap items-end gap-6">
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {statusFilters.map((filter) => (
+                      <Button
+                        key={filter.value}
+                        variant={
+                          statusFilter === filter.value ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => setStatusFilter(filter.value)}
+                      >
+                        {filter.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {isPrivileged && (
+                  <div className="flex flex-col gap-2 min-w-[200px]">
+                    <div className="text-sm font-medium text-muted-foreground">
+                      User
+                    </div>
+                    <Select
+                      value={selectedUserId}
+                      onValueChange={setSelectedUserId}
+                    >
+                      <SelectTrigger className="bg-background/50 backdrop-blur-sm h-9">
+                        <SelectValue placeholder="All Users" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Users</SelectItem>
+                        {users.map((u) => (
+                          <SelectItem key={u._id} value={u._id}>
+                            {u.fullName || u.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -326,10 +391,12 @@ export default function ReleasesPage() {
                       <TableRow>
                         <TableHead className="w-[80px]">Poster</TableHead>
                         <TableHead>Title</TableHead>
+                        <TableHead>Member</TableHead>
                         <TableHead>Artist</TableHead>
-                        <TableHead>UPC</TableHead>
-                        <TableHead>ISRC</TableHead>
+                        <TableHead>UPC/ISRC</TableHead>
+                        <TableHead>Approved By</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Created At</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -337,7 +404,7 @@ export default function ReleasesPage() {
                       {releases.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={7}
+                            colSpan={9}
                             className="text-center text-muted-foreground py-12"
                           >
                             <div className="flex flex-col items-center gap-2">
@@ -368,13 +435,24 @@ export default function ReleasesPage() {
                         releases.map((release) => (
                           <TableRow key={release._id}>
                             <TableCell>
-                              <div className="h-12 w-12 rounded-md overflow-hidden bg-muted relative">
+                              <div
+                                className="h-12 w-12 rounded-md overflow-hidden bg-muted relative cursor-zoom-in group"
+                                onClick={() =>
+                                  release.coverArt?.url &&
+                                  setPreviewImage(release.coverArt.url)
+                                }
+                              >
                                 {release.coverArt?.url ? (
-                                  <img
-                                    src={release.coverArt.url}
-                                    alt={release.title}
-                                    className="h-full w-full object-cover"
-                                  />
+                                  <>
+                                    <img
+                                      src={release.coverArt.url}
+                                      alt={release.title}
+                                      className="h-full w-full object-cover transition-transform group-hover:scale-110"
+                                    />
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <Eye className="h-4 w-4 text-white" />
+                                    </div>
+                                  </>
                                 ) : (
                                   <div className="h-full w-full flex items-center justify-center bg-muted">
                                     <Music className="h-6 w-6 text-muted-foreground/50" />
@@ -386,18 +464,39 @@ export default function ReleasesPage() {
                               {release.title}
                             </TableCell>
                             <TableCell>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  {typeof release.userId === "object"
+                                    ? release.userId.fullName
+                                    : "System"}
+                                </span>
+                                {typeof release.userId === "object" && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {release.userId.email}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
                               <span className="text-sm text-muted-foreground">
                                 {release.artistName}
                               </span>
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm font-mono text-muted-foreground">
-                                {release.barcode || '-'}
-                              </span>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs font-mono text-muted-foreground">
+                                  UPC: {release.barcode || "-"}
+                                </span>
+                                <span className="text-xs font-mono text-muted-foreground">
+                                  ISRC: {release.isrc || "-"}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm font-mono text-muted-foreground">
-                                {release.isrc || '-'}
+                              <span className="text-sm text-muted-foreground italic">
+                                {typeof release.approvedBy === "object"
+                                  ? release.approvedBy.fullName
+                                  : "-"}
                               </span>
                             </TableCell>
                             <TableCell>
@@ -407,6 +506,13 @@ export default function ReleasesPage() {
                                 )}`}
                               >
                                 {formatStatus(release.status)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(
+                                  release.createdAt
+                                ).toLocaleDateString()}
                               </span>
                             </TableCell>
                             <TableCell className="text-right">
@@ -482,58 +588,57 @@ export default function ReleasesPage() {
                                 {(user?.role === "release_manager" ||
                                   user?.role === "admin" ||
                                   user?.role === "super_admin") && (
-                                    <>
-                                      {/* Approve Button (Admin Only) */}
-                                      {(user?.role === "admin" ||
-                                        user?.role === "release_manager") &&
-                                        release.status === "In Process" &&
-                                        (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                              handleApprove(release._id)
-                                            }
-                                            disabled={
-                                              actionLoading === release._id
-                                            }
-                                            title="Approve Release"
-                                            className="text-purple-500 hover:text-purple-600 hover:bg-purple-500/10"
-                                          >
-                                            {actionLoading === release._id ? (
-                                              <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                              <CheckCircle className="h-4 w-4" />
-                                            )}
-                                          </Button>
-                                        )}
+                                  <>
+                                    {/* Approve Button (Admin Only) */}
+                                    {(user?.role === "admin" ||
+                                      user?.role === "release_manager") &&
+                                      release.status === "In Process" && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() =>
+                                            handleApprove(release._id)
+                                          }
+                                          disabled={
+                                            actionLoading === release._id
+                                          }
+                                          title="Approve Release"
+                                          className="text-purple-500 hover:text-purple-600 hover:bg-purple-500/10"
+                                        >
+                                          {actionLoading === release._id ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <CheckCircle className="h-4 w-4" />
+                                          )}
+                                        </Button>
+                                      )}
 
-                                      {/* Reject Button (Admin Only) */}
-                                      {(user?.role === "admin" ||
-                                        user?.role === "release_manager") &&
-                                        release.status === "In Process" &&
-                                        release.submittedAt && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                              handleReject(release._id)
-                                            }
-                                            disabled={
-                                              actionLoading === release._id
-                                            }
-                                            title="Reject Release"
-                                            className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                                          >
-                                            {actionLoading === release._id ? (
-                                              <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                              <Ban className="h-4 w-4" />
-                                            )}
-                                          </Button>
-                                        )}
+                                    {/* Reject Button (Admin Only) */}
+                                    {(user?.role === "admin" ||
+                                      user?.role === "release_manager") &&
+                                      release.status === "In Process" &&
+                                      release.submittedAt && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() =>
+                                            handleReject(release._id)
+                                          }
+                                          disabled={
+                                            actionLoading === release._id
+                                          }
+                                          title="Reject Release"
+                                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                        >
+                                          {actionLoading === release._id ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <Ban className="h-4 w-4" />
+                                          )}
+                                        </Button>
+                                      )}
 
-                                      {/* Release Button (Admins + Release Manager)
+                                    {/* Release Button (Admins + Release Manager)
                                     {release.status === "Approved" && (
                                       <Button
                                         variant="ghost"
@@ -552,8 +657,8 @@ export default function ReleasesPage() {
                                         )}
                                       </Button>
                                     )} */}
-                                    </>
-                                  )}
+                                  </>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -566,6 +671,41 @@ export default function ReleasesPage() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Image Preview Modal */}
+        <AnimatePresence>
+          {previewImage && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPreviewImage(null)}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-zoom-out"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="relative max-w-4xl w-full max-h-[90vh] flex items-center justify-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={previewImage}
+                  alt="Poster Preview"
+                  className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl border border-white/10"
+                />
+                <Button
+                  variant="ghost"
+                  // size="icon"
+                  className="absolute -top-12 right-0 text-white hover:bg-white/10"
+                  onClick={() => setPreviewImage(null)}
+                >
+                  <X className="h-6 w-6" />
+                </Button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </DashboardLayout>
   );
