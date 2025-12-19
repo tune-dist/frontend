@@ -186,7 +186,7 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
 
                     <div className="space-y-4">
                         {[
-                            { id: 'promoServices', text: 'Tuneflow is a music distributor, not a promotion service. I am responsible for marketing.' },
+                            { id: 'promoServices', text: 'KratoLib is a music distributor, not a promotion service. I am responsible for marketing.' },
                             { id: 'rightsAuthorization', text: 'I control all rights to this music (recording, composition, lyrics, and artwork).' },
                             { id: 'nameUsage', text: 'I will not use another artist\'s name or a famous band name without permission.' },
                             { id: 'termsAgreement', text: 'I have read and agree to the Terms of Service and Privacy Policy.' }

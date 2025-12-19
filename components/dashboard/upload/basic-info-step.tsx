@@ -898,7 +898,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                         <SelectTrigger className={errors.artistName ? 'border-red-500' : ''}>
                                             <SelectValue placeholder="Select an artist" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="z-[999]">
                                             {usedArtists.map((artist, i) => {
                                                 const name = typeof artist === 'string' ? artist : artist.name;
                                                 return (

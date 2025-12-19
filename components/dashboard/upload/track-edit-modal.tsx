@@ -395,7 +395,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     if (!isOpen || !track || trackIndex === null) return null
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[999] p-4 backdrop-blur-sm">
             <div className="bg-[#1a1c23] border border-border/50 shadow-2xl rounded-xl max-w-2xl w-full my-8 p-6 animate-in fade-in zoom-in duration-200">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold">Edit Track Metadata</h3>
@@ -1184,7 +1184,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
 
 
-                    <div className="flex justify-end gap-2 pt-4 border-t mt-6">
+                    <div className="flex justify-end gap-2 pt-4 border-t mt-6 sticky bottom-0 bg-[#1a1c23]">
                         <Button variant="outline" onClick={onClose} type="button">
                             Cancel
                         </Button>

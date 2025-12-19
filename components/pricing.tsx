@@ -61,7 +61,7 @@ export default function Pricing() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+        <div className="flex flex-wrap justify-center gap-6 lg:gap-6 max-w-8xl mx-auto">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.key}
@@ -69,7 +69,7 @@ export default function Pricing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="relative"
+              className="relative w-full md:w-auto md:flex-1 max-w-md"
             >
               {plan.isPopular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">

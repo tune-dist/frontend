@@ -7,8 +7,8 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'TuneFlow - Distribute Your Music Worldwide',
-  description: 'TuneFlow empowers independent artists to release their music to Spotify, Apple Music, YouTube, and 100+ platforms — all from one dashboard.',
+  title: 'KratoLib - Distribute Your Music Worldwide',
+  description: 'KratoLib empowers independent artists to release their music to Spotify, Apple Music, YouTube, and 100+ platforms — all from one dashboard.',
 }
 
 export default function RootLayout({
@@ -21,7 +21,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           {children}
-          <Toaster 
+          <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,

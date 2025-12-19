@@ -21,11 +21,13 @@ import {
 // React Hook Form & Zod
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import TrackEditModal from "@/components/dashboard/upload/track-edit-modal";
 import {
   UploadFormData,
   uploadFormSchema,
   Songwriter,
   MandatoryChecks,
+  Track,
 } from "@/components/dashboard/upload/types";
 
 // Child Components
@@ -80,6 +82,37 @@ export default function UploadPage() {
     }
   }, [user, loading, router]);
 
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
+
+  // Track modal state
+  const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
+  const [editingTrackIndex, setEditingTrackIndex] = useState<number | null>(null);
+
+  const openTrackModal = (index: number) => {
+    setEditingTrackIndex(index);
+    setIsTrackModalOpen(true);
+  };
+
+  const saveTrackModal = (
+    updatedTrack: Track,
+    writers: string[],
+    composers: string[]
+  ) => {
+    if (editingTrackIndex !== null) {
+      const currentTracks = form.getValues("tracks") || [];
+      const updatedTracks = [...currentTracks];
+      updatedTracks[editingTrackIndex] = {
+        ...updatedTrack,
+        writers,
+        composers,
+      };
+      form.setValue("tracks", updatedTracks, { shouldValidate: true, shouldDirty: true });
+    }
+  };
 
   // Initialize Form
 
@@ -104,8 +137,8 @@ export default function UploadPage() {
       instrumental: "no",
       writers: [],
       composers: [],
-      copyright: `${process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow"} under exclusive license to Madverse Music`,
-      producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow"],
+      copyright: `${process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib"} under exclusive license to Madverse Music`,
+      producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib"],
     },
     mode: "onChange",
   });
@@ -577,6 +610,7 @@ export default function UploadPage() {
             setComposers={setComposers}
             usedArtists={usedArtists}
             fieldRules={fieldRules}
+            onEditTrack={openTrackModal}
           />
         );
       case 5:
@@ -914,6 +948,17 @@ export default function UploadPage() {
           </FormProvider>
         </motion.div>
       </div>
+      <TrackEditModal
+        isOpen={isTrackModalOpen}
+        onClose={() => setIsTrackModalOpen(false)}
+        track={editingTrackIndex !== null && form.getValues("tracks") ? form.getValues("tracks")[editingTrackIndex] : null}
+        trackIndex={editingTrackIndex}
+        onSave={saveTrackModal}
+        usedArtists={usedArtists}
+        allTracks={form.getValues("tracks") || []}
+        mainArtistName={watch("artistName")}
+        featuringArtists={watch("artists")}
+      />
     </DashboardLayout>
   );
 }

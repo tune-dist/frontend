@@ -10,7 +10,7 @@ const testimonials = [
     role: 'Independent Producer',
     image: '👤',
     quote:
-      'TuneFlow changed my career. I went from struggling to get my music heard to reaching thousands of listeners worldwide. The analytics are incredible!',
+      'KratoLib changed my career. I went from struggling to get my music heard to reaching thousands of listeners worldwide. The analytics are incredible!',
   },
   {
     name: 'Maya Chen',
@@ -46,7 +46,7 @@ export default function Testimonials() {
             </span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Join thousands of independent artists who trust TuneFlow to distribute
+            Join thousands of independent artists who trust KratoLib to distribute
             their music.
           </p>
         </motion.div>

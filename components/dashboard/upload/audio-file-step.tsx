@@ -4,7 +4,7 @@ import { uploadFileInChunks } from '@/lib/upload/chunk-uploader'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Upload, Music, X } from 'lucide-react'
+import { Upload, Music, X, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData, AudioFile, Track } from './types'
 import { useFormContext } from 'react-hook-form'
@@ -18,6 +18,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
     const { setValue, watch, getValues, formState: { errors } } = useFormContext<UploadFormData>()
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
     const [isUploading, setIsUploading] = useState(false)
+    const [activeFileId, setActiveFileId] = useState<string | null>(null)
 
 
     const format = watch('format')
@@ -96,6 +97,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
             }
 
             const fileId = crypto.randomUUID()
+            setActiveFileId(fileId)
             setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
 
             try {
@@ -147,6 +149,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 console.error(error)
                 toast.error(`Upload failed for ${file.name}: ${error.message || 'Unknown error'}`)
             } finally {
+                setActiveFileId(null)
                 setUploadProgress(prev => {
                     const newProgress = { ...prev };
                     delete newProgress[fileId];
@@ -227,10 +230,20 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                     onDrop={handleAudioFileDrop}
                                     onDragOver={handleAudioFileDragOver}
                                 >
-                                    {isUploading ? (
-                                        <div className="text-center">
-                                            <p className="text-base font-medium mb-1">Uploading...</p>
-                                            <p className="text-sm text-muted-foreground">Please wait while we process your file</p>
+                                    {isUploading && activeFileId ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                                <span className="text-sm text-primary">
+                                                    Uploading... {Math.round(uploadProgress[activeFileId] || 0)}%
+                                                </span>
+                                            </div>
+                                            <div className="w-full max-w-[200px] h-1 bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary transition-all duration-300 ease-in-out"
+                                                    style={{ width: `${uploadProgress[activeFileId] || 0}%` }}
+                                                />
+                                            </div>
                                         </div>
                                     ) : (
                                         <>
@@ -349,7 +362,24 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                 onDragOver={handleAudioFileDragOver}
                             >
                                 <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                                <p className="text-base font-medium mb-1">Add Track {tracks.length + 1}</p>
+                                {isUploading && activeFileId ? (
+                                    <div className="flex flex-col items-center gap-2 mb-1">
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                            <span className="text-base font-medium text-primary">
+                                                Uploading... {Math.round(uploadProgress[activeFileId] || 0)}%
+                                            </span>
+                                        </div>
+                                        <div className="w-full max-w-[200px] h-1 bg-muted rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-primary transition-all duration-300 ease-in-out"
+                                                style={{ width: `${uploadProgress[activeFileId] || 0}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-base font-medium mb-1">Add Track {tracks.length + 1}</p>
+                                )}
                                 <p className="text-sm text-muted-foreground">
                                     Click to select or drag audio file here
                                 </p>

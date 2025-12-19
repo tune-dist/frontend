@@ -21,7 +21,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <h3 className="text-2xl font-bold animated-gradient mb-4">
-              TuneFlow
+              KratoLib
             </h3>
             <p className="text-muted-foreground max-w-md">
               Empowering independent artists to distribute their music worldwide
@@ -67,7 +67,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="border-t border-border pt-8 text-center">
           <p className="text-muted-foreground">
-            © {currentYear} TuneFlow. All rights reserved.
+            © {currentYear} KratoLib. All rights reserved.
           </p>
         </div>
       </div>

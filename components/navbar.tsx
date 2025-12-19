@@ -39,7 +39,7 @@ export default function Navbar() {
               href="#home"
               className="text-2xl font-bold animated-gradient"
             >
-              TuneFlow
+              KratoLib
             </a>
           </div>
 

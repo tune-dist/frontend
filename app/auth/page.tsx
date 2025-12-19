@@ -93,13 +93,13 @@ export default function AuthPage() {
       >
         {/* Logo */}
         <Link href="/" className="flex justify-center mb-8">
-          <h1 className="text-3xl font-bold animated-gradient">TuneFlow</h1>
+          <h1 className="text-3xl font-bold animated-gradient">KratoLib</h1>
         </Link>
 
         <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
-              Welcome to TuneFlow
+              Welcome to KratoLib
             </CardTitle>
             <CardDescription className="text-center">
               {activeTab === 'login'

@@ -67,7 +67,7 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            TuneFlow empowers independent artists to release their music to
+            KratoLib empowers independent artists to release their music to
             Spotify, Apple Music, YouTube, and 100+ platforms — all from one
             dashboard.
           </motion.p>
