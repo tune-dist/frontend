@@ -104,7 +104,7 @@ export default function UploadPage() {
       instrumental: "no",
       writers: [],
       composers: [],
-      copyright: process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow",
+      copyright: `${process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow"} under exclusive license to Madverse Music`,
       producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "TuneFlow"],
     },
     mode: "onChange",
@@ -816,7 +816,27 @@ export default function UploadPage() {
                             id="copyright"
                             placeholder="© Your label Name"
                             readOnly={user?.plan === "free"}
-                            {...register("copyright")}
+                            {...register("copyright", {
+                              onChange: (e) => {
+                                const suffix = " under exclusive license to Madverse Music";
+                                const marker = " under exclusive license";
+                                let value = e.target.value;
+                                let content = "";
+
+                                const markerIndex = value.lastIndexOf(marker);
+                                if (markerIndex !== -1) {
+                                  content = value.substring(0, markerIndex).trim();
+                                } else {
+                                  content = value.replace(suffix, "").trim();
+                                }
+
+                                if (content) {
+                                  setValue("copyright", `${content}${suffix}`, { shouldValidate: true });
+                                } else {
+                                  setValue("copyright", "", { shouldValidate: true });
+                                }
+                              }
+                            })}
                           />
                           {user?.plan === "free" && (
                             <p className="text-xs text-amber-600 mt-1">

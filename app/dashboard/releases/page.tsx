@@ -577,7 +577,7 @@ export default function ReleasesPage() {
                                   )} */}
 
                                 {/* Delete button (only for drafts - In Process without submittedAt) */}
-                                {release.status === "In Process" &&
+                                {/* {release.status === "In Process" &&
                                   !release.submittedAt && (
                                     <Button
                                       variant="ghost"
@@ -593,7 +593,7 @@ export default function ReleasesPage() {
                                         <Trash2 className="h-4 w-4" />
                                       )}
                                     </Button>
-                                  )}
+                                  )} */}
                                 {/* Admin/Manager Actions */}
                                 {(user?.role === "release_manager" ||
                                   user?.role === "admin" ||

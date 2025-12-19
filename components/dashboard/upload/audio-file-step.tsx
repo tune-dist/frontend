@@ -367,7 +367,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                     </div>
                     <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                         <p className="text-sm text-amber-600 dark:text-amber-500">
-                            <strong>Note:</strong> Audio files may take a few moments to process after upload. Maximum file size is 500MB.
+                            <strong>Note:</strong> Audio files may take a few moments to process after upload.
                         </p>
                     </div>
                 </div>

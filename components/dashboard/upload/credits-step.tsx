@@ -244,14 +244,20 @@ export default function CreditsStep({
                       size="sm"
                       onClick={() => {
                         const trackToRemove = tracks[index];
-                        const updatedTracks = tracks.filter((_, i) => i !== index);
+                        const updatedTracks = tracks.filter(
+                          (_, i) => i !== index
+                        );
                         const currentAudioFiles = watch("audioFiles") || [];
                         const updatedAudioFiles = currentAudioFiles.filter(
                           (af: any) => af.id !== trackToRemove.audioFileId
                         );
 
-                        setValue("tracks", updatedTracks, { shouldValidate: true });
-                        setValue("audioFiles", updatedAudioFiles, { shouldValidate: true });
+                        setValue("tracks", updatedTracks, {
+                          shouldValidate: true,
+                        });
+                        setValue("audioFiles", updatedAudioFiles, {
+                          shouldValidate: true,
+                        });
                       }}
                       type="button"
                       className="text-destructive hover:text-destructive"
@@ -263,7 +269,6 @@ export default function CreditsStep({
               </div>
             );
           })}
-
         </div>
       )}
 
@@ -286,7 +291,10 @@ export default function CreditsStep({
                       if (checked) {
                         // Pre-fill with default from env if empty
                         if (!watch("isrc")) {
-                          setValue("isrc", process.env.NEXT_PUBLIC_DEFAULT_ISRC);
+                          setValue(
+                            "isrc",
+                            process.env.NEXT_PUBLIC_DEFAULT_ISRC
+                          );
                         }
                       } else {
                         setValue("isrc", "");
@@ -294,7 +302,10 @@ export default function CreditsStep({
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
-                  <Label htmlFor="hasIsrc" className="font-normal cursor-pointer">
+                  <Label
+                    htmlFor="hasIsrc"
+                    className="font-normal cursor-pointer"
+                  >
                     I already have an ISRC code
                   </Label>
                 </div>
@@ -306,17 +317,25 @@ export default function CreditsStep({
                   <Input
                     id="isrc"
                     placeholder="XX-XXX-XX-XXXXX"
-                    readOnly={user?.plan === 'free'}
+                    readOnly={user?.plan === "free"}
                     {...register("isrc", {
                       onChange: (e) => {
-                        if (user?.plan === 'free' && e.target.value !== (process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")) {
-                          toast.error("Upgrade to paid plan to use custom ISRC", { id: "isrc-warning" });
+                        if (
+                          user?.plan === "free" &&
+                          e.target.value !==
+                            (process.env.NEXT_PUBLIC_DEFAULT_ISRC ||
+                              "QZ-K6P-25-00001")
+                        ) {
+                          toast.error(
+                            "Upgrade to paid plan to use custom ISRC",
+                            { id: "isrc-warning" }
+                          );
                         }
-                      }
+                      },
                     })}
                     className={errors.isrc ? "border-red-500" : ""}
                   />
-                  {user?.plan === 'free' && (
+                  {user?.plan === "free" && (
                     <p className="text-xs text-amber-600 mt-1">
                       Upgrade to a paid plan to use a custom ISRC code.
                     </p>
@@ -382,8 +401,9 @@ export default function CreditsStep({
                 </Label>
                 <select
                   id="primaryGenre"
-                  className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.primaryGenre ? "border-red-500" : ""
-                    }`}
+                  className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    errors.primaryGenre ? "border-red-500" : ""
+                  }`}
                   {...register("primaryGenre")}
                 >
                   <option value="">Select a genre</option>
@@ -413,8 +433,9 @@ export default function CreditsStep({
                 </Label>
                 <select
                   id="secondaryGenre"
-                  className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.secondaryGenre ? "border-red-500" : ""
-                    }`}
+                  className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    errors.secondaryGenre ? "border-red-500" : ""
+                  }`}
                   {...register("secondaryGenre")}
                   disabled={!primaryGenre || subGenresLoading}
                 >
@@ -422,8 +443,8 @@ export default function CreditsStep({
                     {!primaryGenre
                       ? "Select a genre first"
                       : subGenresLoading
-                        ? "Loading sub-genres..."
-                        : "Select a sub-genre"}
+                      ? "Loading sub-genres..."
+                      : "Select a sub-genre"}
                   </option>
                   {subGenres.map((subGenre) => (
                     <option key={subGenre._id} value={subGenre.slug}>
@@ -445,7 +466,9 @@ export default function CreditsStep({
                 <div>
                   <Label className="text-lg font-semibold">
                     Songwriter/Author
-                    {fieldRules.songwriters?.required !== false && <span className="text-red-500 ml-1">*</span>}
+                    {fieldRules.songwriters?.required !== false && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
                   </Label>
                   <p className="text-xs text-muted-foreground mt-1">
                     Real names, not stage names
@@ -459,7 +482,9 @@ export default function CreditsStep({
                   >
                     <div className="grid grid-cols-1 gap-1">
                       <Input
-                        placeholder={`Enter First name and last name${fieldRules.songwriters?.required !== false ? ' *' : ''}`}
+                        placeholder={`Enter First name and last name${
+                          fieldRules.songwriters?.required !== false ? " *" : ""
+                        }`}
                         {...register(`writers.${index}` as const)}
                         className="text-sm"
                       />
@@ -501,7 +526,9 @@ export default function CreditsStep({
                 <div>
                   <Label className="text-lg font-semibold">
                     Composer
-                    {fieldRules.composers?.required !== false && <span className="text-red-500 ml-1">*</span>}
+                    {fieldRules.composers?.required !== false && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
                   </Label>
                   <p className="text-xs text-muted-foreground mt-1">
                     Real names, not stage names
@@ -515,7 +542,9 @@ export default function CreditsStep({
                   >
                     <div className="grid grid-cols-1 gap-1">
                       <Input
-                        placeholder={`Enter First name and last name ${fieldRules.composers?.required !== false ? '*' : ''}`}
+                        placeholder={`Enter First name and last name ${
+                          fieldRules.composers?.required !== false ? "*" : ""
+                        }`}
                         {...register(`composers.${index}` as const)}
                         className="text-sm"
                       />
@@ -595,7 +624,7 @@ export default function CreditsStep({
               <Label className="text-lg font-semibold">
                 Preview clip start time{" "}
                 <span className="text-muted-foreground font-normal">
-                  (TikTok, Apple Music, iTunes)
+                  (TikTok, Apple Music, iTunes, Youtube)
                 </span>
               </Label>
 

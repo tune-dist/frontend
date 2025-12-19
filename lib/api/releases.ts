@@ -138,6 +138,7 @@ export interface Release {
   isrc?: string;
   writers?: string[];
   composers?: string[];
+  producers?: string[];
   publisher?: string;
   copyright?: string;
   recordingYear?: number;
@@ -386,18 +387,20 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       version: formData.version,
       ...(formData.language && { language: formData.language }),
       ...(formData.primaryGenre && { primaryGenre: formData.primaryGenre }),
-      ...(formData.secondaryGenre && { secondaryGenre: formData.secondaryGenre }),
-      releaseType: formData.format as any || formData.releaseType || "single",
+      ...(formData.secondaryGenre && {
+        secondaryGenre: formData.secondaryGenre,
+      }),
+      releaseType: (formData.format as any) || formData.releaseType || "single",
       isExplicit: formData.explicitLyrics === "yes",
       releaseDate: formData.releaseDate || new Date().toISOString(),
-      genres: (([formData.primaryGenre, formData.secondaryGenre].filter(
-        Boolean
-      ).length > 0
+      genres: ([formData.primaryGenre, formData.secondaryGenre].filter(Boolean)
+        .length > 0
         ? [formData.primaryGenre, formData.secondaryGenre]
-        : (formData.format === "single" || formData.releaseType === "single") && tracksPayload.length > 0
-          ? [tracksPayload[0].primaryGenre, tracksPayload[0].secondaryGenre]
-          : []
-      ).filter(Boolean) as string[]),
+        : (formData.format === "single" || formData.releaseType === "single") &&
+          tracksPayload.length > 0
+        ? [tracksPayload[0].primaryGenre, tracksPayload[0].secondaryGenre]
+        : []
+      ).filter(Boolean) as string[],
 
       audioFile: audioData,
 
@@ -464,8 +467,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       }),
       ...(formData.instagramProfile &&
         formData.instagramProfile !== "no" && {
-        instagramProfile: formData.instagramProfile,
-      }),
+          instagramProfile: formData.instagramProfile,
+        }),
       ...(formData.instagramProfileUrl && {
         instagramProfileUrl: formData.instagramProfileUrl,
       }),
@@ -497,13 +500,13 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
 
       ...(formData.artists &&
         formData.artists.length > 0 && {
-        primaryArtists: formData.artists.map((artist) => ({
-          name: artist.name,
-          spotifyProfile: artist.spotifyProfile,
-          appleMusicProfile: artist.appleMusicProfile,
-          youtubeMusicProfile: artist.youtubeMusicProfile,
-        })),
-      }),
+          primaryArtists: formData.artists.map((artist) => ({
+            name: artist.name,
+            spotifyProfile: artist.spotifyProfile,
+            appleMusicProfile: artist.appleMusicProfile,
+            youtubeMusicProfile: artist.youtubeMusicProfile,
+          })),
+        }),
       ...(formData.userId && { userId: formData.userId }),
     };
 
@@ -527,8 +530,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     console.error("Release submission failed:", error);
     throw new Error(
       error.response?.data?.message ||
-      error.message ||
-      "Failed to submit release. Please try again."
+        error.message ||
+        "Failed to submit release. Please try again."
     );
   }
 };
