@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Image as ImageIcon, Loader2 } from 'lucide-react'
+import { Image as ImageIcon, Loader2, UploadCloud, ClipboardCheck, Lightbulb, Circle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData } from './types'
 import { useFormContext } from 'react-hook-form'
@@ -20,15 +20,13 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
     const coverArt = watch('coverArt')
 
     const handleCoverArtChange = async (file: File) => {
-        console.log('🖼️ Album cover upload started:', file.name)
-
         if (!file.type.startsWith('image/')) {
             toast.error('Please upload an image file (JPG, PNG, etc.)')
             return
         }
 
-        if (file.size > 10 * 1024 * 1024) {
-            toast.error('File size must be less than 10MB')
+        if (file.size > 20 * 1024 * 1024) { // Updated to 20MB as per requirement in image
+            toast.error('File size must be less than 20MB')
             return
         }
 
@@ -36,50 +34,36 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         reader.onloadend = async () => {
             const img = new Image()
             img.onerror = () => {
-                console.error('🖼️ Image load error - possibly unsupported format or corrupted file');
-                toast.error('Failed to load image. If you are using a phone, please ensure it is a standard JPG or PNG file.');
+                toast.error('Failed to load image. Please ensure it is a standard JPG or PNG file.');
                 setIsUploading(false);
             }
             img.onload = async () => {
-                if (img.width < 1000 || img.height < 1000) {
-                    toast.error('Image dimensions must be at least 1000x1000 pixels')
+                if (img.width < 3000 || img.height < 3000) { // Updated to 3000px as per requirement
+                    toast.error('Minimum resolution is 3000 x 3000 pixels')
                     return
                 }
 
-                // Initial preview set
+                if (Math.abs(img.width - img.height) > 10) { // Check for square aspect ratio
+                    toast.error('Image must have a square aspect ratio (1:1)')
+                    return
+                }
+
                 setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
 
-                // Conditional Upload Logic
-                const COVER_CHUNK_THRESHOLD = 5 * 1024 * 1024; // 5MB
-
-                console.log(`[CoverArt] Starting upload for ${file.name} (${file.size} bytes)`);
+                const COVER_CHUNK_THRESHOLD = 5 * 1024 * 1024;
                 setIsUploading(true);
                 setUploadProgress(0);
 
                 try {
                     let result;
-
                     if (file.size > COVER_CHUNK_THRESHOLD) {
-                        console.log("Cover art > 5MB, using chunk uploader...");
-                        result = await uploadFileInChunks(file, '', (progress) => {
-                            console.log(`[CoverArt] Chunk Progress: ${progress}%`);
-                            setUploadProgress(progress);
-                        });
+                        result = await uploadFileInChunks(file, '', (progress) => setUploadProgress(progress));
                     } else {
-                        console.log("Cover art <= 5MB, using direct uploader...");
-                        result = await uploadFileDirectly(file, (progress) => {
-                            console.log(`[CoverArt] Direct Progress: ${progress}%`);
-                            setUploadProgress(progress);
-                        });
+                        result = await uploadFileDirectly(file, (progress) => setUploadProgress(progress));
                     }
 
-                    console.log('[CoverArt] Upload complete. Result:', result);
+                    if (!result || !result.path) throw new Error('Upload failed');
 
-                    if (!result || !result.path) {
-                        throw new Error('Upload completed but no path returned');
-                    }
-
-                    // Store file AND path
                     setValue('coverArt', {
                         file: file,
                         path: result.path,
@@ -89,8 +73,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
                     toast.success('Cover art uploaded successfully');
                 } catch (error) {
-                    console.error('[CoverArt] Upload failed:', error);
-                    toast.error(`Failed to upload: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
                     setValue('coverArt', null, { shouldValidate: true });
                     setValue('coverArtPreview', '', { shouldValidate: true });
                 } finally {
@@ -105,13 +88,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
     const handleCoverArtDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault()
         const file = e.dataTransfer.files[0]
-        if (file) {
-            handleCoverArtChange(file)
-        }
-    }
-
-    const handleCoverArtDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault()
+        if (file) handleCoverArtChange(file)
     }
 
     const handleCoverArtClick = () => {
@@ -120,9 +97,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         input.accept = 'image/*'
         input.onchange = (e) => {
             const file = (e.target as HTMLInputElement).files?.[0]
-            if (file) {
-                handleCoverArtChange(file)
-            }
+            if (file) handleCoverArtChange(file)
         }
         input.click()
     }
@@ -132,92 +107,120 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         setValue('coverArtPreview', '', { shouldValidate: true })
     }
 
+    const requirements = [
+        '3000 x 3000 pixels minimum resolution',
+        'Square aspect ratio (1:1)',
+        'RGB Color space (CMYK not supported)',
+        'Must match artist name & title perfectly',
+        'No blurred or pixelated images'
+    ];
+
     return (
-        <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Cover Art Upload</h3>
-            <p className="text-muted-foreground">Add eye-catching cover art for your release</p>
+        <div className="space-y-6">
+            <div className="flex flex-col gap-1">
+                <h3 className="text-2xl font-bold">Cover Art</h3>
+                <p className="text-muted-foreground">Add eye-catching cover art for your release</p>
+            </div>
 
-            <div className="mt-6">
-                {/* Album Cover */}
-                <div className="space-y-4 pt-6 border-t border-border">
-                    <h3 className="text-lg font-semibold">Album cover</h3>
-
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
+                {/* Left: Upload Area */}
+                <div className="lg:col-span-7 xl:col-span-8">
                     {!coverArtPreview ? (
-                        <>
-                            <div
-                                className={`border-2 border-dashed rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer bg-muted/20 ${errors.coverArt ? 'border-red-500' : 'border-border'
-                                    }`}
-                                onClick={handleCoverArtClick}
-                                onDrop={handleCoverArtDrop}
-                                onDragOver={handleCoverArtDragOver}
-                            >
-                                <div className="flex flex-col items-center">
-                                    <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
-                                    <p className="text-base font-medium mb-1 text-primary">Select an image</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Or drag image here to upload
-                                    </p>
+                        <div
+                            className={`relative h-[450px] rounded-3xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center p-8 bg-card/10 group overflow-hidden ${errors.coverArt ? 'border-red-500 bg-red-500/5' : 'border-primary/30 hover:border-primary/50'}`}
+                            onClick={handleCoverArtClick}
+                            onDrop={handleCoverArtDrop}
+                            onDragOver={(e) => e.preventDefault()}
+                        >
+                            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                            <div className="relative flex flex-col items-center text-center gap-6">
+                                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                    <UploadCloud className="h-10 w-10 text-primary" />
                                 </div>
-                            </div>
-                            {errors.coverArt && <p className="text-xs text-red-500 mt-2">{String(errors.coverArt.message)}</p>}
-                        </>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="relative inline-block">
-                                <img
-                                    src={coverArtPreview}
-                                    alt="Album cover preview"
-                                    className="w-full max-w-sm mx-auto rounded-lg border-2 border-border shadow-lg"
-                                />
-                            </div>
-                            {coverArt && (
-                                <div className="text-sm text-muted-foreground text-center">
-                                    <p className="font-medium">{(coverArt as File).name}</p>
-                                    <p>{((coverArt as File).size / 1024 / 1024).toFixed(2)} MB</p>
+
+                                <div className="space-y-2">
+                                    <h4 className="text-2xl font-bold">Drag and drop your art here</h4>
+                                    <p className="text-muted-foreground">or browse from your computer</p>
                                 </div>
+
+                                <Button size="lg" className="rounded-full px-8 bg-primary/10 text-primary hover:bg-primary hover:text-white border-none transition-all duration-300">
+                                    Browse Files
+                                </Button>
+                            </div>
+
+                            {errors.coverArt && (
+                                <p className="absolute bottom-6 text-sm text-red-500">{String(errors.coverArt.message)}</p>
                             )}
-                            <div className="flex justify-center gap-3">
+                        </div>
+                    ) : (
+                        <div className="relative h-[450px] rounded-3xl overflow-hidden border border-border bg-card/20 flex items-center justify-center group">
+                            <img
+                                src={coverArtPreview}
+                                alt="Cover preview"
+                                className="h-full w-full object-contain"
+                            />
+
+                            {/* Overlay actions on hover */}
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-4 backdrop-blur-sm">
                                 {isUploading ? (
-                                    <div className="flex flex-col items-center gap-2">
+                                    <div className="flex flex-col items-center gap-3 w-full px-12">
                                         <div className="flex items-center gap-2">
-                                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                            <span className="text-sm text-primary">Uploading... {Math.round(uploadProgress)}%</span>
+                                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                            <span className="text-lg font-medium text-white">Uploading... {Math.round(uploadProgress)}%</span>
                                         </div>
-                                        <div className="w-full max-w-[200px] h-1 bg-muted rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-primary transition-all duration-300 ease-in-out"
-                                                style={{ width: `${uploadProgress}%` }}
-                                            />
+                                        <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+                                            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                                         </div>
                                     </div>
                                 ) : (
-                                    <>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleCoverArtClick}
-                                            type="button"
-                                        >
-                                            Change Image
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleRemove}
-                                            type="button"
-                                            className="text-destructive hover:text-destructive"
-                                        >
-                                            Remove
-                                        </Button>
-                                    </>
+                                    <div className="flex gap-4">
+                                        <Button onClick={handleCoverArtClick} className="rounded-full px-6">Change Image</Button>
+                                        <Button onClick={handleRemove} variant="destructive" className="rounded-full px-6">Remove</Button>
+                                    </div>
                                 )}
                             </div>
                         </div>
                     )}
+                    <p className="mt-4 text-center text-sm text-muted-foreground font-medium">
+                        Supported formats: JPG, PNG. Max size: 20MB.
+                    </p>
                 </div>
 
-                <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <p className="text-sm text-blue-600 dark:text-blue-500">
-                        <strong>Tip:</strong> Use high-resolution square images (1:1 aspect ratio) for best results across all platforms.
-                    </p>
+                {/* Right: Requirements & Tips */}
+                <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+                    {/* Art Requirements Card */}
+                    <div className="rounded-3xl border border-border/50 bg-card/40 p-8 space-y-6">
+                        <div className="flex items-center gap-3 text-primary">
+                            <ClipboardCheck className="h-6 w-6" />
+                            <h4 className="text-lg font-bold">Art Requirements</h4>
+                        </div>
+
+                        <ul className="space-y-4">
+                            {requirements.map((req, i) => (
+                                <li key={i} className="flex items-start gap-3 group">
+                                    <div className="mt-1 flex-shrink-0">
+                                        <Circle className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                                    </div>
+                                    <span className="text-muted-foreground text-sm leading-relaxed group-hover:text-foreground transition-colors">{req}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Pro Tip Card */}
+                    <div className="relative group">
+                        <div className="absolute -inset-0.5 bg-primary/20 rounded-3xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
+                        <div className="relative rounded-3xl border-l-[3px] border-primary bg-primary/5 p-8 space-y-3">
+                            <div className="flex items-center gap-3 text-primary font-bold">
+                                <Lightbulb className="h-5 w-5 fill-primary/20" />
+                                <span>Pro Tip</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                Avoid using social media handles, website URLs, or pricing information on your cover art. Stores will reject it.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

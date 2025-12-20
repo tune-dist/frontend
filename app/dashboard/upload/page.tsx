@@ -74,7 +74,7 @@ const steps = [
 export default function UploadPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(3);
 
   useEffect(() => {
     if (!loading && user?.role === 'super_admin') {
