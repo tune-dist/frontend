@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'KratoLib - Distribute Your Music Worldwide',
-  description: 'KratoLib empowers independent artists to release their music to Spotify, Apple Music, YouTube, and 100+ platforms — all from one dashboard.',
+  description: 'KratoLib empowers independent artists to release their music to Spotify, Apple Music, YouTube, and 150+ platforms — all from one dashboard.',
 }
 
 export default function RootLayout({
