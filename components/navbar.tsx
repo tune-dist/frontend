@@ -34,11 +34,12 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <a
-              href="#home"
-              className="text-2xl font-bold animated-gradient"
-            >
-              KratoLib
+            <a href="#home">
+              <img
+                src="/logo.png"
+                alt="KratoLib"
+                className="h-[8rem] md:h-[10rem] w-auto"
+              />
             </a>
           </div>
 

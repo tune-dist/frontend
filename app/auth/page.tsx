@@ -104,7 +104,7 @@ export default function AuthPage() {
       >
         {/* Logo */}
         <Link href="/" className="flex justify-center mb-8">
-          <h1 className="text-3xl font-bold animated-gradient">KratoLib</h1>
+          <img src="/logo.png" alt="KratoLib" className="h-[10rem] w-auto" />
         </Link>
 
         <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
