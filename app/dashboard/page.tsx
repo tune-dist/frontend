@@ -115,7 +115,7 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <motion.div variants={itemVariants}>
           <h1 className="text-3xl font-bold mb-2">
-            Welcome backddd,{" "}
+            Welcome back,{" "}
             <span className="animated-gradient">{user?.fullName}!</span>
           </h1>
           <p className="text-muted-foreground">
