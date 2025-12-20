@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Play } from 'lucide-react'
 import Link from 'next/link'
+import PlatformCarousel from './platform-carousel'
 
 export default function Hero() {
   return (
@@ -68,12 +69,12 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             KratoLib empowers independent artists to release their music to
-            Spotify, Apple Music, YouTube, and 100+ platforms — all from one
+            Spotify, Apple Music, YouTube, and 150+ platforms — all from one
             dashboard.
           </motion.p>
 
           <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-24"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
@@ -95,6 +96,19 @@ export default function Hero() {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Platform Carousel - Full Width */}
+      <motion.div
+        className="absolute bottom-16 left-0 right-0 w-screen"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.6 }}
+      >
+        <p className="text-sm text-muted-foreground mb-6 uppercase tracking-wider text-center">
+          Distribute to 150+ platforms including
+        </p>
+        <PlatformCarousel />
+      </motion.div>
 
       {/* Scroll Indicator */}
       <motion.div

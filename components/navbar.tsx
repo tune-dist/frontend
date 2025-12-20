@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Menu, X, Upload } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -20,7 +20,6 @@ export default function Navbar() {
     { name: 'Home', href: '#home' },
     { name: 'Features', href: '#features' },
     { name: 'Pricing', href: '#pricing' },
-    { name: 'About', href: '#about' },
     { name: 'Contact', href: '#contact' },
   ]
 
@@ -35,16 +34,17 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <a
-              href="#home"
-              className="text-2xl font-bold animated-gradient"
-            >
-              KratoLib
+            <a href="#home">
+              <img
+                src="/logo.png"
+                alt="KratoLib"
+                className="h-[8rem] md:h-[10rem] w-auto"
+              />
             </a>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-8">
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden md:flex md:items-center md:justify-center md:space-x-8 flex-1">
             {navLinks.map((link) => (
               <a
                 key={link.name}
@@ -54,14 +54,17 @@ export default function Navbar() {
                 {link.name}
               </a>
             ))}
-            <a href="/upload">
-              <Button variant="outline" size="default" className="gap-2">
-                <Upload className="h-4 w-4" />
-                Upload
+          </div>
+
+          {/* Auth Buttons - Right */}
+          <div className="hidden md:flex md:items-center md:space-x-3 flex-shrink-0">
+            <a href="/auth?tab=login">
+              <Button variant="outline" size="default">
+                Login
               </Button>
             </a>
-            <a href="/auth">
-              <Button size="lg" className="ml-4">
+            <a href="/auth?tab=signup">
+              <Button size="default">
                 Get Started
               </Button>
             </a>
@@ -91,13 +94,11 @@ export default function Navbar() {
                   {link.name}
                 </a>
               ))}
-              <a href="/upload" className="w-full block">
-                <Button variant="outline" className="w-full gap-2">
-                  <Upload className="h-4 w-4" />
-                  Upload
-                </Button>
+
+              <a href="/auth?tab=login" className="w-full block">
+                <Button variant="outline" className="w-full">Login</Button>
               </a>
-              <a href="/auth" className="w-full mt-4 block">
+              <a href="/auth?tab=signup" className="w-full mt-2 block">
                 <Button className="w-full">Get Started</Button>
               </a>
             </div>

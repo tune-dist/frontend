@@ -77,7 +77,7 @@ export default function Sidebar() {
           {/* Logo */}
           <div className="flex h-16 items-center border-b border-border px-6">
             <Link href="/" className="flex items-center">
-              <h2 className="text-xl font-bold animated-gradient">KratoLib</h2>
+              <img src="/logo.png" alt="KratoLib" className="h-[6rem] w-auto" />
             </Link>
           </div>
 

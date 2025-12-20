@@ -61,7 +61,7 @@ export default function Pricing() {
           </p>
         </motion.div>
 
-        <div className="flex flex-wrap justify-center gap-6 lg:gap-6 max-w-8xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-[1600px] mx-auto items-stretch pt-6">
           {plans.map((plan, index) => (
             <motion.div
               key={plan.key}
@@ -69,48 +69,48 @@ export default function Pricing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="relative w-full md:w-auto md:flex-1 max-w-md"
+              className="relative flex"
             >
               {plan.isPopular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                  <span className="animated-gradient-bg text-white text-sm font-semibold px-4 py-1 rounded-full">
+                  <span className="animated-gradient-bg text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg whitespace-nowrap">
                     Most Popular
                   </span>
                 </div>
               )}
               <Card
-                className={`h-full flex flex-col ${plan.isPopular
-                  ? 'border-primary border-2 shadow-lg shadow-primary/20 scale-105'
-                  : 'border-border/50'
+                className={`w-full flex flex-col ${plan.isPopular
+                  ? 'border-primary border-2 shadow-xl shadow-primary/30 relative z-[5]'
+                  : 'border-border/50 hover:border-border/80 transition-colors'
                   }`}
               >
-                <CardHeader className="text-center pb-8">
-                  <CardTitle className="text-2xl mb-2">{plan.title}</CardTitle>
+                <CardHeader className="text-center pb-6 pt-6">
+                  <CardTitle className="text-xl mb-2">{plan.title}</CardTitle>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-4xl font-bold">{plan.priceDisplay}</span>
+                    <span className="text-3xl font-bold">{plan.priceDisplay}</span>
                     {plan.period && (
-                      <span className="text-muted-foreground">{plan.period}</span>
+                      <span className="text-muted-foreground text-sm">{plan.period}</span>
                     )}
                   </div>
-                  <CardDescription className="mt-2">
+                  <CardDescription className="mt-2 text-sm min-h-[40px]">
                     {plan.description}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow">
-                  <ul className="space-y-4">
+                <CardContent className="flex-grow pt-0">
+                  <ul className="space-y-3">
                     {plan.features?.map((feature) => (
-                      <li key={feature} className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground">{feature}</span>
+                      <li key={feature} className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground text-sm">{feature}</span>
                       </li>
                     ))}
                   </ul>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="mt-auto pt-4">
                   <Button
                     variant={plan.isPopular ? 'default' : 'outline'}
-                    className="w-full"
-                    size="lg"
+                    className={`w-full ${plan.isPopular ? 'animated-gradient-bg border-0' : ''}`}
+                    size="default"
                   >
                     {plan.ctaLabel || 'Get Started'}
                   </Button>
