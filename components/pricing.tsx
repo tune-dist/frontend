@@ -72,8 +72,8 @@ export default function Pricing() {
               className="relative w-full md:w-auto md:flex-1 max-w-md"
             >
               {plan.isPopular && (
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap">
-                  <span className="animated-gradient-bg text-white text-[11px] uppercase tracking-wider font-bold px-4 py-1.5 rounded-full shadow-xl shadow-primary/20 border border-white/10">
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                  <span className="animated-gradient-bg text-white text-sm font-semibold px-4 py-1 rounded-full">
                     Most Popular
                   </span>
                 </div>
@@ -84,7 +84,7 @@ export default function Pricing() {
                   : 'border-border/50'
                   }`}
               >
-                <CardHeader className={`text-center pb-8 ${plan.isPopular ? 'pt-10' : 'pt-6'}`}>
+                <CardHeader className="text-center pb-8">
                   <CardTitle className="text-2xl mb-2">{plan.title}</CardTitle>
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-4xl font-bold">{plan.priceDisplay}</span>
@@ -123,4 +123,3 @@ export default function Pricing() {
     </section>
   )
 }
-
