@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { Toaster } from 'react-hot-toast'
+import VersionNotifier from '@/components/VersionNotifier'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={inter.className}>
         <AuthProvider>
+          <VersionNotifier />
           {children}
           <Toaster
             position="top-right"
