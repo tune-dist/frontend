@@ -2,6 +2,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     return Response.json({
-        version: '1.0.2',
+        version: process.env.VERCEL_DEPLOYMENT_ID || Date.now().toString(),
     });
 }
