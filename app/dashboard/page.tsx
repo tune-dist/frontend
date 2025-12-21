@@ -138,7 +138,7 @@ export default function DashboardPage() {
                   {usageStats?.releases.total || 0}
                 </div>
                 <CardDescription className="mt-1">
-                  {usageStats?.releases.used || 0} this month
+                  this month
                 </CardDescription>
               </CardContent>
             </Card>
@@ -148,7 +148,7 @@ export default function DashboardPage() {
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Storage Used
+                  Total Stream
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-primary" />
               </CardHeader>
@@ -167,12 +167,15 @@ export default function DashboardPage() {
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Can Upload
+                  Total Revenue Earned
                 </CardTitle>
                 <Globe className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
+                  {usageStats?.revenueEarned || "0"}
+                </div>
+                {/* <div className="text-2xl font-bold">
                   {usageStats?.releases.canUpload ? "Yes" : "No"}
                 </div>
                 <CardDescription className="mt-1">
@@ -180,7 +183,7 @@ export default function DashboardPage() {
                     ? 'Unlimited releases'
                     : `${usageStats?.releases?.limit ?? 0} release${(usageStats?.releases.limit ?? 0) > 1 ? 's' : ''} limit`
                   }
-                </CardDescription>
+                </CardDescription> */}
               </CardContent>
             </Card>
           </motion.div>

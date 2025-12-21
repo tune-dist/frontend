@@ -13,6 +13,7 @@ export interface UsageStats {
     usedFormatted: string;
   };
   plan: string;
+  revenueEarned?: number;
 }
 
 export interface UpdateProfileData {
