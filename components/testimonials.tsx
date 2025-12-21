@@ -7,21 +7,21 @@ import { Quote } from 'lucide-react'
 const testimonials = [
   {
     name: 'Kirtidan Gadhvi',
-    role: 'Renowned Gujarati Folk Singer',
+    role: 'Legendary Folk Icon & Bhajan Samrat',
     image: '/artists/kirtidan-gadhvi.jpg',
     quote:
       'KratoLib has made it effortless to bring my devotional and folk music to listeners across the globe. Their platform ensures my songs reach every major streaming service seamlessly, letting me focus on what I do best — creating music that connects with the soul.',
   },
   {
     name: 'Geeta Jhala',
-    role: 'Celebrated Folk Artist',
+    role: 'Bollywood Playback Singer & Folk Legend',
     image: '/artists/geeta-jhala.jpg',
     quote:
       'Distributing music internationally used to be a complex process. With KratoLib, my traditional Gujarati folk songs now reach audiences on Spotify, Apple Music, and 150+ platforms. The transparency and reliability have made them my preferred distribution partner.',
   },
   {
     name: 'Manu Rabari',
-    role: 'Acclaimed Folk Musician',
+    role: 'Iconic Lyricist, Poet & Folk Vocalist',
     image: '/artists/manu-rabari.jpg',
     quote:
       'As an artist dedicated to preserving our rich folk heritage, I needed a distribution partner who understands the value of authentic music. KratoLib delivers exceptional service, ensuring my work reaches fans worldwide while keeping the process simple and transparent.',
