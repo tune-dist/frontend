@@ -14,6 +14,7 @@ export interface UsageStats {
   };
   plan: string;
   revenueEarned?: number;
+  totalStreams?: number;
 }
 
 export interface UpdateProfileData {

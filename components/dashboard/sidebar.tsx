@@ -15,8 +15,10 @@ import {
   LogOut,
   Settings,
   CreditCard,
+  Sparkles,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import UpgradePlanModal from './upgrade-plan-modal'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -32,6 +34,7 @@ const navigation = [
 export default function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
   const { user } = useAuth()
   // const router = useRouter()
 
@@ -126,7 +129,16 @@ export default function Sidebar() {
           </nav>
 
           {/* User Section */}
-          <div className="border-t border-border p-4">
+          <div className="border-t border-border p-4 space-y-3">
+            {user?.plan !== 'enterprise' && (
+              <button
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary/80 to-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:from-primary hover:to-primary/90 transition-all shadow-sm"
+              >
+                <Sparkles className="h-4 w-4" />
+                Upgrade Plan
+              </button>
+            )}
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                 <User className="h-5 w-5 text-primary" />
@@ -144,6 +156,11 @@ export default function Sidebar() {
           </div>
         </div>
       </aside>
+
+      <UpgradePlanModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+      />
     </>
   )
 }
