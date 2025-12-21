@@ -9,7 +9,7 @@ const features = [
     icon: Globe,
     title: 'Global Music Distribution',
     description:
-      'Reach listeners worldwide across 100+ streaming platforms including Spotify, Apple Music, YouTube Music, and more.',
+      'Reach listeners worldwide across 150+ streaming platforms including Spotify, Apple Music, YouTube Music, and more.',
   },
   {
     icon: TrendingUp,
