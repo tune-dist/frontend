@@ -126,7 +126,7 @@ export default function DashboardPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
           <motion.div variants={itemVariants}>
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Total Releases
@@ -134,45 +134,52 @@ export default function DashboardPage() {
                 <Music className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-xl font-bold">
                   {usageStats?.releases.total || 0}
                 </div>
-                <CardDescription className="mt-1">
-                  {usageStats?.releases.used || 0} this month
-                </CardDescription>
+                <span>This Month</span>
               </CardContent>
             </Card>
           </motion.div>
 
-          <motion.div variants={itemVariants}>
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <motion.div variants={itemVariants} className="h-full">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Storage Used
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {usageStats?.storage.usedFormatted || "0 MB"}
-                </div>
-                <CardDescription className="mt-1">
-                  {usageStats?.plan && `${usageStats.plan.charAt(0).toUpperCase() + usageStats.plan.slice(1)} Plan`}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Can Upload
+                  Total Stream
                 </CardTitle>
                 <Globe className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
+                  {usageStats?.totalStreams || 0}
+                </div>
+                {/* <CardDescription className="mt-1">
+                  {usageStats?.plan && `${usageStats.plan.charAt(0).toUpperCase() + usageStats.plan.slice(1)} Plan`}
+                </CardDescription> */}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="h-full">
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Revenue Earned
+                </CardTitle>
+                <img
+                  src="https://flagcdn.com/w40/in.png"
+                  srcSet="https://flagcdn.com/w80/in.png 2x"
+                  width="20"
+                  alt="India"
+                  className="rounded-sm object-cover"
+                />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(usageStats?.revenueEarned || 0)}
+                </div>
+                {/* <div className="text-2xl font-bold">
                   {usageStats?.releases.canUpload ? "Yes" : "No"}
                 </div>
                 <CardDescription className="mt-1">
@@ -180,7 +187,7 @@ export default function DashboardPage() {
                     ? 'Unlimited releases'
                     : `${usageStats?.releases?.limit ?? 0} release${(usageStats?.releases.limit ?? 0) > 1 ? 's' : ''} limit`
                   }
-                </CardDescription>
+                </CardDescription> */}
               </CardContent>
             </Card>
           </motion.div>

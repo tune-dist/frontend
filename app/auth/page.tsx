@@ -68,11 +68,23 @@ function AuthContent() {
     resolver: zodResolver(signupSchema),
   })
 
+  // Get plan from URL if user came from pricing
+  const planFromUrl = searchParams.get('plan')
+
+  // Build redirect URL based on plan parameter
+  const getRedirectUrl = () => {
+    if (planFromUrl && planFromUrl !== 'free') {
+      // Redirect to checkout page with plan
+      return `/checkout?plan=${planFromUrl}`
+    }
+    return '/dashboard'
+  }
+
   // Handle login
   const onLogin = async (data: LoginFormData) => {
     setIsLoading(true)
     try {
-      await login(data.email, data.password)
+      await login(data.email, data.password, getRedirectUrl())
       toast.success('Welcome back!')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Login failed')
@@ -85,7 +97,7 @@ function AuthContent() {
   const onSignup = async (data: SignupFormData) => {
     setIsLoading(true)
     try {
-      await registerUser(data.email, data.password, data.fullName, 'artist')
+      await registerUser(data.email, data.password, data.fullName, 'artist', getRedirectUrl())
       toast.success('Account created successfully!')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Registration failed')

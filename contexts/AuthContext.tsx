@@ -11,8 +11,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string, role?: string) => Promise<void>;
+  login: (email: string, password: string, redirectUrl?: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string, role?: string, redirectUrl?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, redirectUrl?: string) => {
     try {
       const response = await apiLogin({ email, password });
 
@@ -56,19 +56,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         sameSite: 'lax',
       });
 
+      // Store user info in cookie for subscription page
+      Cookies.set('user', JSON.stringify(response.user), {
+        expires: 7,
+        sameSite: 'lax',
+      });
+
       setUser(response.user);
-      router.push('/dashboard');
+      router.push(redirectUrl || '/dashboard');
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
   };
 
-  const register = async (email: string, password: string, fullName: string, role?: string) => {
+  const register = async (email: string, password: string, fullName: string, role?: string, redirectUrl?: string) => {
     try {
       await apiRegister({ email, password, fullName, role });
 
       // After successful registration, log the user in
-      await login(email, password);
+      await login(email, password, redirectUrl);
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }

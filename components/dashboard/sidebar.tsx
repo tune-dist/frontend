@@ -13,21 +13,28 @@ import {
   Menu,
   X,
   LogOut,
+  Settings,
+  CreditCard,
+  Sparkles,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import UpgradePlanModal from './upgrade-plan-modal'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Releases', href: '/dashboard/releases', icon: Music },
   { name: 'Upload Music', href: '/dashboard/upload', icon: Upload },
+  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
-  { name: 'Users', href: '/dashboard/users', icon: User }, // Using User icon for now, ideally 'Users' icon
+  { name: 'Users', href: '/dashboard/users', icon: User },
+  { name: 'Plan Management', href: '/dashboard/admin/plans', icon: Settings },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
   const { user } = useAuth()
   // const router = useRouter()
 
@@ -86,17 +93,17 @@ export default function Sidebar() {
             {navigation
               .filter(item => {
                 if (user?.role === 'release_manager') {
-                  return ['Dashboard', 'My Releases', 'Upload Music'].includes(item.name)
+                  return ['Dashboard', 'My Releases', 'Upload Music', 'Billing'].includes(item.name)
                 }
 
                 if (user?.role === 'super_admin') {
-                  // Super admin sees Users, but not Upload Music
-                  if (item.name === 'Upload Music') return false;
+                  // Super admin sees Users and Plan Management, but not Upload Music or Billing
+                  if (item.name === 'Upload Music' || item.name === 'Billing') return false;
                   return true;
                 }
 
                 // Default behavior for other users (e.g., artists)
-                if (item.name === 'Users') return false; // Hide Users tab for non-super_admin
+                if (item.name === 'Users' || item.name === 'Plan Management') return false;
                 return true
               })
               .map((item) => {
@@ -122,7 +129,16 @@ export default function Sidebar() {
           </nav>
 
           {/* User Section */}
-          <div className="border-t border-border p-4">
+          <div className="border-t border-border p-4 space-y-3">
+            {user?.plan !== 'enterprise' && (
+              <button
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary/80 to-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:from-primary hover:to-primary/90 transition-all shadow-sm"
+              >
+                <Sparkles className="h-4 w-4" />
+                Upgrade Plan
+              </button>
+            )}
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                 <User className="h-5 w-5 text-primary" />
@@ -131,20 +147,20 @@ export default function Sidebar() {
                 <p className="text-sm font-medium truncate">{user?.fullName || 'User'}</p>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted-foreground truncate">
-                    Artist
+                    {user?.role === 'super_admin' ? 'Super Admin' :
+                      user?.role === 'release_manager' ? 'Release Manager' : 'Artist'}
                   </p>
-                  {/* <button
-                    onClick={handleLogout}
-                    className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
-                  >
-                    <LogOut className="h-3 w-3" />
-                  </button> */}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </aside>
+
+      <UpgradePlanModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+      />
     </>
   )
 }

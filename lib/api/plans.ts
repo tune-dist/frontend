@@ -135,6 +135,32 @@ export async function getPlanFieldRules(planKey: string, forceRefresh = false): 
 }
 
 /**
+ * Admin: Update a plan
+ */
+export async function adminUpdatePlan(key: string, updates: Partial<Plan>): Promise<Plan> {
+  const response = await apiClient.put<Plan>(`/admin/plans/${key}`, updates);
+  clearPlansCache();
+  return response.data;
+}
+
+/**
+ * Admin: Create a new plan
+ */
+export async function adminCreatePlan(planData: Partial<Plan>): Promise<Plan> {
+  const response = await apiClient.post<Plan>('/admin/plans', planData);
+  clearPlansCache();
+  return response.data;
+}
+
+/**
+ * Admin: Get plan audit logs
+ */
+export async function adminGetPlanAuditLogs(key: string): Promise<any[]> {
+  const response = await apiClient.get<any[]>(`/admin/plans/${key}/audit-logs`);
+  return response.data;
+}
+
+/**
  * Clear the plans cache (useful for testing or forced refresh)
  */
 export function clearPlansCache(): void {
