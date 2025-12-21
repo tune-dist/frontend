@@ -77,7 +77,10 @@ export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState(3);
 
   useEffect(() => {
-    if (!loading && user?.role === 'super_admin') {
+    if (!loading && !user) {
+      // Redirect to auth if not logged in
+      router.push('/auth');
+    } else if (!loading && user?.role === 'super_admin') {
       router.push('/dashboard');
     }
   }, [user, loading, router]);
@@ -694,7 +697,7 @@ export default function UploadPage() {
   }, [user]);
 
 
-  if (loading || user?.role === 'super_admin') {
+  if (loading || !user || user?.role === 'super_admin') {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">

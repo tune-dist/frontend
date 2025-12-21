@@ -6,25 +6,25 @@ import { Quote } from 'lucide-react'
 
 const testimonials = [
   {
-    name: 'Alex Rivera',
-    role: 'Independent Producer',
-    image: '👤',
+    name: 'Kirtidan Gadhvi',
+    role: 'Renowned Gujarati Folk Singer',
+    image: '/artists/kirtidan-gadhvi.jpg',
     quote:
-      'KratoLib changed my career. I went from struggling to get my music heard to reaching thousands of listeners worldwide. The analytics are incredible!',
+      'KratoLib has made it effortless to bring my devotional and folk music to listeners across the globe. Their platform ensures my songs reach every major streaming service seamlessly, letting me focus on what I do best — creating music that connects with the soul.',
   },
   {
-    name: 'Maya Chen',
-    role: 'Singer-Songwriter',
-    image: '👤',
+    name: 'Geeta Jhala',
+    role: 'Celebrated Folk Artist',
+    image: '/artists/geeta-jhala.jpg',
     quote:
-      'The easiest distribution platform I\'ve used. Upload, distribute, and get paid — it\'s that simple. My royalties arrive on time, every time.',
+      'Distributing music internationally used to be a complex process. With KratoLib, my traditional Gujarati folk songs now reach audiences on Spotify, Apple Music, and 150+ platforms. The transparency and reliability have made them my preferred distribution partner.',
   },
   {
-    name: 'Jordan Taylor',
-    role: 'Electronic Artist',
-    image: '👤',
+    name: 'Manu Rabari',
+    role: 'Acclaimed Folk Musician',
+    image: '/artists/manu-rabari.jpg',
     quote:
-      'Finally, a platform that actually cares about independent artists. The real-time tracking and transparent reporting help me make informed decisions.',
+      'As an artist dedicated to preserving our rich folk heritage, I needed a distribution partner who understands the value of authentic music. KratoLib delivers exceptional service, ensuring my work reaches fans worldwide while keeping the process simple and transparent.',
   },
 ]
 
@@ -46,8 +46,8 @@ export default function Testimonials() {
             </span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Join thousands of independent artists who trust KratoLib to distribute
-            their music.
+            Trusted by celebrated artists and creators who rely on KratoLib to distribute
+            their music globally.
           </p>
         </motion.div>
 
@@ -67,8 +67,12 @@ export default function Testimonials() {
                     "{testimonial.quote}"
                   </p>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-2xl">
-                      {testimonial.image}
+                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                      <img
+                        src={testimonial.image}
+                        alt={testimonial.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div>
                       <p className="font-semibold">{testimonial.name}</p>
