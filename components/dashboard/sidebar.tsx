@@ -18,7 +18,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import UpgradePlanModal from './upgrade-plan-modal'
+import { useUI } from '@/contexts/UIContext'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -34,7 +34,7 @@ const navigation = [
 export default function Sidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
+  const { openUpgradeModal } = useUI()
   const { user } = useAuth()
   // const router = useRouter()
 
@@ -132,7 +132,7 @@ export default function Sidebar() {
           <div className="border-t border-border p-4 space-y-3">
             {user?.plan !== 'enterprise' && (
               <button
-                onClick={() => setIsUpgradeModalOpen(true)}
+                onClick={openUpgradeModal}
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary/80 to-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:from-primary hover:to-primary/90 transition-all shadow-sm"
               >
                 <Sparkles className="h-4 w-4" />
@@ -156,11 +156,6 @@ export default function Sidebar() {
           </div>
         </div>
       </aside>
-
-      <UpgradePlanModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
-      />
     </>
   )
 }

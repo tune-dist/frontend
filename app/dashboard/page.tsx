@@ -49,17 +49,31 @@ const itemVariants = {
 export default function DashboardPage() {
   const { user } = useAuth();
   const [releases, setReleases] = useState<Release[]>([]);
+  const [totalReleases, setTotalReleases] = useState(0);
+  const [pendingReleases, setPendingReleases] = useState(0);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchData = async () => {
       try {
-        const [releasesData, statsData] = await Promise.all([
-          getReleases({ limit: 5 }),
+        const isSuperAdmin = user.role === 'super_admin';
+        const [releasesData, pendingData, statsData] = await Promise.all([
+          getReleases({
+            limit: 5,
+            ...(isSuperAdmin ? {} : { userId: user._id, status: 'Approved' })
+          }),
+          getReleases({
+            limit: 1,
+            ...(isSuperAdmin ? { status: 'In Process' as any } : { userId: user._id, status: 'In Process' as any })
+          }),
           getUsageStats(),
         ]);
         setReleases(releasesData.releases);
+        setTotalReleases(releasesData.pagination.total);
+        setPendingReleases(pendingData.pagination.total);
         setUsageStats(statsData);
       } catch (error) {
         toast.error("Failed to fetch dashboard data");
@@ -70,7 +84,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, []);
+  }, [user]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -124,7 +138,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           <motion.div variants={itemVariants}>
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -135,9 +149,24 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-xl font-bold">
-                  {usageStats?.releases.total || 0}
+                  {totalReleases}
                 </div>
-                <span>This Month</span>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Pending Releases
+                </CardTitle>
+                <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold">
+                  {pendingReleases}
+                </div>
               </CardContent>
             </Card>
           </motion.div>

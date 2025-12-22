@@ -233,17 +233,11 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 border border-border rounded-lg">
                   <p className="text-sm text-muted-foreground">Total Releases</p>
                   <p className="text-2xl font-bold mt-1">
                     {user?.usage.totalReleases || 0}
-                  </p>
-                </div>
-                <div className="p-4 border border-border rounded-lg">
-                  <p className="text-sm text-muted-foreground">This Month</p>
-                  <p className="text-2xl font-bold mt-1">
-                    {user?.usage.releasesThisMonth || 0}
                   </p>
                 </div>
                 <div className="p-4 border border-border rounded-lg">

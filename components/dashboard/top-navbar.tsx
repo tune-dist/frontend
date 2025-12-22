@@ -2,17 +2,19 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Bell, Search, Settings, LogOut, User as UserIcon, ChevronDown, Upload } from 'lucide-react'
+import { Bell, Search, Settings, LogOut, User as UserIcon, ChevronDown, Upload, Zap } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useUI } from '@/contexts/UIContext'
 
 export default function TopNavbar() {
   const { user, logout } = useAuth()
+  const { openUpgradeModal } = useUI()
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:px-6">
+    <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:px-6">
       {/* Search */}
       <div className="flex-1 max-w-md">
         <div className="relative">
@@ -26,9 +28,20 @@ export default function TopNavbar() {
       </div>
 
       {/* Right Side Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 ml-auto">
+        {/* Upgrade Button */}
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-primary hover:text-primary hover:bg-primary/10 gap-2 font-bold"
+          onClick={openUpgradeModal}
+        >
+          <Zap className="h-4 w-4 fill-primary" />
+          <span className="hidden sm:inline">Upgrade Plan</span>
+        </Button>
+
         {/* Upload Button */}
-        <Link href="/upload">
+        <Link href="/dashboard/upload">
           <Button size="sm" className="gap-2">
             <Upload className="h-4 w-4" />
             <span className="hidden md:inline">Upload</span>

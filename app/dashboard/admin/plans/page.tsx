@@ -123,7 +123,7 @@ export default function PlanManagementPage() {
                             <Eye className="h-4 w-4" />
                             User View
                         </Button>
-                        <Button className="gap-2 bg-green-500 hover:bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+                        <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_rgba(124,58,237,0.3)]">
                             <Plus className="h-4 w-4" />
                             Create New Plan
                         </Button>
@@ -139,13 +139,13 @@ export default function PlanManagementPage() {
                             whileTap={{ scale: 0.98 }}
                             className={`relative cursor-pointer rounded-3xl p-6 border-2 transition-all duration-300 shadow-xl overflow-hidden
                 ${selectedPlan?.key === plan.key
-                                    ? 'border-green-500/50 bg-green-500/5 shadow-green-500/10'
+                                    ? 'border-primary/50 bg-primary/5 shadow-primary/10'
                                     : 'border-border/50 bg-card/50 hover:bg-card hover:border-border'}`}
                             onClick={() => handleSelectPlan(plan)}
                         >
                             {selectedPlan?.key === plan.key && (
                                 <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-px">
-                                    <Badge className="bg-green-500 text-white rounded-t-none rounded-b-lg border-0 px-4 py-1 text-[10px] uppercase font-bold tracking-widest animate-pulse">
+                                    <Badge className="bg-primary text-primary-foreground rounded-t-none rounded-b-lg border-0 px-4 py-1 text-[10px] uppercase font-bold tracking-widest animate-pulse">
                                         Editing Now
                                     </Badge>
                                 </div>
@@ -156,13 +156,13 @@ export default function PlanManagementPage() {
                                     <h3 className="text-2xl font-bold">{plan.title}</h3>
                                     <p className="text-sm text-muted-foreground">{plan.description || (plan.key === 'free' ? 'Free Tier' : 'Paid Tier')}</p>
                                 </div>
-                                <Badge className={`${plan.isActive ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'} border-0 uppercase text-[10px] font-bold`}>
+                                <Badge className={`${plan.isActive ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'} border-0 uppercase text-[10px] font-bold`}>
                                     {plan.isActive ? 'Active' : 'Inactive'}
                                 </Badge>
                             </div>
 
                             <div className="text-4xl font-black mb-8">
-                                {plan.priceDisplay || (plan.pricePerYear / 12).toFixed(2)}<span className="text-lg text-muted-foreground font-normal">/mo</span>
+                                {plan.priceDisplay || (plan.pricePerYear).toFixed(2)}<span className="text-lg text-muted-foreground font-normal">/yr</span>
                             </div>
 
                             <div className="flex items-center justify-between pt-6 border-t border-border/50">
@@ -172,7 +172,7 @@ export default function PlanManagementPage() {
                                         <span>24k Users</span>
                                     </div>
                                     <div className="w-px h-8 bg-border/50" />
-                                    <div className="flex items-center gap-1 text-green-500">
+                                    <div className="flex items-center gap-1 text-primary">
                                         <BarChart3 className="h-4 w-4" />
                                         <span>+12%</span>
                                     </div>
@@ -351,7 +351,7 @@ export default function PlanManagementPage() {
                                                     <Switch
                                                         checked={editForm.limits?.allowConcurrent || false}
                                                         onCheckedChange={(checked: boolean) => handleLimitChange('allowConcurrent', checked)}
-                                                        className="data-[state=checked]:bg-green-500"
+                                                        className="data-[state=checked]:bg-primary"
                                                     />
                                                 </div>
                                             </div>
@@ -415,7 +415,7 @@ export default function PlanManagementPage() {
                             </div>
 
                             {/* Sticky Save Footer-ish */}
-                            <div className="p-6 rounded-3xl bg-green-500/5 border border-green-500/20 mt-8 space-y-4">
+                            <div className="p-6 rounded-3xl bg-primary/5 border border-primary/20 mt-8 space-y-4">
                                 <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">
                                     Last updated: {selectedPlan?.updatedAt ? new Date(selectedPlan.updatedAt).toLocaleDateString() : 'Never'}
                                 </div>
@@ -428,7 +428,7 @@ export default function PlanManagementPage() {
                                         Discard
                                     </Button>
                                     <Button
-                                        className="flex-[2] bg-green-500 hover:bg-green-600 text-white rounded-xl font-black shadow-lg shadow-green-500/20 py-6 h-auto"
+                                        className="flex-[2] bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-black shadow-lg shadow-primary/20 py-6 h-auto"
                                         onClick={handleSave}
                                         disabled={isSaving}
                                     >

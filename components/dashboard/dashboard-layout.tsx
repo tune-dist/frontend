@@ -3,6 +3,26 @@
 import Sidebar from './sidebar'
 import TopNavbar from './top-navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { UIProvider, useUI } from '@/contexts/UIContext'
+import UpgradePlanModal from './upgrade-plan-modal'
+
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
+  const { isUpgradeModalOpen, closeUpgradeModal } = useUI()
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar />
+      <div className="lg:pl-64">
+        <TopNavbar />
+        <main className="p-4 lg:p-6">{children}</main>
+      </div>
+      <UpgradePlanModal
+        isOpen={isUpgradeModalOpen}
+        onClose={closeUpgradeModal}
+      />
+    </div>
+  )
+}
 
 export default function DashboardLayout({
   children,
@@ -11,13 +31,9 @@ export default function DashboardLayout({
 }) {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Sidebar />
-        <div className="lg:pl-64">
-          <TopNavbar />
-          <main className="p-4 lg:p-6">{children}</main>
-        </div>
-      </div>
+      <UIProvider>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      </UIProvider>
     </ProtectedRoute>
   )
 }

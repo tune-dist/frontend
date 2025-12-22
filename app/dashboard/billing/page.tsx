@@ -21,7 +21,7 @@ import toast from 'react-hot-toast';
 
 export default function BillingPage() {
     const { user } = useAuth();
-    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+    // const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
     const [plans, setPlans] = useState<Plan[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -44,7 +44,7 @@ export default function BillingPage() {
 
     // Get current plan details
     const currentPlan = plans.find(p => p.key === user?.plan);
-    const currentPlanPrice = currentPlan ? currentPlan.pricePerYear / 12 : 0;
+    const currentPlanPrice = currentPlan ? currentPlan.pricePerYear : 0;
 
     // Mock subscription data - will be replaced with API
     const currentSubscription = {
@@ -58,7 +58,7 @@ export default function BillingPage() {
         {
             id: '1',
             date: 'Sept 24, 2025',
-            description: `${currentPlan?.title || 'Plan'} (Monthly)`,
+            description: `${currentPlan?.title || 'Plan'} (Yearly)`,
             amount: currentPlanPrice,
             status: 'paid',
             invoiceUrl: '#'
@@ -82,7 +82,7 @@ export default function BillingPage() {
     ];
 
     const getPrice = (plan: Plan) => {
-        return billingCycle === 'monthly' ? plan.pricePerYear / 12 : plan.pricePerYear / 12;
+        return plan.pricePerYear;
     };
 
     const getSavings = () => {
@@ -114,12 +114,12 @@ export default function BillingPage() {
                 </div>
 
                 {/* Active Subscription */}
-                <Card className="bg-gradient-to-br from-green-500/10 via-background to-background border-green-500/20 overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-emerald-500" />
+                <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/20 overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary/60" />
                     <CardContent className="p-8">
                         <div className="flex items-start justify-between mb-6">
                             <div>
-                                <Badge className="bg-green-500/20 text-green-500 border-0 mb-3 uppercase text-[10px] font-bold">
+                                <Badge className="bg-primary/20 text-primary border-0 mb-3 uppercase text-[10px] font-bold">
                                     Active Subscription
                                 </Badge>
                                 <h2 className="text-3xl font-bold mb-2">{currentPlan?.title || 'No Plan'}</h2>
@@ -130,15 +130,17 @@ export default function BillingPage() {
                             <div className="text-right">
                                 <div className="text-4xl font-black">
                                     ₹{currentPlanPrice.toFixed(2)}
-                                    <span className="text-lg text-muted-foreground font-normal">/mo</span>
+                                    <span className="text-lg text-muted-foreground font-normal">/yr</span>
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1">Next billing: {currentSubscription.nextBilling}</p>
+                                {currentPlan?.key !== 'free' && (
+                                    <p className="text-xs text-muted-foreground mt-1">Next billing: {currentSubscription.nextBilling}</p>
+                                )}
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div className="flex items-center gap-3 p-4 rounded-2xl bg-card/50 border border-border/50">
-                                <div className="p-2 rounded-xl bg-green-500/10 text-green-500">
+                                <div className="p-2 rounded-xl bg-primary/10 text-primary">
                                     <CheckCircle2 className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -169,7 +171,7 @@ export default function BillingPage() {
                         </div>
 
                         <div className="flex gap-3">
-                            <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold h-12">
+                            <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold h-12">
                                 Manage Subscription
                             </Button>
                             <Button variant="outline" className="flex-1 rounded-xl font-bold h-12 border-border/50">
@@ -189,27 +191,7 @@ export default function BillingPage() {
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-2 bg-card border border-border/50 rounded-xl p-1">
-                            <Button
-                                size="sm"
-                                variant={billingCycle === 'monthly' ? 'default' : 'ghost'}
-                                onClick={() => setBillingCycle('monthly')}
-                                className="rounded-lg font-bold"
-                            >
-                                Monthly
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant={billingCycle === 'yearly' ? 'default' : 'ghost'}
-                                onClick={() => setBillingCycle('yearly')}
-                                className="rounded-lg font-bold"
-                            >
-                                Yearly
-                                <Badge className="ml-2 bg-green-500 text-white border-0 text-[9px]">
-                                    SAVE {getSavings()}%
-                                </Badge>
-                            </Button>
-                        </div>
+                        {/* Toggle removed as per requirement */}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -221,12 +203,12 @@ export default function BillingPage() {
                                     key={plan.key}
                                     whileHover={{ scale: 1.02 }}
                                     className={`relative rounded-3xl p-8 border-2 transition-all ${isCurrent
-                                        ? 'border-green-500/50 bg-green-500/5 shadow-xl shadow-green-500/10'
+                                        ? 'border-primary/50 bg-primary/5 shadow-xl shadow-primary/10'
                                         : 'border-border/50 bg-card/50 hover:border-border'
                                         }`}
                                 >
                                     {isCurrent && (
-                                        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-500 text-white border-0 uppercase text-[10px] font-bold px-4">
+                                        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground border-0 uppercase text-[10px] font-bold px-4">
                                             Current Plan
                                         </Badge>
                                     )}
@@ -239,19 +221,15 @@ export default function BillingPage() {
                                     <div className="mb-8">
                                         <div className="text-4xl font-black">
                                             ₹{getPrice(plan).toFixed(2)}
-                                            <span className="text-lg text-muted-foreground font-normal">/mo</span>
+                                            <span className="text-lg text-muted-foreground font-normal">/yr</span>
                                         </div>
-                                        {billingCycle === 'yearly' && plan.pricePerYear > 0 && (
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Billed ₹{plan.pricePerYear} annually
-                                            </p>
-                                        )}
+
                                     </div>
 
                                     <div className="space-y-3 mb-8">
                                         {(plan.features || []).map((feature, idx) => (
                                             <div key={idx} className="flex items-center gap-3">
-                                                <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                                                <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                                                 <span className="text-sm font-medium">{feature}</span>
                                             </div>
                                         ))}
@@ -260,15 +238,15 @@ export default function BillingPage() {
                                     {isCurrent ? (
                                         <Button
                                             disabled
-                                            className="w-full rounded-xl py-6 font-bold bg-green-500/20 text-green-500 hover:bg-green-500/20"
+                                            className="w-full rounded-xl py-6 font-bold bg-primary/20 text-primary hover:bg-primary/20"
                                         >
                                             Current Plan
                                         </Button>
                                     ) : (
                                         <Button
                                             className={`w-full rounded-xl py-6 font-bold ${plan.key.includes('label') || plan.key.includes('premium')
-                                                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
-                                                    : 'bg-primary hover:bg-primary/90'
+                                                ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
+                                                : 'bg-primary hover:bg-primary/90'
                                                 }`}
                                         >
                                             {planPrice > currentPlanPrice ? (
@@ -286,14 +264,14 @@ export default function BillingPage() {
                         })}
                     </div>
 
-                    <Button variant="outline" className="w-full border-dashed border-2 rounded-2xl py-8 hover:bg-primary/5 hover:border-primary/50">
+                    {/* <Button variant="outline" className="w-full border-dashed border-2 rounded-2xl py-8 hover:bg-primary/5 hover:border-primary/50">
                         <Zap className="h-5 w-5 mr-2" />
                         View Label Features
-                    </Button>
+                    </Button> */}
                 </div>
 
                 {/* Billing History */}
-                <div className="space-y-6">
+                {/* <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold">Billing History</h2>
                     </div>
@@ -317,7 +295,7 @@ export default function BillingPage() {
                                             <td className="p-4 text-muted-foreground">{transaction.description}</td>
                                             <td className="p-4 font-bold">₹{transaction.amount}</td>
                                             <td className="p-4">
-                                                <Badge className="bg-green-500/20 text-green-500 border-0 uppercase text-[10px] font-bold">
+                                                <Badge className="bg-primary/20 text-primary border-0 uppercase text-[10px] font-bold">
                                                     {transaction.status}
                                                 </Badge>
                                             </td>
@@ -339,7 +317,7 @@ export default function BillingPage() {
                             View all transactions
                         </Button>
                     </div>
-                </div>
+                </div> */}
             </div>
         </DashboardLayout>
     );

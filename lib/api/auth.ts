@@ -20,7 +20,6 @@ export interface User {
   role: 'super_admin' | 'admin' | 'release_manager' | 'artist';
   planStartDate?: string;
   usage: {
-    releasesThisMonth: number;
     totalReleases: number;
     storageUsed: number;
   };
