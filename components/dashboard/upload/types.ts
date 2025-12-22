@@ -124,7 +124,18 @@ export const uploadFormSchema = z.object({
     tracks: z.array(trackSchema).default([]),
 
     // Release Details
-    releaseDate: z.string().optional(),
+    releaseDate: z.string().min(1, 'Release date is required').refine((val) => {
+        if (!val) return false;
+        const minDate = new Date();
+        minDate.setDate(minDate.getDate() + 2);
+        const yyyy = minDate.getFullYear();
+        const mm = String(minDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(minDate.getDate()).padStart(2, '0');
+        const minStr = `${yyyy}-${mm}-${dd}`;
+        return val >= minStr;
+    }, {
+        message: 'Release date must be at least 2 days from today'
+    }),
     labelName: z.string().optional(),
     distributionTerritories: z.array(z.string()).default(['Worldwide']),
 
