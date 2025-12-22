@@ -391,7 +391,7 @@ export default function ReleasesPage() {
                       <TableRow>
                         <TableHead className="w-[80px]">Poster</TableHead>
                         <TableHead>Title</TableHead>
-                        <TableHead>Member</TableHead>
+                        {/* <TableHead>Member</TableHead> */}
                         <TableHead>Artist</TableHead>
                         <TableHead>UPC/ISRC</TableHead>
                         <TableHead>Approved By</TableHead>
@@ -463,7 +463,7 @@ export default function ReleasesPage() {
                             <TableCell className="font-medium">
                               {release.title}
                             </TableCell>
-                            <TableCell>
+                            {/* <TableCell>
                               <div className="flex flex-col">
                                 <span className="text-sm font-medium">
                                   {typeof release.userId === "object"
@@ -476,7 +476,7 @@ export default function ReleasesPage() {
                                   </span>
                                 )}
                               </div>
-                            </TableCell>
+                            </TableCell> */}
                             <TableCell>
                               <span className="text-sm text-muted-foreground">
                                 {[

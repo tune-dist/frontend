@@ -241,9 +241,9 @@ export default function ProfilePage() {
                   </p>
                 </div>
                 <div className="p-4 border border-border rounded-lg">
-                  <p className="text-sm text-muted-foreground">Storage Used</p>
+                  <p className="text-sm text-muted-foreground">Total Stream</p>
                   <p className="text-2xl font-bold mt-1">
-                    {((user?.usage.storageUsed || 0) / (1024 * 1024)).toFixed(2)} MB
+                    {user?.usage.totalStreams || 0}
                   </p>
                 </div>
               </div>

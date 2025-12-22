@@ -141,6 +141,13 @@ export default function CreditsStep({
     }
   }, [isSingle, writerFields.length, appendWriter]);
 
+  // Ensure at least one composer for singles if none exist
+  useEffect(() => {
+    if (isSingle && composerFields.length === 0) {
+      appendComposer("");
+    }
+  }, [isSingle, composerFields.length, appendComposer]);
+
   const addWriter = () => {
     appendWriter("");
   };
