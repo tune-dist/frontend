@@ -37,7 +37,11 @@ import CoverArtStep from "@/components/dashboard/upload/cover-art-step";
 import CreditsStep from "@/components/dashboard/upload/credits-step";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage } from "@/lib/api/releases";
-import { getPlanLimits, getPlanByKey, getPlanFieldRules } from "@/lib/api/plans";
+import {
+  getPlanLimits,
+  getPlanByKey,
+  getPlanFieldRules,
+} from "@/lib/api/plans";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
@@ -79,21 +83,22 @@ export default function UploadPage() {
   useEffect(() => {
     if (!loading && !user) {
       // Redirect to auth if not logged in
-      router.push('/auth');
-    } else if (!loading && user?.role === 'super_admin') {
-      router.push('/dashboard');
+      router.push("/auth");
+    } else if (!loading && user?.role === "super_admin") {
+      router.push("/dashboard");
     }
   }, [user, loading, router]);
 
   // Scroll to top when step changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentStep]);
-
 
   // Track modal state
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
-  const [editingTrackIndex, setEditingTrackIndex] = useState<number | null>(null);
+  const [editingTrackIndex, setEditingTrackIndex] = useState<number | null>(
+    null
+  );
 
   const openTrackModal = (index: number) => {
     setEditingTrackIndex(index);
@@ -113,7 +118,10 @@ export default function UploadPage() {
         writers,
         composers,
       };
-      form.setValue("tracks", updatedTracks, { shouldValidate: true, shouldDirty: true });
+      form.setValue("tracks", updatedTracks, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
     }
   };
 
@@ -140,7 +148,7 @@ export default function UploadPage() {
       instrumental: "no",
       writers: [],
       composers: [],
-      copyright: `${process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib"} under exclusive license to Madverse Music`,
+      copyright: process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib",
       producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib"],
     },
     mode: "onChange",
@@ -183,10 +191,20 @@ export default function UploadPage() {
         .catch((err) => console.error("Failed to fetch artist usage", err));
 
       // Fetch field rules
-      const planKey = (user.plan as string) || 'free';
+      const planKey = (user.plan as string) || "free";
       getPlanFieldRules(planKey, true)
         .then((rules) => setFieldRules(rules))
         .catch((err) => console.error("Failed to fetch field rules", err));
+
+      // Update copyright default based on plan
+      if (planKey !== "free") {
+        const defaultLabel =
+          process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib";
+        form.setValue(
+          "copyright",
+          `${defaultLabel} under exclusive license to Madverse Music`
+        );
+      }
     }
   }, [user]);
 
@@ -205,11 +223,17 @@ export default function UploadPage() {
   const scrollToError = () => {
     // Wait a bit for React to update the DOM with error states/classes
     setTimeout(() => {
-      const firstError = document.querySelector(".border-red-500, [aria-invalid='true'], .text-red-500");
+      const firstError = document.querySelector(
+        ".border-red-500, [aria-invalid='true'], .text-red-500"
+      );
       if (firstError) {
         firstError.scrollIntoView({ behavior: "smooth", block: "center" });
         // If it's an input, focus it
-        if (firstError instanceof HTMLInputElement || firstError instanceof HTMLTextAreaElement || firstError instanceof HTMLSelectElement) {
+        if (
+          firstError instanceof HTMLInputElement ||
+          firstError instanceof HTMLTextAreaElement ||
+          firstError instanceof HTMLSelectElement
+        ) {
           firstError.focus();
         }
       }
@@ -221,21 +245,17 @@ export default function UploadPage() {
 
     // Step-based validation
     switch (currentStep) {
-      case 1: { // Basic Info
+      case 1: {
+        // Basic Info
         // Fetch plan data first to know what fields are required
-        const planKey = (user?.plan as string) || 'free';
+        const planKey = (user?.plan as string) || "free";
         const [limits, fieldRules] = await Promise.all([
           getPlanLimits(planKey, true),
-          getPlanFieldRules(planKey, true)
+          getPlanFieldRules(planKey, true),
         ]);
 
         // Build validation fields array based on plan
-        const fieldsToValidate = [
-          "title",
-          "artistName",
-          "language",
-          "format",
-        ];
+        const fieldsToValidate = ["title", "artistName", "language", "format"];
 
         // Add featuredArtist to validation if required by plan
         if (fieldRules.featuredArtists?.required) {
@@ -246,27 +266,41 @@ export default function UploadPage() {
 
         // Manually check featuredArtist if required by plan
         // form.trigger doesn't pick up dynamic validation because the Zod schema defines it as optional
-        if (fieldRules.featuredArtists?.required && !formData.featuringArtist?.trim()) {
-          form.setError("featuringArtist", {
-            type: "required",
-            message: "Featuring artist is required",
-          }, { shouldFocus: true });
+        if (
+          fieldRules.featuredArtists?.required &&
+          !formData.featuringArtist?.trim()
+        ) {
+          form.setError(
+            "featuringArtist",
+            {
+              type: "required",
+              message: "Featuring artist is required",
+            },
+            { shouldFocus: true }
+          );
           isValid = false;
         }
 
         // Check explicit lyrics validation using 'isExplicit' rule from API
-        if (!formData.explicitLyrics || formData.explicitLyrics === '') {
-          form.setError("explicitLyrics", {
-            type: "required",
-            message: "Explicit lyrics is required",
-          }, { shouldFocus: true });
+        if (!formData.explicitLyrics || formData.explicitLyrics === "") {
+          form.setError(
+            "explicitLyrics",
+            {
+              type: "required",
+              message: "Explicit lyrics is required",
+            },
+            { shouldFocus: true }
+          );
           isValid = false;
         }
 
         if (isValid) {
           // Check Artist Limits
           if (limits.artistLimit < Infinity) {
-            const currentArtists = [formData.artistName, ...(formData.artists || []).map((a: any) => a.name)].filter(Boolean);
+            const currentArtists = [
+              formData.artistName,
+              ...(formData.artists || []).map((a: any) => a.name),
+            ].filter(Boolean);
 
             // Count how many NEW artists are being introduced
             let newArtistsCount = 0;
@@ -274,8 +308,8 @@ export default function UploadPage() {
 
             for (const artist of Array.from(uniqueCurrentArtists)) {
               // Normalize check (case insensitive or exact? backend uses distinct so exact usually, but let's assume exact for now)
-              const isUsed = usedArtists.some(used => {
-                const usedName = typeof used === 'string' ? used : used.name;
+              const isUsed = usedArtists.some((used) => {
+                const usedName = typeof used === "string" ? used : used.name;
                 return usedName === artist;
               });
 
@@ -289,8 +323,14 @@ export default function UploadPage() {
             // Actually simple check: Used + New <= Limit
             const totalUsedCount = usedArtists.length;
 
-            if ((totalUsedCount + newArtistsCount) > limits.artistLimit) {
-              toast.error(`You have reached your artist limit (${limits.artistLimit}) for the ${planKey === 'creator_plus' ? 'Creator+' : planKey} plan.`);
+            if (totalUsedCount + newArtistsCount > limits.artistLimit) {
+              toast.error(
+                `You have reached your artist limit (${
+                  limits.artistLimit
+                }) for the ${
+                  planKey === "creator_plus" ? "Creator+" : planKey
+                } plan.`
+              );
               isValid = false;
             }
           }
@@ -358,7 +398,10 @@ export default function UploadPage() {
           const writersRequired = fieldRules.songwriters?.required !== false;
           if (writersAllowed) {
             // If required, we should convert to required array check via zod manually or check length
-            if (writersRequired && (!formData.writers || formData.writers.length === 0)) {
+            if (
+              writersRequired &&
+              (!formData.writers || formData.writers.length === 0)
+            ) {
               toast.error("At least one songwriter is required");
               isValid = false;
               break; // Stop here
@@ -371,7 +414,10 @@ export default function UploadPage() {
           const composersAllowed = fieldRules.composers?.allow !== false;
           const composersRequired = fieldRules.composers?.required !== false;
           if (composersAllowed) {
-            if (composersRequired && (!formData.composers || formData.composers.length === 0)) {
+            if (
+              composersRequired &&
+              (!formData.composers || formData.composers.length === 0)
+            ) {
               toast.error("At least one composer is required");
               isValid = false;
               break;
@@ -383,8 +429,14 @@ export default function UploadPage() {
           const producersAllowed = fieldRules.producers?.allow !== false;
           const producersRequired = fieldRules.producers?.required !== false;
           if (producersAllowed) {
-            if (producersRequired && (!formData.producers || formData.producers.length === 0)) {
-              form.setError("producers", { type: "required", message: "At least one producer is required" });
+            if (
+              producersRequired &&
+              (!formData.producers || formData.producers.length === 0)
+            ) {
+              form.setError("producers", {
+                type: "required",
+                message: "At least one producer is required",
+              });
               isValid = false;
               break;
             }
@@ -396,7 +448,10 @@ export default function UploadPage() {
           const copyrightRequired = fieldRules.copyright?.required === true;
           if (copyrightAllowed) {
             if (copyrightRequired && !formData.copyright) {
-              form.setError("copyright", { type: "required", message: "Copyright is required" });
+              form.setError("copyright", {
+                type: "required",
+                message: "Copyright is required",
+              });
               isValid = false;
               break;
             }
@@ -454,7 +509,11 @@ export default function UploadPage() {
                   break;
                 }
                 if (!nameRegex.test(sw.trim())) {
-                  toast.error(`Track ${i + 1}: Invalid writer name "${sw}". Must be "Firstname Lastname"`);
+                  toast.error(
+                    `Track ${
+                      i + 1
+                    }: Invalid writer name "${sw}". Must be "Firstname Lastname"`
+                  );
                   hasError = true;
                   break;
                 }
@@ -466,7 +525,11 @@ export default function UploadPage() {
               if (track.composers) {
                 for (const comp of track.composers) {
                   if (comp?.trim() && !nameRegex.test(comp.trim())) {
-                    toast.error(`Track ${i + 1}: Invalid composer name "${comp}". Must be "Firstname Lastname"`);
+                    toast.error(
+                      `Track ${
+                        i + 1
+                      }: Invalid composer name "${comp}". Must be "Firstname Lastname"`
+                    );
                     hasError = true;
                     break;
                   }
@@ -482,7 +545,7 @@ export default function UploadPage() {
 
         // Validate Artist Limit for all formats
         if (isValid) {
-          const planKey = (user?.plan as string) || 'free';
+          const planKey = (user?.plan as string) || "free";
           const limits = await getPlanLimits(planKey);
 
           if (limits.artistLimit < Infinity) {
@@ -519,8 +582,8 @@ export default function UploadPage() {
             let newArtistsCount = 0;
             for (const artist of Array.from(uniqueArtists)) {
               // Normalize check: usedArtists can be string[] or object[]
-              const isUsed = usedArtists.some(used => {
-                const usedName = typeof used === 'string' ? used : used.name;
+              const isUsed = usedArtists.some((used) => {
+                const usedName = typeof used === "string" ? used : used.name;
                 return usedName === artist;
               });
 
@@ -531,9 +594,14 @@ export default function UploadPage() {
 
             // Check if exceeds limit
             const totalUsedCount = usedArtists.length;
-            if ((totalUsedCount + newArtistsCount) > limits.artistLimit) {
-              const planName = planKey === 'creator_plus' ? 'Creator+' : planKey.charAt(0).toUpperCase() + planKey.slice(1);
-              toast.error(`You have reached your artist limit (${limits.artistLimit}) for the ${planName} plan.`);
+            if (totalUsedCount + newArtistsCount > limits.artistLimit) {
+              const planName =
+                planKey === "creator_plus"
+                  ? "Creator+"
+                  : planKey.charAt(0).toUpperCase() + planKey.slice(1);
+              toast.error(
+                `You have reached your artist limit (${limits.artistLimit}) for the ${planName} plan.`
+              );
               isValid = false;
             }
           }
@@ -567,11 +635,11 @@ export default function UploadPage() {
   };
 
   const onSubmit = async (data: UploadFormData) => {
-    console.log(data, 'datatat')
+    console.log(data, "datatat");
     try {
       // Last check - ensure explicitLyrics is mapped to isExplicit
       // We do this inside submitNewRelease but let's be safe
-      console.log(data, 'datatat')
+      console.log(data, "datatat");
       const response = await submitNewRelease(data as any);
       toast.success("Release submitted successfully!");
       router.push("/dashboard/releases");
@@ -594,7 +662,6 @@ export default function UploadPage() {
       setFormData,
       usedArtists,
     };
-
 
     switch (currentStep) {
       case 1:
@@ -632,27 +699,33 @@ export default function UploadPage() {
   // Check for Plan Restrictions
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(true);
   const [canUpload, setCanUpload] = useState(true);
-  const [planInfo, setPlanInfo] = useState<{ key: string; title: string; allowConcurrent: boolean } | null>(null);
+  const [planInfo, setPlanInfo] = useState<{
+    key: string;
+    title: string;
+    allowConcurrent: boolean;
+  } | null>(null);
 
   useEffect(() => {
     const checkEligibility = async () => {
       if (!user) return;
 
-      const planKey = (user?.plan as string) || 'free';
+      const planKey = (user?.plan as string) || "free";
 
       try {
         const limits = await getPlanLimits(planKey);
         const plan = await getPlanByKey(planKey);
 
-        const planTitle = plan?.title || planKey.charAt(0).toUpperCase() + planKey.slice(1).replace('_', ' ');
+        const planTitle =
+          plan?.title ||
+          planKey.charAt(0).toUpperCase() + planKey.slice(1).replace("_", " ");
 
         // Debug logging
-        console.log('Plan eligibility check:', {
+        console.log("Plan eligibility check:", {
           planKey,
           planTitle,
           allowConcurrent: limits.allowConcurrent,
           limits,
-          planFromDB: plan?.limits
+          planFromDB: plan?.limits,
         });
 
         setPlanInfo({
@@ -663,10 +736,12 @@ export default function UploadPage() {
 
         // If plan allows concurrent uploads, we don't block based on 'In Process' status
         if (limits.allowConcurrent) {
-          console.log('Plan allows concurrent uploads, allowing access');
+          console.log("Plan allows concurrent uploads, allowing access");
           setCanUpload(true);
         } else {
-          console.log('Plan does not allow concurrent uploads, checking for In Process releases');
+          console.log(
+            "Plan does not allow concurrent uploads, checking for In Process releases"
+          );
           // For plans that don't allow concurrent (e.g. Free)
           try {
             // Check for 'In Process' releases
@@ -696,8 +771,7 @@ export default function UploadPage() {
     checkEligibility();
   }, [user]);
 
-
-  if (loading || !user || user?.role === 'super_admin') {
+  if (loading || !user || user?.role === "super_admin") {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
@@ -726,9 +800,9 @@ export default function UploadPage() {
           </div>
           <h1 className="text-3xl font-bold">Release Limit Reached</h1>
           <p className="text-muted-foreground text-lg max-w-lg mx-auto">
-            You are on the <strong>{planInfo?.title || 'Free Plan'}</strong>, which allows only one
-            active release at a time. You currently have a release that is{" "}
-            <strong>In Process</strong>.
+            You are on the <strong>{planInfo?.title || "Free Plan"}</strong>,
+            which allows only one active release at a time. You currently have a
+            release that is <strong>In Process</strong>.
           </p>
           <p className="text-sm text-muted-foreground">
             Please wait for your current release to be distributed or rejected
@@ -784,12 +858,13 @@ export default function UploadPage() {
                       <div key={step.id} className="flex items-center">
                         <div className="flex flex-col items-center">
                           <div
-                            className={`h-10 w-10 rounded-full flex items-center justify-center ${isActive
-                              ? "bg-primary text-primary-foreground"
-                              : isCompleted
+                            className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                              isActive
+                                ? "bg-primary text-primary-foreground"
+                                : isCompleted
                                 ? "bg-primary/20 text-primary"
                                 : "bg-muted text-muted-foreground"
-                              }`}
+                            }`}
                           >
                             <Icon className="h-5 w-5" />
                           </div>
@@ -799,8 +874,9 @@ export default function UploadPage() {
                         </div>
                         {index < steps.length - 1 && (
                           <div
-                            className={`h-0.5 w-12 mx-2 ${isCompleted ? "bg-primary" : "bg-muted"
-                              }`}
+                            className={`h-0.5 w-12 mx-2 ${
+                              isCompleted ? "bg-primary" : "bg-muted"
+                            }`}
                           />
                         )}
                       </div>
@@ -847,7 +923,7 @@ export default function UploadPage() {
                       {fieldRules.copyright?.allow !== false && (
                         <div className="space-y-1">
                           <Label htmlFor="copyright">
-                            Copyright©{fieldRules.copyright?.required && " *"}
+                            C-Line©{fieldRules.copyright?.required && " *"}
                           </Label>
                           <Input
                             id="copyright"
@@ -855,24 +931,31 @@ export default function UploadPage() {
                             readOnly={user?.plan === "free"}
                             {...register("copyright", {
                               onChange: (e) => {
-                                const suffix = " under exclusive license to Madverse Music";
+                                const suffix =
+                                  " under exclusive license to Madverse Music";
                                 const marker = " under exclusive license";
                                 let value = e.target.value;
                                 let content = "";
 
                                 const markerIndex = value.lastIndexOf(marker);
                                 if (markerIndex !== -1) {
-                                  content = value.substring(0, markerIndex).trim();
+                                  content = value
+                                    .substring(0, markerIndex)
+                                    .trim();
                                 } else {
                                   content = value.replace(suffix, "").trim();
                                 }
 
                                 if (content) {
-                                  setValue("copyright", `${content}${suffix}`, { shouldValidate: true });
+                                  setValue("copyright", `${content}${suffix}`, {
+                                    shouldValidate: true,
+                                  });
                                 } else {
-                                  setValue("copyright", "", { shouldValidate: true });
+                                  setValue("copyright", "", {
+                                    shouldValidate: true,
+                                  });
                                 }
-                              }
+                              },
                             })}
                           />
                           {user?.plan === "free" && (
@@ -892,7 +975,7 @@ export default function UploadPage() {
                       {fieldRules.producers?.allow !== false && (
                         <div className="space-y-2 mt-4">
                           <Label htmlFor="producers">
-                            Producers℗{fieldRules.producers?.required && " *"}
+                            P-Line℗{fieldRules.producers?.required && " *"}
                           </Label>
                           <Input
                             id="producers"
@@ -941,9 +1024,7 @@ export default function UploadPage() {
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   ) : (
-                    <Button type="submit">
-                      Submit for Review
-                    </Button>
+                    <Button type="submit">Submit for Review</Button>
                   )}
                 </div>
               </motion.div>
@@ -954,7 +1035,11 @@ export default function UploadPage() {
       <TrackEditModal
         isOpen={isTrackModalOpen}
         onClose={() => setIsTrackModalOpen(false)}
-        track={editingTrackIndex !== null && form.getValues("tracks") ? form.getValues("tracks")[editingTrackIndex] : null}
+        track={
+          editingTrackIndex !== null && form.getValues("tracks")
+            ? form.getValues("tracks")[editingTrackIndex]
+            : null
+        }
         trackIndex={editingTrackIndex}
         onSave={saveTrackModal}
         usedArtists={usedArtists}
