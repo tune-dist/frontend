@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Bell, Search, Settings, LogOut, User as UserIcon, ChevronDown, Upload, Zap } from 'lucide-react'
+import { Bell, Search, Settings, LogOut, User as UserIcon, ChevronDown, Upload, Zap, Menu, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
@@ -10,11 +10,26 @@ import { useUI } from '@/contexts/UIContext'
 
 export default function TopNavbar() {
   const { user, logout } = useAuth()
-  const { openUpgradeModal } = useUI()
+  const { openUpgradeModal, isMobileMenuOpen, toggleMobileMenu } = useUI()
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:px-6">
+      {/* Mobile Menu Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="lg:hidden"
+        onClick={toggleMobileMenu}
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? (
+          <X className="h-6 w-6" />
+        ) : (
+          <Menu className="h-6 w-6" />
+        )}
+      </Button>
+
       {/* Search */}
       <div className="flex-1 max-w-md">
         <div className="relative">

@@ -6,18 +6,31 @@ interface UIContextType {
     isUpgradeModalOpen: boolean
     openUpgradeModal: () => void
     closeUpgradeModal: () => void
+    isMobileMenuOpen: boolean
+    toggleMobileMenu: () => void
+    closeMobileMenu: () => void
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined)
 
 export function UIProvider({ children }: { children: React.ReactNode }) {
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     const openUpgradeModal = () => setIsUpgradeModalOpen(true)
     const closeUpgradeModal = () => setIsUpgradeModalOpen(false)
+    const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev)
+    const closeMobileMenu = () => setIsMobileMenuOpen(false)
 
     return (
-        <UIContext.Provider value={{ isUpgradeModalOpen, openUpgradeModal, closeUpgradeModal }}>
+        <UIContext.Provider value={{
+            isUpgradeModalOpen,
+            openUpgradeModal,
+            closeUpgradeModal,
+            isMobileMenuOpen,
+            toggleMobileMenu,
+            closeMobileMenu
+        }}>
             {children}
         </UIContext.Provider>
     )

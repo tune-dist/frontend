@@ -33,8 +33,7 @@ const navigation = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { openUpgradeModal } = useUI()
+  const { openUpgradeModal, isMobileMenuOpen, closeMobileMenu } = useUI()
   const { user } = useAuth()
   // const router = useRouter()
 
@@ -49,26 +48,11 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 rounded-lg bg-background border border-border hover:bg-accent transition-colors"
-          aria-label="Toggle menu"
-        >
-          {isMobileMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-        </button>
-      </div>
-
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={closeMobileMenu}
         />
       )}
 
@@ -113,7 +97,7 @@ export default function Sidebar() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={closeMobileMenu}
                     className={cn(
                       'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                       isActive
