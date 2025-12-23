@@ -58,12 +58,12 @@ export default function TopNavbar() {
           <Button
             variant="ghost"
             size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 group"
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <UserIcon className="h-4 w-4 text-primary" />
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-black/10 transition-colors">
+                <UserIcon className="h-4 w-4 text-primary group-hover:text-white transition-colors" />
               </div>
               <span className="hidden md:inline text-sm">{user?.fullName || 'User'}</span>
               <ChevronDown className="h-4 w-4" />

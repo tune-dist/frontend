@@ -98,7 +98,7 @@ export default function UsersPage() {
 
     return (
         <DashboardLayout>
-            <div className="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
+            <div className="flex-1 overflow-y-auto scroll-smooth">
                 <div className="max-w-[1400px] mx-auto flex flex-col gap-8">
                     {/* ... content ... */}
                     {/* Page Heading & Actions */}

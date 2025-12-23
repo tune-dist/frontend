@@ -109,7 +109,7 @@ export default function PlanManagementPage() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-8 p-6 max-w-7xl mx-auto">
+            <div className="space-y-8 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1">

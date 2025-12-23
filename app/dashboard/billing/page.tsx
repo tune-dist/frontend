@@ -104,7 +104,7 @@ export default function BillingPage() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-8 p-6 max-w-7xl mx-auto">
+            <div className="space-y-8 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="space-y-2">
                     <h1 className="text-4xl font-extrabold tracking-tight">Plan & Billing</h1>
