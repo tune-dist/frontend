@@ -16,6 +16,7 @@ import {
   Settings,
   CreditCard,
   Sparkles,
+  Youtube,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
+  { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube },
   { name: 'Users', href: '/dashboard/users', icon: User },
   { name: 'Plan Management', href: '/dashboard/admin/plans', icon: Settings },
 ]
@@ -77,7 +79,7 @@ export default function Sidebar() {
             {navigation
               .filter(item => {
                 if (user?.role === 'release_manager') {
-                  return ['Dashboard', 'My Releases', 'Upload Music', 'Billing'].includes(item.name)
+                  return ['Dashboard', 'My Releases', 'Upload Music', 'Billing', 'YouTube Service'].includes(item.name)
                 }
 
                 if (user?.role === 'super_admin') {
