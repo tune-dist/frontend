@@ -19,6 +19,7 @@ import { getPlanByKey, Plan } from '@/lib/api/plans'
 import { getPaymentHistory, PaymentHistoryItem } from '@/lib/api/payments'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import Cookies from 'js-cookie'
+import UpgradePlanModal from '@/components/dashboard/upgrade-plan-modal'
 
 interface UserInfo {
     plan: string
@@ -32,6 +33,7 @@ export default function SubscriptionPage() {
     const [currentPlan, setCurrentPlan] = useState<Plan | null>(null)
     const [payments, setPayments] = useState<PaymentHistoryItem[]>([])
     const [loading, setLoading] = useState(true)
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const { initiatePayment, isLoading: paymentLoading } = useRazorpay()
     const router = useRouter()
 
@@ -68,8 +70,8 @@ export default function SubscriptionPage() {
     }, [])
 
     const handleUpgrade = () => {
-        // Navigate to pricing section
-        router.push('/#pricing')
+        // Open upgrade modal
+        setShowUpgradeModal(true)
     }
 
     const formatDate = (dateString?: string) => {
@@ -249,6 +251,13 @@ export default function SubscriptionPage() {
                     </CardContent>
                 </Card>
             </motion.div>
+
+            {/* Upgrade Plan Modal */}
+            <UpgradePlanModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                currentPlanKey={userInfo?.plan || 'free'}
+            />
         </div>
     )
 }

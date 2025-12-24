@@ -1,29 +1,41 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check } from 'lucide-react'
+import { X, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAllPlans, Plan } from '@/lib/api/plans'
+import { useRazorpay } from '@/hooks/useRazorpay'
+import { useAuth } from '@/contexts/AuthContext'
+import toast from 'react-hot-toast'
 
 interface UpgradePlanModalProps {
     isOpen: boolean
     onClose: () => void
+    currentPlanKey?: string
 }
 
-export default function UpgradePlanModal({ isOpen, onClose }: UpgradePlanModalProps) {
+export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'free' }: UpgradePlanModalProps) {
     const [plans, setPlans] = useState<Plan[]>([])
     const [loading, setLoading] = useState(true)
+    const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+    const { initiatePayment, isLoading: paymentLoading } = useRazorpay()
+    const { user, refreshUser } = useAuth()
+    const router = useRouter()
 
     useEffect(() => {
         if (isOpen && plans.length === 0) {
             const fetchPlans = async () => {
                 try {
                     const data = await getAllPlans()
-                    setPlans(data.sort((a, b) => a.pricePerYear - b.pricePerYear))
+                    // Sort by price and filter out current plan if needed
+                    const sortedPlans = data.sort((a, b) => a.pricePerYear - b.pricePerYear)
+                    setPlans(sortedPlans)
                 } catch (error) {
                     console.error('Failed to fetch plans:', error)
+                    toast.error('Failed to load plans')
                 } finally {
                     setLoading(false)
                 }
@@ -31,6 +43,58 @@ export default function UpgradePlanModal({ isOpen, onClose }: UpgradePlanModalPr
             fetchPlans()
         }
     }, [isOpen, plans.length])
+
+    const handleSelectPlan = async (plan: Plan) => {
+        // Don't allow selecting current plan
+        if (plan.key === currentPlanKey) {
+            toast('You are already on this plan')
+            return
+        }
+
+        // Free plan just needs navigation
+        if (plan.pricePerYear === 0) {
+            toast('You are already on the free plan')
+            return
+        }
+
+        setSelectedPlan(plan.key)
+
+        try {
+            const result = await initiatePayment(plan.key, {
+                name: user?.fullName,
+                email: user?.email,
+            })
+
+            if (result?.success) {
+                toast.success('Payment successful! Your plan has been upgraded.')
+                // Refresh user data to get updated plan info
+                await refreshUser()
+                onClose()
+                // Refresh the page to show updated subscription
+                router.refresh()
+            } else {
+                toast.error('Payment was not completed')
+            }
+        } catch (error) {
+            console.error('Payment error:', error)
+            toast.error('Payment failed. Please try again.')
+        } finally {
+            setSelectedPlan(null)
+        }
+    }
+
+    const isPlanUpgrade = (plan: Plan) => {
+        const currentPlanIndex = plans.findIndex(p => p.key === currentPlanKey)
+        const targetPlanIndex = plans.findIndex(p => p.key === plan.key)
+        return targetPlanIndex > currentPlanIndex
+    }
+
+    const getButtonLabel = (plan: Plan) => {
+        if (plan.key === currentPlanKey) return 'Current Plan'
+        if (plan.pricePerYear === 0) return 'Free'
+        if (isPlanUpgrade(plan)) return plan.ctaLabel || 'Upgrade'
+        return 'Switch'
+    }
 
     return (
         <AnimatePresence>
@@ -55,6 +119,7 @@ export default function UpgradePlanModal({ isOpen, onClose }: UpgradePlanModalPr
                             <div className="p-6 pb-2 shrink-0">
                                 <button
                                     onClick={onClose}
+                                    disabled={paymentLoading}
                                     className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
                                 >
                                     <X className="h-4 w-4" />
@@ -72,21 +137,32 @@ export default function UpgradePlanModal({ isOpen, onClose }: UpgradePlanModalPr
                             {/* Scrollable Content */}
                             <div className="p-6 pt-4 overflow-y-auto custom-scrollbar">
                                 {loading ? (
-                                    <div className="flex justify-center py-20">Loading plans...</div>
+                                    <div className="flex justify-center py-20">
+                                        <Loader2 className="h-8 w-8 animate-spin" />
+                                    </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-stretch">
                                         {plans.map((plan) => (
                                             <Card
                                                 key={plan.key}
-                                                className={`flex flex-col ${plan.isPopular
-                                                    ? 'border-primary border-2 shadow-md relative'
-                                                    : 'border-border/50'
+                                                className={`flex flex-col transition-all ${plan.key === currentPlanKey
+                                                    ? 'border-green-500 border-2 bg-green-500/5'
+                                                    : plan.isPopular
+                                                        ? 'border-primary border-2 shadow-md relative'
+                                                        : 'border-border/50 hover:border-primary/50'
                                                     }`}
                                             >
-                                                {plan.isPopular && (
+                                                {plan.isPopular && plan.key !== currentPlanKey && (
                                                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
                                                         <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
                                                             Popular
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {plan.key === currentPlanKey && (
+                                                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                                                        <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                                                            Current
                                                         </span>
                                                     </div>
                                                 )}
@@ -114,11 +190,20 @@ export default function UpgradePlanModal({ isOpen, onClose }: UpgradePlanModalPr
                                                 </CardContent>
                                                 <CardFooter className="p-4 pt-0 mt-auto">
                                                     <Button
-                                                        variant={plan.isPopular ? 'default' : 'outline'}
+                                                        variant={plan.key === currentPlanKey ? 'ghost' : plan.isPopular ? 'default' : 'outline'}
                                                         className="w-full h-8 text-sm"
                                                         size="sm"
+                                                        disabled={plan.key === currentPlanKey || plan.pricePerYear === 0 || paymentLoading}
+                                                        onClick={() => handleSelectPlan(plan)}
                                                     >
-                                                        {plan.ctaLabel || 'Upgrade'}
+                                                        {selectedPlan === plan.key ? (
+                                                            <>
+                                                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                                                Processing...
+                                                            </>
+                                                        ) : (
+                                                            getButtonLabel(plan)
+                                                        )}
                                                     </Button>
                                                 </CardFooter>
                                             </Card>
