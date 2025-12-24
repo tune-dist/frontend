@@ -7,6 +7,7 @@ export default function Footer() {
     legal: [
       { name: 'Terms', href: '#terms' },
       { name: 'Privacy Policy', href: '#privacy' },
+      { name: 'Finance', href: '/finance' },
     ],
     support: [
       { name: 'Contact', href: '#contact' },
