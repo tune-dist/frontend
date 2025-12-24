@@ -27,6 +27,7 @@ const navigation = [
   { name: 'Upload Music', href: '/dashboard/upload', icon: Upload },
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube },
   { name: 'Users', href: '/dashboard/users', icon: User },
@@ -79,7 +80,7 @@ export default function Sidebar() {
             {navigation
               .filter(item => {
                 if (user?.role === 'release_manager') {
-                  return ['Dashboard', 'My Releases', 'Upload Music', 'Billing', 'YouTube Service'].includes(item.name)
+                  return ['Dashboard', 'My Releases', 'Upload Music', 'Billing', 'YouTube Service', 'Promotion'].includes(item.name)
                 }
 
                 if (user?.role === 'super_admin') {
