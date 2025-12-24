@@ -255,7 +255,7 @@ export default function UploadPage() {
         ]);
 
         // Build validation fields array based on plan
-        const fieldsToValidate = ["title", "artistName", "language", "format"];
+        const fieldsToValidate = ["title", "artistName", "language", "format", "releaseDate"];
 
         // Add featuredArtist to validation if required by plan
         if (fieldRules.featuredArtists?.required) {
@@ -325,10 +325,8 @@ export default function UploadPage() {
 
             if (totalUsedCount + newArtistsCount > limits.artistLimit) {
               toast.error(
-                `You have reached your artist limit (${
-                  limits.artistLimit
-                }) for the ${
-                  planKey === "creator_plus" ? "Creator+" : planKey
+                `You have reached your artist limit (${limits.artistLimit
+                }) for the ${planKey === "creator_plus" ? "Creator+" : planKey
                 } plan.`
               );
               isValid = false;
@@ -510,8 +508,7 @@ export default function UploadPage() {
                 }
                 if (!nameRegex.test(sw.trim())) {
                   toast.error(
-                    `Track ${
-                      i + 1
+                    `Track ${i + 1
                     }: Invalid writer name "${sw}". Must be "Firstname Lastname"`
                   );
                   hasError = true;
@@ -526,8 +523,7 @@ export default function UploadPage() {
                 for (const comp of track.composers) {
                   if (comp?.trim() && !nameRegex.test(comp.trim())) {
                     toast.error(
-                      `Track ${
-                        i + 1
+                      `Track ${i + 1
                       }: Invalid composer name "${comp}". Must be "Firstname Lastname"`
                     );
                     hasError = true;
@@ -858,13 +854,12 @@ export default function UploadPage() {
                       <div key={step.id} className="flex items-center">
                         <div className="flex flex-col items-center">
                           <div
-                            className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                              isActive
+                            className={`h-10 w-10 rounded-full flex items-center justify-center ${isActive
                                 ? "bg-primary text-primary-foreground"
                                 : isCompleted
-                                ? "bg-primary/20 text-primary"
-                                : "bg-muted text-muted-foreground"
-                            }`}
+                                  ? "bg-primary/20 text-primary"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
                           >
                             <Icon className="h-5 w-5" />
                           </div>
@@ -874,9 +869,8 @@ export default function UploadPage() {
                         </div>
                         {index < steps.length - 1 && (
                           <div
-                            className={`h-0.5 w-12 mx-2 ${
-                              isCompleted ? "bg-primary" : "bg-muted"
-                            }`}
+                            className={`h-0.5 w-12 mx-2 ${isCompleted ? "bg-primary" : "bg-muted"
+                              }`}
                           />
                         )}
                       </div>

@@ -1235,6 +1235,27 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     </div>
                     {errors.format && <p className="text-xs text-red-500 mt-1">{errors.format.message}</p>}
                 </div>
+                <div className="space-y-2">
+                    <Label htmlFor="releaseDate">Release Date <span className="text-red-500">*</span></Label>
+                    <Input
+                        id="releaseDate"
+                        type="date"
+                        min={(() => {
+                            const d = new Date();
+                            d.setDate(d.getDate() + 2);
+                            const yyyy = d.getFullYear();
+                            const mm = String(d.getMonth() + 1).padStart(2, '0');
+                            const dd = String(d.getDate()).padStart(2, '0');
+                            return `${yyyy}-${mm}-${dd}`;
+                        })()}
+                        {...register('releaseDate')}
+                        className={errors.releaseDate ? 'border-red-500' : ''}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Release date must be at least 2 days from today.
+                    </p>
+                    {errors.releaseDate && <p className="text-xs text-red-500 mt-1">{errors.releaseDate.message}</p>}
+                </div>
                 {/* Explicit Lyrics - Only show if allowed by plan */}
                 <div className="space-y-3 pt-6 border-t border-border">
                     <Label className="text-lg font-semibold flex items-center gap-2">

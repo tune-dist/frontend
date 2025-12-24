@@ -22,6 +22,8 @@ export interface User {
   usage: {
     totalReleases: number;
     storageUsed: number;
+    totalStreams: number;
+    revenueEarned: number;
   };
   isEmailVerified: boolean;
   isActive: boolean;
