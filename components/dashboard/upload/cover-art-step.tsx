@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Image as ImageIcon, Loader2, UploadCloud, Lightbulb, CheckCircle2, ClipboardCheck, Info } from 'lucide-react'
+import { Image as ImageIcon, Loader2, UploadCloud, Lightbulb, CheckCircle2, ClipboardCheck, Info, XCircle, Circle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData } from './types'
 import { useFormContext } from 'react-hook-form'
@@ -11,16 +11,66 @@ interface CoverArtStepProps {
     setFormData?: (data: UploadFormData) => void
 }
 
+type RequirementStatus = 'pending' | 'success' | 'error';
+
 export default function CoverArtStep({ formData: propFormData, setFormData: propSetFormData }: CoverArtStepProps) {
     const { setValue, watch, formState: { errors } } = useFormContext<UploadFormData>()
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
+    const [validationErrors, setValidationErrors] = useState<any[]>([]);
+    const [hasValidated, setHasValidated] = useState(false);
 
     const coverArtPreview = watch('coverArtPreview')
     const coverArt = watch('coverArt')
 
+    const requirements = useMemo(() => [
+        {
+            id: 'resolution',
+            label: 'HD Resolution (3000x3000px minimum)',
+            codes: ['LOW_RESOLUTION', 'CANNOT_READ_DIMENSIONS']
+        },
+        {
+            id: 'aspectRatio',
+            label: 'Perfect Square (1:1 Ratio)',
+            codes: ['NOT_SQUARE']
+        },
+        {
+            id: 'colorSpace',
+            label: 'RGB Color Space (No CMYK)',
+            codes: ['INVALID_COLOR_MODE']
+        },
+        {
+            id: 'borders',
+            label: 'Full Bleed (No Borders or Watermarks)',
+            codes: ['UNWANTED_BORDERS', 'COMPRESSION_ARTIFACTS', 'DISALLOWED_BRAND_LOGOS']
+        },
+        {
+            id: 'metadata',
+            label: 'Artist & Title Match (No Misleading Names)',
+            codes: ['ARTIST_NAME_MISMATCH', 'TRACK_TITLE_MISMATCH', 'POTENTIAL_MISLEADING_ARTIST', 'MISLEADING_VERSION_TEXT']
+        },
+        {
+            id: 'content',
+            label: 'Prohibited Content & Social Handles',
+            codes: ['BANNED_CONTENT', 'PROHIBITED_VISUAL_CONTENT', 'SOCIAL_MEDIA_HANDLES', 'DISALLOWED_TEXT', 'DISALLOWED_YEAR', 'EXPLICIT_CONTENT_MISMATCH']
+        },
+        {
+            id: 'blur',
+            label: 'Studio Quality (No Blur or Noise)',
+            codes: ['BLURRED_IMAGE']
+        }
+    ], []);
+
+    const getStatus = (reqCodes: string[]): RequirementStatus => {
+        if (!hasValidated) return 'pending';
+        const hasError = validationErrors.some(err => reqCodes.includes(err.code));
+        return hasError ? 'error' : 'success';
+    };
+
     const handleCoverArtChange = async (file: File) => {
         console.log('🖼️ Album cover upload started:', file.name)
+        setHasValidated(false);
+        setValidationErrors([]);
 
         if (!file.type.startsWith('image/')) {
             toast.error('Please upload an image file (JPG, PNG, etc.)')
@@ -44,7 +94,8 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 // Keep client-side dimension check for instant feedback
                 if (img.width < 3000 || img.height < 3000) {
                     toast.error('Image dimensions must be at least 3000x3000 pixels')
-                    return
+                    // Still move to backend validation to update UI radios? 
+                    // No, client side catch is faster. But we want the UI to update.
                 }
 
                 setIsUploading(true);
@@ -55,7 +106,6 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     const formData = watch(); // Get all form data
 
                     // Extract metadata for validation
-                    // Handle featured artists: from 'artists' array and potentially 'featuringArtist' field
                     const featuredArtists = (formData.artists || []).map(a => a.name);
                     if (formData.featuringArtist) {
                         featuredArtists.push(formData.featuringArtist);
@@ -71,75 +121,44 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     };
 
                     console.log('Validating cover art with metadata:', validationMetadata);
-                    // Dynamically import to avoid top-level issues if any
                     const { validateCoverArt } = await import('@/lib/api/cover-art');
                     const validationResult = await validateCoverArt(file, validationMetadata);
 
+                    setValidationErrors(validationResult.errors || []);
+                    setHasValidated(true);
+
                     if (validationResult.status === 'rejected') {
-                        // Consolidate errors
-                        const errorMessages = validationResult.errors.map(e => e.message).join('\n');
                         console.error('Validation failed:', validationResult.errors);
-                        toast.error(
-                            (t) => (
-                                <div className="space-y-2">
-                                    <p className="font-bold">Cover Art Rejected</p>
-                                    <ul className="list-disc pl-4 text-sm">
-                                        {validationResult.errors.map((e, i) => (
-                                            <li key={i}>{e.message}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            ),
-                            { duration: 6000 }
-                        );
+                        toast.error('Cover art requirements not met. Please check the list.');
                         setIsUploading(false);
                         return; // Stop upload
                     }
 
                     if (validationResult.status === 'warning') {
-                        toast(
-                            (t) => (
-                                <div className="space-y-2">
-                                    <p className="font-bold text-yellow-600">Warning</p>
-                                    <ul className="list-disc pl-4 text-sm">
-                                        {validationResult.errors.map((e, i) => (
-                                            <li key={i}>{e.message}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            ),
-                            { icon: '⚠️', duration: 5000 }
-                        );
+                        toast('Warning: Some minor issues detected, but proceeding.', { icon: '⚠️', duration: 5000 });
                     }
 
 
                     // 2. Proceed to Upload if Valid
-                    // Initial preview set
                     setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
 
-                    // Conditional Upload Logic
                     const COVER_CHUNK_THRESHOLD = 5 * 1024 * 1024; // 5MB
                     let result;
 
                     if (file.size > COVER_CHUNK_THRESHOLD) {
-                        console.log("Cover art > 5MB, using chunk uploader...");
                         result = await uploadFileInChunks(file, '', (progress) => {
                             setUploadProgress(progress);
                         });
                     } else {
-                        console.log("Cover art <= 5MB, using direct uploader...");
                         result = await uploadFileDirectly(file, (progress) => {
                             setUploadProgress(progress);
                         });
                     }
 
-                    console.log('[CoverArt] Upload complete. Result:', result);
-
                     if (!result || !result.path) {
                         throw new Error('Upload completed but no path returned');
                     }
 
-                    // Store file AND path
                     setValue('coverArt', {
                         file: file,
                         path: result.path,
@@ -190,6 +209,8 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
     const handleRemove = () => {
         setValue('coverArt', null, { shouldValidate: true })
         setValue('coverArtPreview', '', { shouldValidate: true })
+        setHasValidated(false);
+        setValidationErrors([]);
     }
 
     return (
@@ -311,28 +332,42 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 <div className="p-6 rounded-3xl border border-border/50 bg-card/30 backdrop-blur-sm space-y-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                            <ClipboardCheck className="h-5 w-5" />
+                            <ClipboardCheck className="h-6 w-6" />
                         </div>
-                        <h3 className="text-xl font-bold">Art Requirements</h3>
+                        <h3 className="text-2xl font-bold italic tracking-tight uppercase">Art Requirements</h3>
                     </div>
 
-                    <ul className="space-y-4">
-                        {[
-                            '3000 x 3000 pixels minimum resolution',
-                            'Square aspect ratio (1:1)',
-                            'RGB Color space (CMYK not supported)',
-                            'Must match artist name & title perfectly',
-                            'No blurred or pixelated images'
-                        ].map((req, i) => (
-                            <li key={i} className="flex items-start gap-3">
-                                <div className="mt-1 flex-shrink-0">
-                                    <div className="h-5 w-5 rounded-full border border-primary/30 flex items-center justify-center text-xs">
-                                        <div className="w-2 h-2 rounded-full bg-primary/20" />
+                    <ul className="space-y-5">
+                        {requirements.map((req, i) => {
+                            const status = getStatus(req.codes);
+                            return (
+                                <li key={i} className="flex items-start gap-4 transition-all duration-300">
+                                    <div className="mt-1 flex-shrink-0">
+                                        {status === 'pending' && (
+                                            <div className="h-6 w-6 rounded-full border-2 border-primary/40 flex items-center justify-center">
+                                                <div className="w-2.5 h-2.5 rounded-full bg-primary/30" />
+                                            </div>
+                                        )}
+                                        {status === 'success' && (
+                                            <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center text-white scale-110 shadow-lg shadow-green-500/20">
+                                                <CheckCircle2 className="h-4 w-4 stroke-[3px]" />
+                                            </div>
+                                        )}
+                                        {status === 'error' && (
+                                            <div className="h-6 w-6 rounded-full bg-red-500 flex items-center justify-center text-white scale-110 shadow-lg shadow-red-500/20">
+                                                <XCircle className="h-4 w-4 stroke-[3px]" />
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                                <span className="text-muted-foreground leading-tight">{req}</span>
-                            </li>
-                        ))}
+                                    <span className={`text-base font-medium leading-tight transition-colors duration-300 ${status === 'error' ? 'text-red-400' :
+                                        status === 'success' ? 'text-green-400' :
+                                            'text-muted-foreground'
+                                        }`}>
+                                        {req.label}
+                                    </span>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
 
