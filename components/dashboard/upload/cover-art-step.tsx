@@ -41,34 +41,94 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 setIsUploading(false);
             }
             img.onload = async () => {
+                // Keep client-side dimension check for instant feedback
                 if (img.width < 3000 || img.height < 3000) {
                     toast.error('Image dimensions must be at least 3000x3000 pixels')
                     return
                 }
 
-                // Initial preview set
-                setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
-
-                // Conditional Upload Logic
-                const COVER_CHUNK_THRESHOLD = 5 * 1024 * 1024; // 5MB
-
-                console.log(`[CoverArt] Starting upload for ${file.name} (${file.size} bytes)`);
                 setIsUploading(true);
                 setUploadProgress(0);
 
                 try {
+                    // 1. Strict Backend Validation
+                    const formData = watch(); // Get all form data
+
+                    // Extract metadata for validation
+                    // Handle featured artists: from 'artists' array and potentially 'featuringArtist' field
+                    const featuredArtists = (formData.artists || []).map(a => a.name);
+                    if (formData.featuringArtist) {
+                        featuredArtists.push(formData.featuringArtist);
+                    }
+
+                    const validationMetadata = {
+                        artistName: formData.artistName,
+                        trackTitle: formData.title,
+                        featuredArtists: featuredArtists,
+                        isExplicit: formData.isExplicit,
+                        releaseYear: formData.releaseDate ? new Date(formData.releaseDate).getFullYear().toString() : undefined,
+                        recordLabel: formData.labelName
+                    };
+
+                    console.log('Validating cover art with metadata:', validationMetadata);
+                    // Dynamically import to avoid top-level issues if any
+                    const { validateCoverArt } = await import('@/lib/api/cover-art');
+                    const validationResult = await validateCoverArt(file, validationMetadata);
+
+                    if (validationResult.status === 'rejected') {
+                        // Consolidate errors
+                        const errorMessages = validationResult.errors.map(e => e.message).join('\n');
+                        console.error('Validation failed:', validationResult.errors);
+                        toast.error(
+                            (t) => (
+                                <div className="space-y-2">
+                                    <p className="font-bold">Cover Art Rejected</p>
+                                    <ul className="list-disc pl-4 text-sm">
+                                        {validationResult.errors.map((e, i) => (
+                                            <li key={i}>{e.message}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ),
+                            { duration: 6000 }
+                        );
+                        setIsUploading(false);
+                        return; // Stop upload
+                    }
+
+                    if (validationResult.status === 'warning') {
+                        toast(
+                            (t) => (
+                                <div className="space-y-2">
+                                    <p className="font-bold text-yellow-600">Warning</p>
+                                    <ul className="list-disc pl-4 text-sm">
+                                        {validationResult.errors.map((e, i) => (
+                                            <li key={i}>{e.message}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ),
+                            { icon: '⚠️', duration: 5000 }
+                        );
+                    }
+
+
+                    // 2. Proceed to Upload if Valid
+                    // Initial preview set
+                    setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
+
+                    // Conditional Upload Logic
+                    const COVER_CHUNK_THRESHOLD = 5 * 1024 * 1024; // 5MB
                     let result;
 
                     if (file.size > COVER_CHUNK_THRESHOLD) {
                         console.log("Cover art > 5MB, using chunk uploader...");
                         result = await uploadFileInChunks(file, '', (progress) => {
-                            console.log(`[CoverArt] Chunk Progress: ${progress}%`);
                             setUploadProgress(progress);
                         });
                     } else {
                         console.log("Cover art <= 5MB, using direct uploader...");
                         result = await uploadFileDirectly(file, (progress) => {
-                            console.log(`[CoverArt] Direct Progress: ${progress}%`);
                             setUploadProgress(progress);
                         });
                     }
@@ -87,10 +147,10 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                         size: file.size
                     } as any, { shouldValidate: true });
 
-                    toast.success('Cover art uploaded successfully');
+                    toast.success('Cover art validated and uploaded successfully');
                 } catch (error) {
-                    console.error('[CoverArt] Upload failed:', error);
-                    toast.error(`Failed to upload: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    console.error('[CoverArt] Upload/Validation failed:', error);
+                    toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
                     setValue('coverArt', null, { shouldValidate: true });
                     setValue('coverArtPreview', '', { shouldValidate: true });
                 } finally {
