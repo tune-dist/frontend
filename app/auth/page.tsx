@@ -104,7 +104,7 @@ function AuthContent() {
       >
         {/* Logo */}
         <Link href="/" className="flex justify-center mb-8">
-          <img src="/logo.png" alt="KratoLib" className="h-[10rem] w-auto" />
+          <img src="/logo.png" alt="KratoLib" className="w-[150px] max-w-[100%]" />
         </Link>
 
         <Card className="border-border/50 bg-card/50 backdrop-blur-sm">

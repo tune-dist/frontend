@@ -3,32 +3,41 @@
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Quote } from 'lucide-react'
-
-const testimonials = [
-  {
-    name: 'Kirtidan Gadhvi',
-    role: 'Legendary Folk Icon & Bhajan Samrat',
-    image: '/artists/kirtidan-gadhvi.jpg',
-    quote:
-      'KratoLib has made it effortless to bring my devotional and folk music to listeners across the globe. Their platform ensures my songs reach every major streaming service seamlessly, letting me focus on what I do best — creating music that connects with the soul.',
-  },
-  {
-    name: 'Geeta Jhala',
-    role: 'Bollywood Playback Singer & Folk Legend',
-    image: '/artists/geeta-jhala.jpg',
-    quote:
-      'Distributing music internationally used to be a complex process. With KratoLib, my traditional Gujarati folk songs now reach audiences on Spotify, Apple Music, and 150+ platforms. The transparency and reliability have made them my preferred distribution partner.',
-  },
-  {
-    name: 'Manu Rabari',
-    role: 'Iconic Lyricist, Poet & Folk Vocalist',
-    image: '/artists/manu-rabari.jpg',
-    quote:
-      'As an artist dedicated to preserving our rich folk heritage, I needed a distribution partner who understands the value of authentic music. KratoLib delivers exceptional service, ensuring my work reaches fans worldwide while keeping the process simple and transparent.',
-  },
-]
+import { useEffect, useState } from 'react'
+import { testimonialsApi, Testimonial } from '@/lib/api/testimonials'
 
 export default function Testimonials() {
+  const [dynamicTestimonials, setDynamicTestimonials] = useState<Testimonial[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        const data = await testimonialsApi.getAll()
+        setDynamicTestimonials(data)
+      } catch (error) {
+        console.error('Failed to fetch testimonials:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchTestimonials()
+  }, [])
+
+  if (loading) {
+    return (
+      <section className="py-20 md:py-32 bg-background relative">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-muted-foreground">Loading testimonials...</p>
+        </div>
+      </section>
+    )
+  }
+
+  if (dynamicTestimonials.length === 0) {
+    return null
+  }
+
   return (
     <section className="py-20 md:py-32 bg-background relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,9 +61,9 @@ export default function Testimonials() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-          {testimonials.map((testimonial, index) => (
+          {dynamicTestimonials.map((testimonial, index) => (
             <motion.div
-              key={testimonial.name}
+              key={testimonial._id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -68,11 +77,17 @@ export default function Testimonials() {
                   </p>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-                      <img
-                        src={testimonial.image}
-                        alt={testimonial.name}
-                        className="w-full h-full object-cover"
-                      />
+                      {testimonial.image ? (
+                        <img
+                          src={testimonial.image}
+                          alt={testimonial.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold">
+                          {testimonial.name.charAt(0)}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <p className="font-semibold">{testimonial.name}</p>
