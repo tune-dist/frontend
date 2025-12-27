@@ -50,14 +50,19 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
             codes: ['ARTIST_NAME_MISMATCH', 'TRACK_TITLE_MISMATCH', 'POTENTIAL_MISLEADING_ARTIST', 'MISLEADING_VERSION_TEXT']
         },
         {
-            id: 'content',
-            label: 'Prohibited Content & Social Handles',
-            codes: ['BANNED_CONTENT', 'PROHIBITED_VISUAL_CONTENT', 'SOCIAL_MEDIA_HANDLES', 'DISALLOWED_TEXT', 'DISALLOWED_YEAR', 'EXPLICIT_CONTENT_MISMATCH']
+            id: 'collab',
+            label: 'Collaborations (Must match Metadata)',
+            codes: ['POTENTIAL_MISLEADING_COLLAB', 'MISSING_FEATURED_ARTIST_METADATA']
         },
         {
-            id: 'blur',
+            id: 'content',
+            label: 'Prohibited Content & Social Handles',
+            codes: ['BANNED_CONTENT', 'PROHIBITED_VISUAL_CONTENT', 'SUGGESTIVE_VISUAL_CONTENT', 'SOCIAL_MEDIA_HANDLES', 'DISALLOWED_TEXT', 'DISALLOWED_YEAR', 'EXPLICIT_CONTENT_MISMATCH', 'DISALLOWED_LABEL_NAME']
+        },
+        {
+            id: 'quality',
             label: 'Studio Quality (No Blur or Noise)',
-            codes: ['BLURRED_IMAGE']
+            codes: ['BLURRED_IMAGE', 'INVALID_IMAGE_FILE']
         }
     ], []);
 
