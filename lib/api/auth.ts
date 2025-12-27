@@ -6,6 +6,7 @@ export interface RegisterData {
   fullName: string;
   role?: string;
   googleId?: string;
+  spotifyId?: string;
   avatar?: string;
 }
 
