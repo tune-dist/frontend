@@ -5,6 +5,8 @@ export interface RegisterData {
   password: string;
   fullName: string;
   role?: string;
+  googleId?: string;
+  avatar?: string;
 }
 
 export interface LoginData {
