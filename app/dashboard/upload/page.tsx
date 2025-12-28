@@ -162,6 +162,20 @@ export default function UploadPage() {
     formState: { errors },
   } = form;
 
+  // Clear cover art when metadata changes
+  const artistName = watch("artistName");
+  const title = watch("title");
+  const featuringArtist = watch("featuringArtist");
+
+  useEffect(() => {
+    if (form.getValues("coverArt") || form.getValues("coverArtPreview")) {
+      console.log("Metadata changed, clearing cover art to ensure re-validation");
+      form.setValue("coverArt", null);
+      form.setValue("coverArtPreview", "");
+      toast.error("Cover art cleared. Please re-upload to match new metadata.");
+    }
+  }, [artistName, title, featuringArtist, form]);
+
   // Separate state for internal component logic (Credits step songwriters list etc)
   // These could be moved into the form too, but for UI lists that map to a final field, local state is sometimes easier until submit.
   // HOWEVER, preventing state loss on nav requires them to be lifted or in form.
