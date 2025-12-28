@@ -4,10 +4,12 @@ import Sidebar from './sidebar'
 import TopNavbar from './top-navbar'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { UIProvider, useUI } from '@/contexts/UIContext'
+import { useAuth } from '@/contexts/AuthContext'
 import UpgradePlanModal from './upgrade-plan-modal'
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { isUpgradeModalOpen, closeUpgradeModal } = useUI()
+  const { user } = useAuth()
 
   return (
     <div className="min-h-screen bg-background">
@@ -19,6 +21,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       <UpgradePlanModal
         isOpen={isUpgradeModalOpen}
         onClose={closeUpgradeModal}
+        currentPlanKey={user?.plan}
       />
     </div>
   )
