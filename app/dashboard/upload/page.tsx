@@ -1054,6 +1054,13 @@ export default function UploadPage() {
         allTracks={form.getValues("tracks") || []}
         mainArtistName={watch("artistName")}
         featuringArtists={watch("artists")}
+        mainArtistProfiles={{
+          spotify: watch("spotifyProfile"),
+          apple: watch("appleMusicProfile"),
+          youtube: watch("youtubeMusicProfile"),
+          instagram: watch("instagramProfile") === 'yes' ? watch("instagramProfileUrl") : watch("instagramProfile"),
+          facebook: watch("facebookProfile") === 'yes' ? watch("facebookProfileUrl") : watch("facebookProfile")
+        }}
       />
     </DashboardLayout>
   );

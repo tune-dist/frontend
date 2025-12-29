@@ -20,6 +20,7 @@ export interface User {
   email: string;
   fullName: string;
   plan: 'free' | 'pro' | 'enterprise';
+  planEndDate: string | null;
   role: 'super_admin' | 'admin' | 'release_manager' | 'artist';
   planStartDate?: string;
   usage: {
