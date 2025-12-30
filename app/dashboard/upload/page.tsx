@@ -781,7 +781,7 @@ export default function UploadPage() {
     checkEligibility();
   }, [user]);
 
-  if (loading || !user || user?.role === "super_admin") {
+  if (loading || !user) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">

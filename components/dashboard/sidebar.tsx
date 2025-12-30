@@ -84,7 +84,7 @@ export default function Sidebar() {
             {navigation
               .filter(item => {
                 if ((item as any).permission) {
-                  return user?.permissions?.includes((item as any).permission) || user?.role === 'super_admin';
+                  return user?.permissions?.includes((item as any).permission);
                 }
                 return true;
               })
