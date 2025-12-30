@@ -22,6 +22,7 @@ export interface User {
   plan: 'free' | 'pro' | 'enterprise';
   planEndDate: string | null;
   role: 'super_admin' | 'admin' | 'release_manager' | 'artist';
+  permissions: string[];
   planStartDate?: string;
   usage: {
     totalReleases: number;

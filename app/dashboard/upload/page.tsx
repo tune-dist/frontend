@@ -84,7 +84,7 @@ export default function UploadPage() {
     if (!loading && !user) {
       // Redirect to auth if not logged in
       router.push("/auth");
-    } else if (!loading && user?.role === "super_admin") {
+    } else if (!loading && user && !user.permissions?.includes("UPLOAD_RELEASE")) {
       router.push("/dashboard");
     }
   }, [user, loading, router]);

@@ -398,8 +398,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         ? [formData.primaryGenre, formData.secondaryGenre]
         : (formData.format === "single" || formData.releaseType === "single") &&
           tracksPayload.length > 0
-        ? [tracksPayload[0].primaryGenre, tracksPayload[0].secondaryGenre]
-        : []
+          ? [tracksPayload[0].primaryGenre, tracksPayload[0].secondaryGenre]
+          : []
       ).filter(Boolean) as string[],
 
       audioFile: audioData,
@@ -467,8 +467,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       }),
       ...(formData.instagramProfile &&
         formData.instagramProfile !== "no" && {
-          instagramProfile: formData.instagramProfile,
-        }),
+        instagramProfile: formData.instagramProfile,
+      }),
       ...(formData.instagramProfileUrl && {
         instagramProfileUrl: formData.instagramProfileUrl,
       }),
@@ -500,13 +500,13 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
 
       ...(formData.artists &&
         formData.artists.length > 0 && {
-          primaryArtists: formData.artists.map((artist) => ({
-            name: artist.name,
-            spotifyProfile: artist.spotifyProfile,
-            appleMusicProfile: artist.appleMusicProfile,
-            youtubeMusicProfile: artist.youtubeMusicProfile,
-          })),
-        }),
+        primaryArtists: formData.artists.map((artist) => ({
+          name: artist.name,
+          spotifyProfile: artist.spotifyProfile,
+          appleMusicProfile: artist.appleMusicProfile,
+          youtubeMusicProfile: artist.youtubeMusicProfile,
+        })),
+      }),
       ...(formData.userId && { userId: formData.userId }),
     };
 
@@ -530,8 +530,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     console.error("Release submission failed:", error);
     throw new Error(
       error.response?.data?.message ||
-        error.message ||
-        "Failed to submit release. Please try again."
+      error.message ||
+      "Failed to submit release. Please try again."
     );
   }
 };
@@ -569,17 +569,9 @@ export const updateRelease = async (
   return response.data;
 };
 
-// Submit release for review
-export const submitRelease = async (id: string): Promise<Release> => {
-  const response = await apiClient.post<Release>(`/releases/${id}/submit`);
-  return response.data;
-};
 
-// Cancel submitted release
-export const cancelRelease = async (id: string): Promise<Release> => {
-  const response = await apiClient.post<Release>(`/releases/${id}/cancel`);
-  return response.data;
-};
+
+
 
 // Delete release (draft only)
 export const deleteRelease = async (
@@ -608,11 +600,7 @@ export const rejectRelease = async (
   return response.data;
 };
 
-// Mark release as distributed (Admin only)
-export const releaseRelease = async (id: string): Promise<Release> => {
-  const response = await apiClient.post<Release>(`/releases/${id}/release`);
-  return response.data;
-};
+
 
 // Get artist usage
 export const getArtistUsage = async (): Promise<{ artists: any[] }> => {

@@ -18,22 +18,24 @@ import {
   Sparkles,
   Youtube,
   Quote,
+  Shield,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'My Releases', href: '/dashboard/releases', icon: Music },
-  { name: 'Upload Music', href: '/dashboard/upload', icon: Upload },
-  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles },
-  { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote },
+  { name: 'My Releases', href: '/dashboard/releases', icon: Music, permission: 'VIEW_RELEASES' },
+  { name: 'Upload Music', href: '/dashboard/upload', icon: Upload, permission: 'UPLOAD_RELEASE' },
+  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard, permission: 'VIEW_BILLING' },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, permission: 'VIEW_ANALYTICS' },
+  { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles, permission: 'MANAGE_PROMOTION' },
+  { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote, permission: 'MANAGE_TESTIMONIALS' },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
-  { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube },
-  { name: 'Users', href: '/dashboard/users', icon: User },
-  { name: 'Plan Management', href: '/dashboard/admin/plans', icon: Settings },
+  { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube, permission: 'USE_YOUTUBE_SERVICE' },
+  { name: 'Users', href: '/dashboard/users', icon: User, permission: 'MANAGE_USERS' },
+  { name: 'Plan Management', href: '/dashboard/admin/plans', icon: Settings, permission: 'MANAGE_PLANS' },
+  { name: 'Permissions', href: '/dashboard/admin/permissions', icon: Shield, permission: 'MANAGE_PERMISSIONS' },
 ]
 
 export default function Sidebar() {
@@ -81,19 +83,10 @@ export default function Sidebar() {
           <nav className="flex-1 space-y-1 px-3 py-4">
             {navigation
               .filter(item => {
-                if (user?.role === 'release_manager') {
-                  return ['Dashboard', 'My Releases', 'Upload Music', 'Billing', 'YouTube Service', 'Promotion'].includes(item.name)
+                if ((item as any).permission) {
+                  return user?.permissions?.includes((item as any).permission) || user?.role === 'super_admin';
                 }
-
-                if (user?.role === 'super_admin') {
-                  // Super admin sees Users and Plan Management, but not Upload Music or Billing
-                  if (item.name === 'Upload Music' || item.name === 'Billing') return false;
-                  return true;
-                }
-
-                // Default behavior for other users (e.g., artists)
-                if (item.name === 'Users' || item.name === 'Plan Management' || item.name === 'Testimonials') return false;
-                return true
+                return true;
               })
               .map((item) => {
                 const Icon = item.icon

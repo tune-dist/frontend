@@ -44,10 +44,10 @@ export default function UsersPage() {
         setIsMounted(true);
     }, []);
 
-    // Redirect if not super_admin
+    // Redirect if unauthorized
     useEffect(() => {
         if (!authLoading && isMounted) {
-            if (!user || user.role !== 'super_admin') {
+            if (!user || (user.role !== 'super_admin' && !user.permissions?.includes('MANAGE_USERS'))) {
                 router.push('/dashboard');
             }
         }
