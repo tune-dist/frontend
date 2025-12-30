@@ -15,7 +15,7 @@ interface AuthContextType {
   register: (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
-  loginWithToken: (token: string) => Promise<void>;
+  loginWithToken: (token: string, refreshToken?: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<{ message: string }>;
   resetPassword: (token: string, password: string) => Promise<{ message: string }>;
 }
@@ -53,9 +53,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await apiLogin({ email, password });
 
-      // Store token in cookie
+      // Store tokens in cookie
       Cookies.set(config.tokenKey, response.access_token, {
         expires: 7, // 7 days
+        sameSite: 'lax',
+      });
+
+      Cookies.set('refresh_token', response.refresh_token, {
+        expires: 7,
         sameSite: 'lax',
       });
 
@@ -85,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = React.useCallback(() => {
     Cookies.remove(config.tokenKey);
+    Cookies.remove('refresh_token');
     setUser(null);
     router.push('/auth');
   }, [router]);
@@ -99,13 +105,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [logout]);
 
-  const loginWithToken = React.useCallback(async (token: string) => {
+  const loginWithToken = React.useCallback(async (token: string, refreshToken?: string) => {
     try {
-      // Store token in cookie
+      // Store tokens in cookie
       Cookies.set(config.tokenKey, token, {
         expires: 7, // 7 days
         sameSite: 'lax',
       });
+
+      if (refreshToken) {
+        Cookies.set('refresh_token', refreshToken, {
+          expires: 7,
+          sameSite: 'lax',
+        });
+      }
 
       const userData = await getMe();
       setUser(userData);

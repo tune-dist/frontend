@@ -13,9 +13,10 @@ function CallbackContent() {
 
     useEffect(() => {
         const token = searchParams.get('token')
+        const refreshToken = searchParams.get('refresh_token')
 
         if (token) {
-            loginWithToken(token)
+            loginWithToken(token, refreshToken || undefined)
                 .then(() => {
                     toast.success('Successfully logged in!')
                 })

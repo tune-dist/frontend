@@ -39,12 +39,18 @@ export interface User {
 
 export interface AuthResponse {
   access_token: string;
+  refresh_token: string;
   user: User;
 }
 
 export interface RegisterResponse {
   message: string;
   user: User;
+}
+
+interface RefreshResponse {
+  access_token: string;
+  refresh_token: string;
 }
 
 // Register new user
@@ -56,6 +62,12 @@ export const register = async (data: RegisterData): Promise<RegisterResponse> =>
 // Login user
 export const login = async (data: LoginData): Promise<AuthResponse> => {
   const response = await apiClient.post<AuthResponse>('/auth/login', data);
+  return response.data;
+};
+
+// Refresh token
+export const refreshToken = async (token: string): Promise<RefreshResponse> => {
+  const response = await apiClient.post<RefreshResponse>('/auth/refresh', { refresh_token: token });
   return response.data;
 };
 
