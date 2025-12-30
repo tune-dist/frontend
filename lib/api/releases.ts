@@ -333,7 +333,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           format: "wav",
         };
       } else if (audioFileData instanceof File) {
-        const result = await uploadFileInChunks(audioFileData, "");
+        const result = await uploadFileInChunks(audioFileData, "", undefined, 'audio');
         const baseUrl =
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
         audioData = {
@@ -366,7 +366,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
       coverUrl = `${baseUrl}${coverArtData.path}`;
     } else if (formData.coverArt instanceof File) {
-      const result = await uploadFileInChunks(formData.coverArt, "");
+      const result = await uploadFileInChunks(formData.coverArt, "", undefined, 'coverart');
       const baseUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
       coverUrl = `${baseUrl}${result.path}`;

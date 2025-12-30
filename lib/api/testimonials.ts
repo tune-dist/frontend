@@ -27,4 +27,16 @@ export const testimonialsApi = {
     remove: async (id: string): Promise<void> => {
         await apiClient.delete(`/testimonials/${id}`);
     },
+
+    uploadImage: async (file: File): Promise<{ path: string }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'testimonial');
+        const response = await apiClient.post<{ path: string }>('/chunk_files/single', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
 };

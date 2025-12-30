@@ -153,11 +153,11 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     if (file.size > COVER_CHUNK_THRESHOLD) {
                         result = await uploadFileInChunks(file, '', (progress) => {
                             setUploadProgress(progress);
-                        });
+                        }, 'coverart');
                     } else {
                         result = await uploadFileDirectly(file, (progress) => {
                             setUploadProgress(progress);
-                        });
+                        }, 'coverart');
                     }
 
                     if (!result || !result.path) {

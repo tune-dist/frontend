@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { API_URL } from '@/lib/config';
 
 export default function TestimonialsAdminPage() {
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -31,6 +32,7 @@ export default function TestimonialsAdminPage() {
     // Dialog & Form State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [currentTestimonial, setCurrentTestimonial] = useState<Partial<Testimonial>>({});
 
     const fetchTestimonials = async () => {
@@ -69,6 +71,23 @@ export default function TestimonialsAdminPage() {
     const handleOpenEdit = (testimonial: Testimonial) => {
         setCurrentTestimonial({ ...testimonial });
         setIsDialogOpen(true);
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setIsUploading(true);
+            const response = await testimonialsApi.uploadImage(file);
+            setCurrentTestimonial({ ...currentTestimonial, image: response.path });
+            toast.success('Image uploaded successfully');
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to upload image');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleSave = async () => {
@@ -141,7 +160,7 @@ export default function TestimonialsAdminPage() {
                                                     <div className="flex items-center gap-2">
                                                         {testimonial.image && (
                                                             <img
-                                                                src={testimonial.image}
+                                                                src={`${API_URL}${testimonial.image}`}
                                                                 alt={testimonial.name}
                                                                 className="h-8 w-8 rounded-full object-cover"
                                                             />
@@ -206,13 +225,32 @@ export default function TestimonialsAdminPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="image">Image URL</Label>
-                                <Input
-                                    id="image"
-                                    value={currentTestimonial.image || ''}
-                                    onChange={(e) => setCurrentTestimonial({ ...currentTestimonial, image: e.target.value })}
-                                    placeholder="https://example.com/avatar.jpg"
-                                />
+                                <Label htmlFor="image">Author Image</Label>
+                                <div className="flex flex-col gap-4">
+                                    {currentTestimonial.image && (
+                                        <div className="relative h-20 w-20 rounded-full overflow-hidden border border-border">
+                                            <img
+                                                src={`${API_URL}${currentTestimonial.image}`}
+                                                alt="Preview"
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="image"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            disabled={isUploading}
+                                            className="cursor-pointer"
+                                        />
+                                        {isUploading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Recommended: Square image (1:1), at least 200x200px.
+                                    </p>
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="quote">Quote</Label>
