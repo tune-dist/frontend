@@ -58,6 +58,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { S3Image } from "@/components/ui/s3-image";
 
 // Animation variants
 const containerVariants = {
@@ -352,7 +353,7 @@ export default function ReleasesPage() {
                               <div className="h-12 w-12 rounded-md overflow-hidden bg-muted relative cursor-zoom-in group" onClick={() => release.coverArt?.url && setPreviewImage(release.coverArt.url)}>
                                 {release.coverArt?.url ? (
                                   <>
-                                    <img src={release.coverArt.url} alt={release.title} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                                    <S3Image src={release.coverArt.url} alt={release.title} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
                                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Eye className="h-4 w-4 text-white" /></div>
                                   </>
                                 ) : (
@@ -434,7 +435,7 @@ export default function ReleasesPage() {
           {previewImage && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPreviewImage(null)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-zoom-out">
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative max-w-4xl w-full max-h-[90vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                <img src={previewImage} alt="Poster Preview" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+                <S3Image src={previewImage} alt="Poster Preview" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
                 <Button variant="ghost" className="absolute -top-12 right-0 text-white" onClick={() => setPreviewImage(null)}><X className="h-6 w-6" /></Button>
               </motion.div>
             </motion.div>

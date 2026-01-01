@@ -23,6 +23,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { S3Image } from "@/components/ui/s3-image";
 
 export default function ReleaseDetailsPage() {
   const params = useParams();
@@ -212,7 +213,7 @@ export default function ReleaseDetailsPage() {
               <CardContent className="p-3">
                 <div className="aspect-square relative rounded-md overflow-hidden border border-border bg-muted/30 flex items-center justify-center">
                   {release.coverArt ? (
-                    <img
+                    <S3Image
                       src={release.coverArt.url}
                       alt={`${release.title} Cover Art`}
                       className="object-cover w-full h-full"
