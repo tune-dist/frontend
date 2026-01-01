@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
-import { User, login as apiLogin, register as apiRegister, getMe, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword } from '@/lib/api/auth';
+import { User, login as apiLogin, register as apiRegister, getMe, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword, verifyOtp as apiVerifyOtp, resendOtp as apiResendOtp, LoginResponse } from '@/lib/api/auth';
 import { config } from '@/lib/config';
 import { getErrorMessage } from '@/lib/api-client';
 
@@ -11,13 +11,15 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, redirectUrl?: string) => Promise<void>;
+  login: (email: string, password: string, redirectUrl?: string) => Promise<LoginResponse>;
   register: (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   loginWithToken: (token: string, refreshToken?: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<{ message: string }>;
   resetPassword: (token: string, password: string) => Promise<{ message: string }>;
+  verifyOtp: (email: string, otp: string, redirectUrl?: string) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,6 +54,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = React.useCallback(async (email: string, password: string, redirectUrl?: string) => {
     try {
       const response = await apiLogin({ email, password });
+
+      if (response.requireOtp) {
+        return response;
+      }
+
+      // If no OTP required (legacy or OAuth direct), store tokens
+      if (response.access_token && response.refresh_token && response.user) {
+        // Store tokens in cookie
+        Cookies.set(config.tokenKey, response.access_token, {
+          expires: 7, // 7 days
+          sameSite: 'lax',
+        });
+
+        Cookies.set('refresh_token', response.refresh_token, {
+          expires: 7,
+          sameSite: 'lax',
+        });
+
+        // Store user info in cookie for subscription page
+        Cookies.set('user', JSON.stringify(response.user), {
+          expires: 7,
+          sameSite: 'lax',
+        });
+
+        setUser(response.user);
+        router.push(redirectUrl || '/dashboard');
+      }
+      return response;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  }, [router]);
+
+  const verifyOtp = React.useCallback(async (email: string, otp: string, redirectUrl?: string) => {
+    try {
+      const response = await apiVerifyOtp({ email, otp });
 
       // Store tokens in cookie
       Cookies.set(config.tokenKey, response.access_token, {
@@ -128,6 +166,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [router]);
 
+  const resendOtp = React.useCallback(async (email: string) => {
+    try {
+      await apiResendOtp({ email });
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  }, []);
+
   const value = React.useMemo(() => ({
     user,
     loading,
@@ -139,7 +185,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loginWithToken,
     forgotPassword: apiForgotPassword,
     resetPassword: apiResetPassword,
-  }), [user, loading, login, register, logout, refreshUser, loginWithToken]);
+    verifyOtp,
+    resendOtp,
+  }), [user, loading, login, register, logout, refreshUser, loginWithToken, verifyOtp, resendOtp]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
