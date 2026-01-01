@@ -28,13 +28,42 @@ apiClient.interceptors.request.use(
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
     // Handle 401 errors (unauthorized)
-    if (error.response?.status === 401) {
-      // Clear token and redirect to login
-      Cookies.remove(config.tokenKey);
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-        window.location.href = '/auth';
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      const refresh_token = Cookies.get('refresh_token');
+      if (refresh_token) {
+        try {
+          const { refreshToken: performRefresh } = await import('./api/auth');
+          const data = await performRefresh(refresh_token);
+
+          // Update tokens in cookies
+          Cookies.set(config.tokenKey, data.access_token);
+          Cookies.set('refresh_token', data.refresh_token);
+
+          // Update authorization header and retry
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
+          }
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, clear tokens and redirect
+          Cookies.remove(config.tokenKey);
+          Cookies.remove('refresh_token');
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+            window.location.href = '/auth';
+          }
+        }
+      } else {
+        // No refresh token, clear access token and redirect
+        Cookies.remove(config.tokenKey);
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+          window.location.href = '/auth';
+        }
       }
     }
 

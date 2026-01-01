@@ -152,13 +152,7 @@ export async function adminCreatePlan(planData: Partial<Plan>): Promise<Plan> {
   return response.data;
 }
 
-/**
- * Admin: Get plan audit logs
- */
-export async function adminGetPlanAuditLogs(key: string): Promise<any[]> {
-  const response = await apiClient.get<any[]>(`/admin/plans/${key}/audit-logs`);
-  return response.data;
-}
+
 
 /**
  * Clear the plans cache (useful for testing or forced refresh)

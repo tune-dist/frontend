@@ -123,18 +123,26 @@ export default function ProfilePage() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="John Doe"
-                    className={errors.fullName ? 'border-red-500' : ''}
-                    {...register('fullName')}
-                  />
-                  {errors.fullName && (
-                    <p className="text-sm text-red-500">
-                      {errors.fullName.message}
-                    </p>
-                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="John Doe"
+                      disabled
+                      className="flex-1 bg-muted"
+                      {...register('fullName')}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => window.location.href = 'mailto:support@yourlabel.com?subject=Request Name Change'}
+                    >
+                      Request Change
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    To change your legal name, please contact support.
+                  </p>
                 </div>
 
                 <div className="space-y-2">

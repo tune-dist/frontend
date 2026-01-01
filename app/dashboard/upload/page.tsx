@@ -84,7 +84,7 @@ export default function UploadPage() {
     if (!loading && !user) {
       // Redirect to auth if not logged in
       router.push("/auth");
-    } else if (!loading && user?.role === "super_admin") {
+    } else if (!loading && user && !user.permissions?.includes("UPLOAD_RELEASE")) {
       router.push("/dashboard");
     }
   }, [user, loading, router]);
@@ -161,6 +161,20 @@ export default function UploadPage() {
     setValue,
     formState: { errors },
   } = form;
+
+  // Clear cover art when metadata changes
+  const artistName = watch("artistName");
+  const title = watch("title");
+  const featuringArtist = watch("featuringArtist");
+
+  useEffect(() => {
+    if (form.getValues("coverArt") || form.getValues("coverArtPreview")) {
+      console.log("Metadata changed, clearing cover art to ensure re-validation");
+      form.setValue("coverArt", null);
+      form.setValue("coverArtPreview", "");
+      toast.error("Cover art cleared. Please re-upload to match new metadata.");
+    }
+  }, [artistName, title, featuringArtist, form]);
 
   // Separate state for internal component logic (Credits step songwriters list etc)
   // These could be moved into the form too, but for UI lists that map to a final field, local state is sometimes easier until submit.
@@ -767,7 +781,7 @@ export default function UploadPage() {
     checkEligibility();
   }, [user]);
 
-  if (loading || !user || user?.role === "super_admin") {
+  if (loading || !user) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
@@ -1040,6 +1054,13 @@ export default function UploadPage() {
         allTracks={form.getValues("tracks") || []}
         mainArtistName={watch("artistName")}
         featuringArtists={watch("artists")}
+        mainArtistProfiles={{
+          spotify: watch("spotifyProfile"),
+          apple: watch("appleMusicProfile"),
+          youtube: watch("youtubeMusicProfile"),
+          instagram: watch("instagramProfile") === 'yes' ? watch("instagramProfileUrl") : watch("instagramProfile"),
+          facebook: watch("facebookProfile") === 'yes' ? watch("facebookProfileUrl") : watch("facebookProfile")
+        }}
       />
     </DashboardLayout>
   );

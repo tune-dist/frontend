@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { Resizable } from "re-resizable";
 import toast from "react-hot-toast";
 import {
     Loader2,
@@ -85,6 +86,14 @@ export default function PromotionEditorPage() {
         info: { x: 0, y: 0 },
         badges: { x: 0, y: 0 }
     });
+    const [elementSizes, setElementSizes] = useState<Record<string, { width: number | string, height: number | string }>>({
+        header: { width: '100%', height: 'auto' },
+        artwork: { width: 600, height: 600 },
+        info: { width: '100%', height: 'auto' },
+        badges: { width: '100%', height: 'auto' }
+    });
+    const [selectedElement, setSelectedElement] = useState<string | null>(null);
+
 
     const previewRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +115,9 @@ export default function PromotionEditorPage() {
                         if (promo.customization?.selectedBadges) setSelectedBadges(promo.customization.selectedBadges);
                         if (promo.customization?.layout) {
                             setElementPositions(promo.customization.layout);
+                        }
+                        if (promo.customization?.sizes) {
+                            setElementSizes(promo.customization.sizes);
                         }
                     }
                 } catch (e) {
@@ -173,7 +185,13 @@ export default function PromotionEditorPage() {
             info: { x: 0, y: 0 },
             badges: { x: 0, y: 0 }
         });
-        toast.success("Layout reset to default");
+        setElementSizes({
+            header: { width: '100%', height: 'auto' },
+            artwork: { width: 600, height: 600 },
+            info: { width: '100%', height: 'auto' },
+            badges: { width: '100%', height: 'auto' }
+        });
+        toast.success("Layout and sizes reset to default");
     };
 
     const handleSave = async () => {
@@ -187,7 +205,8 @@ export default function PromotionEditorPage() {
                     text: customText,
                     lastTemplateId: activeTemplate.id,
                     selectedBadges,
-                    layout: elementPositions
+                    layout: elementPositions,
+                    sizes: elementSizes
                 }
             });
 
@@ -427,7 +446,14 @@ export default function PromotionEditorPage() {
                                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
 
                                 {/* Content */}
-                                <div className="relative z-10 w-full h-full flex flex-col items-center justify-center gap-8 p-12 text-center">
+                                <div
+                                    className="relative z-10 w-full h-full flex flex-col items-center justify-center gap-8 p-12 text-center"
+                                    onClick={(e) => {
+                                        if (e.target === e.currentTarget) {
+                                            setSelectedElement(null);
+                                        }
+                                    }}
+                                >
                                     {/* Top Section: OUT NOW */}
                                     <motion.div
                                         drag
@@ -438,18 +464,56 @@ export default function PromotionEditorPage() {
                                                 header: { x: prev.header.x + info.offset.x, y: prev.header.y + info.offset.y }
                                             }));
                                         }}
+                                        onClick={() => setSelectedElement('header')}
                                         style={{ x: elementPositions.header.x, y: elementPositions.header.y }}
-                                        className="w-full space-y-1 cursor-move active:scale-95 transition-transform"
+                                        className="cursor-move active:scale-95 transition-transform"
                                     >
-                                        <h1 className="text-white text-7xl font-black uppercase tracking-tight" style={{
-                                            textShadow: '0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)'
-                                        }}>
-                                            {customText || "OUT NOW"}
-                                        </h1>
-                                        <p className="text-white/90 text-xl font-medium tracking-wide">
-                                            Distributed by <span className="font-bold text-primary">KRATOLIB</span>
-                                        </p>
+                                        <Resizable
+                                            size={{ width: elementSizes.header.width, height: elementSizes.header.height }}
+                                            onResizeStop={(e, direction, ref, d) => {
+                                                setElementSizes(prev => ({
+                                                    ...prev,
+                                                    header: {
+                                                        width: ref.style.width,
+                                                        height: ref.style.height
+                                                    }
+                                                }));
+                                            }}
+                                            enable={selectedElement === 'header' ? {
+                                                top: false,
+                                                right: true,
+                                                bottom: true,
+                                                left: true,
+                                                topRight: false,
+                                                bottomRight: true,
+                                                bottomLeft: true,
+                                                topLeft: false
+                                            } : false}
+                                            handleStyles={selectedElement === 'header' ? {
+                                                right: { width: '8px', right: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                bottom: { height: '8px', bottom: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                bottomRight: { width: '14px', height: '14px', right: '-7px', bottom: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
+                                                left: { width: '8px', left: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                bottomLeft: { width: '14px', height: '14px', left: '-7px', bottom: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' }
+                                            } : {}}
+                                            style={{
+                                                border: selectedElement === 'header' ? '2px dashed rgba(59, 130, 246, 0.8)' : '2px dashed transparent',
+                                                transition: 'border-color 0.2s'
+                                            }}
+                                        >
+                                            <div className="w-full h-full space-y-1">
+                                                <h1 className="text-white text-7xl font-black uppercase tracking-tight" style={{
+                                                    textShadow: '0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)'
+                                                }}>
+                                                    {customText || "OUT NOW"}
+                                                </h1>
+                                                <p className="text-white/90 text-xl font-medium tracking-wide">
+                                                    Distributed by <span className="font-bold text-primary">KRATOLIB</span>
+                                                </p>
+                                            </div>
+                                        </Resizable>
                                     </motion.div>
+
 
                                     {/* Middle Section: Cover Art */}
                                     <motion.div
@@ -461,15 +525,58 @@ export default function PromotionEditorPage() {
                                                 artwork: { x: prev.artwork.x + info.offset.x, y: prev.artwork.y + info.offset.y }
                                             }));
                                         }}
+                                        onClick={() => setSelectedElement('artwork')}
                                         style={{ x: elementPositions.artwork.x, y: elementPositions.artwork.y }}
-                                        className="relative shadow-[0_0_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden border-4 border-white/10 cursor-move active:scale-95 transition-transform"
+                                        className="cursor-move active:scale-95 transition-transform"
                                     >
-                                        <img
-                                            src={release?.coverArt?.url}
-                                            alt="Cover Art"
-                                            className="w-[600px] h-[600px] object-cover pointer-events-none"
-                                        />
+                                        <Resizable
+                                            size={{ width: elementSizes.artwork.width, height: elementSizes.artwork.height }}
+                                            onResizeStop={(e, direction, ref, d) => {
+                                                const newWidth = parseInt(ref.style.width);
+                                                setElementSizes(prev => ({
+                                                    ...prev,
+                                                    artwork: {
+                                                        width: newWidth,
+                                                        height: newWidth // Keep aspect ratio 1:1
+                                                    }
+                                                }));
+                                            }}
+                                            lockAspectRatio={true}
+                                            enable={selectedElement === 'artwork' ? {
+                                                top: true,
+                                                right: true,
+                                                bottom: true,
+                                                left: true,
+                                                topRight: true,
+                                                bottomRight: true,
+                                                bottomLeft: true,
+                                                topLeft: true
+                                            } : false}
+                                            handleStyles={selectedElement === 'artwork' ? {
+                                                top: { height: '8px', top: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                right: { width: '8px', right: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                bottom: { height: '8px', bottom: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                left: { width: '8px', left: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                topRight: { width: '14px', height: '14px', right: '-7px', top: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
+                                                bottomRight: { width: '14px', height: '14px', right: '-7px', bottom: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
+                                                bottomLeft: { width: '14px', height: '14px', left: '-7px', bottom: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
+                                                topLeft: { width: '14px', height: '14px', left: '-7px', top: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' }
+                                            } : {}}
+                                            style={{
+                                                border: selectedElement === 'artwork' ? '2px dashed rgba(59, 130, 246, 0.8)' : '2px dashed transparent',
+                                                transition: 'border-color 0.2s'
+                                            }}
+                                        >
+                                            <div className="relative w-full h-full shadow-[0_0_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden border-4 border-white/10">
+                                                <img
+                                                    src={release?.coverArt?.url}
+                                                    alt="Cover Art"
+                                                    className="w-full h-full object-cover pointer-events-none"
+                                                />
+                                            </div>
+                                        </Resizable>
                                     </motion.div>
+
 
                                     {/* Bottom Section: Artist Info + Available On */}
                                     <div className="w-full space-y-4">
@@ -483,15 +590,52 @@ export default function PromotionEditorPage() {
                                                     info: { x: prev.info.x + info.offset.x, y: prev.info.y + info.offset.y }
                                                 }));
                                             }}
+                                            onClick={() => setSelectedElement('info')}
                                             style={{ x: elementPositions.info.x, y: elementPositions.info.y }}
-                                            className="space-y-1 cursor-move active:scale-95 transition-transform"
+                                            className="cursor-move active:scale-95 transition-transform"
                                         >
-                                            <h2 className="text-white text-4xl font-black uppercase tracking-tight leading-tight">
-                                                {release?.title}
-                                            </h2>
-                                            <h3 className="text-white/80 text-2xl font-medium">
-                                                {release?.artistName}
-                                            </h3>
+                                            <Resizable
+                                                size={{ width: elementSizes.info.width, height: elementSizes.info.height }}
+                                                onResizeStop={(e, direction, ref, d) => {
+                                                    setElementSizes(prev => ({
+                                                        ...prev,
+                                                        info: {
+                                                            width: ref.style.width,
+                                                            height: ref.style.height
+                                                        }
+                                                    }));
+                                                }}
+                                                enable={selectedElement === 'info' ? {
+                                                    top: false,
+                                                    right: true,
+                                                    bottom: true,
+                                                    left: true,
+                                                    topRight: false,
+                                                    bottomRight: true,
+                                                    bottomLeft: true,
+                                                    topLeft: false
+                                                } : false}
+                                                handleStyles={selectedElement === 'info' ? {
+                                                    right: { width: '8px', right: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                    bottom: { height: '8px', bottom: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                    bottomRight: { width: '14px', height: '14px', right: '-7px', bottom: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
+                                                    left: { width: '8px', left: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                    bottomLeft: { width: '14px', height: '14px', left: '-7px', bottom: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' }
+                                                } : {}}
+                                                style={{
+                                                    border: selectedElement === 'info' ? '2px dashed rgba(59, 130, 246, 0.8)' : '2px dashed transparent',
+                                                    transition: 'border-color 0.2s'
+                                                }}
+                                            >
+                                                <div className="w-full h-full space-y-1">
+                                                    <h2 className="text-white text-4xl font-black uppercase tracking-tight leading-tight">
+                                                        {release?.title}
+                                                    </h2>
+                                                    <h3 className="text-white/80 text-2xl font-medium">
+                                                        {release?.artistName}
+                                                    </h3>
+                                                </div>
+                                            </Resizable>
                                         </motion.div>
 
                                         {/* Platform Badges */}
@@ -505,27 +649,64 @@ export default function PromotionEditorPage() {
                                                         badges: { x: prev.badges.x + info.offset.x, y: prev.badges.y + info.offset.y }
                                                     }));
                                                 }}
+                                                onClick={() => setSelectedElement('badges')}
                                                 style={{ x: elementPositions.badges.x, y: elementPositions.badges.y }}
-                                                className="space-y-2 cursor-move active:scale-95 transition-transform"
+                                                className="cursor-move active:scale-95 transition-transform"
                                             >
-                                                <p className="text-white/70 text-xl font-bold uppercase tracking-widest pointer-events-none">
-                                                    Available on:
-                                                </p>
-                                                <div className="flex justify-center gap-6 flex-wrap pointer-events-none">
-                                                    {selectedBadges.map((badgeId) => {
-                                                        const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
-                                                        if (!badge) return null;
-                                                        return (
-                                                            <div key={badgeId} className="h-12 w-auto flex items-center justify-center">
-                                                                <img
-                                                                    src={badge.logoUrl}
-                                                                    alt={badge.name}
-                                                                    className="h-full w-auto object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-                                                                />
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                                <Resizable
+                                                    size={{ width: elementSizes.badges.width, height: elementSizes.badges.height }}
+                                                    onResizeStop={(e, direction, ref, d) => {
+                                                        setElementSizes(prev => ({
+                                                            ...prev,
+                                                            badges: {
+                                                                width: ref.style.width,
+                                                                height: ref.style.height
+                                                            }
+                                                        }));
+                                                    }}
+                                                    enable={selectedElement === 'badges' ? {
+                                                        top: false,
+                                                        right: true,
+                                                        bottom: true,
+                                                        left: true,
+                                                        topRight: false,
+                                                        bottomRight: true,
+                                                        bottomLeft: true,
+                                                        topLeft: false
+                                                    } : false}
+                                                    handleStyles={selectedElement === 'badges' ? {
+                                                        right: { width: '8px', right: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                        bottom: { height: '8px', bottom: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                        bottomRight: { width: '14px', height: '14px', right: '-7px', bottom: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
+                                                        left: { width: '8px', left: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
+                                                        bottomLeft: { width: '14px', height: '14px', left: '-7px', bottom: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' }
+                                                    } : {}}
+                                                    style={{
+                                                        border: selectedElement === 'badges' ? '2px dashed rgba(59, 130, 246, 0.8)' : '2px dashed transparent',
+                                                        transition: 'border-color 0.2s'
+                                                    }}
+                                                >
+                                                    <div className="w-full h-full space-y-2">
+                                                        <p className="text-white/70 text-xl font-bold uppercase tracking-widest pointer-events-none">
+                                                            Available on:
+                                                        </p>
+                                                        <div className="flex justify-center gap-6 flex-wrap pointer-events-none">
+                                                            {selectedBadges.map((badgeId) => {
+                                                                const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
+                                                                if (!badge) return null;
+                                                                return (
+                                                                    <div key={badgeId} className="h-12 w-auto flex items-center justify-center">
+                                                                        <img
+                                                                            src={badge.logoUrl}
+                                                                            alt={badge.name}
+                                                                            className="h-full w-auto object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                                                        />
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </Resizable>
                                             </motion.div>
                                         )}
                                     </div>

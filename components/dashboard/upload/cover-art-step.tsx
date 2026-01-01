@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Image as ImageIcon, Loader2, UploadCloud, Lightbulb, CheckCircle2, ClipboardCheck, Info, XCircle, Circle } from 'lucide-react'
+import { Image as ImageIcon, Loader2, UploadCloud, Lightbulb, CheckCircle2, ClipboardCheck, Info, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData } from './types'
 import { useFormContext } from 'react-hook-form'
@@ -19,6 +19,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
     const [uploadProgress, setUploadProgress] = useState(0)
     const [validationErrors, setValidationErrors] = useState<any[]>([]);
     const [hasValidated, setHasValidated] = useState(false);
+    const [isValidating, setIsValidating] = useState(false);
 
     const coverArtPreview = watch('coverArtPreview')
     const coverArt = watch('coverArt')
@@ -99,12 +100,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 // Keep client-side dimension check for instant feedback
                 if (img.width < 3000 || img.height < 3000) {
                     toast.error('Image dimensions must be at least 3000x3000 pixels')
-                    // Still move to backend validation to update UI radios? 
-                    // No, client side catch is faster. But we want the UI to update.
                 }
-
-                setIsUploading(true);
-                setUploadProgress(0);
 
                 try {
                     // 1. Strict Backend Validation
@@ -126,11 +122,16 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     };
 
                     console.log('Validating cover art with metadata:', validationMetadata);
+                    setIsUploading(true);
+                    setIsValidating(true);
+                    setUploadProgress(0);
+
                     const { validateCoverArt } = await import('@/lib/api/cover-art');
                     const validationResult = await validateCoverArt(file, validationMetadata);
 
                     setValidationErrors(validationResult.errors || []);
                     setHasValidated(true);
+                    setIsValidating(false);
 
                     if (validationResult.status === 'rejected') {
                         console.error('Validation failed:', validationResult.errors);
@@ -143,7 +144,6 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                         toast('Warning: Some minor issues detected, but proceeding.', { icon: '⚠️', duration: 5000 });
                     }
 
-
                     // 2. Proceed to Upload if Valid
                     setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
 
@@ -153,11 +153,11 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     if (file.size > COVER_CHUNK_THRESHOLD) {
                         result = await uploadFileInChunks(file, '', (progress) => {
                             setUploadProgress(progress);
-                        });
+                        }, 'coverart');
                     } else {
                         result = await uploadFileDirectly(file, (progress) => {
                             setUploadProgress(progress);
-                        });
+                        }, 'coverart');
                     }
 
                     if (!result || !result.path) {
@@ -179,6 +179,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     setValue('coverArtPreview', '', { shouldValidate: true });
                 } finally {
                     setIsUploading(false);
+                    setIsValidating(false);
                 }
             }
             img.src = reader.result as string
@@ -298,33 +299,36 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                                     </p>
                                 </div>
                             )}
+                        </div>
+                    )}
 
-                            {isUploading && (
-                                <div className="max-w-md mx-auto space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-primary font-medium flex items-center gap-2">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            Uploading cover art...
-                                        </span>
-                                        <span className="text-primary font-bold">{Math.round(uploadProgress)}%</span>
-                                    </div>
-                                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-primary transition-all duration-300 ease-out"
-                                            style={{ width: `${uploadProgress}%` }}
-                                        />
-                                    </div>
+                    {isUploading && (
+                        <div className={`mt-6 max-w-md mx-auto space-y-2 p-6 rounded-2xl bg-primary/5 border border-primary/20 ${!coverArtPreview ? 'absolute inset-0 flex flex-col items-center justify-center bg-card/90 z-20 rounded-3xl' : ''}`}>
+                            <div className="flex justify-between items-center w-full text-sm">
+                                <span className="text-primary font-semibold flex items-center gap-3 text-lg">
+                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                    {isValidating ? 'Validating cover art...' : 'Uploading cover art...'}
+                                </span>
+                                {!isValidating && <span className="text-primary font-bold text-lg">{Math.round(uploadProgress)}%</span>}
+                            </div>
+                            {!isValidating && (
+                                <div className="w-full h-3 bg-primary/10 rounded-full overflow-hidden mt-2">
+                                    <div
+                                        className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                                        style={{ width: `${uploadProgress}%` }}
+                                    />
                                 </div>
                             )}
                         </div>
                     )}
-                    {errors.coverArt && (
-                        <p className="text-sm text-red-500 mt-4 flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                            <Info className="h-4 w-4" />
-                            {String(errors.coverArt.message)}
-                        </p>
-                    )}
                 </div>
+
+                {errors.coverArt && (
+                    <p className="text-sm text-red-500 mt-4 flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                        <Info className="h-4 w-4" />
+                        {String(errors.coverArt.message)}
+                    </p>
+                )}
 
                 <p className="text-sm text-muted-foreground text-center">
                     Supported formats: JPG, PNG. Max size: 20MB.

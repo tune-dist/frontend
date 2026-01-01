@@ -11,11 +11,11 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string) => Promise<void>;
+  login: (email: string, password: string, redirectUrl?: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
-  loginWithToken: (token: string) => Promise<void>;
+  loginWithToken: (token: string, refreshToken?: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<{ message: string }>;
   resetPassword: (token: string, password: string) => Promise<{ message: string }>;
 }
@@ -49,29 +49,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initAuth();
   }, []);
 
-  const login = React.useCallback(async (email: string, password: string) => {
+  const login = React.useCallback(async (email: string, password: string, redirectUrl?: string) => {
     try {
       const response = await apiLogin({ email, password });
 
-      // Store token in cookie
+      // Store tokens in cookie
       Cookies.set(config.tokenKey, response.access_token, {
         expires: 7, // 7 days
         sameSite: 'lax',
       });
 
+      Cookies.set('refresh_token', response.refresh_token, {
+        expires: 7,
+        sameSite: 'lax',
+      });
+
+      // Store user info in cookie for subscription page
+      Cookies.set('user', JSON.stringify(response.user), {
+        expires: 7,
+        sameSite: 'lax',
+      });
+
       setUser(response.user);
-      router.push('/dashboard');
+      router.push(redirectUrl || '/dashboard');
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
   }, [router]);
 
-  const register = React.useCallback(async (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string) => {
+  const register = React.useCallback(async (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string) => {
     try {
       await apiRegister({ email, password, fullName, role, googleId, spotifyId, avatar });
 
       // After successful registration, log the user in
-      await login(email, password);
+      await login(email, password, redirectUrl);
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
@@ -79,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = React.useCallback(() => {
     Cookies.remove(config.tokenKey);
+    Cookies.remove('refresh_token');
     setUser(null);
     router.push('/auth');
   }, [router]);
@@ -93,13 +105,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [logout]);
 
-  const loginWithToken = React.useCallback(async (token: string) => {
+  const loginWithToken = React.useCallback(async (token: string, refreshToken?: string) => {
     try {
-      // Store token in cookie
+      // Store tokens in cookie
       Cookies.set(config.tokenKey, token, {
         expires: 7, // 7 days
         sameSite: 'lax',
       });
+
+      if (refreshToken) {
+        Cookies.set('refresh_token', refreshToken, {
+          expires: 7,
+          sameSite: 'lax',
+        });
+      }
 
       const userData = await getMe();
       setUser(userData);
