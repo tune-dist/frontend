@@ -855,10 +855,10 @@ export default function UploadPage() {
                         <div className="flex flex-col items-center">
                           <div
                             className={`h-10 w-10 rounded-full flex items-center justify-center ${isActive
-                                ? "bg-primary text-primary-foreground"
-                                : isCompleted
-                                  ? "bg-primary/20 text-primary"
-                                  : "bg-muted text-muted-foreground"
+                              ? "bg-primary text-primary-foreground"
+                              : isCompleted
+                                ? "bg-primary/20 text-primary"
+                                : "bg-muted text-muted-foreground"
                               }`}
                           >
                             <Icon className="h-5 w-5" />

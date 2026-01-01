@@ -79,6 +79,12 @@ export default function PromotionEditorPage() {
     const [customText, setCustomText] = useState("");
     const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState("design");
+    const [elementPositions, setElementPositions] = useState<Record<string, { x: number, y: number }>>({
+        header: { x: 0, y: 0 },
+        artwork: { x: 0, y: 0 },
+        info: { x: 0, y: 0 },
+        badges: { x: 0, y: 0 }
+    });
 
     const previewRef = useRef<HTMLDivElement>(null);
 
@@ -98,6 +104,9 @@ export default function PromotionEditorPage() {
                         setSlug(promo.slug);
                         if (promo.customization?.text) setCustomText(promo.customization.text);
                         if (promo.customization?.selectedBadges) setSelectedBadges(promo.customization.selectedBadges);
+                        if (promo.customization?.layout) {
+                            setElementPositions(promo.customization.layout);
+                        }
                     }
                 } catch (e) {
                     // No promo yet, ignore
@@ -157,6 +166,16 @@ export default function PromotionEditorPage() {
         }
     };
 
+    const handleResetLayout = () => {
+        setElementPositions({
+            header: { x: 0, y: 0 },
+            artwork: { x: 0, y: 0 },
+            info: { x: 0, y: 0 },
+            badges: { x: 0, y: 0 }
+        });
+        toast.success("Layout reset to default");
+    };
+
     const handleSave = async () => {
         try {
             setSaving(true);
@@ -167,7 +186,8 @@ export default function PromotionEditorPage() {
                 customization: {
                     text: customText,
                     lastTemplateId: activeTemplate.id,
-                    selectedBadges
+                    selectedBadges,
+                    layout: elementPositions
                 }
             });
 
@@ -268,7 +288,10 @@ export default function PromotionEditorPage() {
                                             {templates.map((temp) => (
                                                 <button
                                                     key={temp.id}
-                                                    onClick={() => setActiveTemplate(temp)}
+                                                    onClick={() => {
+                                                        setActiveTemplate(temp);
+                                                        handleResetLayout();
+                                                    }}
                                                     className={`p-2 rounded-lg border text-left transition-all ${activeTemplate.id === temp.id
                                                         ? 'border-primary bg-primary/10'
                                                         : 'border-border hover:bg-accent'
@@ -283,6 +306,16 @@ export default function PromotionEditorPage() {
                                                 </button>
                                             ))}
                                         </div>
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full text-xs gap-2"
+                                            onClick={handleResetLayout}
+                                        >
+                                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+                                            Reset Custom Layout
+                                        </Button>
                                     </CardContent>
                                 </Card>
 
@@ -396,45 +429,89 @@ export default function PromotionEditorPage() {
                                 {/* Content */}
                                 <div className="relative z-10 w-full h-full flex flex-col items-center justify-center gap-8 p-12 text-center">
                                     {/* Top Section: OUT NOW */}
-                                    <div className="w-full space-y-1">
+                                    <motion.div
+                                        drag
+                                        dragMomentum={false}
+                                        onDragEnd={(_, info) => {
+                                            setElementPositions(prev => ({
+                                                ...prev,
+                                                header: { x: prev.header.x + info.offset.x, y: prev.header.y + info.offset.y }
+                                            }));
+                                        }}
+                                        style={{ x: elementPositions.header.x, y: elementPositions.header.y }}
+                                        className="w-full space-y-1 cursor-move active:scale-95 transition-transform"
+                                    >
                                         <h1 className="text-white text-7xl font-black uppercase tracking-tight" style={{
                                             textShadow: '0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)'
                                         }}>
-                                            OUT NOW
+                                            {customText || "OUT NOW"}
                                         </h1>
                                         <p className="text-white/90 text-xl font-medium tracking-wide">
                                             Distributed by <span className="font-bold text-primary">KRATOLIB</span>
                                         </p>
-                                    </div>
+                                    </motion.div>
 
                                     {/* Middle Section: Cover Art */}
-                                    <div className="relative shadow-[0_0_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden border-4 border-white/10">
+                                    <motion.div
+                                        drag
+                                        dragMomentum={false}
+                                        onDragEnd={(_, info) => {
+                                            setElementPositions(prev => ({
+                                                ...prev,
+                                                artwork: { x: prev.artwork.x + info.offset.x, y: prev.artwork.y + info.offset.y }
+                                            }));
+                                        }}
+                                        style={{ x: elementPositions.artwork.x, y: elementPositions.artwork.y }}
+                                        className="relative shadow-[0_0_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden border-4 border-white/10 cursor-move active:scale-95 transition-transform"
+                                    >
                                         <img
                                             src={release?.coverArt?.url}
                                             alt="Cover Art"
-                                            className="w-[600px] h-[600px] object-cover"
+                                            className="w-[600px] h-[600px] object-cover pointer-events-none"
                                         />
-                                    </div>
+                                    </motion.div>
 
                                     {/* Bottom Section: Artist Info + Available On */}
                                     <div className="w-full space-y-4">
                                         {/* Artist and Title */}
-                                        <div className="space-y-1">
+                                        <motion.div
+                                            drag
+                                            dragMomentum={false}
+                                            onDragEnd={(_, info) => {
+                                                setElementPositions(prev => ({
+                                                    ...prev,
+                                                    info: { x: prev.info.x + info.offset.x, y: prev.info.y + info.offset.y }
+                                                }));
+                                            }}
+                                            style={{ x: elementPositions.info.x, y: elementPositions.info.y }}
+                                            className="space-y-1 cursor-move active:scale-95 transition-transform"
+                                        >
                                             <h2 className="text-white text-4xl font-black uppercase tracking-tight leading-tight">
                                                 {release?.title}
                                             </h2>
                                             <h3 className="text-white/80 text-2xl font-medium">
                                                 {release?.artistName}
                                             </h3>
-                                        </div>
+                                        </motion.div>
 
                                         {/* Platform Badges */}
                                         {selectedBadges.length > 0 && (
-                                            <div className="space-y-2">
-                                                <p className="text-white/70 text-xl font-bold uppercase tracking-widest">
+                                            <motion.div
+                                                drag
+                                                dragMomentum={false}
+                                                onDragEnd={(_, info) => {
+                                                    setElementPositions(prev => ({
+                                                        ...prev,
+                                                        badges: { x: prev.badges.x + info.offset.x, y: prev.badges.y + info.offset.y }
+                                                    }));
+                                                }}
+                                                style={{ x: elementPositions.badges.x, y: elementPositions.badges.y }}
+                                                className="space-y-2 cursor-move active:scale-95 transition-transform"
+                                            >
+                                                <p className="text-white/70 text-xl font-bold uppercase tracking-widest pointer-events-none">
                                                     Available on:
                                                 </p>
-                                                <div className="flex justify-center gap-6 flex-wrap">
+                                                <div className="flex justify-center gap-6 flex-wrap pointer-events-none">
                                                     {selectedBadges.map((badgeId) => {
                                                         const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
                                                         if (!badge) return null;
@@ -443,25 +520,13 @@ export default function PromotionEditorPage() {
                                                                 <img
                                                                     src={badge.logoUrl}
                                                                     alt={badge.name}
-                                                                    onError={(e) => {
-                                                                        const target = e.target as HTMLImageElement;
-                                                                        target.style.display = 'none';
-                                                                        const parent = target.parentElement;
-                                                                        if (parent && !parent.querySelector('.fallback-badge')) {
-                                                                            const fallback = document.createElement('div');
-                                                                            fallback.className = 'fallback-badge font-bold text-white text-xl flex items-center justify-center bg-white/10 rounded-lg h-12 w-12 p-2 backdrop-blur-sm border border-white/10';
-                                                                            fallback.style.cssText = `color: ${(badge as any).color || '#fff'}`;
-                                                                            fallback.textContent = (badge as any).fallbackText || badge.name.substring(0, 2).toUpperCase();
-                                                                            parent.appendChild(fallback);
-                                                                        }
-                                                                    }}
                                                                     className="h-full w-auto object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
                                                                 />
                                                             </div>
                                                         );
                                                     })}
                                                 </div>
-                                            </div>
+                                            </motion.div>
                                         )}
                                     </div>
                                 </div>

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
-import { User, login as apiLogin, register as apiRegister, getMe } from '@/lib/api/auth';
+import { User, login as apiLogin, register as apiRegister, getMe, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword } from '@/lib/api/auth';
 import { config } from '@/lib/config';
 import { getErrorMessage } from '@/lib/api-client';
 
@@ -12,9 +12,12 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string, role?: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  loginWithToken: (token: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ message: string }>;
+  resetPassword: (token: string, password: string) => Promise<{ message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = React.useCallback(async (email: string, password: string) => {
     try {
       const response = await apiLogin({ email, password });
 
@@ -61,26 +64,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
-  };
+  }, [router]);
 
-  const register = async (email: string, password: string, fullName: string, role?: string) => {
+  const register = React.useCallback(async (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string) => {
     try {
-      await apiRegister({ email, password, fullName, role });
+      await apiRegister({ email, password, fullName, role, googleId, spotifyId, avatar });
 
       // After successful registration, log the user in
       await login(email, password);
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
-  };
+  }, [login]);
 
-  const logout = () => {
+  const logout = React.useCallback(() => {
     Cookies.remove(config.tokenKey);
     setUser(null);
     router.push('/auth');
-  };
+  }, [router]);
 
-  const refreshUser = async () => {
+  const refreshUser = React.useCallback(async () => {
     try {
       const userData = await getMe();
       setUser(userData);
@@ -88,9 +91,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // If refresh fails, logout
       logout();
     }
-  };
+  }, [logout]);
 
-  const value = {
+  const loginWithToken = React.useCallback(async (token: string) => {
+    try {
+      // Store token in cookie
+      Cookies.set(config.tokenKey, token, {
+        expires: 7, // 7 days
+        sameSite: 'lax',
+      });
+
+      const userData = await getMe();
+      setUser(userData);
+      router.push('/dashboard');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  }, [router]);
+
+  const value = React.useMemo(() => ({
     user,
     loading,
     isAuthenticated: !!user,
@@ -98,7 +117,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     register,
     logout,
     refreshUser,
-  };
+    loginWithToken,
+    forgotPassword: apiForgotPassword,
+    resetPassword: apiResetPassword,
+  }), [user, loading, login, register, logout, refreshUser, loginWithToken]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -17,6 +17,7 @@ import {
   CreditCard,
   Sparkles,
   Youtube,
+  Quote,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles },
+  { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube },
   { name: 'Users', href: '/dashboard/users', icon: User },
@@ -69,9 +71,9 @@ export default function Sidebar() {
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center border-b border-border px-6">
+          <div className="flex h-16 items-center justify-center border-b border-border px-6">
             <Link href="/" className="flex items-center">
-              <img src="/logo.png" alt="KratoLib" className="h-[6rem] w-auto" />
+              <img src="/logo.png" alt="KratoLib" className="w-[150px] max-w-[100%]" />
             </Link>
           </div>
 
@@ -90,7 +92,7 @@ export default function Sidebar() {
                 }
 
                 // Default behavior for other users (e.g., artists)
-                if (item.name === 'Users' || item.name === 'Plan Management') return false;
+                if (item.name === 'Users' || item.name === 'Plan Management' || item.name === 'Testimonials') return false;
                 return true
               })
               .map((item) => {

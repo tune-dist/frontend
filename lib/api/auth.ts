@@ -5,6 +5,9 @@ export interface RegisterData {
   password: string;
   fullName: string;
   role?: string;
+  googleId?: string;
+  spotifyId?: string;
+  avatar?: string;
 }
 
 export interface LoginData {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, Music, ExternalLink, Play, Disc, Share2 } from "lucide-react";
@@ -13,6 +13,19 @@ export default function PublicPromotionPage() {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [cardWidth, setCardWidth] = useState(448);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const updateWidth = () => {
+            if (containerRef.current) {
+                setCardWidth(containerRef.current.offsetWidth);
+            }
+        };
+        updateWidth();
+        window.addEventListener('resize', updateWidth);
+        return () => window.removeEventListener('resize', updateWidth);
+    }, [data]);
 
     useEffect(() => {
         const fetchPromo = async () => {
@@ -73,58 +86,116 @@ export default function PublicPromotionPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full max-w-md bg-white/10 border border-white/20 rounded-3xl overflow-hidden shadow-2xl backdrop-blur-2xl"
                 >
-                    {/* Main Content */}
-                    <div className="p-8 flex flex-col items-center text-center space-y-6">
-                        {/* OUT NOW Header */}
-                        <div className="w-full space-y-1">
-                            <h1 className="text-white text-5xl font-black uppercase tracking-tight" style={{
-                                textShadow: '0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)'
-                            }}>
-                                OUT NOW
-                            </h1>
-                            <p className="text-white/90 text-sm font-medium tracking-wide">
-                                Distributed by <span className="font-bold text-primary">KRATOLIB</span>
-                            </p>
-                        </div>
-
-                        {/* Cover Art */}
-                        <div className="relative group">
-                            <img
-                                src={release.coverArt.url}
-                                alt={release.title}
-                                className="w-64 h-64 object-cover rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105"
+                    {/* Creative Container with Scaling logic */}
+                    <div ref={containerRef} className="relative w-full overflow-hidden" style={{
+                        aspectRatio: data.customization?.lastTemplateId?.startsWith('story') ? '9/16' : '1/1'
+                    }}>
+                        <div
+                            className="absolute top-0 left-0 flex flex-col items-center justify-center p-12 text-center gap-8"
+                            style={{
+                                width: '1080px',
+                                height: data.customization?.lastTemplateId?.startsWith('story') ? '1920px' : '1080px',
+                                transform: `scale(${cardWidth / 1080})`, // 448px is max-w-md. We can improve this with a ref if needed, but for now fixed scale works well for the card.
+                                transformOrigin: 'top left',
+                            }}
+                        >
+                            {/* Background for Creative */}
+                            <div
+                                className="absolute inset-0 bg-cover bg-center blur-2xl opacity-60 scale-110"
+                                style={{ backgroundImage: `url(${release.coverArt.url})` }}
                             />
-                        </div>
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
 
-                        {/* Artist Info */}
-                        <div className="space-y-1">
-                            <h2 className="text-2xl font-black text-white tracking-tight uppercase">{release.title}</h2>
-                            <p className="text-lg text-gray-400 font-medium">{release.artistName}</p>
-                        </div>
 
-                        {/* Available On Section */}
-                        {data.customization?.selectedBadges && data.customization.selectedBadges.length > 0 && (
-                            <div className="w-full space-y-3">
-                                <p className="text-white/70 text-sm font-bold uppercase tracking-widest">
-                                    Available on:
+                            {/* OUT NOW Header */}
+                            <motion.div
+                                style={{
+                                    x: data.customization?.layout?.header?.x || 0,
+                                    y: data.customization?.layout?.header?.y || 0
+                                }}
+                                className="relative z-10 w-full space-y-1"
+                            >
+                                <h1 className="text-white text-7xl font-black uppercase tracking-tight" style={{
+                                    textShadow: '0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)'
+                                }}>
+                                    {data.customization?.text || "OUT NOW"}
+                                </h1>
+                                <p className="text-white/90 text-xl font-medium tracking-wide">
+                                    Distributed by <span className="font-bold text-primary">KRATOLIB</span>
                                 </p>
-                                <div className="flex justify-center gap-4 flex-wrap">
-                                    {data.customization.selectedBadges.map((badgeId: string) => {
-                                        const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
-                                        if (!badge) return null;
-                                        return (
-                                            <div key={badgeId} className="h-8 w-auto flex items-center justify-center">
-                                                <img
-                                                    src={badge.logoUrl}
-                                                    alt={badge.name}
-                                                    className="h-full w-auto object-contain filter drop-shadow-sm"
-                                                />
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                            </motion.div>
+
+                            {/* Middle Section: Cover Art */}
+                            <motion.div
+                                style={{
+                                    x: data.customization?.layout?.artwork?.x || 0,
+                                    y: data.customization?.layout?.artwork?.y || 0
+                                }}
+                                className="relative z-10 shadow-[0_0_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden border-4 border-white/10"
+                            >
+                                <img
+                                    src={release.coverArt.url}
+                                    alt={release.title}
+                                    className="w-[600px] h-[600px] object-cover"
+                                />
+                            </motion.div>
+
+                            {/* Artist Info */}
+                            <div className="w-full space-y-4">
+                                <motion.div
+                                    style={{
+                                        x: data.customization?.layout?.info?.x || 0,
+                                        y: data.customization?.layout?.info?.y || 0
+                                    }}
+                                    className="relative z-10 space-y-1"
+                                >
+                                    <h2 className="text-white text-4xl font-black uppercase tracking-tight leading-tight">{release.title}</h2>
+                                    <p className="text-white/80 text-2xl font-medium">{release.artistName}</p>
+                                </motion.div>
+
+                                {/* Available On Section */}
+                                {data.customization?.selectedBadges && data.customization.selectedBadges.length > 0 && (
+                                    <motion.div
+                                        style={{
+                                            x: data.customization?.layout?.badges?.x || 0,
+                                            y: data.customization?.layout?.badges?.y || 0
+                                        }}
+                                        className="relative z-10 w-full space-y-2"
+                                    >
+                                        <p className="text-white/70 text-xl font-bold uppercase tracking-widest">
+                                            Available on:
+                                        </p>
+                                        <div className="flex justify-center gap-6 flex-wrap">
+                                            {data.customization.selectedBadges.map((badgeId: string) => {
+                                                const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
+                                                if (!badge) return null;
+                                                return (
+                                                    <div key={badgeId} className="h-12 w-auto flex items-center justify-center">
+                                                        <img
+                                                            src={badge.logoUrl}
+                                                            alt={badge.name}
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.style.display = 'none';
+                                                                const parent = target.parentElement;
+                                                                if (parent && !parent.querySelector('.fallback-badge')) {
+                                                                    const fallback = document.createElement('div');
+                                                                    fallback.className = 'fallback-badge font-bold text-white text-3xl flex items-center justify-center bg-white/10 rounded-lg h-16 w-16 p-2 backdrop-blur-sm border border-white/10';
+                                                                    fallback.style.cssText = `color: ${(badge as any).color || '#fff'}`;
+                                                                    fallback.textContent = (badge as any).fallbackText || badge.name.substring(0, 2).toUpperCase();
+                                                                    parent.appendChild(fallback);
+                                                                }
+                                                            }}
+                                                            className="h-full w-auto object-contain filter drop-shadow-sm"
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* Platforms List */}

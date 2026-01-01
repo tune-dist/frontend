@@ -1,27 +1,27 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Menu, X } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const navLinks = [
-    { name: 'Home', href: '#home' },
-    { name: 'Features', href: '#features' },
-    { name: 'Pricing', href: '#pricing' },
-    { name: 'Contact', href: '#contact' },
-  ]
+    { name: "Home", href: "#home" },
+    { name: "Features", href: "#features" },
+    { name: "Pricing", href: "#pricing" },
+    { name: "Contact", href: "#contact" },
+  ];
 
   return (
     <nav
@@ -33,12 +33,12 @@ export default function Navbar() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-011">
             <a href="#home">
               <img
                 src="/logo.png"
                 alt="KratoLib"
-                className="h-[8rem] md:h-[10rem] w-auto"
+                className="h-[2rem] max-w-100%"
               />
             </a>
           </div>
@@ -64,9 +64,7 @@ export default function Navbar() {
               </Button>
             </a>
             <a href="/auth?tab=signup">
-              <Button size="default">
-                Get Started
-              </Button>
+              <Button size="default">Get Started</Button>
             </a>
           </div>
 
@@ -96,7 +94,9 @@ export default function Navbar() {
               ))}
 
               <a href="/auth?tab=login" className="w-full block">
-                <Button variant="outline" className="w-full">Login</Button>
+                <Button variant="outline" className="w-full">
+                  Login
+                </Button>
               </a>
               <a href="/auth?tab=signup" className="w-full mt-2 block">
                 <Button className="w-full">Get Started</Button>
@@ -106,6 +106,5 @@ export default function Navbar() {
         )}
       </div>
     </nav>
-  )
+  );
 }
-
