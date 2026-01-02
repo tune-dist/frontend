@@ -102,9 +102,16 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
 
             try {
                 // Start Chunked Upload
-                const result = await uploadFileInChunks(file, '', (progress) => {
-                    setUploadProgress(prev => ({ ...prev, [fileId]: progress }))
-                }, 'audio');
+                const result = await uploadFileInChunks(
+                    file,
+                    '',
+                    (progress) => {
+                        setUploadProgress(prev => ({ ...prev, [fileId]: progress }))
+                    },
+                    'audio',
+                    getValues('artistName'),
+                    getValues('title')
+                );
 
                 // Upload complete, update form
                 if (format === 'single' || !format) {

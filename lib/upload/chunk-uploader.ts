@@ -19,7 +19,9 @@ export const uploadFileInChunks = async (
     file: File,
     accessToken: string, // Not strictly used in this codebase's valid auth maybe, but included per Vue.
     onProgress?: UploadProgressCallback,
-    type?: string
+    type?: string,
+    artistName?: string,
+    trackTitle?: string
 ): Promise<UploadCompleteResponse> => {
 
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -36,6 +38,8 @@ export const uploadFileInChunks = async (
         formData.append('totalChunks', totalChunks.toString());
         formData.append('currentChunk', chunkIndex.toString());
         if (type) formData.append('type', type);
+        if (artistName) formData.append('artistName', artistName);
+        if (trackTitle) formData.append('trackTitle', trackTitle);
 
         try {
             const response = await axios.post(`${API_URL}/chunk_files/upload`, formData, {
@@ -93,11 +97,15 @@ export const uploadFileInChunks = async (
 export const uploadFileDirectly = async (
     file: File,
     onProgress?: UploadProgressCallback,
-    type?: string
+    type?: string,
+    artistName?: string,
+    trackTitle?: string
 ): Promise<UploadCompleteResponse> => {
     const formData = new FormData();
     formData.append('file', file);
     if (type) formData.append('type', type);
+    if (artistName) formData.append('artistName', artistName);
+    if (trackTitle) formData.append('trackTitle', trackTitle);
 
     const response = await axios.post(`${API_URL}/chunk_files/single`, formData, {
         headers: {
