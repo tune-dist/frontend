@@ -284,11 +284,9 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           const audioFile = audioFilesMap.get(track.audioFileId);
 
           if (audioFile.path) {
-            // Audio was uploaded via chunks
-            const baseUrl =
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+            // Audio was uploaded via chunks - path is now S3 key
             trackAudioData = {
-              url: `${baseUrl}${audioFile.path}`,
+              url: audioFile.path, // Store S3 key directly
               filename: audioFile.fileName || "audio.wav",
               size: audioFile.size || 0,
               duration: audioFile.duration || 0,
@@ -322,10 +320,9 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       const audioFileData = formData.audioFile as any;
 
       if (audioFileData.path) {
-        const baseUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        // Path is now S3 key
         audioData = {
-          url: `${baseUrl}${audioFileData.path}`,
+          url: audioFileData.path, // Store S3 key directly
           filename:
             audioFileData.fileName || audioFileData.file?.name || "audio.wav",
           size: audioFileData.size || audioFileData.file?.size || 0,
@@ -334,10 +331,9 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         };
       } else if (audioFileData instanceof File) {
         const result = await uploadFileInChunks(audioFileData, "", undefined, 'audio');
-        const baseUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        // Path is now S3 key
         audioData = {
-          url: `${baseUrl}${result.path}`,
+          url: result.path, // Store S3 key directly
           filename: audioFileData.name,
           size: audioFileData.size,
           duration: result.metaData?.duration || 0,
@@ -362,14 +358,12 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     const coverArtData = formData.coverArt as any;
 
     if (coverArtData.path) {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-      coverUrl = `${baseUrl}${coverArtData.path}`;
+      // Path is now S3 key
+      coverUrl = coverArtData.path; // Store S3 key directly
     } else if (formData.coverArt instanceof File) {
       const result = await uploadFileInChunks(formData.coverArt, "", undefined, 'coverart');
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-      coverUrl = `${baseUrl}${result.path}`;
+      // Path is now S3 key
+      coverUrl = result.path; // Store S3 key directly
     } else {
       throw new Error("Invalid cover art data");
     }
