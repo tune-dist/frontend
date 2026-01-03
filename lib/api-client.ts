@@ -32,7 +32,7 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     // Handle 401 errors (unauthorized)
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
       originalRequest._retry = true;
 
       const refresh_token = Cookies.get('refresh_token');
@@ -64,6 +64,13 @@ apiClient.interceptors.response.use(
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
           window.location.href = '/auth';
         }
+      }
+    } else if (error.response?.status === 401) {
+      // If it was already a retry or a refresh request that failed, logout
+      Cookies.remove(config.tokenKey);
+      Cookies.remove('refresh_token');
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+        window.location.href = '/auth';
       }
     }
 
