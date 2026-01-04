@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
 import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { API_URL } from '@/lib/config';
+import { S3Image } from '@/components/ui/s3-image';
+import ImageCropper from '@/components/dashboard/testimonials/image-cropper';
 
 export default function TestimonialsAdminPage() {
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -33,6 +35,7 @@ export default function TestimonialsAdminPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [currentTestimonial, setCurrentTestimonial] = useState<Partial<Testimonial>>({});
 
     const fetchTestimonials = async () => {
@@ -78,13 +81,56 @@ export default function TestimonialsAdminPage() {
         if (!file) return;
 
         try {
+            let processedFile = file;
+
+            // Check if it's HEIC
+            const fileName = file.name.toLowerCase();
+            if (fileName.endsWith('.heic') || file.type === 'image/heic' || file.type === 'application/octet-stream') {
+                toast.loading('Converting HEIC image...', { id: 'heic-convert' });
+
+                // Dynamic import to avoid SSR 'window is not defined' error
+                const heic2any = (await import('heic2any')).default;
+
+                const blob = await heic2any({
+                    blob: file,
+                    toType: 'image/jpeg',
+                    quality: 0.8
+                });
+
+                processedFile = new File(
+                    [Array.isArray(blob) ? blob[0] : blob],
+                    fileName.replace(/\.heic$/, '.jpg'),
+                    { type: 'image/jpeg' }
+                );
+                toast.success('Converted successfully', { id: 'heic-convert' });
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                setSelectedImage(reader.result as string);
+            };
+            reader.readAsDataURL(processedFile);
+        } catch (error) {
+            console.error('Image processing failed:', error);
+            toast.error('Failed to process image');
+        }
+    };
+
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        try {
+            setSelectedImage(null);
             setIsUploading(true);
+            console.log('Cropped blob size:', croppedBlob.size);
+
+            // Convert Blob to File
+            const file = new File([croppedBlob], 'testimonial-image.jpg', { type: 'image/jpeg' });
+
             const response = await testimonialsApi.uploadImage(file);
             setCurrentTestimonial({ ...currentTestimonial, image: response.path });
-            toast.success('Image uploaded successfully');
+            toast.success('Image cropped and uploaded successfully');
         } catch (error) {
             console.error(error);
-            toast.error('Failed to upload image');
+            toast.error('Failed to upload cropped image');
         } finally {
             setIsUploading(false);
         }
@@ -159,8 +205,8 @@ export default function TestimonialsAdminPage() {
                                                 <TableCell className="font-medium">
                                                     <div className="flex items-center gap-2">
                                                         {testimonial.image && (
-                                                            <img
-                                                                src={`${API_URL}${testimonial.image}`}
+                                                            <S3Image
+                                                                src={testimonial.image}
                                                                 alt={testimonial.name}
                                                                 className="h-8 w-8 rounded-full object-cover"
                                                             />
@@ -229,8 +275,8 @@ export default function TestimonialsAdminPage() {
                                 <div className="flex flex-col gap-4">
                                     {currentTestimonial.image && (
                                         <div className="relative h-20 w-20 rounded-full overflow-hidden border border-border">
-                                            <img
-                                                src={`${API_URL}${currentTestimonial.image}`}
+                                            <S3Image
+                                                src={currentTestimonial.image}
                                                 alt="Preview"
                                                 className="h-full w-full object-cover"
                                             />
@@ -274,6 +320,14 @@ export default function TestimonialsAdminPage() {
                         </div>
                     </DialogContent>
                 </Dialog>
+
+                {selectedImage && (
+                    <ImageCropper
+                        image={selectedImage}
+                        onCropComplete={handleCropComplete}
+                        onCancel={() => setSelectedImage(null)}
+                    />
+                )}
             </div>
         </DashboardLayout>
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -133,7 +134,7 @@ const DialogContent = React.forwardRef<
 
     if (!open) return null;
 
-    return (
+    return createPortal(
         <>
             <DialogOverlay />
             <div
@@ -151,7 +152,8 @@ const DialogContent = React.forwardRef<
                     <span className="sr-only">Close</span>
                 </DialogClose>
             </div>
-        </>
+        </>,
+        document.body
     );
 });
 DialogContent.displayName = "DialogContent";

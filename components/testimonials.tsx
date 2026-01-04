@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Quote } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { testimonialsApi, Testimonial } from '@/lib/api/testimonials'
+import { S3Image } from '@/components/ui/s3-image'
 
 export default function Testimonials() {
   const [dynamicTestimonials, setDynamicTestimonials] = useState<Testimonial[]>([])
@@ -78,7 +79,7 @@ export default function Testimonials() {
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
                       {testimonial.image ? (
-                        <img
+                        <S3Image
                           src={testimonial.image}
                           alt={testimonial.name}
                           className="w-full h-full object-cover"

@@ -328,6 +328,7 @@ export default function ReleasesPage() {
                         <TableHead>Artist</TableHead>
                         <TableHead>UPC/ISRC</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Approved By</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -373,6 +374,13 @@ export default function ReleasesPage() {
                               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusColor(release.status)}`}>
                                 {formatStatus(release.status)}
                               </span>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {/* Display approver name if available (Populated object or ID) */}
+                              {typeof release.approvedBy === 'object' && release.approvedBy?.fullName
+                                ? release.approvedBy.fullName
+                                : "-"
+                              }
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">

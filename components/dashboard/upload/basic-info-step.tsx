@@ -11,6 +11,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
 import { useFormContext } from 'react-hook-form'
 import { getPlanLimits, getPlanFieldRules } from '@/lib/api/plans'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 
 interface BasicInfoStepProps {
     // Keeping these optional for compatibility, but we primarily use context
@@ -107,24 +115,30 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         setSearchResults({ spotify: [], apple: [], youtube: [] })
     }, [activeSearchIndex])
 
+    // State for upgrade modal
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+
     // Handle adding a new artist
     const handleAddArtist = () => {
-        // First check if featured artists are allowed by plan
+        // Safe access to limits and rules
+        const limit = planLimits?.artistLimit ?? 1; // Default to 1 (strictest) if not loaded
+        // const allowFeatured = fieldRules.featuredArtists?.allow ?? false; // Default to false (strictest) if not loaded - Unused var
+
+        // 1. Check if featured artists are allowed specifically
         if (fieldRules.featuredArtists?.allow === false) {
-            // Featured artists not allowed by plan
+            setShowUpgradeModal(true)
             return
         }
 
-        // Then check artist limit: Check total artists (1 main + N secondary) against limit
-        // Current count = 1 (main) + artists.length
-        if (planLimits && (1 + (artists?.length || 0)) >= planLimits.artistLimit) {
-            // Limit reached
+        // 2. Check numeric limit
+        // Current count = 1 (main) + N (secondary)
+        if ((1 + (artists?.length || 0)) >= limit) {
+            setShowUpgradeModal(true)
             return
         }
+
         const currentArtists = artists || []
-        // Add new artist object
         setValue('artists', [...currentArtists, { name: '' }], { shouldValidate: true })
-        // Focus will be handled by auto-focusing the new input if needed, or user clicks
     }
 
     // Handle removing an artist
@@ -848,7 +862,10 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                         value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === artistName) ? artistName : (isArtistLocked ? '' : 'new')}
                                         onValueChange={(val) => {
                                             if (val === 'new') {
-                                                if (!isArtistLocked) {
+                                                // Check limit before allowing 'new'
+                                                if (isArtistLocked) {
+                                                    setShowUpgradeModal(true);
+                                                } else {
                                                     setValue('artistName', '', { shouldValidate: true })
                                                     setValue('spotifyProfile', '')
                                                     setValue('appleMusicProfile', '')
@@ -910,14 +927,12 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                     </SelectItem>
                                                 )
                                             })}
-                                            {!isArtistLocked && (
-                                                <SelectItem value="new">
-                                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                                        <Plus className="h-4 w-4" />
-                                                        <span>Create New Artist</span>
-                                                    </div>
-                                                </SelectItem>
-                                            )}
+                                            <SelectItem value="new">
+                                                <div className="flex items-center gap-2 text-muted-foreground">
+                                                    <Plus className="h-4 w-4" />
+                                                    <span>Create New Artist</span>
+                                                </div>
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                     {/* Removed Change Artist button for roster selection as per user feedback */}
@@ -972,19 +987,16 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         </div>
 
                         {/* Add Artist Button (for secondary artists) */}
-                        {canAddMoreArtists && areFeaturedArtistsAllowed && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleAddArtist}
-                                className="shrink-0 h-10 w-10 p-0 self-start mt-2" // align with top if multiline
-                                title={!canAddMoreArtists ? 'Upgrade to add more artists' : 'Add another artist'}
-                                disabled={!canAddMoreArtists}
-                            >
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                        )}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAddArtist}
+                            className="shrink-0 h-10 w-10 p-0 self-start mt-2" // align with top if multiline
+                            title="Add another artist"
+                        >
+                            <Plus className="h-4 w-4" />
+                        </Button>
                     </div>
                     {errors.artistName && <p className="text-xs text-red-500 mt-1">{errors.artistName.message}</p>}
 
@@ -1297,7 +1309,42 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     )}
                 </div>
 
+                {/* Upgrade Modal */}
+                <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Artist Limit Reached</DialogTitle>
+                            <DialogDescription>
+                                You have reached the maximum number of artists allowed on your current plan.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <div className="p-4 bg-primary/10 rounded-lg border border-primary flex items-center justify-between">
+                                <div>
+                                    <p className="font-semibold text-primary">Add Extra Artist Slot</p>
+                                    <p className="text-sm text-muted-foreground">Add one more artist to your account</p>
+                                </div>
+                                <div className="text-right">
+                                    <span className="font-bold text-lg">₹1,000</span>
+                                    <span className="text-xs text-muted-foreground block">/ year</span>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowUpgradeModal(false)}>Cancel</Button>
+                            <Button disabled onClick={() => {
+                                // TODO: Integrate with payment gateway
+                                // For now, redirect to query param or just close and maybe show toast
+                                window.location.href = '/dashboard/subscription?upgrade=artist_addon'
+                            }}>
+                                Upgrade Now
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     )
 }
+
+
