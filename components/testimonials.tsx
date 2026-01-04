@@ -69,6 +69,9 @@ export default function Testimonials() {
           modules={[Navigation, Pagination, Autoplay]}
           spaceBetween={24}
           slidesPerView={1}
+          speed={800}
+          loop={true}
+          effect="slide"
           navigation
           pagination={{ clickable: true }}
           autoplay={{
