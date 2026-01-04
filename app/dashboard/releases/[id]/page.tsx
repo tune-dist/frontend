@@ -12,6 +12,10 @@ import {
   Disc,
   FileAudio,
   Loader2,
+  Disc3,
+  QrCode,
+  BookOpenText,
+  AudioWaveform,
 } from "lucide-react";
 import { getRelease, Release, TrackPayload } from "@/lib/api/releases";
 import DashboardLayout from "@/components/dashboard/dashboard-layout";
@@ -132,72 +136,80 @@ export default function ReleaseDetailsPage() {
         </div>
 
         {/* Release Info - Full Width */}
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <CardTitle className="text-sm">Release Info</CardTitle>
+        <Card className="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-light dark:border-border-dark p-6 mb-8">
+          <CardHeader className="p-0">
+            <CardTitle className="text-lg font-semibold mb-4 text-gray-900 dark:text-white flex items-center">Release Info</CardTitle>
           </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 text-xs">
-              <div className="flex flex-col items-center p-2 rounded-md border border-border/50 bg-card">
-                <span className="text-muted-foreground flex items-center gap-1.5 mb-1">
-                  <Disc className="h-3 w-3" /> Type
-                </span>
-                <span className="capitalize font-medium">
+          <CardContent className="p-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+              <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center transition hover:border-gray-300 dark:hover:border-gray-600">
+                <span className="material-icons-round text-gray-400 mb-2"><Disc /></span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Type</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                   {release.releaseType}
                 </span>
               </div>
 
-              <div className="flex flex-col items-center p-2 rounded-md border border-border/50 bg-card">
-                <span className="text-muted-foreground flex items-center gap-1.5 mb-1">
-                  <Globe className="h-3 w-3" /> Language
+              <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center transition hover:border-gray-300 dark:hover:border-gray-600">
+                <span className="material-icons-round text-gray-400 mb-2"><Globe /></span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Language</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white mt-1">
+                  {release.language}
                 </span>
-                <span className="font-medium">{release.language}</span>
               </div>
 
               {release.releaseDate && (
-                <div className="flex flex-col items-center p-2 rounded-md border border-border/50 bg-card">
-                  <span className="text-muted-foreground flex items-center gap-1.5 mb-1">
-                    <Calendar className="h-3 w-3" /> Date
-                  </span>
-                  <span className="font-medium text-center">
+                <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center transition hover:border-gray-300 dark:hover:border-gray-600">
+                  <span className="material-icons-round text-gray-400 mb-2"><Calendar /></span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Date</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                     {new Date(release.releaseDate).toLocaleDateString()}
                   </span>
                 </div>
               )}
 
               {release.labelName && (
-                <div className="flex flex-col items-center p-2 rounded-md border border-border/50 bg-card">
-                  <span className="text-muted-foreground mb-1">Label</span>
-                  <span className="font-medium truncate max-w-full">{release.labelName}</span>
+                <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center transition hover:border-gray-300 dark:hover:border-gray-600">
+                  <span className="material-icons-round text-gray-400 mb-2"><Disc3 /></span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Label</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white mt-1">
+                    {release.labelName}
+                  </span>
                 </div>
               )}
 
-              <div className="flex flex-col items-center p-2 rounded-md border border-border/50 bg-card">
-                <span className="text-muted-foreground mb-1">UPC / ISRC</span>
+              <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center transition hover:border-gray-300 dark:hover:border-gray-600">
+                <span className="material-icons-round text-gray-400 mb-2"><QrCode /></span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">UPC / ISRC</span>
                 <div className="flex flex-col items-center text-[10px] font-medium leading-tight">
                   <span className="whitespace-nowrap">UPC: {release.barcode || "-"}</span>
                   <span className="whitespace-nowrap text-muted-foreground">ISRC: {release.isrc || "-"}</span>
                 </div>
               </div>
 
-              <div className="flex flex-col items-center p-2 rounded-md border border-border/50 bg-card">
-                <span className="text-muted-foreground mb-1">Catalog #</span>
-                <span className="font-medium">{release.catalogNumber || "-"}</span>
+              <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center transition hover:border-gray-300 dark:hover:border-gray-600">
+                <span className="material-icons-round text-gray-400 mb-2"><BookOpenText /></span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Catalog #</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white mt-1">
+                  {release.catalogNumber || "-"}
+                </span>
               </div>
 
               {release.composers && release.composers.length > 0 && (
-                <div className="flex flex-col items-center p-2 rounded-md border border-border/50 bg-card">
-                  <span className="text-muted-foreground mb-1">Composers</span>
-                  <span className="font-medium text-center truncate max-w-full">
+                <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center transition hover:border-gray-300 dark:hover:border-gray-600">
+                  <span className="material-icons-round text-gray-400 mb-2"><AudioWaveform /></span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Composers</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                     {release.composers.join(", ")}
                   </span>
                 </div>
               )}
 
               {release.composers && release.composers.length > 0 && (
-                <div className="flex flex-col items-center p-2 rounded-md border border-border/50 bg-card">
-                  <span className="text-muted-foreground mb-1">Authors</span>
-                  <span className="font-medium text-center truncate max-w-full">
+                <div className="bg-gray-50 dark:bg-black p-4 rounded-lg border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center transition hover:border-gray-300 dark:hover:border-gray-600">
+                  <span className="material-icons-round text-gray-400 mb-2"><User /></span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Authors</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                     {release?.writers?.join(", ")}
                   </span>
                 </div>
@@ -209,9 +221,9 @@ export default function ReleaseDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Left Column: Cover Art */}
           <div className="space-y-3">
-            <Card>
-              <CardContent className="p-3">
-                <div className="aspect-square relative rounded-md overflow-hidden border border-border bg-muted/30 flex items-center justify-center">
+            <Card className="rounded-xl overflow-hidden">
+              <CardContent className="p-0 rounded-xl ">
+                <div className="aspect-square relative rounded-md overflow-hidden bg-muted/30 flex items-center justify-center rounded-xl ">
                   {release.coverArt ? (
                     <S3Image
                       src={release.coverArt.url}
@@ -234,16 +246,16 @@ export default function ReleaseDetailsPage() {
             {/* Tracks Section */}
             <Card>
               <CardHeader className="p-3 pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <FileAudio className="h-4 w-4" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileAudio className="h-4 w-4 text-primary" />
                   Tracks
                 </CardTitle>
-                <CardDescription className="text-xs">
+                <CardDescription className="text-sm">
                   {release.tracks?.length || (release.audioFile ? 1 : 0)}{" "}
                   track(s) in this release
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-3 pt-0">
+              <CardContent className="p-3 pt-0 mt-2">
                 <div className="space-y-2">
                   {/* Single Track Release (Legacy/Simple structure) */}
                   {release.releaseType === "single" &&
@@ -321,7 +333,7 @@ export default function ReleaseDetailsPage() {
             {/* Additional Metadata */}
             <Card>
               <CardHeader className="p-3 pb-2">
-                <CardTitle className="text-sm">Distribution Details</CardTitle>
+                <CardTitle className="text-lg">Distribution Details</CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -330,12 +342,12 @@ export default function ReleaseDetailsPage() {
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
                     {releaseAny.primaryGenre && (
-                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                      <span className="px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-700 dark:bg-black dark:text-gray-300 border border-transparent dark:border-gray-700">
                         {releaseAny.primaryGenre}
                       </span>
                     )}
                     {releaseAny.secondaryGenre && (
-                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                      <span className="px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-700 dark:bg-black dark:text-gray-300 border border-transparent dark:border-gray-700">
                         {releaseAny.secondaryGenre}
                       </span>
                     )}
@@ -346,15 +358,15 @@ export default function ReleaseDetailsPage() {
                   <h4 className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wider">
                     Copyrights
                   </h4>
-                  <div className="space-y-1 text-xs">
-                    <p>
-                      <span className="text-muted-foreground mr-1.5">©</span>{" "}
-                      {release.copyright || "N/A"}
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground mr-1.5">℗</span>{" "}
-                      {release?.producers?.[0] || "N/A"}
-                    </p>
+                  <div className="space-y-3">
+                    <div className="flex items-start">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full border border-gray-300 dark:border-gray-600 text-[10px] flex items-center justify-center mr-2 text-gray-500 dark:text-gray-400">C</span>
+                      <p className="text-xs text-gray-700 dark:text-gray-300">{release.copyright || "N/A"}</p>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full border border-gray-300 dark:border-gray-600 text-[10px] flex items-center justify-center mr-2 text-gray-500 dark:text-gray-400">P</span>
+                      <p className="text-xs text-gray-700 dark:text-gray-300">{release?.producers?.[0] || "N/A"}</p>
+                    </div>
                   </div>
                 </div>
 
