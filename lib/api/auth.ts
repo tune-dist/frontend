@@ -53,6 +53,24 @@ interface RefreshResponse {
   refresh_token: string;
 }
 
+export interface LoginResponse {
+  message?: string;
+  email?: string;
+  requireOtp?: boolean;
+  access_token?: string; // For backward compatibility / OAuth redirect
+  refresh_token?: string;
+  user?: User;
+}
+
+export interface VerifyOtpData {
+  email: string;
+  otp: string;
+}
+
+export interface ResendOtpData {
+  email: string;
+}
+
 // Register new user
 export const register = async (data: RegisterData): Promise<RegisterResponse> => {
   const response = await apiClient.post<RegisterResponse>('/auth/register', data);
@@ -60,8 +78,20 @@ export const register = async (data: RegisterData): Promise<RegisterResponse> =>
 };
 
 // Login user
-export const login = async (data: LoginData): Promise<AuthResponse> => {
-  const response = await apiClient.post<AuthResponse>('/auth/login', data);
+export const login = async (data: LoginData): Promise<LoginResponse> => {
+  const response = await apiClient.post<LoginResponse>('/auth/login', data);
+  return response.data;
+};
+
+// Verify OTP
+export const verifyOtp = async (data: VerifyOtpData): Promise<AuthResponse> => {
+  const response = await apiClient.post<AuthResponse>('/auth/verify-otp', data);
+  return response.data;
+};
+
+// Resend OTP
+export const resendOtp = async (data: ResendOtpData): Promise<{ message: string }> => {
+  const response = await apiClient.post<{ message: string }>('/auth/resend-otp', data);
   return response.data;
 };
 
