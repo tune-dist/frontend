@@ -11,8 +11,8 @@ const CACHE_DURATION_MS = 45 * 60 * 1000;
  */
 export const isS3Key = (url: string): boolean => {
     if (!url) return false;
-    // S3 keys don't start with http/https and typically follow pattern: type/uuid.ext
-    return !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/uploads/');
+    // S3 keys don't start with http/https and typically follow pattern: type/uuid.ext or s3://...
+    return url.startsWith('s3://') || (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/uploads/'));
 };
 
 /**
@@ -32,8 +32,11 @@ export const getSignedUrl = async (s3Key: string): Promise<string> => {
     }
 
     try {
+        // Strip s3:// prefix if present
+        const cleanKey = s3Key.startsWith('s3://') ? s3Key.replace('s3://', '') : s3Key;
+
         const response = await apiClient.get('/s3/signed-url', {
-            params: { key: s3Key }
+            params: { key: cleanKey }
         });
 
         const signedUrl = response.data.url;
