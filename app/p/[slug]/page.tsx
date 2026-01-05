@@ -131,7 +131,7 @@ export default function PublicPromotionPage() {
             <div
                 className="fixed inset-0 bg-cover bg-center scale-150 transform-gpu"
                 style={{
-                    backgroundImage: `url(${coverUrl || finalBgUrl})`,
+                    backgroundImage: `url(${finalBgUrl})`,
                     filter: 'blur(100px) brightness(0.6)',
                     opacity: 0.6
                 }}
@@ -173,7 +173,7 @@ export default function PublicPromotionPage() {
                                 style={{
                                     backgroundImage: finalBgUrl ? `url(${finalBgUrl})` : 'none',
                                     transform: `scale(${backgroundOverride.scale || 1.1}) translate(${(backgroundOverride.position?.x || 50) - 50}%, ${(backgroundOverride.position?.y || 50) - 50}%)`,
-                                    filter: 'blur(40px) brightness(0.7)', // Robust blur for inner design parity
+                                    filter: `blur(${backgroundOverride.blur !== undefined ? backgroundOverride.blur : 0}px) brightness(0.7)`, // Dynamic blur for parity
                                     backgroundPosition: 'center',
                                     width: '100%',
                                     height: '100%'
@@ -183,90 +183,152 @@ export default function PublicPromotionPage() {
 
                             {/* Elements Layer */}
                             <div className="absolute inset-0 z-10 w-full h-full">
-                                {activeTemplate.elements.map((element: any) => {
-                                    const override = elementOverrides[element.id] || {};
-                                    const x = element.position.x + (override.x || 0);
-                                    const y = element.position.y + (override.y || 0);
-                                    const width = override.sizeWidth || element.size?.width || 'auto';
-                                    const height = override.sizeHeight || element.size?.height || 'auto';
+                                {(() => {
+                                    // Helper to explode specific elements (like badges) into multiple renderable items
+                                    const getRenderableElements = () => {
+                                        const renderable: any[] = [];
+                                        activeTemplate.elements.forEach((element: any) => {
+                                            if (element.type === 'image' && element.source === 'platform_logo') {
+                                                const selectedBadges = elementOverrides.logo?.selectedBadges || ['spotify', 'apple-music', 'youtube-music'];
+                                                const gap = 50;
+                                                const badgeBoxSize = 200;
+                                                const step = badgeBoxSize + gap;
+                                                const totalRowWidth = (selectedBadges.length * badgeBoxSize) + ((selectedBadges.length - 1) * gap);
+                                                const centerX = activeTemplate.canvas.width / 2;
+                                                const startX = centerX - (totalRowWidth / 2);
 
-                                    const getTextContent = () => {
-                                        if (override.text) return override.text;
-                                        switch (element.source) {
-                                            case 'artist_name': return release?.artistName || "Artist Name";
-                                            case 'track_name': return release?.title || "Track Title";
-                                            case 'custom_text': return "OUT NOW";
-                                            default: return "";
-                                        }
+                                                selectedBadges.forEach((badgeId: string, index: number) => {
+                                                    renderable.push({
+                                                        ...element,
+                                                        id: `logo-${badgeId}`,
+                                                        source: 'platform_badge_single',
+                                                        badgeId: badgeId,
+                                                        size: { width: badgeBoxSize, height: badgeBoxSize },
+                                                        defaultX: startX + (index * step),
+                                                        defaultY: activeTemplate.canvas.height - 300
+                                                    });
+                                                });
+                                            } else {
+                                                renderable.push(element);
+                                            }
+                                        });
+                                        return renderable;
                                     };
 
-                                    return (
-                                        <div
-                                            key={element.id}
-                                            style={{
-                                                position: 'absolute',
-                                                left: x,
-                                                top: y,
-                                                width: width,
-                                                height: height,
-                                                zIndex: 10,
-                                            }}
-                                        >
-                                            <div className="w-full h-full relative">
-                                                {element.type === 'image' && element.source === 'cover_art' && (
-                                                    <img
-                                                        src={coverUrl}
-                                                        alt="Cover Art"
-                                                        className="w-full h-full object-cover shadow-2xl"
-                                                        style={{ borderRadius: element.radius || 0 }}
-                                                    />
-                                                )}
+                                    return getRenderableElements().map((element: any) => {
+                                        const override = elementOverrides[element.id] || {};
+                                        // Use exploded default position if available, otherwise template default
+                                        const defaultX = element.defaultX !== undefined ? element.defaultX : element.position.x;
+                                        const defaultY = element.defaultY !== undefined ? element.defaultY : element.position.y;
 
-                                                {element.type === 'image' && element.source === 'platform_logo' && (
-                                                    <div
-                                                        className="flex flex-wrap gap-8 justify-center items-center h-full"
-                                                        style={{
-                                                            transform: `scale(${override.scale || 1})`,
-                                                            transformOrigin: 'center'
-                                                        }}
-                                                    >
-                                                        {(override.selectedBadges || []).map((badgeId: string) => {
-                                                            const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
-                                                            if (!badge) return null;
-                                                            return (
-                                                                <img
-                                                                    key={badgeId}
-                                                                    src={badge.logoUrl}
-                                                                    alt={badge.name}
-                                                                    className="h-20 w-auto object-contain filter drop-shadow-2xl brightness-200"
-                                                                />
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
+                                        const x = defaultX + (override.x || 0);
+                                        const y = defaultY + (override.y || 0);
+                                        const width = override.sizeWidth || element.size?.width || 'auto';
+                                        const height = override.sizeHeight || element.size?.height || 'auto';
 
-                                                {element.type === 'text' && (
-                                                    <div
-                                                        className="w-full h-full flex items-center justify-center p-4"
-                                                        style={{
-                                                            color: element.style?.color || '#fff',
-                                                            fontSize: `${element.style?.size || 16}px`,
-                                                            textAlign: (element.style?.align as any) || 'center',
-                                                            fontFamily: 'Inter, system-ui, sans-serif',
-                                                            fontWeight: (element.id === 'artist_name' || element.id === 'track_name') ? 900 : 700,
-                                                            textTransform: 'uppercase',
-                                                            letterSpacing: (element.id === 'artist_name' || element.id === 'track_name') ? '-0.02em' : '0.1em',
-                                                            textShadow: '0 4px 12px rgba(0,0,0,0.5), 0 12px 32px rgba(0,0,0,0.4)',
-                                                            lineHeight: 1.1
-                                                        }}
-                                                    >
-                                                        {getTextContent()}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        const getTextContent = () => {
+                                            if (override.text) return override.text;
+                                            switch (element.source) {
+                                                case 'artist_name': return release?.artistName || "Artist Name";
+                                                case 'track_name': return release?.title || "Track Title";
+                                                case 'custom_text': return "OUT NOW";
+                                                default: return "";
+                                            }
+                                        };
+
+                                        return (
+                                            <motion.div
+                                                key={`${activeTemplate.id}-${element.id}`}
+                                                initial={(() => {
+                                                    const type = element.animation?.mp4?.type;
+                                                    switch (type) {
+                                                        case 'slide_up': return { opacity: 0, y: 50 };
+                                                        case 'slide_down': return { opacity: 0, y: -50 };
+                                                        case 'zoom_in': return { opacity: 0, scale: 0.5 };
+                                                        case 'fade_in': return { opacity: 0 };
+                                                        default: return {};
+                                                    }
+                                                })()}
+                                                animate={(() => {
+                                                    const type = element.animation?.mp4?.type;
+                                                    switch (type) {
+                                                        case 'slide_up': return { opacity: 1, y: 0 };
+                                                        case 'slide_down': return { opacity: 1, y: 0 };
+                                                        case 'zoom_in': return { opacity: 1, scale: 1 };
+                                                        case 'fade_in': return { opacity: 1 };
+                                                        default: return {};
+                                                    }
+                                                })()}
+                                                transition={{
+                                                    delay: element.animation?.mp4?.start || 0,
+                                                    duration: element.animation?.mp4?.duration || 0.5,
+                                                    ease: "easeOut"
+                                                }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: x,
+                                                    top: y,
+                                                    width: width,
+                                                    height: height,
+                                                    zIndex: 10,
+                                                    transformOrigin: 'center'
+                                                }}
+                                            >
+                                                <div className="w-full h-full relative flex items-center justify-center">
+                                                    {element.type === 'image' && element.source === 'cover_art' && (
+                                                        <img
+                                                            src={coverUrl}
+                                                            alt="Cover Art"
+                                                            className="w-full h-full object-cover shadow-2xl"
+                                                            style={{ borderRadius: element.radius || 0 }}
+                                                        />
+                                                    )}
+
+                                                    {element.source === 'platform_badge_single' && (
+                                                        <div
+                                                            className="flex justify-center items-center h-full"
+                                                            style={{
+                                                                transform: `scale(${override.scale || 1})`,
+                                                                transformOrigin: 'center'
+                                                            }}
+                                                        >
+                                                            {(() => {
+                                                                const badge = PLATFORM_BADGES.find(b => b.id === element.badgeId);
+                                                                if (!badge) return null;
+                                                                return (
+                                                                    <img
+                                                                        src={badge.logoUrl}
+                                                                        alt={badge.name}
+                                                                        className="h-24 w-auto object-contain filter drop-shadow-2xl brightness-200"
+                                                                    />
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    )}
+
+                                                    {element.type === 'text' && (
+                                                        <div
+                                                            className="w-full h-full flex items-center justify-center p-4"
+                                                            style={{
+                                                                color: element.style?.color || '#fff',
+                                                                fontSize: `${element.style?.size || 16}px`,
+                                                                textAlign: (element.style?.align as any) || 'center',
+                                                                fontFamily: 'Inter, system-ui, sans-serif',
+                                                                fontWeight: (element.id === 'artist_name' || element.id === 'track_name') ? 900 : 700,
+                                                                textTransform: 'uppercase',
+                                                                letterSpacing: (element.id === 'artist_name' || element.id === 'track_name') ? '-0.02em' : '0.1em',
+                                                                textShadow: '0 4px 12px rgba(0,0,0,0.5), 0 12px 32px rgba(0,0,0,0.4)',
+                                                                lineHeight: 1.1
+                                                            }}
+                                                        >
+                                                            {getTextContent()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    });
+                                })()}
                             </div>
                         </div>
                     </div>
