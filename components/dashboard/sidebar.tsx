@@ -33,7 +33,7 @@ const navigation = [
   { name: 'Finance', href: '/dashboard/finance', icon: Wallet },
   { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles, permission: 'MANAGE_PROMOTION' },
   { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote, permission: 'MANAGE_TESTIMONIALS' },
-  { name: 'Profile', href: '/dashboard/profile', icon: User },
+  { name: 'Profile', href: '/dashboard/profile', icon: User, permission: 'PROFILE' },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube, permission: 'USE_YOUTUBE_SERVICE' },
   { name: 'Users', href: '/dashboard/users', icon: User, permission: 'MANAGE_USERS' },
   { name: 'Plan Management', href: '/dashboard/admin/plans', icon: Settings, permission: 'MANAGE_PLANS' },

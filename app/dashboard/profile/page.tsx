@@ -50,8 +50,10 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (!loading && user?.role === 'release_manager') {
-      router.push('/dashboard');
+    if (!loading && user) {
+      if (user.role !== 'super_admin' && !user.permissions?.includes('PROFILE')) {
+        router.push('/dashboard');
+      }
     }
   }, [user, loading, router]);
 

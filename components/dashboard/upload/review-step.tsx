@@ -147,7 +147,7 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
                         </div>
                         <div className="space-y-1">
                             <span className="text-xs text-muted-foreground uppercase tracking-tight">Release Type</span>
-                            <p className="font-semibold text-base capitalize">{formData.releaseType}</p>
+                            <p className="font-semibold text-base capitalize">{formData.format}</p>
                         </div>
                     </CardContent>
                 </Card>
