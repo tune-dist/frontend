@@ -11,7 +11,9 @@ interface UploadCompleteResponse {
     path: string;
     metaData: {
         duration?: number;
-        resolution?: { width: number; height: number }; // Frontend uses 'height' but backend might send 'heigth' typo, we map it.
+        resolution?: { width: number; height: number };
+        hash?: string;
+        fingerprint?: string;
     }
 }
 
@@ -45,19 +47,28 @@ export const uploadFileInChunks = async (
             const response = await axios.post(`${API_URL}/chunk_files/upload`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
-                    // 'Authorization': `Bearer ${accessToken}`, // Uncomment if backend requires it
+                    'Authorization': `Bearer ${accessToken}`,
                 }
             });
             return response.data;
-        } catch (error) {
+        } catch (error: any) {
+            const backendMessage = error.response?.data?.message;
+            const status = error.response?.status;
+
             console.error(`Error uploading chunk ${chunkIndex} (Attempt ${retryCount + 1})`, error);
+
+            // Don't retry on client errors (like 400 Bad Request for duplicates)
+            if (status >= 400 && status < 500) {
+                throw new Error(backendMessage || `Upload failed with status ${status}`);
+            }
+
             if (retryCount < maxRetries) {
                 // Exponential backoffish
                 const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return uploadChunk(chunk, chunkIndex, retryCount + 1);
             }
-            throw new Error(`Failed to upload chunk ${chunkIndex} after ${maxRetries} retries.`);
+            throw new Error(backendMessage || `Failed to upload chunk ${chunkIndex} after ${maxRetries} retries.`);
         }
     };
 
@@ -86,7 +97,9 @@ export const uploadFileInChunks = async (
             path: result.path,
             metaData: {
                 duration: result.metaData?.duration,
-                resolution: result.metaData?.resolution
+                resolution: result.metaData?.resolution,
+                hash: result.metaData?.hash,
+                fingerprint: result.metaData?.fingerprint
             }
         };
     }
@@ -96,6 +109,7 @@ export const uploadFileInChunks = async (
 
 export const uploadFileDirectly = async (
     file: File,
+    accessToken: string,
     onProgress?: UploadProgressCallback,
     type?: string,
     artistName?: string,
@@ -110,6 +124,7 @@ export const uploadFileDirectly = async (
     const response = await axios.post(`${API_URL}/chunk_files/single`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${accessToken}`,
         },
         onUploadProgress: (progressEvent) => {
             if (onProgress && progressEvent.total) {
@@ -124,7 +139,9 @@ export const uploadFileDirectly = async (
             path: response.data.path,
             metaData: {
                 duration: response.data.metaData?.duration,
-                resolution: response.data.metaData?.resolution
+                resolution: response.data.metaData?.resolution,
+                hash: response.data.metaData?.hash,
+                fingerprint: response.data.metaData?.fingerprint
             }
         };
     }

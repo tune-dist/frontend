@@ -1,6 +1,8 @@
 
 import { useState } from 'react'
 import { uploadFileInChunks } from '@/lib/upload/chunk-uploader'
+import Cookies from 'js-cookie'
+import { config } from '@/lib/config'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -102,9 +104,10 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
 
             try {
                 // Start Chunked Upload
+                const token = Cookies.get(config.tokenKey) || ''
                 const result = await uploadFileInChunks(
                     file,
-                    '',
+                    token,
                     (progress) => {
                         setUploadProgress(prev => ({ ...prev, [fileId]: progress }))
                     },
@@ -121,7 +124,9 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                         size: file.size,
                         path: result.path,
                         duration: result.metaData?.duration,
-                        resolution: result.metaData?.resolution
+                        resolution: result.metaData?.resolution,
+                        hash: result.metaData?.hash,
+                        fingerprint: result.metaData?.fingerprint
                     }, { shouldValidate: true })
                     setValue('audioFileName', file.name, { shouldValidate: true })
                     break
@@ -136,7 +141,9 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                         size: file.size,
                         path: result.path,
                         duration: result.metaData?.duration,
-                        resolution: result.metaData?.resolution
+                        resolution: result.metaData?.resolution,
+                        hash: result.metaData?.hash,
+                        fingerprint: result.metaData?.fingerprint
                     }
                     setValue('audioFiles', [...currentAudioFiles, newAudioFile], { shouldValidate: true })
 

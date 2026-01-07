@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import { UploadFormData } from './types'
 import { useFormContext } from 'react-hook-form'
 import { uploadFileInChunks, uploadFileDirectly } from '@/lib/upload/chunk-uploader'
+import Cookies from 'js-cookie'
+import { config } from '@/lib/config'
 
 interface CoverArtStepProps {
     formData?: UploadFormData
@@ -150,10 +152,12 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     const COVER_CHUNK_THRESHOLD = 5 * 1024 * 1024; // 5MB
                     let result;
 
+                    const token = Cookies.get(config.tokenKey) || '';
+
                     if (file.size > COVER_CHUNK_THRESHOLD) {
                         result = await uploadFileInChunks(
                             file,
-                            '',
+                            token,
                             (progress) => {
                                 setUploadProgress(progress);
                             },
@@ -164,6 +168,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     } else {
                         result = await uploadFileDirectly(
                             file,
+                            token,
                             (progress) => {
                                 setUploadProgress(progress);
                             },

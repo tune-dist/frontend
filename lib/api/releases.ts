@@ -85,6 +85,8 @@ export interface AudioFile {
   format: string;
   bitrate?: number;
   sampleRate?: number;
+  fingerprint?: string;
+  hash?: string;
 }
 
 export interface CoverArt {
@@ -112,6 +114,8 @@ export interface TrackPayload {
   secondaryGenre?: string;
   previouslyReleased?: string;
   originalReleaseDate?: string;
+  fingerprint?: string;
+  hash?: string;
 }
 
 export interface Release {
@@ -235,6 +239,9 @@ export interface CreateReleaseData {
 
   // Optional userId override (e.g. for admin/testing)
   userId?: string;
+
+  // Layer 3: Rights
+  rightsAccepted?: boolean;
 }
 
 export interface ReleasesResponse {
@@ -291,6 +298,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
               size: audioFile.size || 0,
               duration: audioFile.duration || 0,
               format: "wav",
+              hash: audioFile.hash,
+              fingerprint: audioFile.fingerprint,
             };
           }
         }
@@ -328,6 +337,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           size: audioFileData.size || audioFileData.file?.size || 0,
           duration: audioFileData.duration || 0,
           format: "wav",
+          hash: audioFileData.hash,
+          fingerprint: audioFileData.fingerprint,
         };
       } else if (audioFileData instanceof File) {
         const result = await uploadFileInChunks(audioFileData, "", undefined, 'audio');
@@ -502,6 +513,9 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         })),
       }),
       ...(formData.userId && { userId: formData.userId }),
+
+      // Map mandatory checks to backend fields
+      rightsAccepted: (formData as any).mandatoryChecks?.rightsAuthorization === true || (formData as any).rightsAccepted === true
     };
 
     // 5. Create release via API
