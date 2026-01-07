@@ -61,10 +61,11 @@ export default function Testimonials() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <div className="flex overflow-x-auto gap-6 lg:gap-8 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
           {dynamicTestimonials.map((testimonial, index) => (
             <motion.div
               key={testimonial._id}
+              className="flex-none w-[300px] sm:w-[350px] md:w-[400px] snap-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

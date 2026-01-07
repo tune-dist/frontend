@@ -72,6 +72,15 @@
     animation: gradient-shift 15s ease infinite;
   }
 
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   @keyframes gradient-shift {
     0% {
       background-position: 0% 50%;
