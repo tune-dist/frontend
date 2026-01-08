@@ -647,10 +647,10 @@ export default function UploadPage() {
   const onSubmit = async (data: UploadFormData) => {
     console.log(data, "datatat");
     try {
-      // Last check - ensure explicitLyrics is mapped to isExplicit
-      // We do this inside submitNewRelease but let's be safe
-      console.log(data, "datatat");
-      const response = await submitNewRelease(data as any);
+      const response = await submitNewRelease({
+        ...data,
+        mandatoryChecks: mandatoryChecks
+      } as any);
       toast.success("Release submitted successfully!");
       router.push("/dashboard/releases");
     } catch (error: any) {
