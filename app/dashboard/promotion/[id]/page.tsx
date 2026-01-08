@@ -26,34 +26,21 @@ import {
     Badge as BadgeIcon
 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import { ThumbnailPreview } from "@/components/dashboard/promotion/thumbnail-preview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRelease, Release } from "@/lib/api/releases";
-import { createOrUpdatePromotion, getPromotionByReleaseId } from "@/lib/api/promotions";
+import { createOrUpdatePromotion, getPromotionByReleaseId, getPromoTemplates, seedPromoTemplates } from "@/lib/api/promotions";
 import { toPng } from 'html-to-image';
 import download from 'downloadjs';
+import { getDisplayUrl } from "@/lib/api/s3";
 import { PLATFORM_BADGES } from "@/config/platform-badges";
+import { PromoTemplate, PromoElement } from "@/config/promo-templates";
 
-type DesignType = 'Story' | 'Post';
-type DesignTheme = 'Teaser' | 'Launch';
 
-interface Template {
-    id: string;
-    name: string;
-    type: DesignType;
-    theme: DesignTheme;
-    previewColor: string;
-}
-
-const templates: Template[] = [
-    { id: 'story-teaser-1', name: 'Story Teaser', type: 'Story', theme: 'Teaser', previewColor: '#FF4B2B' },
-    { id: 'story-launch-1', name: 'Story Launch', type: 'Story', theme: 'Launch', previewColor: '#6A11CB' },
-    { id: 'post-teaser-1', name: 'Post Teaser', type: 'Post', theme: 'Teaser', previewColor: '#2575FC' },
-    { id: 'post-launch-1', name: 'Post Launch', type: 'Post', theme: 'Launch', previewColor: '#F093FB' },
-];
 
 const PLATFORMS = [
     { id: 'spotify', name: 'Spotify', color: '#1DB954' },
@@ -74,57 +61,123 @@ export default function PromotionEditorPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    const [activeTemplate, setActiveTemplate] = useState<Template>(templates[0]);
-    const [streamingLinks, setStreamingLinks] = useState<any[]>([]);
-    const [slug, setSlug] = useState("");
-    const [customText, setCustomText] = useState("");
-    const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
-    const [activeTab, setActiveTab] = useState("design");
-    const [elementPositions, setElementPositions] = useState<Record<string, { x: number, y: number }>>({
-        header: { x: 0, y: 0 },
-        artwork: { x: 0, y: 0 },
-        info: { x: 0, y: 0 },
-        badges: { x: 0, y: 0 }
-    });
-    const [elementSizes, setElementSizes] = useState<Record<string, { width: number | string, height: number | string }>>({
-        header: { width: '100%', height: 'auto' },
-        artwork: { width: 600, height: 600 },
-        info: { width: '100%', height: 'auto' },
-        badges: { width: '100%', height: 'auto' }
-    });
+    const [templates, setTemplates] = useState<PromoTemplate[]>([]);
+    const [activeTemplate, setActiveTemplate] = useState<PromoTemplate | null>(null);
+    const [elementOverrides, setElementOverrides] = useState<Record<string, any>>({});
     const [selectedElement, setSelectedElement] = useState<string | null>(null);
+    const [backgroundOverride, setBackgroundOverride] = useState<{
+        imageUrl?: string;
+        position?: { x: number; y: number };
+        scale?: number;
+        blur?: number;
+    }>({ position: { x: 50, y: 50 }, scale: 1.1, blur: 0 });
 
+
+    const [slug, setSlug] = useState("");
+    const [streamingLinks, setStreamingLinks] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState("design");
+    const [selectedFormat, setSelectedFormat] = useState<'story' | 'post'>('story');
+    const [bgUrl, setBgUrl] = useState<string>("");
+    const [coverUrl, setCoverUrl] = useState<string>("");
 
     const previewRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const resolveImages = async () => {
+            if (!activeTemplate) return;
+            if (activeTemplate.background?.image) {
+                const url = await getDisplayUrl(activeTemplate.background.image);
+                setBgUrl(url);
+            }
+            if (release?.coverArt?.url) {
+                const url = await getDisplayUrl(release.coverArt.url);
+                console.log(url, 'url')
+                setCoverUrl(url);
+            }
+        };
+        resolveImages();
+    }, [activeTemplate, release]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const releaseData = await getRelease(releaseId);
+
+                // Fetch Release and Templates in parallel
+                const [releaseData, fetchedTemplates] = await Promise.all([
+                    getRelease(releaseId),
+                    getPromoTemplates()
+                ]);
+
                 setRelease(releaseData);
+                setTemplates(fetchedTemplates);
                 setSlug(releaseData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
-                setCustomText(`NEW ${releaseData.releaseType === 'single' ? 'SINGLE' : 'RELEASE'} OUT NOW`);
+
+                const formatParam = searchParams.get('format');
+                let currentTemplate = null;
 
                 try {
                     const promo = await getPromotionByReleaseId(releaseId);
                     if (promo) {
                         setStreamingLinks(promo.streamingLinks || []);
                         setSlug(promo.slug);
-                        if (promo.customization?.text) setCustomText(promo.customization.text);
-                        if (promo.customization?.selectedBadges) setSelectedBadges(promo.customization.selectedBadges);
-                        if (promo.customization?.layout) {
-                            setElementPositions(promo.customization.layout);
+                        if (promo.customization?.templateId) {
+                            const found = fetchedTemplates.find((t: any) => t.id === promo.customization.templateId);
+                            if (found) currentTemplate = found;
                         }
-                        if (promo.customization?.sizes) {
-                            setElementSizes(promo.customization.sizes);
+                        if (promo.customization?.elementOverrides) {
+                            setElementOverrides(promo.customization.elementOverrides);
                         }
+                        if (promo.customization?.backgroundOverride) {
+                            console.log('innner')
+                            setBackgroundOverride(promo.customization.backgroundOverride);
+                        }
+                    } else if (formatParam) {
+                        // If no saved promo, respect the format from the initial selection dialog
+                        currentTemplate = fetchedTemplates.find((t: any) => t.format === formatParam);
                     }
                 } catch (e) {
-                    // No promo yet, ignore
+                    // No promo yet or error, selective default below
+                    if (formatParam) {
+                        currentTemplate = fetchedTemplates.find((t: any) => t.format === formatParam);
+                    }
                 }
+
+                if (!currentTemplate) {
+                    currentTemplate = fetchedTemplates[0] || null;
+                }
+
+                // Ensure default badges are set if not present
+                if (!elementOverrides.logo?.selectedBadges) {
+                    setElementOverrides(prev => ({
+                        ...prev,
+                        logo: {
+                            ...prev.logo,
+                            selectedBadges: prev.logo?.selectedBadges || ['spotify', 'apple-music', 'youtube-music']
+                        }
+                    }));
+                }
+
+                setActiveTemplate(currentTemplate);
+                if (currentTemplate?.format) {
+                    setSelectedFormat(currentTemplate.format as 'story' | 'post');
+                }
+
+                // If elementOverrides (from saved promo or empty) doesn't have badges, set defaults
+                setElementOverrides(prev => {
+                    if (prev.logo?.selectedBadges && prev.logo.selectedBadges.length > 0) {
+                        return prev;
+                    }
+                    return {
+                        ...prev,
+                        logo: {
+                            ...prev.logo,
+                            selectedBadges: ['spotify', 'apple-music', 'youtube-music']
+                        }
+                    };
+                });
             } catch (error) {
-                toast.error("Failed to load release data");
+                toast.error("Failed to load editor data");
             } finally {
                 setLoading(false);
             }
@@ -136,19 +189,18 @@ export default function PromotionEditorPage() {
     const searchParams = useSearchParams();
     useEffect(() => {
         const format = searchParams.get('format');
-        if (format) {
-            let selectedTemplate = templates[0];
-            if (format === 'story') {
-                selectedTemplate = templates.find(t => t.type === 'Story') || templates[0];
-            } else if (format === 'post') {
-                selectedTemplate = templates.find(t => t.type === 'Post') || templates[0];
-            } else if (format === 'reel') {
-                // Reel uses same format as Story (9:16)
-                selectedTemplate = templates.find(t => t.type === 'Story') || templates[0];
+        if (format && (format === 'story' || format === 'post')) {
+            setSelectedFormat(format);
+
+            // If we have templates but haven't set an active one that matches the format, 
+            // and there's no saved template id, we could update it here.
+            // But fetchData usually handles this. This is for late template loads.
+            if (templates.length > 0 && !activeTemplate) {
+                const match = templates.find(t => t.format === format);
+                if (match) setActiveTemplate(match);
             }
-            setActiveTemplate(selectedTemplate);
         }
-    }, [searchParams]);
+    }, [searchParams, templates]);
 
     const handleAddLink = (platformId: string) => {
         const platform = PLATFORMS.find(p => p.id === platformId);
@@ -167,34 +219,35 @@ export default function PromotionEditorPage() {
     };
 
     const toggleBadge = (badgeId: string) => {
-        if (selectedBadges.includes(badgeId)) {
-            setSelectedBadges(selectedBadges.filter(id => id !== badgeId));
+        const currentBadges = elementOverrides.logo?.selectedBadges || [];
+        if (currentBadges.includes(badgeId)) {
+            handleElementOverride('logo', { selectedBadges: currentBadges.filter((id: string) => id !== badgeId) });
         } else {
-            if (selectedBadges.length >= 4) {
+            if (currentBadges.length >= 4) {
                 toast.error("Maximum 4 badges allowed");
                 return;
             }
-            setSelectedBadges([...selectedBadges, badgeId]);
+            handleElementOverride('logo', { selectedBadges: [...currentBadges, badgeId] });
         }
     };
 
     const handleResetLayout = () => {
-        setElementPositions({
-            header: { x: 0, y: 0 },
-            artwork: { x: 0, y: 0 },
-            info: { x: 0, y: 0 },
-            badges: { x: 0, y: 0 }
-        });
-        setElementSizes({
-            header: { width: '100%', height: 'auto' },
-            artwork: { width: 600, height: 600 },
-            info: { width: '100%', height: 'auto' },
-            badges: { width: '100%', height: 'auto' }
-        });
-        toast.success("Layout and sizes reset to default");
+        setElementOverrides({});
+        toast.success("Design reset to default");
+    };
+
+    const handleElementOverride = (elementId: string, data: any) => {
+        setElementOverrides(prev => ({
+            ...prev,
+            [elementId]: {
+                ...(prev[elementId] || {}),
+                ...data
+            }
+        }));
     };
 
     const handleSave = async () => {
+        if (!activeTemplate) return;
         try {
             setSaving(true);
             await createOrUpdatePromotion({
@@ -202,11 +255,9 @@ export default function PromotionEditorPage() {
                 slug,
                 streamingLinks,
                 customization: {
-                    text: customText,
-                    lastTemplateId: activeTemplate.id,
-                    selectedBadges,
-                    layout: elementPositions,
-                    sizes: elementSizes
+                    templateId: activeTemplate.id,
+                    elementOverrides,
+                    backgroundOverride
                 }
             });
 
@@ -223,11 +274,11 @@ export default function PromotionEditorPage() {
     };
 
     const handleDownload = async () => {
-        if (!previewRef.current) return;
+        if (!previewRef.current || !activeTemplate) return;
 
         try {
-            const width = activeTemplate.type === 'Story' ? 1080 : 1080;
-            const height = activeTemplate.type === 'Story' ? 1920 : 1080;
+            const width = activeTemplate.canvas.width;
+            const height = activeTemplate.canvas.height;
 
             const dataUrl = await toPng(previewRef.current, {
                 quality: 0.95,
@@ -239,10 +290,10 @@ export default function PromotionEditorPage() {
                     width: `${width}px`,
                     height: `${height}px`,
                 },
-                pixelRatio: 1, // Ensure 1:1 mapping with the explicit width/height
+                pixelRatio: 1,
                 cacheBust: true,
             });
-            download(dataUrl, `${release?.title}-${activeTemplate.type}-${activeTemplate.theme}.png`);
+            download(dataUrl, `${release?.title}-${activeTemplate.id}.png`);
             toast.success("Image downloaded");
         } catch (error) {
             console.error(error);
@@ -291,6 +342,7 @@ export default function PromotionEditorPage() {
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                             <TabsList className="w-full mb-4">
                                 <TabsTrigger value="design" className="flex-1">Design</TabsTrigger>
+                                <TabsTrigger value="background" className="flex-1 text-[10px]">Background</TabsTrigger>
                                 <TabsTrigger value="badges" className="flex-1">Badges</TabsTrigger>
                             </TabsList>
 
@@ -303,27 +355,79 @@ export default function PromotionEditorPage() {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {templates.map((temp) => (
-                                                <button
-                                                    key={temp.id}
-                                                    onClick={() => {
-                                                        setActiveTemplate(temp);
-                                                        handleResetLayout();
-                                                    }}
-                                                    className={`p-2 rounded-lg border text-left transition-all ${activeTemplate.id === temp.id
-                                                        ? 'border-primary bg-primary/10'
-                                                        : 'border-border hover:bg-accent'
-                                                        }`}
-                                                >
-                                                    <div
-                                                        className="h-16 rounded mb-2 transition-transform hover:scale-105"
-                                                        style={{ background: `linear-gradient(45deg, ${temp.previewColor}, #000)` }}
-                                                    />
-                                                    <p className="text-[10px] font-bold uppercase">{temp.theme}</p>
-                                                    <p className="text-[10px] text-muted-foreground">{temp.type}</p>
-                                                </button>
-                                            ))}
+                                        {templates.filter(t => t.format === selectedFormat).length === 0 && (
+                                            <div className="text-center py-4 space-y-2">
+                                                <p className="text-xs text-muted-foreground">No {selectedFormat} templates found.</p>
+                                                {templates.length === 0 && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={async () => {
+                                                            try {
+                                                                setLoading(true);
+                                                                await seedPromoTemplates();
+                                                                const fetched = await getPromoTemplates();
+                                                                setTemplates(fetched);
+                                                                if (fetched.length > 0) setActiveTemplate(fetched[0]);
+                                                                toast.success("Templates seeded successfully");
+                                                            } catch (e) {
+                                                                toast.error("Failed to seed templates");
+                                                            } finally {
+                                                                setLoading(false);
+                                                            }
+                                                        }}
+                                                    >
+                                                        Seed Templates
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
+                                        <div className="max-h-[400px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-primary/40 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent scrollbar-thin scrollbar-thumb-primary/40 scrollbar-track-transparent">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {templates.filter(t => t.format === selectedFormat).map((temp) => (
+                                                    <button
+                                                        key={temp.id}
+                                                        onClick={() => {
+                                                            setActiveTemplate(temp);
+                                                            // handleResetLayout(); // Optional: Keep overrides or reset? Usually reset on template switch is safer for layout, but keeping text is nice.
+                                                            // Let's keep specific reset call or user deciding.
+                                                            // Usually switching template resets positions but keeps text.
+                                                            // Current logic: handleResetLayout() resets everything including text overrides.
+                                                            // Maybe better to just reset positions?
+                                                            setElementOverrides(prev => {
+                                                                // preserve text/badges, reset x/y/scale
+                                                                const newOverrides: any = {};
+                                                                Object.keys(prev).forEach(key => {
+                                                                    if (prev[key].text) newOverrides[key] = { text: prev[key].text };
+                                                                    if (prev[key].selectedBadges) newOverrides[key] = { selectedBadges: prev[key].selectedBadges };
+                                                                });
+                                                                return newOverrides;
+                                                            });
+                                                        }}
+                                                        className={`p-2 rounded-lg border text-left transition-all ${activeTemplate?.id === temp.id
+                                                            ? 'border-primary bg-primary/10'
+                                                            : 'border-border hover:bg-accent'
+                                                            }`}
+                                                    >
+                                                        <div
+                                                            className="rounded mb-2 transition-transform hover:scale-105 relative overflow-hidden bg-black shadow-lg"
+                                                            style={{
+                                                                aspectRatio: `${temp.canvas.width}/${temp.canvas.height}`,
+                                                                width: '100%'
+                                                            }}
+                                                        >
+                                                            <ThumbnailPreview
+                                                                template={temp}
+                                                                release={release}
+                                                                coverUrl={coverUrl}
+                                                                backgroundOverride={backgroundOverride}
+                                                                elementOverrides={elementOverrides}
+                                                            />
+                                                        </div>
+                                                        <p className="text-[10px] font-bold uppercase truncate">{temp.name}</p>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
 
                                         <Button
@@ -345,12 +449,127 @@ export default function PromotionEditorPage() {
                                             Custom Text
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent>
-                                        <Input
-                                            value={customText}
-                                            onChange={(e) => setCustomText(e.target.value)}
-                                            placeholder="Enter custom text..."
-                                        />
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs">Main Status (Header)</Label>
+                                            <Input
+                                                value={elementOverrides.header?.text || ""}
+                                                onChange={(e) => handleElementOverride('header', { text: e.target.value })}
+                                                placeholder="e.g. OUT NOW, TEASER..."
+                                            />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+
+                            </TabsContent>
+
+                            <TabsContent value="background" className="space-y-4">
+                                <Card className="border-border/50 bg-card/50">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                            <ImageIcon className="h-4 w-4" />
+                                            Background Settings
+                                        </CardTitle>
+                                        <CardDescription className="text-xs">
+                                            Customize your background image and its position.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
+                                        <div className="space-y-3">
+                                            <Label className="text-xs">Background Image</Label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <Button
+                                                    variant={!backgroundOverride.imageUrl ? "default" : "outline"}
+                                                    size="sm"
+                                                    className="w-full text-[10px]"
+                                                    onClick={() => setBackgroundOverride(prev => ({ ...prev, imageUrl: undefined }))}
+                                                >
+                                                    Template Default
+                                                </Button>
+                                                <Button
+                                                    variant={backgroundOverride.imageUrl === release?.coverArt?.url ? "default" : "outline"}
+                                                    size="sm"
+                                                    className="w-full text-[10px]"
+                                                    onClick={() => { console.log(release?.coverArt?.url), setBackgroundOverride(prev => ({ ...prev, imageUrl: release?.coverArt?.url })) }}
+                                                >
+                                                    Release Cover
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <Label className="text-xs">Horizontal Position ({backgroundOverride.position?.x || 50}%)</Label>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={backgroundOverride.position?.x || 50}
+                                                onChange={(e) => setBackgroundOverride(prev => ({
+                                                    ...prev,
+                                                    position: { ...(prev.position || { x: 50, y: 50 }), x: parseInt(e.target.value) }
+                                                }))}
+                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
+                                            />
+
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Label className="text-xs">Vertical Position ({backgroundOverride.position?.y || 50}%)</Label>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={backgroundOverride.position?.y || 50}
+                                                onChange={(e) => setBackgroundOverride(prev => ({
+                                                    ...prev,
+                                                    position: { ...(prev.position || { x: 50, y: 50 }), y: parseInt(e.target.value) }
+                                                }))}
+                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
+                                            />
+
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Label className="text-xs">Zoom ({backgroundOverride.scale ? backgroundOverride.scale.toFixed(1) : '1.1'}x)</Label>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="1"
+                                                max="3"
+                                                step="0.1"
+                                                value={backgroundOverride.scale || 1.1}
+                                                onChange={(e) => setBackgroundOverride(prev => ({
+                                                    ...prev,
+                                                    scale: parseFloat(e.target.value)
+                                                }))}
+                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
+                                            />
+
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Label className="text-xs">Blur ({backgroundOverride.blur !== undefined ? backgroundOverride.blur : 0}px)</Label>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="50"
+                                                step="1"
+                                                value={backgroundOverride.blur !== undefined ? backgroundOverride.blur : 0}
+                                                onChange={(e) => setBackgroundOverride(prev => ({
+                                                    ...prev,
+                                                    blur: parseInt(e.target.value)
+                                                }))}
+                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
+                                            />
+                                        </div>
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full text-xs"
+                                            onClick={() => setBackgroundOverride({ ...backgroundOverride, position: { x: 50, y: 50 }, scale: 1.1, blur: 0 })}
+                                        >
+                                            Reset Position & Zoom
+                                        </Button>
                                     </CardContent>
                                 </Card>
                             </TabsContent>
@@ -363,52 +582,49 @@ export default function PromotionEditorPage() {
                                             Platform Badges
                                         </CardTitle>
                                         <CardDescription className="text-xs">
-                                            Select up to 4 badges to display on your creative.
+                                            Select badges to display.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="grid grid-cols-2 gap-2">
-                                            {PLATFORM_BADGES.map((badge) => {
-                                                const isSelected = selectedBadges.includes(badge.id);
-                                                return (
-                                                    <button
-                                                        key={badge.id}
-                                                        onClick={() => toggleBadge(badge.id)}
-                                                        className={`relative p-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-all h-24 ${isSelected
-                                                            ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                                                            : 'border-border hover:bg-accent'
-                                                            }`}
-                                                    >
-                                                        <div className="h-8 w-auto relative flex items-center justify-center">
-                                                            <img
-                                                                src={badge.logoUrl}
-                                                                alt={badge.name}
-                                                                onError={(e) => {
-                                                                    const target = e.target as HTMLImageElement;
-                                                                    target.style.display = 'none';
-                                                                    const parent = target.parentElement;
-                                                                    if (parent && !parent.querySelector('.fallback-text')) {
-                                                                        const fallback = document.createElement('div');
-                                                                        fallback.className = 'fallback-text font-bold text-primary';
-                                                                        fallback.style.cssText = `color: ${(badge as any).color || '#7c3aed'}`;
-                                                                        fallback.textContent = (badge as any).fallbackText || badge.name.substring(0, 2).toUpperCase();
-                                                                        parent.appendChild(fallback);
-                                                                    }
-                                                                }}
-                                                                className="max-h-full max-w-full object-contain filter drop-shadow-sm invert dark:invert-0"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[10px] font-medium text-center truncate w-full">
-                                                            {badge.name}
-                                                        </span>
-                                                        {isSelected && (
-                                                            <div className="absolute top-1 right-1">
-                                                                <Check className="h-3 w-3 text-primary" />
+                                            {(() => {
+                                                const logoElement = activeTemplate?.elements?.find(e => e.source === 'platform_logo');
+                                                const allowedBadges = (logoElement?.allowed && logoElement.allowed.length > 0)
+                                                    ? logoElement.allowed
+                                                    : PLATFORM_BADGES.map(b => b.id);
+
+                                                return allowedBadges.map((platformId) => {
+                                                    const badge = PLATFORM_BADGES.find(b => b.id === platformId);
+                                                    if (!badge) return null;
+                                                    const isSelected = (elementOverrides?.logo?.selectedBadges || []).includes(badge.id);
+                                                    return (
+                                                        <button
+                                                            key={badge.id}
+                                                            onClick={() => toggleBadge(badge.id)}
+                                                            className={`relative p-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-all h-24 ${isSelected
+                                                                ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                                                                : 'border-border hover:bg-accent'
+                                                                }`}
+                                                        >
+                                                            <div className="h-8 w-auto relative flex items-center justify-center">
+                                                                <img
+                                                                    src={badge.logoUrl}
+                                                                    alt={badge.name}
+                                                                    className="max-h-full max-w-full object-contain filter drop-shadow-sm invert dark:invert-0"
+                                                                />
                                                             </div>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
+                                                            <span className="text-[10px] font-medium text-center truncate w-full">
+                                                                {badge.name}
+                                                            </span>
+                                                            {isSelected && (
+                                                                <div className="absolute top-1 right-1">
+                                                                    <Check className="h-3 w-3 text-primary" />
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                });
+                                            })()}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -418,305 +634,279 @@ export default function PromotionEditorPage() {
 
                     {/* Center Panel: Preview */}
                     <div className="lg:col-span-5 flex flex-col items-center">
-                        <div className="mb-4 flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted p-2 rounded-lg">
-                            <Smartphone className="h-3 w-3" />
-                            {activeTemplate.type} Preview ({activeTemplate.type === 'Story' ? '1080x1920' : '1080x1080'})
-                        </div>
+                        {activeTemplate ? (
+                            <>
+                                <div className="mb-4 flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted p-2 rounded-lg">
+                                    <Smartphone className="h-3 w-3" />
+                                    {activeTemplate.name} Preview ({activeTemplate.canvas.width}x{activeTemplate.canvas.height})
+                                </div>
 
-                        <div
-                            className={`relative overflow-hidden shadow-2xl bg-black ${activeTemplate.type === 'Story' ? 'w-[280px] h-[500px]' : 'w-[350px] h-[350px]'
-                                }`}
-                        >
-                            <div
-                                ref={previewRef}
-                                className="w-full h-full relative"
-                                style={{
-                                    aspectRatio: activeTemplate.type === 'Story' ? '9/16' : '1/1',
-                                    width: activeTemplate.type === 'Story' ? '1080px' : '1080px',
-                                    height: activeTemplate.type === 'Story' ? '1920px' : '1080px',
-                                    transform: `scale(${activeTemplate.type === 'Story' ? 280 / 1080 : 350 / 1080})`,
-                                    transformOrigin: 'top left'
-                                }}
-                            >
-                                {/* Background: Blurred Cover Art */}
                                 <div
-                                    className="absolute inset-0 bg-cover bg-center blur-2xl opacity-60 scale-110"
-                                    style={{ backgroundImage: `url(${release?.coverArt?.url})` }}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
-
-                                {/* Content */}
-                                <div
-                                    className="relative z-10 w-full h-full flex flex-col items-center justify-center gap-8 p-12 text-center"
-                                    onClick={(e) => {
-                                        if (e.target === e.currentTarget) {
-                                            setSelectedElement(null);
-                                        }
+                                    className="relative overflow-hidden shadow-2xl bg-black"
+                                    style={{
+                                        width: activeTemplate.canvas.width < activeTemplate.canvas.height ? '280px' : '400px',
+                                        height: activeTemplate.canvas.width < activeTemplate.canvas.height
+                                            ? '500px'
+                                            : `${(400 * activeTemplate.canvas.height) / activeTemplate.canvas.width}px`,
+                                        transition: 'all 0.3s ease'
                                     }}
                                 >
-                                    {/* Top Section: OUT NOW */}
-                                    <motion.div
-                                        drag
-                                        dragMomentum={false}
-                                        onDragEnd={(_, info) => {
-                                            setElementPositions(prev => ({
-                                                ...prev,
-                                                header: { x: prev.header.x + info.offset.x, y: prev.header.y + info.offset.y }
-                                            }));
+                                    <div
+                                        ref={previewRef}
+                                        className="w-full h-full relative"
+                                        style={{
+                                            aspectRatio: `${activeTemplate.canvas.width}/${activeTemplate.canvas.height}`,
+                                            width: `${activeTemplate.canvas.width}px`,
+                                            height: `${activeTemplate.canvas.height}px`,
+                                            transform: `scale(${activeTemplate.canvas.width < activeTemplate.canvas.height ? 280 / activeTemplate.canvas.width : 400 / activeTemplate.canvas.width})`,
+                                            transformOrigin: 'top left'
                                         }}
-                                        onClick={() => setSelectedElement('header')}
-                                        style={{ x: elementPositions.header.x, y: elementPositions.header.y }}
-                                        className="cursor-move active:scale-95 transition-transform"
                                     >
-                                        <Resizable
-                                            size={{ width: elementSizes.header.width, height: elementSizes.header.height }}
-                                            onResizeStop={(e, direction, ref, d) => {
-                                                setElementSizes(prev => ({
-                                                    ...prev,
-                                                    header: {
-                                                        width: ref.style.width,
-                                                        height: ref.style.height
-                                                    }
-                                                }));
-                                            }}
-                                            enable={selectedElement === 'header' ? {
-                                                top: false,
-                                                right: true,
-                                                bottom: true,
-                                                left: true,
-                                                topRight: false,
-                                                bottomRight: true,
-                                                bottomLeft: true,
-                                                topLeft: false
-                                            } : false}
-                                            handleStyles={selectedElement === 'header' ? {
-                                                right: { width: '8px', right: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                bottom: { height: '8px', bottom: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                bottomRight: { width: '14px', height: '14px', right: '-7px', bottom: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
-                                                left: { width: '8px', left: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                bottomLeft: { width: '14px', height: '14px', left: '-7px', bottom: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' }
-                                            } : {}}
+                                        {/* Background */}
+                                        <div
+                                            className="absolute inset-0 bg-cover opacity-60 overflow-hidden"
                                             style={{
-                                                border: selectedElement === 'header' ? '2px dashed rgba(59, 130, 246, 0.8)' : '2px dashed transparent',
-                                                transition: 'border-color 0.2s'
+                                                backgroundColor: '#000',
                                             }}
                                         >
-                                            <div className="w-full h-full space-y-1">
-                                                <h1 className="text-white text-7xl font-black uppercase tracking-tight" style={{
-                                                    textShadow: '0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)'
-                                                }}>
-                                                    {customText || "OUT NOW"}
-                                                </h1>
-                                                <p className="text-white/90 text-xl font-medium tracking-wide">
-                                                    Distributed by <span className="font-bold text-primary">KRATOLIB</span>
-                                                </p>
-                                            </div>
-                                        </Resizable>
-                                    </motion.div>
-
-
-                                    {/* Middle Section: Cover Art */}
-                                    <motion.div
-                                        drag
-                                        dragMomentum={false}
-                                        onDragEnd={(_, info) => {
-                                            setElementPositions(prev => ({
-                                                ...prev,
-                                                artwork: { x: prev.artwork.x + info.offset.x, y: prev.artwork.y + info.offset.y }
-                                            }));
-                                        }}
-                                        onClick={() => setSelectedElement('artwork')}
-                                        style={{ x: elementPositions.artwork.x, y: elementPositions.artwork.y }}
-                                        className="cursor-move active:scale-95 transition-transform"
-                                    >
-                                        <Resizable
-                                            size={{ width: elementSizes.artwork.width, height: elementSizes.artwork.height }}
-                                            onResizeStop={(e, direction, ref, d) => {
-                                                const newWidth = parseInt(ref.style.width);
-                                                setElementSizes(prev => ({
-                                                    ...prev,
-                                                    artwork: {
-                                                        width: newWidth,
-                                                        height: newWidth // Keep aspect ratio 1:1
-                                                    }
-                                                }));
-                                            }}
-                                            lockAspectRatio={true}
-                                            enable={selectedElement === 'artwork' ? {
-                                                top: true,
-                                                right: true,
-                                                bottom: true,
-                                                left: true,
-                                                topRight: true,
-                                                bottomRight: true,
-                                                bottomLeft: true,
-                                                topLeft: true
-                                            } : false}
-                                            handleStyles={selectedElement === 'artwork' ? {
-                                                top: { height: '8px', top: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                right: { width: '8px', right: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                bottom: { height: '8px', bottom: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                left: { width: '8px', left: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                topRight: { width: '14px', height: '14px', right: '-7px', top: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
-                                                bottomRight: { width: '14px', height: '14px', right: '-7px', bottom: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
-                                                bottomLeft: { width: '14px', height: '14px', left: '-7px', bottom: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
-                                                topLeft: { width: '14px', height: '14px', left: '-7px', top: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' }
-                                            } : {}}
-                                            style={{
-                                                border: selectedElement === 'artwork' ? '2px dashed rgba(59, 130, 246, 0.8)' : '2px dashed transparent',
-                                                transition: 'border-color 0.2s'
-                                            }}
-                                        >
-                                            <div className="relative w-full h-full shadow-[0_0_80px_rgba(0,0,0,0.6)] rounded-lg overflow-hidden border-4 border-white/10">
-                                                <img
-                                                    src={release?.coverArt?.url}
-                                                    alt="Cover Art"
-                                                    className="w-full h-full object-cover pointer-events-none"
-                                                />
-                                            </div>
-                                        </Resizable>
-                                    </motion.div>
-
-
-                                    {/* Bottom Section: Artist Info + Available On */}
-                                    <div className="w-full space-y-4">
-                                        {/* Artist and Title */}
-                                        <motion.div
-                                            drag
-                                            dragMomentum={false}
-                                            onDragEnd={(_, info) => {
-                                                setElementPositions(prev => ({
-                                                    ...prev,
-                                                    info: { x: prev.info.x + info.offset.x, y: prev.info.y + info.offset.y }
-                                                }));
-                                            }}
-                                            onClick={() => setSelectedElement('info')}
-                                            style={{ x: elementPositions.info.x, y: elementPositions.info.y }}
-                                            className="cursor-move active:scale-95 transition-transform"
-                                        >
-                                            <Resizable
-                                                size={{ width: elementSizes.info.width, height: elementSizes.info.height }}
-                                                onResizeStop={(e, direction, ref, d) => {
-                                                    setElementSizes(prev => ({
-                                                        ...prev,
-                                                        info: {
-                                                            width: ref.style.width,
-                                                            height: ref.style.height
-                                                        }
-                                                    }));
-                                                }}
-                                                enable={selectedElement === 'info' ? {
-                                                    top: false,
-                                                    right: true,
-                                                    bottom: true,
-                                                    left: true,
-                                                    topRight: false,
-                                                    bottomRight: true,
-                                                    bottomLeft: true,
-                                                    topLeft: false
-                                                } : false}
-                                                handleStyles={selectedElement === 'info' ? {
-                                                    right: { width: '8px', right: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                    bottom: { height: '8px', bottom: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                    bottomRight: { width: '14px', height: '14px', right: '-7px', bottom: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
-                                                    left: { width: '8px', left: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                    bottomLeft: { width: '14px', height: '14px', left: '-7px', bottom: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' }
-                                                } : {}}
+                                            <div
+                                                className="w-full h-full bg-cover"
                                                 style={{
-                                                    border: selectedElement === 'info' ? '2px dashed rgba(59, 130, 246, 0.8)' : '2px dashed transparent',
-                                                    transition: 'border-color 0.2s'
+                                                    backgroundImage: (backgroundOverride.imageUrl === release?.coverArt?.url && coverUrl)
+                                                        ? `url(${coverUrl})`
+                                                        : (backgroundOverride.imageUrl ? `url(${backgroundOverride.imageUrl})` : (bgUrl ? `url(${bgUrl})` : (coverUrl ? `url(${coverUrl})` : 'none'))),
+                                                    transform: `scale(${backgroundOverride.scale || 1.1}) translate(${(backgroundOverride.position?.x || 50) - 50}%, ${(backgroundOverride.position?.y || 50) - 50}%)`,
+                                                    filter: `blur(${backgroundOverride.blur !== undefined ? backgroundOverride.blur : 0}px)`,
+                                                    transition: 'transform 0.1s ease-out',
+                                                    backgroundPosition: 'center',
+                                                    width: '100%',
+                                                    height: '100%'
                                                 }}
-                                            >
-                                                <div className="w-full h-full space-y-1">
-                                                    <h2 className="text-white text-4xl font-black uppercase tracking-tight leading-tight">
-                                                        {release?.title}
-                                                    </h2>
-                                                    <h3 className="text-white/80 text-2xl font-medium">
-                                                        {release?.artistName}
-                                                    </h3>
-                                                </div>
-                                            </Resizable>
-                                        </motion.div>
+                                            />
+                                        </div>
+                                        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
 
-                                        {/* Platform Badges */}
-                                        {selectedBadges.length > 0 && (
-                                            <motion.div
-                                                drag
-                                                dragMomentum={false}
-                                                onDragEnd={(_, info) => {
-                                                    setElementPositions(prev => ({
-                                                        ...prev,
-                                                        badges: { x: prev.badges.x + info.offset.x, y: prev.badges.y + info.offset.y }
-                                                    }));
-                                                }}
-                                                onClick={() => setSelectedElement('badges')}
-                                                style={{ x: elementPositions.badges.x, y: elementPositions.badges.y }}
-                                                className="cursor-move active:scale-95 transition-transform"
-                                            >
-                                                <Resizable
-                                                    size={{ width: elementSizes.badges.width, height: elementSizes.badges.height }}
-                                                    onResizeStop={(e, direction, ref, d) => {
-                                                        setElementSizes(prev => ({
-                                                            ...prev,
-                                                            badges: {
-                                                                width: ref.style.width,
-                                                                height: ref.style.height
+                                        {/* Dynamic Elements */}
+                                        <div
+                                            className="relative z-10 w-full h-full"
+                                            onClick={(e) => {
+                                                if (e.target === e.currentTarget) {
+                                                    setSelectedElement(null);
+                                                }
+                                            }}
+                                        >
+                                            <AnimatePresence mode="wait">
+                                                {(() => {
+                                                    // Helper to explode specific elements (like badges) into multiple renderable items
+                                                    const getRenderableElements = () => {
+                                                        const renderable: any[] = [];
+                                                        activeTemplate.elements.forEach(element => {
+                                                            if (element.type === 'image' && element.source === 'platform_logo') {
+                                                                const selectedBadges = elementOverrides.logo?.selectedBadges || ['spotify', 'apple-music', 'youtube-music'];
+                                                                const gap = 50;
+                                                                const badgeBoxSize = 200;
+                                                                const step = badgeBoxSize + gap;
+                                                                const totalRowWidth = (selectedBadges.length * badgeBoxSize) + ((selectedBadges.length - 1) * gap);
+                                                                const centerX = activeTemplate.canvas.width / 2;
+                                                                // Start X is center minus half total width.
+                                                                // Note: Position is usually top-left. So for the first item:
+                                                                const startX = centerX - (totalRowWidth / 2);
+
+                                                                selectedBadges.forEach((badgeId: string, index: number) => {
+                                                                    renderable.push({
+                                                                        ...element,
+                                                                        id: `logo-${badgeId}`,
+                                                                        source: 'platform_badge_single',
+                                                                        badgeId: badgeId,
+                                                                        size: { width: badgeBoxSize, height: badgeBoxSize }, // Fixed square box
+                                                                        defaultX: startX + (index * step),
+                                                                        defaultY: activeTemplate.canvas.height - 300 // slightly higher to fit 200px box
+                                                                    });
+                                                                });
+                                                            } else {
+                                                                renderable.push(element);
                                                             }
-                                                        }));
-                                                    }}
-                                                    enable={selectedElement === 'badges' ? {
-                                                        top: false,
-                                                        right: true,
-                                                        bottom: true,
-                                                        left: true,
-                                                        topRight: false,
-                                                        bottomRight: true,
-                                                        bottomLeft: true,
-                                                        topLeft: false
-                                                    } : false}
-                                                    handleStyles={selectedElement === 'badges' ? {
-                                                        right: { width: '8px', right: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                        bottom: { height: '8px', bottom: '-4px', cursor: 'ns-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                        bottomRight: { width: '14px', height: '14px', right: '-7px', bottom: '-7px', cursor: 'nwse-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' },
-                                                        left: { width: '8px', left: '-4px', cursor: 'ew-resize', backgroundColor: 'rgba(59, 130, 246, 0.5)', border: '2px solid rgba(59, 130, 246, 0.8)' },
-                                                        bottomLeft: { width: '14px', height: '14px', left: '-7px', bottom: '-7px', cursor: 'nesw-resize', backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '2px solid rgba(59, 130, 246, 1)', borderRadius: '50%' }
-                                                    } : {}}
-                                                    style={{
-                                                        border: selectedElement === 'badges' ? '2px dashed rgba(59, 130, 246, 0.8)' : '2px dashed transparent',
-                                                        transition: 'border-color 0.2s'
-                                                    }}
-                                                >
-                                                    <div className="w-full h-full space-y-2">
-                                                        <p className="text-white/70 text-xl font-bold uppercase tracking-widest pointer-events-none">
-                                                            Available on:
-                                                        </p>
-                                                        <div className="flex justify-center gap-6 flex-wrap pointer-events-none">
-                                                            {selectedBadges.map((badgeId) => {
-                                                                const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
-                                                                if (!badge) return null;
-                                                                return (
-                                                                    <div key={badgeId} className="h-12 w-auto flex items-center justify-center">
+                                                        });
+                                                        return renderable;
+                                                    };
+
+                                                    return getRenderableElements().map((element) => {
+                                                        const override = elementOverrides[element.id] || {};
+
+                                                        // Use exploded default position if available, otherwise template default
+                                                        const defaultX = element.defaultX !== undefined ? element.defaultX : element.position.x;
+                                                        const defaultY = element.defaultY !== undefined ? element.defaultY : element.position.y;
+
+                                                        const x = defaultX + (override.x || 0);
+                                                        const y = defaultY + (override.y || 0);
+
+                                                        const width = override.sizeWidth || element.size?.width || 'auto';
+                                                        const height = override.sizeHeight || element.size?.height || 'auto';
+                                                        const isSelected = selectedElement === element.id;
+
+                                                        const getTextContent = () => {
+                                                            if (override.text) return override.text;
+                                                            switch (element.source) {
+                                                                case 'artist_name': return release?.artistName || "Artist Name";
+                                                                case 'track_name': return release?.title || "Track Title";
+                                                                case 'custom_text': return "OUT NOW";
+                                                                default: return "";
+                                                            }
+                                                        };
+
+                                                        return (
+                                                            <motion.div
+                                                                key={`${activeTemplate.id}-${element.id}`}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedElement(element.id);
+                                                                }}
+                                                                drag={element.source !== 'cover_art'}
+                                                                dragMomentum={false}
+                                                                dragElastic={0}
+                                                                onDragEnd={(event, info) => {
+                                                                    if (element.source === 'cover_art') return;
+
+                                                                    const scale = activeTemplate.canvas.width < activeTemplate.canvas.height
+                                                                        ? 280 / activeTemplate.canvas.width
+                                                                        : 400 / activeTemplate.canvas.width;
+
+                                                                    const deltaX = info.offset.x / scale;
+                                                                    const deltaY = info.offset.y / scale;
+
+                                                                    handleElementOverride(element.id, {
+                                                                        x: (override.x || 0) + deltaX,
+                                                                        y: (override.y || 0) + deltaY
+                                                                    });
+                                                                }}
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    left: x,
+                                                                    top: y,
+                                                                    width: width,
+                                                                    height: height,
+                                                                    zIndex: isSelected ? 50 : 10,
+                                                                    x: 0,
+                                                                    y: 0
+                                                                }}
+                                                                initial={(() => {
+                                                                    const type = element.animation?.mp4?.type;
+                                                                    switch (type) {
+                                                                        case 'slide_up': return { opacity: 0, y: 50 };
+                                                                        case 'slide_down': return { opacity: 0, y: -50 };
+                                                                        case 'zoom_in': return { opacity: 0, scale: 0.5 };
+                                                                        case 'fade_in': return { opacity: 0 };
+                                                                        default: return {};
+                                                                    }
+                                                                })()}
+                                                                animate={(() => {
+                                                                    const type = element.animation?.mp4?.type;
+                                                                    switch (type) {
+                                                                        case 'slide_up': return { opacity: 1, y: 0 };
+                                                                        case 'slide_down': return { opacity: 1, y: 0 };
+                                                                        case 'zoom_in': return { opacity: 1, scale: 1 };
+                                                                        case 'fade_in': return { opacity: 1 };
+                                                                        default: return {};
+                                                                    }
+                                                                })()}
+                                                                transition={{
+                                                                    delay: element.animation?.mp4?.start || 0,
+                                                                    duration: element.animation?.mp4?.duration || 0.5,
+                                                                    ease: "easeOut"
+                                                                }}
+                                                                className={`${element.source !== 'cover_art' ? 'cursor-move' : ''} group`}
+                                                            >
+                                                                <div className={`w-full h-full relative ${isSelected ? 'ring-4 ring-primary ring-offset-4' : 'group-hover:ring-2 group-hover:ring-white/40'}`}>
+                                                                    {element.type === 'image' && element.source === 'cover_art' && (
                                                                         <img
-                                                                            src={badge.logoUrl}
-                                                                            alt={badge.name}
-                                                                            className="h-full w-auto object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                                                            src={coverUrl}
+                                                                            alt="Cover Art"
+                                                                            className="w-full h-full object-cover shadow-2xl"
+                                                                            style={{ borderRadius: element.radius || 0 }}
                                                                         />
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                </Resizable>
-                                            </motion.div>
-                                        )}
+                                                                    )}
+
+                                                                    {element.source === 'platform_badge_single' && (
+                                                                        <div
+                                                                            className="flex justify-center items-center h-full"
+                                                                            style={{
+                                                                                transform: `scale(${override.scale || 1})`,
+                                                                                transformOrigin: 'center'
+                                                                            }}
+                                                                        >
+                                                                            {(() => {
+                                                                                const badge = PLATFORM_BADGES.find(b => b.id === element.badgeId);
+                                                                                if (!badge) return null;
+                                                                                return (
+                                                                                    <img
+                                                                                        src={badge.logoUrl}
+                                                                                        alt={badge.name}
+                                                                                        className="h-24 w-auto object-contain filter drop-shadow-2xl"
+                                                                                    />
+                                                                                );
+                                                                            })()}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {element.type === 'image' && element.source === 'platform_logo' && (
+                                                                        <div
+                                                                            className="flex flex-wrap gap-8 justify-center items-center h-full"
+                                                                            style={{
+                                                                                transform: `scale(${override.scale || 1})`,
+                                                                                transformOrigin: 'center'
+                                                                            }}
+                                                                        >
+                                                                            {(override.selectedBadges || []).map((badgeId: string) => {
+                                                                                const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
+                                                                                if (!badge) return null;
+                                                                                return (
+                                                                                    <img
+                                                                                        key={badgeId}
+                                                                                        src={badge.logoUrl}
+                                                                                        alt={badge.name}
+                                                                                        className="h-20 w-auto object-contain filter drop-shadow-2xl"
+                                                                                    />
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {element.type === 'text' && (
+                                                                        <div
+                                                                            className="w-full h-full flex items-center justify-center p-4"
+                                                                            style={{
+                                                                                color: element.style?.color || '#fff',
+                                                                                fontSize: `${element.style?.size || 16}px`,
+                                                                                textAlign: (element.style?.align as any) || 'center',
+                                                                                fontFamily: 'Inter, sans-serif',
+                                                                                fontWeight: element.style?.font?.includes('Bold') ? 900 : 400,
+                                                                                textTransform: 'uppercase',
+                                                                                textShadow: '0 8px 24px rgba(0,0,0,0.8)'
+                                                                            }}
+                                                                        >
+                                                                            {getTextContent()}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </motion.div>
+                                                        );
+                                                    })
+                                                })()}
+                                            </AnimatePresence>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <p className="mt-4 text-[10px] text-muted-foreground flex items-center gap-1 italic">
-                            <Eye className="h-3 w-3" /> Note: This is a low-res preview. Downloaded image will be high-res.
-                        </p>
+                                <p className="mt-4 text-[10px] text-muted-foreground flex items-center gap-1 italic">
+                                    <Eye className="h-3 w-3" /> Note: This is a low-res preview. Downloaded image will be high-res.
+                                </p>
+                            </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-[500px] border-2 border-dashed border-border rounded-xl bg-muted/20">
+                                <Layout className="h-8 w-8 text-muted-foreground mb-2" />
+                                <p className="text-sm text-muted-foreground">Select a template to start</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Right Panel: Smart Link & Platforms */}
@@ -811,9 +1001,80 @@ export default function PromotionEditorPage() {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {selectedElement && activeTemplate?.elements?.find(e => {
+                            if (selectedElement.startsWith('logo-')) return e.source === 'platform_logo';
+                            return e.id === selectedElement;
+                        })?.source !== 'cover_art' && (
+                                <Card className="border-border/50 bg-card/50 border-l-4 border-l-primary/50">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                            {(() => {
+                                                if (selectedElement.startsWith('logo-')) {
+                                                    const badgeId = selectedElement.replace('logo-', '');
+                                                    const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
+                                                    return `${badge?.name || 'Badge'} Position`;
+                                                }
+                                                const el = activeTemplate?.elements.find(e => e.id === selectedElement);
+                                                return `Adjust ${el?.source === 'artist_name' ? 'Artist Name' : (el?.source === 'track_name' ? 'Track Title' : 'Element')}`;
+                                            })()}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <Label className="text-xs">Horizontal Position (X)</Label>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="-500"
+                                                max="500"
+                                                value={elementOverrides[selectedElement]?.x || 0}
+                                                onChange={(e) => handleElementOverride(selectedElement, { x: parseInt(e.target.value) })}
+                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
+                                            />
+
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Label className="text-xs">Vertical Position (Y)</Label>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="-500"
+                                                max="500"
+                                                value={elementOverrides[selectedElement]?.y || 0}
+                                                onChange={(e) => handleElementOverride(selectedElement, { y: parseInt(e.target.value) })}
+                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
+                                            />
+
+                                            <div className="flex justify-between items-center pt-2">
+                                                <Label className="text-xs">Size Scale ({(elementOverrides[selectedElement]?.scale || 1).toFixed(1)}x)</Label>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="0.1"
+                                                max="5"
+                                                step="0.1"
+                                                value={elementOverrides[selectedElement]?.scale || 1}
+                                                onChange={(e) => handleElementOverride(selectedElement, { scale: parseFloat(e.target.value) })}
+                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
+                                            />
+                                        </div>
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full text-xs"
+                                            onClick={() => handleElementOverride(selectedElement, { x: 0, y: 0, scale: 1 })}
+                                        >
+                                            Reset Element
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            )}
                     </div>
                 </div>
-            </div>
-        </DashboardLayout>
+            </div >
+        </DashboardLayout >
     );
 }

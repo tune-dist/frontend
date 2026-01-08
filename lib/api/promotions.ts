@@ -30,3 +30,13 @@ export const getPublicPromotionBySlug = async (slug: string) => {
     const response = await apiClient.get(`/promotions/public/${slug}`);
     return response.data;
 };
+
+export const getPromoTemplates = async () => {
+    const response = await apiClient.get(`/promotions/templates`);
+    return response.data;
+};
+
+export const seedPromoTemplates = async () => {
+    const response = await apiClient.post(`/promotions/templates/seed`);
+    return response.data;
+};

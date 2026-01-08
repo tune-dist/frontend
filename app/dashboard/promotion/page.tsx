@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/dashboard-layout";
 import { getPromotionByReleaseId } from "@/lib/api/promotions";
+import { FormatSelectionDialog } from "@/components/promotion/format-selection-dialog";
+import { useRouter } from "next/navigation";
 import {
     Card,
     CardContent,
@@ -30,7 +32,10 @@ export default function PromotionListingPage() {
     const [releases, setReleases] = useState<Release[]>([]);
     const [loading, setLoading] = useState(true);
     const [promotions, setPromotions] = useState<Map<string, any>>(new Map());
+    const [formatDialogOpen, setFormatDialogOpen] = useState(false);
+    const [selectedReleaseForPromo, setSelectedReleaseForPromo] = useState<string | null>(null);
     const { user } = useAuth();
+    const router = useRouter();
 
     const fetchReleases = async () => {
         try {
@@ -75,6 +80,17 @@ export default function PromotionListingPage() {
             fetchReleases();
         }
     }, [user?._id]);
+
+    const handlePromoteClick = (releaseId: string) => {
+        setSelectedReleaseForPromo(releaseId);
+        setFormatDialogOpen(true);
+    };
+
+    const handleFormatSelect = (format: string) => {
+        if (selectedReleaseForPromo) {
+            router.push(`/dashboard/promotion/${selectedReleaseForPromo}?format=${format}`);
+        }
+    };
 
     return (
         <DashboardLayout>
@@ -167,12 +183,23 @@ export default function PromotionListingPage() {
                                                                 Copy Link
                                                             </Button>
                                                         )}
-                                                        <Link href={`/dashboard/promotion/${release._id}`}>
-                                                            <Button size="sm" className="gap-2">
+                                                        {promotions.has(release._id) ? (
+                                                            <Link href={`/dashboard/promotion/${release._id}`}>
+                                                                <Button size="sm" className="gap-2">
+                                                                    <Sparkles className="h-4 w-4" />
+                                                                    Edit
+                                                                </Button>
+                                                            </Link>
+                                                        ) : (
+                                                            <Button
+                                                                size="sm"
+                                                                className="gap-2"
+                                                                onClick={() => handlePromoteClick(release._id)}
+                                                            >
                                                                 <Sparkles className="h-4 w-4" />
-                                                                {promotions.has(release._id) ? 'Edit' : 'Promote'}
+                                                                Promote
                                                             </Button>
-                                                        </Link>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -184,6 +211,11 @@ export default function PromotionListingPage() {
                     </CardContent>
                 </Card>
             </div>
+            <FormatSelectionDialog
+                open={formatDialogOpen}
+                onClose={() => setFormatDialogOpen(false)}
+                onSelect={handleFormatSelect}
+            />
         </DashboardLayout>
     );
 }
