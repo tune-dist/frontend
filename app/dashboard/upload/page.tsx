@@ -216,7 +216,7 @@ export default function UploadPage() {
           process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib";
         form.setValue(
           "copyright",
-          `${defaultLabel} under exclusive license to Madverse Music`
+          `${defaultLabel} under exclusive license to Kratolib Music`
         );
       }
     }
@@ -940,7 +940,7 @@ export default function UploadPage() {
                             {...register("copyright", {
                               onChange: (e) => {
                                 const suffix =
-                                  " under exclusive license to Madverse Music";
+                                  " under exclusive license to Kratolib Music";
                                 const marker = " under exclusive license";
                                 let value = e.target.value;
                                 let content = "";
