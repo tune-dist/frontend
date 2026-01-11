@@ -6,10 +6,11 @@ import { config } from '@/lib/config'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Upload, Music, X, Loader2 } from 'lucide-react'
+import { Upload, Music, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData, AudioFile, Track } from './types'
 import { useFormContext } from 'react-hook-form'
+import { motion } from 'framer-motion'
 
 interface AudioFileStepProps {
     formData?: UploadFormData
@@ -113,8 +114,15 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                     },
                     'audio',
                     getValues('artistName'),
-                    getValues('title')
+                    getValues('title'),
+                    watch('audioConsent')
                 );
+
+                if (result.status === 'duplicate_warning') {
+                    setValue('audioDuplicateDetected', true);
+                    setValue('audioWarningMessage', result.message);
+                    toast.error(`Duplicate audio detected: ${file.name}. Please review the warning below.`, { duration: 6000 });
+                }
 
                 // Upload complete, update form
                 if (format === 'single' || !format) {
@@ -206,6 +214,9 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
     const handleRemoveAudio = () => {
         setValue('audioFile', null, { shouldValidate: true })
         setValue('audioFileName', '', { shouldValidate: true })
+        setValue('audioDuplicateDetected', false);
+        setValue('audioWarningMessage', '');
+        setValue('audioConsent', false);
     }
 
     const handleRemoveTrack = (index: number) => {
@@ -216,6 +227,13 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
 
         setValue('tracks', updatedTracks, { shouldValidate: true })
         setValue('audioFiles', updatedAudioFiles, { shouldValidate: true })
+
+        // Clear detection if all files removed (basic implementation)
+        if (updatedAudioFiles.length === 0 && (format === 'ep' || format === 'album')) {
+            setValue('audioDuplicateDetected', false);
+            setValue('audioWarningMessage', '');
+            setValue('audioConsent', false);
+        }
     }
 
     return (
@@ -401,6 +419,49 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                         </div>
                     )}
                 </div>
+
+                {/* Duplicate Audio Warning and Consent Section */}
+                {watch('audioDuplicateDetected') && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-6 p-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-4"
+                    >
+                        <div className="flex items-center gap-3 text-amber-500">
+                            <AlertCircle className="h-6 w-6" />
+                            <h3 className="text-xl font-bold">Duplicate Audio Detected</h3>
+                        </div>
+
+                        <p className="text-amber-200/80 text-sm">
+                            {watch('audioWarningMessage') || "This audio file has already been uploaded to our database."}
+                        </p>
+
+                        <div className="pt-4 border-t border-amber-500/20">
+                            <label className="flex items-start gap-3 cursor-pointer group">
+                                <div className="relative flex items-center mt-1">
+                                    <input
+                                        type="checkbox"
+                                        className="peer h-5 w-5 rounded border-amber-500/50 bg-transparent text-amber-500 focus:ring-amber-500 cursor-pointer appearance-none border-2 checked:bg-amber-500"
+                                        checked={watch('audioConsent')}
+                                        onChange={(e) => {
+                                            setValue('audioConsent', e.target.checked, { shouldValidate: true });
+                                            // Optional: triggering a re-upload or just allowing state to be valid
+                                        }}
+                                    />
+                                    <CheckCircle2 className="absolute h-5 w-5 text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none p-0.5" />
+                                </div>
+                                <span className="text-base font-medium text-amber-200/90 group-hover:text-amber-100 transition-colors">
+                                    This audio is already stored in the database and would you like to continue?
+                                </span>
+                            </label>
+                            {errors.audioConsent && (
+                                <p className="text-xs text-red-500 mt-2 ml-8 font-medium italic">
+                                    You must check this box to proceed with a duplicate file.
+                                </p>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* Tips */}
                 <div className="mt-6 space-y-3">

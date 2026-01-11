@@ -191,6 +191,7 @@ export default function UploadPage() {
     rightsAuthorization: false,
     nameUsage: false,
     termsAgreement: false,
+    ownershipConfirmation: false,
   });
 
   const [usedArtists, setUsedArtists] = useState<any[]>([]);
@@ -216,7 +217,7 @@ export default function UploadPage() {
           process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib";
         form.setValue(
           "copyright",
-          `${defaultLabel} under exclusive license to Kratolib Music`
+          `${defaultLabel}`
         );
       }
     }
@@ -386,7 +387,20 @@ export default function UploadPage() {
           });
           isValid = false;
         } else {
-          isValid = true;
+          // Check for OCR validation warnings and consent
+          const status = formData.coverArtValidationStatus;
+          const hasIssues = status && status !== 'approved';
+
+          if (hasIssues && !formData.coverArtConsent) {
+            form.setError("coverArtConsent", {
+              type: "manual",
+              message: "Please provide consent to proceed with current cover art.",
+            });
+            toast.error("Please confirm you want to proceed with the cover art warnings");
+            isValid = false;
+          } else {
+            isValid = true;
+          }
         }
 
         if (!isValid) {
@@ -940,8 +954,8 @@ export default function UploadPage() {
                             {...register("copyright", {
                               onChange: (e) => {
                                 const suffix =
-                                  " under exclusive license to Kratolib Music";
-                                const marker = " under exclusive license";
+                                  "";
+                                const marker = "";
                                 let value = e.target.value;
                                 let content = "";
 

@@ -23,7 +23,9 @@ export const audioFileSchema = z.object({
     resolution: z.object({
         width: z.number().optional(),
         heigth: z.number().optional() // matching backend typo for consistency
-    }).optional()
+    }).optional(),
+    hash: z.string().optional(),
+    fingerprint: z.string().optional()
 })
 
 export type AudioFile = z.infer<typeof audioFileSchema>
@@ -46,8 +48,8 @@ export const trackSchema = z.object({
     originalReleaseDate: z.string().optional(),
     primaryGenre: z.string().optional(),
     secondaryGenre: z.string().optional(),
-    writers: z.array(z.string()).optional(),
-    composers: z.array(z.string()).optional(),
+    writers: z.array(songwriterSchema).optional(),
+    composers: z.array(songwriterSchema).optional(),
     isInstrumental: z.string().optional(),
     previewClipStartTime: z.string().optional(),
     // Social media profiles per track
@@ -117,6 +119,12 @@ export const uploadFormSchema = z.object({
     audioFileName: z.string().optional(),
     coverArt: z.any().optional(), // Refined validation in component
     coverArtPreview: z.string().optional(),
+    coverArtConsent: z.boolean().default(false),
+    coverArtValidationStatus: z.string().optional(),
+    coverArtValidationIssues: z.array(z.any()).default([]),
+    audioConsent: z.boolean().default(false),
+    audioDuplicateDetected: z.boolean().default(false),
+    audioWarningMessage: z.string().optional(),
     dolbyAtmos: z.string().optional(),
 
     // Multi-track support
@@ -145,8 +153,8 @@ export const uploadFormSchema = z.object({
     instrumental: z.string().optional(),
 
     // Detailed Credits (UI State managed by FieldArray)
-    writers: z.array(z.string()).default([]),
-    composers: z.array(z.string()).default([]),
+    writers: z.array(songwriterSchema).default([]),
+    composers: z.array(songwriterSchema).default([]),
 
     // Legacy/Other
     producers: z.array(z.string()).optional(),
@@ -187,17 +195,13 @@ export const uploadFormSchema = z.object({
                 message: "At least one writer is required",
                 path: ["writers"]
             });
-        } else {
-            // Check if any writer has an empty name
-            data.writers.forEach((writer, index) => {
-                const result = songwriterSchema.safeParse(writer);
-                if (!result.success) {
-                    ctx.addIssue({
-                        code: z.ZodIssueCode.custom,
-                        message: result.error.errors[0].message,
-                        path: ["writers", index]
-                    });
-                }
+        }
+
+        if (!data.composers || data.composers.length === 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "At least one composer is required",
+                path: ["composers"]
             });
         }
     }
@@ -221,4 +225,5 @@ export interface MandatoryChecks {
     rightsAuthorization: boolean
     nameUsage: boolean
     termsAgreement: boolean
+    ownershipConfirmation: boolean
 }

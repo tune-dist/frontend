@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Image as ImageIcon, Loader2, UploadCloud, Lightbulb, CheckCircle2, ClipboardCheck, Info, XCircle } from 'lucide-react'
+import { Image as ImageIcon, Loader2, UploadCloud, Lightbulb, CheckCircle2, ClipboardCheck, Info, XCircle, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData } from './types'
 import { useFormContext } from 'react-hook-form'
 import { uploadFileInChunks, uploadFileDirectly } from '@/lib/upload/chunk-uploader'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface CoverArtStepProps {
     formData?: UploadFormData
@@ -71,7 +72,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
     const getStatus = (reqCodes: string[]): RequirementStatus => {
         if (!hasValidated) return 'pending';
-        const hasError = validationErrors.some(err => reqCodes.includes(err.code));
+        const hasError = validationErrors.some((err: any) => reqCodes.includes(err.code));
         return hasError ? 'error' : 'success';
     };
 
@@ -135,15 +136,16 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     setHasValidated(true);
                     setIsValidating(false);
 
-                    if (validationResult.status === 'rejected') {
-                        console.error('Validation failed:', validationResult.errors);
-                        toast.error('Cover art requirements not met. Please check the list.');
-                        setIsUploading(false);
-                        return; // Stop upload
-                    }
+                    // Sync validation result with form state
+                    setValue('coverArtValidationStatus', validationResult.status);
+                    setValue('coverArtValidationIssues', validationResult.issues || validationResult.errors || []);
+                    setValue('coverArtConsent', false); // Reset consent for new upload
 
-                    if (validationResult.status === 'warning') {
-                        toast('Warning: Some minor issues detected, but proceeding.', { icon: '⚠️', duration: 5000 });
+                    if (validationResult.status === 'rejected') {
+                        console.warn('Validation failed (rejected), but proceeding with upload as per requirements:', validationResult.errors);
+                        toast.error('Cover art requirements not met. Please check the warnings below and provide consent if you want to proceed.');
+                    } else if (validationResult.status === 'warned' || validationResult.status === 'warning') {
+                        toast('Cover art has some warnings. Please review them below.', { icon: '⚠️', duration: 5000 });
                     }
 
                     // 2. Proceed to Upload if Valid
@@ -233,6 +235,9 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
     const handleRemove = () => {
         setValue('coverArt', null, { shouldValidate: true })
         setValue('coverArtPreview', '', { shouldValidate: true })
+        setValue('coverArtValidationStatus', undefined);
+        setValue('coverArtValidationIssues', []);
+        setValue('coverArtConsent', false);
         setHasValidated(false);
         setValidationErrors([]);
     }
@@ -269,7 +274,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                                 <Button
                                     type="button"
                                     className="rounded-full px-8 py-6 bg-primary/20 hover:bg-primary/30 text-primary border-0 text-lg font-medium"
-                                    onClick={(e) => {
+                                    onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation();
                                         handleCoverArtClick();
                                     }}
@@ -348,7 +353,52 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     </p>
                 )}
 
-                <p className="text-sm text-muted-foreground text-center">
+                {/* OCR Warnings and Consent Section */}
+                {hasValidated && (watch('coverArtValidationStatus') === 'rejected' || watch('coverArtValidationStatus') === 'warned' || watch('coverArtValidationStatus') === 'warning' || validationErrors.length > 0) && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-6 p-6 rounded-3xl border border-amber-500/30 bg-amber-500/5 space-y-4"
+                    >
+                        <div className="flex items-center gap-3 text-amber-500">
+                            <AlertCircle className="h-6 w-6" />
+                            <h3 className="text-xl font-bold">Validation Warnings</h3>
+                        </div>
+
+                        <ul className="space-y-2">
+                            {(watch('coverArtValidationIssues') || validationErrors).map((issue: any, idx: number) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-amber-200/80">
+                                    <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                                    <span>{issue.message}</span>
+                                </li>
+                            ))}
+                        </ul>
+
+                        <div className="pt-4 border-t border-amber-500/20">
+                            <label className="flex items-start gap-3 cursor-pointer group">
+                                <div className="relative flex items-center mt-1">
+                                    <input
+                                        type="checkbox"
+                                        className="peer h-5 w-5 rounded border-amber-500/50 bg-transparent text-amber-500 focus:ring-amber-500 cursor-pointer appearance-none border-2 checked:bg-amber-500"
+                                        checked={watch('coverArtConsent')}
+                                        onChange={(e) => setValue('coverArtConsent', e.target.checked, { shouldValidate: true })}
+                                    />
+                                    <CheckCircle2 className="absolute h-5 w-5 text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none p-0.5" />
+                                </div>
+                                <span className="text-base font-medium text-amber-200/90 group-hover:text-amber-100 transition-colors">
+                                    Are you sure you want to continue with these warnings?
+                                </span>
+                            </label>
+                            {errors.coverArtConsent && (
+                                <p className="text-xs text-red-500 mt-2 ml-8 font-medium italic">
+                                    You must check this box to proceed to the next step.
+                                </p>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+
+                <p className="text-sm text-muted-foreground text-center pt-4">
                     Supported formats: JPG, PNG. Max size: 20MB.
                 </p>
             </div>
@@ -365,7 +415,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     </div>
 
                     <ul className="space-y-5">
-                        {requirements.map((req, i) => {
+                        {requirements.map((req: any, i: number) => {
                             const status = getStatus(req.codes);
                             return (
                                 <li key={i} className="flex items-start gap-4 transition-all duration-300">

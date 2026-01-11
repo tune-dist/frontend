@@ -79,6 +79,7 @@ export default function PromotionEditorPage() {
     const [selectedFormat, setSelectedFormat] = useState<'story' | 'post'>('story');
     const [bgUrl, setBgUrl] = useState<string>("");
     const [coverUrl, setCoverUrl] = useState<string>("");
+    const [resolvedOverrideUrl, setResolvedOverrideUrl] = useState<string>("");
 
     const previewRef = useRef<HTMLDivElement>(null);
 
@@ -91,12 +92,17 @@ export default function PromotionEditorPage() {
             }
             if (release?.coverArt?.url) {
                 const url = await getDisplayUrl(release.coverArt.url);
-                console.log(url, 'url')
                 setCoverUrl(url);
+            }
+            if (backgroundOverride.imageUrl) {
+                const url = await getDisplayUrl(backgroundOverride.imageUrl);
+                setResolvedOverrideUrl(url);
+            } else {
+                setResolvedOverrideUrl("");
             }
         };
         resolveImages();
-    }, [activeTemplate, release]);
+    }, [activeTemplate, release, backgroundOverride.imageUrl]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -674,9 +680,9 @@ export default function PromotionEditorPage() {
                                                 style={{
                                                     backgroundImage: (backgroundOverride.imageUrl === release?.coverArt?.url && coverUrl)
                                                         ? `url(${coverUrl})`
-                                                        : (backgroundOverride.imageUrl ? `url(${backgroundOverride.imageUrl})` : (bgUrl ? `url(${bgUrl})` : (coverUrl ? `url(${coverUrl})` : 'none'))),
+                                                        : (resolvedOverrideUrl ? `url(${resolvedOverrideUrl})` : (bgUrl ? `url(${bgUrl})` : (coverUrl ? `url(${coverUrl})` : 'none'))),
                                                     transform: `scale(${backgroundOverride.scale || 1.1}) translate(${(backgroundOverride.position?.x || 50) - 50}%, ${(backgroundOverride.position?.y || 50) - 50}%)`,
-                                                    filter: `blur(${backgroundOverride.blur !== undefined ? backgroundOverride.blur : 0}px)`,
+                                                    filter: `blur(${backgroundOverride.blur !== undefined ? backgroundOverride.blur : 0}px) brightness(0.7)`,
                                                     transition: 'transform 0.1s ease-out',
                                                     backgroundPosition: 'center',
                                                     width: '100%',

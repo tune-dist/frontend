@@ -345,7 +345,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         // Strict validation: First Name (3+ letters) + Space + Last Name (3+ letters)
         const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
         if (!nameRegex.test(name.trim())) {
-            return 'Must be "Firstname Lastname" (letters only, min 3 chars each)'
+            return 'Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.'
         }
         return ''
     }
@@ -395,7 +395,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     return
                 }
                 if (!nameRegex.test(sw.trim())) {
-                    toast.error(`Invalid Writer name: "${sw}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
+                    toast.error(`Invalid Writer name: "${sw}". Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.`)
                     return
                 }
             }
@@ -403,7 +403,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             // Validate Composers (if provided, must be valid)
             for (const comp of modalComposers) {
                 if (comp?.trim() && !nameRegex.test(comp.trim())) {
-                    toast.error(`Invalid Composer name: "${comp}". Must be "Firstname Lastname" (letters only, min 3 chars each).`)
+                    toast.error(`Invalid Composer name: "${comp}". Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.`)
                     return
                 }
             }
@@ -1308,12 +1308,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     <div className="space-y-3 pt-4 border-t">
                         <div>
                             <Label className="text-lg font-semibold">Writer/Author <span className="text-red-500">*</span></Label>
-                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
+                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.</p>
                         </div>
                         {modalWriters.map((writer, idx) => (
                             <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
                                 <Input
-                                    placeholder="Enter First name and last name *"
+                                    placeholder="Enter Firstname Lastname *"
                                     value={writer}
                                     onChange={(e) => {
                                         const updated = [...modalWriters]
@@ -1364,12 +1364,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     <div className="space-y-3 pt-4 border-t">
                         <div>
                             <Label className="text-lg font-semibold">Composer</Label>
-                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names</p>
+                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.</p>
                         </div>
                         {modalComposers.map((composer, idx) => (
                             <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
                                 <Input
-                                    placeholder="Enter First name and last name"
+                                    placeholder="Enter Firstname Lastname"
                                     value={composer}
                                     onChange={(e) => {
                                         const updated = [...modalComposers]

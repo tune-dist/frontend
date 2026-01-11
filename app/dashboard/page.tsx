@@ -161,7 +161,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium">
                   Pending Releases
                 </CardTitle>
-                <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />
+                <Loader2 className="h-4 w-4 text-purple-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-xl font-bold">

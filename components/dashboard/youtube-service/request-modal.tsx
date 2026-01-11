@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { getReleases, Release } from "@/lib/api/releases";
 import { createYouTubeRequest, YouTubeRequestType } from "@/lib/api/youtube-service";
+import { getSignedUrl } from "@/lib/api/s3";
 import toast from "react-hot-toast";
 
 interface RequestModalProps {
@@ -45,7 +46,30 @@ export default function RequestModal({ isOpen, onClose, onSuccess }: RequestModa
         try {
             setReleasesLoading(true);
             const data = await getReleases({ limit: 100 });
-            setReleases(data.releases);
+
+            // Resolve cover art URLs
+            const resolvedReleases = await Promise.all(
+                data.releases.map(async (release) => {
+                    if (release.coverArt?.url) {
+                        try {
+                            const signedUrl = await getSignedUrl(release.coverArt.url);
+                            return {
+                                ...release,
+                                coverArt: {
+                                    ...release.coverArt,
+                                    url: signedUrl
+                                }
+                            };
+                        } catch (err) {
+                            console.error(`Failed to resolve cover art for ${release._id}:`, err);
+                            return release;
+                        }
+                    }
+                    return release;
+                })
+            );
+
+            setReleases(resolvedReleases);
         } catch (error) {
             console.error("Failed to fetch releases", error);
         } finally {

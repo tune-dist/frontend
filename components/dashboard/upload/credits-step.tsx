@@ -454,7 +454,7 @@ export default function CreditsStep({
                       )}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Real names, not stage names
+                      Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.
                     </p>
                   </div>
 
@@ -465,7 +465,7 @@ export default function CreditsStep({
                     >
                       <div className="grid grid-cols-1 gap-1">
                         <Input
-                          placeholder={`Enter First name and last name${fieldRules.songwriters?.required !== false ? " *" : ""
+                          placeholder={`Enter Firstname Lastname${fieldRules.songwriters?.required !== false ? " *" : ""
                             }`}
                           {...register(`writers.${index}` as const)}
                           className="text-sm"
@@ -513,7 +513,7 @@ export default function CreditsStep({
                       )}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Real names, not stage names
+                      Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.
                     </p>
                   </div>
 
@@ -524,7 +524,7 @@ export default function CreditsStep({
                     >
                       <div className="grid grid-cols-1 gap-1">
                         <Input
-                          placeholder={`Enter First name and last name ${fieldRules.composers?.required !== false ? "*" : ""
+                          placeholder={`Enter Firstname Lastname ${fieldRules.composers?.required !== false ? "*" : ""
                             }`}
                           {...register(`composers.${index}` as const)}
                           className="text-sm"

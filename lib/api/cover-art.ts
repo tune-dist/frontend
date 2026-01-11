@@ -9,16 +9,18 @@ export interface CoverArtMetadata {
     recordLabel?: string;
 }
 
-export type ValidationStatus = 'approved' | 'rejected' | 'warning';
+export type ValidationStatus = 'approved' | 'rejected' | 'warned' | 'warning';
 
 export interface ValidationError {
     code: string;
     message: string;
     field?: string;
+    severity?: 'error' | 'warning';
 }
 
 export interface ValidationResponse {
     status: ValidationStatus;
+    issues?: ValidationError[];
     errors: ValidationError[];
 }
 

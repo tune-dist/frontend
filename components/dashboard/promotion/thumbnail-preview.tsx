@@ -18,6 +18,7 @@ export const ThumbnailPreview = ({
     elementOverrides: any
 }) => {
     const [templateBgUrl, setTemplateBgUrl] = useState<string>("");
+    const [resolvedOverrideUrl, setResolvedOverrideUrl] = useState<string>("");
 
     useEffect(() => {
         const resolve = async () => {
@@ -29,14 +30,26 @@ export const ThumbnailPreview = ({
         resolve();
     }, [template.id]);
 
+    useEffect(() => {
+        const resolveOverride = async () => {
+            if (backgroundOverride?.imageUrl) {
+                const url = await getDisplayUrl(backgroundOverride.imageUrl);
+                setResolvedOverrideUrl(url);
+            } else {
+                setResolvedOverrideUrl("");
+            }
+        };
+        resolveOverride();
+    }, [backgroundOverride?.imageUrl]);
+
     // Resolve final background for this thumbnail
     // Logic: Override ?? TemplateDefault ?? Cover
     // Note: If override is set to specific URL, use it. If override is release cover, use it.
     // If override is cleared (undefined), use template default.
     const effectiveBgUrl = (backgroundOverride?.imageUrl === release?.coverArt?.url && coverUrl)
         ? coverUrl
-        : (backgroundOverride?.imageUrl
-            ? backgroundOverride.imageUrl
+        : (resolvedOverrideUrl
+            ? resolvedOverrideUrl
             : (templateBgUrl || coverUrl));
 
     return (

@@ -9,6 +9,8 @@ interface UploadProgressCallback {
 
 interface UploadCompleteResponse {
     path: string;
+    status?: string;
+    message?: string;
     metaData: {
         duration?: number;
         resolution?: { width: number; height: number };
@@ -19,11 +21,12 @@ interface UploadCompleteResponse {
 
 export const uploadFileInChunks = async (
     file: File,
-    accessToken: string, // Not strictly used in this codebase's valid auth maybe, but included per Vue.
+    accessToken: string,
     onProgress?: UploadProgressCallback,
     type?: string,
     artistName?: string,
-    trackTitle?: string
+    trackTitle?: string,
+    consent?: boolean
 ): Promise<UploadCompleteResponse> => {
 
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -42,6 +45,7 @@ export const uploadFileInChunks = async (
         if (type) formData.append('type', type);
         if (artistName) formData.append('artistName', artistName);
         if (trackTitle) formData.append('trackTitle', trackTitle);
+        if (consent) formData.append('consent', 'true');
 
         try {
             const response = await axios.post(`${API_URL}/chunk_files/upload`, formData, {
@@ -89,12 +93,11 @@ export const uploadFileInChunks = async (
     }
 
     // The last chunk response should contain the final data
-    // The backend returns { status: 'chunk_received' } for intermediate
-    // And { path: ..., metaData: ... } for the last one.
-
     if (result && result.path) {
         return {
             path: result.path,
+            status: result.status,
+            message: result.message,
             metaData: {
                 duration: result.metaData?.duration,
                 resolution: result.metaData?.resolution,
@@ -113,13 +116,15 @@ export const uploadFileDirectly = async (
     onProgress?: UploadProgressCallback,
     type?: string,
     artistName?: string,
-    trackTitle?: string
+    trackTitle?: string,
+    consent?: boolean
 ): Promise<UploadCompleteResponse> => {
     const formData = new FormData();
     formData.append('file', file);
     if (type) formData.append('type', type);
     if (artistName) formData.append('artistName', artistName);
     if (trackTitle) formData.append('trackTitle', trackTitle);
+    if (consent) formData.append('consent', 'true');
 
     const response = await axios.post(`${API_URL}/chunk_files/single`, formData, {
         headers: {
@@ -137,6 +142,8 @@ export const uploadFileDirectly = async (
     if (response.data && response.data.path) {
         return {
             path: response.data.path,
+            status: response.data.status,
+            message: response.data.message,
             metaData: {
                 duration: response.data.metaData?.duration,
                 resolution: response.data.metaData?.resolution,

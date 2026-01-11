@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/dashboard-layout";
 import { getPromotionByReleaseId } from "@/lib/api/promotions";
+import { S3Image } from "@/components/ui/s3-image";
 import { FormatSelectionDialog } from "@/components/promotion/format-selection-dialog";
 import { useRouter } from "next/navigation";
 import {
@@ -145,7 +146,7 @@ export default function PromotionListingPage() {
                                                 <TableCell>
                                                     <div className="h-12 w-12 rounded-md overflow-hidden bg-muted">
                                                         {release.coverArt?.url ? (
-                                                            <img
+                                                            <S3Image
                                                                 src={release.coverArt.url}
                                                                 alt={release.title}
                                                                 className="h-full w-full object-cover"
