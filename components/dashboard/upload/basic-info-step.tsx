@@ -164,7 +164,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
             setIsSearching(true)
             searchTimeout.current = setTimeout(async () => {
                 try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
                     // Call Spotify, Apple Music, and YouTube search APIs in parallel via backend
                     const [spotifyResponse, appleResponse, youtubeResponse] = await Promise.all([

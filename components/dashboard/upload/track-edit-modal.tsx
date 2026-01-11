@@ -287,7 +287,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setIsSearching(true)
             searchTimeout.current = setTimeout(async () => {
                 try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
                     const [spotifyResponse, appleResponse, youtubeResponse] = await Promise.all([
                         fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null),
                         fetch(`${apiUrl}/integrations/apple/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null),

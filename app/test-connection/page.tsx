@@ -77,12 +77,12 @@ export default function TestConnectionPage() {
 
                     {message && (
                         <div className={`mt-6 p-4 rounded-lg ${status === 'success' ? 'bg-green-50 border border-green-200' :
-                                status === 'error' ? 'bg-red-50 border border-red-200' :
-                                    'bg-blue-50 border border-blue-200'
+                            status === 'error' ? 'bg-red-50 border border-red-200' :
+                                'bg-blue-50 border border-blue-200'
                             }`}>
                             <p className={`font-semibold ${status === 'success' ? 'text-green-800' :
-                                    status === 'error' ? 'text-red-800' :
-                                        'text-blue-800'
+                                status === 'error' ? 'text-red-800' :
+                                    'text-blue-800'
                                 }`}>
                                 {message}
                             </p>
@@ -111,7 +111,7 @@ export default function TestConnectionPage() {
                                 <h3 className="font-semibold text-gray-900">2. Frontend (.env.local)</h3>
                                 <p className="ml-4 mb-2 text-gray-600">Create a file <code className="bg-gray-100 px-1 rounded">d:\nextjs\frontend\.env.local</code> with:</p>
                                 <pre className="ml-4 bg-gray-800 text-green-400 p-3 rounded text-xs overflow-auto">
-                                    NEXT_PUBLIC_API_URL=http://localhost:3001
+                                    NEXT_PUBLIC_API_URL=http://localhost:3000
                                 </pre>
                             </div>
 

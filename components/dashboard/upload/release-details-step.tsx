@@ -33,7 +33,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
             setIsSearching(true)
             searchTimeout.current = setTimeout(async () => {
                 try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
                     // Call both Spotify and YouTube search APIs in parallel
                     const [spotifyResponse, youtubeResponse] = await Promise.all([
