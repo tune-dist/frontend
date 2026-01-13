@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Mail, Lock, User, Loader2 } from 'lucide-react'
+import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -49,6 +49,8 @@ function AuthContent() {
   const [otpEmail, setOtpEmail] = useState('')
   const [timer, setTimer] = useState(120) // 2 minutes
   const [canResend, setCanResend] = useState(false)
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [showSignupPassword, setShowSignupPassword] = useState(false)
   const { login, register: registerUser, verifyOtp, resendOtp } = useAuth()
 
   useEffect(() => {
@@ -338,12 +340,19 @@ function AuthContent() {
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="login-password"
-                          type="password"
+                          type={showLoginPassword ? "text" : "password"}
                           placeholder="••••••••"
-                          className={`pl-10 ${loginErrors.password ? 'border-red-500' : ''}`}
+                          className={`pl-10 pr-10 ${loginErrors.password ? 'border-red-500' : ''}`}
                           {...registerLogin('password')}
                           onKeyDown={(e) => handleKeyDown(e, handleSubmitLogin(onLogin))}
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowLoginPassword(!showLoginPassword)}
+                          className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
                       </div>
                       {loginErrors.password && (
                         <p className="text-sm text-red-500">
@@ -455,12 +464,19 @@ function AuthContent() {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
-                        type="password"
+                        type={showSignupPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        className={`pl-10 ${signupErrors.password ? 'border-red-500' : ''}`}
+                        className={`pl-10 pr-10 ${signupErrors.password ? 'border-red-500' : ''}`}
                         {...registerSignup('password')}
                         onKeyDown={(e) => handleKeyDown(e, handleSubmitSignup(onSignup))}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                     {signupErrors.password && (
                       <p className="text-sm text-red-500">
