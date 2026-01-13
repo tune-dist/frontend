@@ -77,6 +77,10 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
     };
 
     const handleCoverArtChange = async (file: File) => {
+        if (isUploading) {
+            toast.error('An upload is already in progress');
+            return;
+        }
         console.log('🖼️ Album cover upload started:', file.name)
         setHasValidated(false);
         setValidationErrors([]);
@@ -148,50 +152,22 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                         toast('Cover art has some warnings. Please review them below.', { icon: '⚠️', duration: 5000 });
                     }
 
-                    // 2. Proceed to Upload if Valid
+                    // 2. Set Preview and Metadata (Deferred S3 Upload)
                     setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
-
-                    const COVER_CHUNK_THRESHOLD = 5 * 1024 * 1024; // 5MB
-                    let result;
-
-                    const token = Cookies.get(config.tokenKey) || '';
-
-                    if (file.size > COVER_CHUNK_THRESHOLD) {
-                        result = await uploadFileInChunks(
-                            file,
-                            token,
-                            (progress) => {
-                                setUploadProgress(progress);
-                            },
-                            'coverart',
-                            validationMetadata.artistName,
-                            validationMetadata.trackTitle
-                        );
-                    } else {
-                        result = await uploadFileDirectly(
-                            file,
-                            token,
-                            (progress) => {
-                                setUploadProgress(progress);
-                            },
-                            'coverart',
-                            validationMetadata.artistName,
-                            validationMetadata.trackTitle
-                        );
-                    }
-
-                    if (!result || !result.path) {
-                        throw new Error('Upload completed but no path returned');
-                    }
 
                     setValue('coverArt', {
                         file: file,
-                        path: result.path,
+                        path: '', // Signal that it needs upload on final submit
                         fileName: file.name,
-                        size: file.size
+                        size: file.size,
+                        dimensions: {
+                            width: img.width,
+                            height: img.height
+                        },
+                        format: file.type.split('/')[1] || 'jpg'
                     } as any, { shouldValidate: true });
 
-                    toast.success('Cover art validated and uploaded successfully');
+                    toast.success('Cover art validated successfully');
                 } catch (error) {
                     console.error('[CoverArt] Upload/Validation failed:', error);
                     toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -318,7 +294,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                                 <div className="flex flex-col items-center gap-1">
                                     <p className="text-lg font-semibold truncate max-w-md">{(coverArt as any).fileName || (coverArt as File).name}</p>
                                     <p className="text-muted-foreground">
-                                        {((coverArt as any).size / 1024 / 1024).toFixed(2)} MB • {(coverArt as any).path ? 'Uploaded' : 'Pending'}
+                                        {((coverArt as any).size / 1024 / 1024).toFixed(2)} MB • {(coverArt as any).path ? 'Uploaded' : 'Validated'}
                                     </p>
                                 </div>
                             )}

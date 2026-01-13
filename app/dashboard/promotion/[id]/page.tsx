@@ -70,7 +70,7 @@ export default function PromotionEditorPage() {
         position?: { x: number; y: number };
         scale?: number;
         blur?: number;
-    }>({ position: { x: 50, y: 50 }, scale: 1.1, blur: 0 });
+    }>({ position: { x: 50, y: 50 }, scale: 1.0, blur: 0 });
 
 
     const [slug, setSlug] = useState("");
@@ -536,14 +536,14 @@ export default function PromotionEditorPage() {
                                             />
 
                                             <div className="flex justify-between items-center pt-2">
-                                                <Label className="text-xs">Zoom ({backgroundOverride.scale ? backgroundOverride.scale.toFixed(1) : '1.1'}x)</Label>
+                                                <Label className="text-xs">Zoom ({backgroundOverride.scale ? backgroundOverride.scale.toFixed(1) : '1.0'}x)</Label>
                                             </div>
                                             <input
                                                 type="range"
                                                 min="1"
                                                 max="3"
                                                 step="0.1"
-                                                value={backgroundOverride.scale || 1.1}
+                                                value={backgroundOverride.scale || 1.0}
                                                 onChange={(e) => setBackgroundOverride(prev => ({
                                                     ...prev,
                                                     scale: parseFloat(e.target.value)
@@ -572,7 +572,7 @@ export default function PromotionEditorPage() {
                                             variant="outline"
                                             size="sm"
                                             className="w-full text-xs"
-                                            onClick={() => setBackgroundOverride({ ...backgroundOverride, position: { x: 50, y: 50 }, scale: 1.1, blur: 0 })}
+                                            onClick={() => setBackgroundOverride({ ...backgroundOverride, position: { x: 50, y: 50 }, scale: 1.0, blur: 0 })}
                                         >
                                             Reset Position & Zoom
                                         </Button>
@@ -670,7 +670,7 @@ export default function PromotionEditorPage() {
                                     >
                                         {/* Background */}
                                         <div
-                                            className="absolute inset-0 bg-cover opacity-60 overflow-hidden"
+                                            className="absolute inset-0 bg-cover opacity-100 overflow-hidden"
                                             style={{
                                                 backgroundColor: '#000',
                                             }}
@@ -681,8 +681,8 @@ export default function PromotionEditorPage() {
                                                     backgroundImage: (backgroundOverride.imageUrl === release?.coverArt?.url && coverUrl)
                                                         ? `url(${coverUrl})`
                                                         : (resolvedOverrideUrl ? `url(${resolvedOverrideUrl})` : (bgUrl ? `url(${bgUrl})` : (coverUrl ? `url(${coverUrl})` : 'none'))),
-                                                    transform: `scale(${backgroundOverride.scale || 1.1}) translate(${(backgroundOverride.position?.x || 50) - 50}%, ${(backgroundOverride.position?.y || 50) - 50}%)`,
-                                                    filter: `blur(${backgroundOverride.blur !== undefined ? backgroundOverride.blur : 0}px) brightness(0.7)`,
+                                                    transform: `scale(${backgroundOverride.scale || 1.0}) translate(${(backgroundOverride.position?.x || 50) - 50}%, ${(backgroundOverride.position?.y || 50) - 50}%)`,
+                                                    filter: `blur(${backgroundOverride.blur !== undefined ? backgroundOverride.blur : 0}px) brightness(1.0)`,
                                                     transition: 'transform 0.1s ease-out',
                                                     backgroundPosition: 'center',
                                                     width: '100%',
@@ -690,7 +690,7 @@ export default function PromotionEditorPage() {
                                                 }}
                                             />
                                         </div>
-                                        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
+                                        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
 
                                         {/* Dynamic Elements */}
                                         <div

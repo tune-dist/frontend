@@ -1,6 +1,9 @@
 import apiClient from "../api-client";
 import { uploadFile, getAudioMetadata, getImageMetadata } from "./upload";
 import { uploadFileInChunks } from "@/lib/upload/chunk-uploader";
+import Cookies from "js-cookie";
+import { config } from "@/lib/config";
+import { toast } from "react-hot-toast";
 
 export interface ReleaseFormData {
   title: string;
@@ -17,11 +20,14 @@ export interface ReleaseFormData {
 
   // Release info
   previouslyReleased?: string;
+  originalReleaseDate?: string;
   releaseDate?: string;
   recordLabel?: string;
+  labelName?: string;
   language: string;
   primaryGenre: string;
   secondaryGenre?: string;
+  subGenre?: string;
   genres?: string[];
 
   // Social media & platforms
@@ -35,43 +41,42 @@ export interface ReleaseFormData {
   facebookProfileUrl?: string;
 
   // Files
-  coverArt: File;
+  coverArt: any; // Can be File or object
   coverArtPreview?: string;
-  audioFile?: File; // Optional for multi-track
+  audioFile?: any; // Can be File or object
   audioFileName?: string;
+  audioFiles?: any[];
 
   // Track details (Legacy/Single)
   artworkConfirmed?: boolean;
   explicitLyrics?: string;
+  isExplicit?: boolean;
   radioEdit?: string;
   instrumental?: string;
   previewClipStartTime?: string;
+  trackNumber?: number;
+  catalogNumber?: string;
+  barcode?: string;
+  isrc?: string;
+  writers?: string[];
+  composers?: string[];
+  producers?: string[];
+  publisher?: string;
+  copyright?: string;
+  recordingYear?: string | number;
+  albumTitle?: string;
+  selectedPlatforms?: string[];
+  distributionTerritories?: string[];
+  format?: string;
 
   // Multi-track support
-  // We use 'any' here to accommodate the incoming Track structure from the form,
-  // which might have extra UI fields.
   tracks?: any[];
 
   // Other
   releaseType: ReleaseType;
   featuredArtists?: string[];
-  subGenre?: string;
-  labelName?: string;
-  trackNumber?: number;
-  originalReleaseDate?: string;
-  distributionTerritories?: string[];
-  catalogNumber?: string;
-  barcode?: string;
-  isrc?: string;
-  writers?: string[];
-  producers?: string[];
-  composers?: string[];
-  publisher?: string;
-  copyright?: string;
-  recordingYear?: number;
-  albumTitle?: string;
-  selectedPlatforms?: string[];
-  format?: string;
+  audioConsent?: boolean;
+  coverArtConsent?: boolean;
 }
 
 export type ReleaseStatus = "In Process" | "Approved" | "Rejected" | "Released";
@@ -242,6 +247,8 @@ export interface CreateReleaseData {
 
   // Layer 3: Rights
   rightsAccepted?: boolean;
+  audioConsent?: boolean;
+  coverArtConsent?: boolean;
 }
 
 export interface ReleasesResponse {
@@ -264,8 +271,13 @@ export interface GetReleasesParams {
 
 // Process and submit new release with file uploads
 export const submitNewRelease = async (formData: ReleaseFormData) => {
+  const token = Cookies.get(config.tokenKey) || "";
+  let submissionToastId: string | undefined;
+
   try {
-    // 1. Process Tracks (if any) - MOVE EARLY TO AVOID HOISTING ISSUES
+    submissionToastId = toast.loading("Finalizing assets and submitting release...");
+
+    // 1. Process Tracks (if any)
     let tracksPayload: TrackPayload[] = [];
     if (formData.tracks && formData.tracks.length > 0) {
       console.log(`Processing ${formData.tracks.length} tracks...`);
@@ -276,11 +288,25 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         (formData as any).audioFiles &&
         Array.isArray((formData as any).audioFiles)
       ) {
-        ((formData as any).audioFiles as any[]).forEach((af) => {
+        const audioFiles = (formData as any).audioFiles as any[];
+
+        // Ensure all audio files are uploaded if they are still File objects
+        for (let i = 0; i < audioFiles.length; i++) {
+          const af = audioFiles[i];
+          if (af.file instanceof File && !af.path) {
+            console.log(`Uploading missing audio file for track: ${af.fileName}`);
+            toast.loading(`Uploading audio: ${af.fileName}...`, { id: submissionToastId });
+            const result = await uploadFileInChunks(af.file, token, undefined, 'audio', formData.artistName, formData.title, formData.audioConsent);
+            af.path = result.path;
+            af.duration = result.metaData?.duration;
+            af.hash = result.metaData?.hash;
+            af.fingerprint = result.metaData?.fingerprint;
+          }
+
           if (af.id) {
             audioFilesMap.set(af.id, af);
           }
-        });
+        }
       }
 
       tracksPayload = formData.tracks.map((track: any) => {
@@ -306,7 +332,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
 
         return {
           title: track.title,
-          artistName: track.artistName,
+          artistName: track.artistName || formData.artistName,
           audioFile: trackAudioData,
           isExplicit:
             track.explicitLyrics === "yes" || track.isExplicit === true,
@@ -340,15 +366,20 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           hash: audioFileData.hash,
           fingerprint: audioFileData.fingerprint,
         };
-      } else if (audioFileData instanceof File) {
-        const result = await uploadFileInChunks(audioFileData, "", undefined, 'audio');
+      } else if (audioFileData instanceof File || audioFileData.file instanceof File) {
+        const fileToUpload = audioFileData instanceof File ? audioFileData : audioFileData.file;
+        console.log(`Uploading missing root audio file: ${fileToUpload.name}`);
+        toast.loading(`Uploading audio: ${fileToUpload.name}...`, { id: submissionToastId });
+        const result = await uploadFileInChunks(fileToUpload, token, undefined, 'audio', formData.artistName, formData.title, formData.audioConsent);
         // Path is now S3 key
         audioData = {
           url: result.path, // Store S3 key directly
-          filename: audioFileData.name,
-          size: audioFileData.size,
+          filename: fileToUpload.name,
+          size: fileToUpload.size,
           duration: result.metaData?.duration || 0,
           format: "wav",
+          hash: result.metaData?.hash,
+          fingerprint: result.metaData?.fingerprint,
         };
       }
     }
@@ -364,26 +395,47 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     }
 
     // 3. Upload cover art
-    console.log("Uploading cover art...");
+    // submissionToastId is already set at the top
+
+    console.log("Processing cover art...");
     let coverUrl: string;
     const coverArtData = formData.coverArt as any;
 
-    if (coverArtData.path) {
-      // Path is now S3 key
-      coverUrl = coverArtData.path; // Store S3 key directly
-    } else if (formData.coverArt instanceof File) {
-      const result = await uploadFileInChunks(formData.coverArt, "", undefined, 'coverart');
-      // Path is now S3 key
-      coverUrl = result.path; // Store S3 key directly
-    } else {
-      throw new Error("Invalid cover art data");
+    if (!coverArtData) {
+      toast.dismiss(submissionToastId);
+      throw new Error("Cover art is missing or invalid. Please check the Cover Art step.");
     }
 
-    const coverMetadata = await getImageMetadata(
-      formData.coverArt instanceof File
-        ? formData.coverArt
-        : coverArtData.file || new File([], "temp")
-    );
+    if (coverArtData.path) {
+      console.log("Using already uploaded cover art:", coverArtData.path);
+      coverUrl = coverArtData.path;
+    } else if (formData.coverArt instanceof File || coverArtData.file instanceof File) {
+      console.log("Cover art not uploaded yet, uploading now...");
+      toast.loading("Uploading cover art...", { id: submissionToastId });
+
+      const fileToUpload = formData.coverArt instanceof File ? formData.coverArt : coverArtData.file;
+      const result = await uploadFileInChunks(fileToUpload, token, undefined, 'coverart', formData.artistName, formData.title, formData.coverArtConsent);
+      coverUrl = result.path;
+    } else {
+      toast.dismiss(submissionToastId);
+      throw new Error("Invalid cover art data. Please re-upload your cover art.");
+    }
+
+    // Get metadata - use saved if available
+    let coverMetadata;
+    if (coverArtData.dimensions && coverArtData.format) {
+      coverMetadata = coverArtData.dimensions;
+      coverMetadata.format = coverArtData.format;
+    } else {
+      console.log("Extracting cover metadata manually...");
+      coverMetadata = await getImageMetadata(
+        formData.coverArt instanceof File
+          ? formData.coverArt
+          : coverArtData.file || new File([], "temp")
+      );
+    }
+
+    toast.loading("Submitting metadata to stores...", { id: submissionToastId });
 
     // 4. Prepare release data
     const releaseData: CreateReleaseData = {
@@ -396,7 +448,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         secondaryGenre: formData.secondaryGenre,
       }),
       releaseType: (formData.format as any) || formData.releaseType || "single",
-      isExplicit: formData.explicitLyrics === "yes",
+      isExplicit: formData.explicitLyrics === "yes" || formData.isExplicit === true,
       releaseDate: formData.releaseDate || new Date().toISOString(),
       genres: ([formData.primaryGenre, formData.secondaryGenre].filter(Boolean)
         .length > 0
@@ -412,10 +464,10 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       coverArt: {
         url: coverUrl,
         filename:
-          formData.coverArt.name ||
+          (formData.coverArt as any).name ||
           (formData.coverArt as any).fileName ||
           "cover.jpg",
-        size: formData.coverArt.size,
+        size: formData.coverArt.size || (formData.coverArt as any).file?.size || 0,
         dimensions: {
           width: coverMetadata.width,
           height: coverMetadata.height,
@@ -445,7 +497,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.isrc && { isrc: formData.isrc }),
       ...(formData.writers && { writers: formData.writers }),
       ...(formData.producers && { producers: formData.producers }),
-      ...(formData.composers && { composers: formData.composers }),
+      ...((formData as any).composers && { composers: (formData as any).composers }),
       ...(formData.publisher && { publisher: formData.publisher }),
       ...(formData.copyright && { copyright: formData.copyright }),
       ...(formData.recordingYear && { recordingYear: formData.recordingYear }),
@@ -515,7 +567,11 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.userId && { userId: formData.userId }),
 
       // Map mandatory checks to backend fields
-      rightsAccepted: (formData as any).mandatoryChecks?.rightsAuthorization === true || (formData as any).rightsAccepted === true
+      rightsAccepted: (formData as any).mandatoryChecks?.rightsAuthorization === true ||
+        (formData as any).mandatoryChecks?.ownershipConfirmation === true ||
+        (formData as any).rightsAccepted === true,
+      audioConsent: formData.audioConsent === true,
+      coverArtConsent: formData.coverArtConsent === true
     };
 
     // 5. Create release via API
@@ -533,8 +589,11 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       );
     }
 
-    return createRelease(releaseData);
+    const result = await createRelease(releaseData);
+    toast.dismiss(submissionToastId);
+    return result;
   } catch (error: any) {
+    if (submissionToastId) toast.dismiss(submissionToastId);
     console.error("Release submission failed:", error);
     throw new Error(
       error.response?.data?.message ||

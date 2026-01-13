@@ -74,10 +74,10 @@ export const ThumbnailPreview = ({
                                 backgroundPosition: 'center',
                                 // Adding the requested blur if it's the inner card style (check parity)
                                 // The user asked for parity. The editor has inner blur. The thumbnail should too.
-                                filter: `blur(${backgroundOverride?.blur !== undefined ? backgroundOverride.blur : 0}px) brightness(0.7)`,
+                                filter: `blur(${backgroundOverride?.blur !== undefined ? backgroundOverride.blur : 0}px) brightness(1.0)`,
                             }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
                     </div>
 
                     {/* Elements Layer */}

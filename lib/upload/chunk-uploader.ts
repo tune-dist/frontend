@@ -1,4 +1,5 @@
 import axios from 'axios';
+import apiClient from '@/lib/api-client';
 
 const CHUNK_SIZE = 1024 * 1024; // 1MB
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -48,10 +49,9 @@ export const uploadFileInChunks = async (
         if (consent) formData.append('consent', 'true');
 
         try {
-            const response = await axios.post(`${API_URL}/chunk_files/upload`, formData, {
+            const response = await apiClient.post('/chunk_files/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${accessToken}`,
                 }
             });
             return response.data;
@@ -126,10 +126,9 @@ export const uploadFileDirectly = async (
     if (trackTitle) formData.append('trackTitle', trackTitle);
     if (consent) formData.append('consent', 'true');
 
-    const response = await axios.post(`${API_URL}/chunk_files/single`, formData, {
+    const response = await apiClient.post('/chunk_files/single', formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${accessToken}`,
         },
         onUploadProgress: (progressEvent) => {
             if (onProgress && progressEvent.total) {
@@ -154,4 +153,39 @@ export const uploadFileDirectly = async (
     }
 
     throw new Error('Direct upload completed but no path returned.');
+};
+
+export const validateAudioOnBackend = async (
+    file: File,
+    accessToken: string,
+    trackTitle?: string,
+    consent?: boolean
+): Promise<UploadCompleteResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (trackTitle) formData.append('trackTitle', trackTitle);
+    if (consent) formData.append('consent', 'true');
+
+    // Use apiClient instead of direct axios to ensure prefix/baseURL consistency
+    const response = await apiClient.post('/chunk_files/validate-audio', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        }
+    });
+
+    if (response.data && response.data.status) {
+        return {
+            path: response.data.path || '', // path might be empty for validation
+            status: response.data.status,
+            message: response.data.message,
+            metaData: {
+                duration: response.data.metaData?.duration,
+                resolution: response.data.metaData?.resolution,
+                hash: response.data.metaData?.hash,
+                fingerprint: response.data.metaData?.fingerprint
+            }
+        };
+    }
+
+    throw new Error('Validation completed but no status returned.');
 };

@@ -365,8 +365,16 @@ export default function UploadPage() {
               message: "Audio file is required",
             });
             isValid = false;
+          } else if (formData.audioDuplicateDetected && !formData.audioConsent) {
+            form.setError("audioConsent", {
+              type: "manual",
+              message: "Please provide consent to proceed with a duplicate file.",
+            });
+            toast.error("Please confirm you want to proceed with the duplicate audio");
+            isValid = false;
           } else {
             form.clearErrors("audioFile");
+            form.clearErrors("audioConsent");
             isValid = true;
           }
         } else {
@@ -374,7 +382,15 @@ export default function UploadPage() {
           if (formData.tracks.length === 0) {
             toast.error("Please add at least one track");
             isValid = false;
+          } else if (formData.audioDuplicateDetected && !formData.audioConsent) {
+            form.setError("audioConsent", {
+              type: "manual",
+              message: "Please provide consent to proceed with duplicate files.",
+            });
+            toast.error("Please confirm you want to proceed with the duplicate audio");
+            isValid = false;
           } else {
+            form.clearErrors("audioConsent");
             isValid = true;
           }
         }
@@ -389,7 +405,8 @@ export default function UploadPage() {
         } else {
           // Check for OCR validation warnings and consent
           const status = formData.coverArtValidationStatus;
-          const hasIssues = status && status !== 'approved';
+          const issues = formData.coverArtValidationIssues || [];
+          const hasIssues = (status && status !== 'approved') || issues.length > 0;
 
           if (hasIssues && !formData.coverArtConsent) {
             form.setError("coverArtConsent", {
@@ -399,6 +416,7 @@ export default function UploadPage() {
             toast.error("Please confirm you want to proceed with the cover art warnings");
             isValid = false;
           } else {
+            form.clearErrors("coverArtConsent");
             isValid = true;
           }
         }
@@ -647,7 +665,6 @@ export default function UploadPage() {
         setCurrentStep(currentStep + 1);
       }
     } else {
-      toast.error("Please fix the errors before proceeding");
       console.log(form.formState.errors);
     }
   };

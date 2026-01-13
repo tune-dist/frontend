@@ -1,6 +1,6 @@
 
 import { useState } from 'react'
-import { uploadFileInChunks } from '@/lib/upload/chunk-uploader'
+import { validateAudioOnBackend } from '@/lib/upload/chunk-uploader'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
 
@@ -104,17 +104,12 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
             setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
 
             try {
-                // Start Chunked Upload
+                // Start Validation-only Backend Call
                 const token = Cookies.get(config.tokenKey) || ''
-                const result = await uploadFileInChunks(
+                const result = await validateAudioOnBackend(
                     file,
                     token,
-                    (progress) => {
-                        setUploadProgress(prev => ({ ...prev, [fileId]: progress }))
-                    },
-                    'audio',
-                    getValues('artistName'),
-                    getValues('title'),
+                    format === 'single' ? getValues('title') : undefined,
                     watch('audioConsent')
                 );
 
@@ -130,7 +125,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                         file: file,
                         fileName: file.name,
                         size: file.size,
-                        path: result.path,
+                        path: '',
                         duration: result.metaData?.duration,
                         resolution: result.metaData?.resolution,
                         hash: result.metaData?.hash,
@@ -147,7 +142,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                         file: file,
                         fileName: file.name,
                         size: file.size,
-                        path: result.path,
+                        path: '',
                         duration: result.metaData?.duration,
                         resolution: result.metaData?.resolution,
                         hash: result.metaData?.hash,
@@ -165,11 +160,11 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                     setValue('tracks', [...currentTracks, newTrack], { shouldValidate: true })
                 }
 
-                toast.success(`Upload complete: ${file.name}`)
+                toast.success(`Validation complete: ${file.name}`)
 
             } catch (error: any) {
                 console.error(error)
-                toast.error(`Upload failed for ${file.name}: ${error.message || 'Unknown error'}`)
+                toast.error(`Validation failed for ${file.name}: ${error.message || 'Unknown error'}`)
             } finally {
                 setActiveFileId(null)
                 setUploadProgress(prev => {
@@ -267,7 +262,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                             <div className="flex items-center gap-2">
                                                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                                                 <span className="text-sm text-primary">
-                                                    Uploading... {Math.round(uploadProgress[activeFileId] || 0)}%
+                                                    Validating...
                                                 </span>
                                             </div>
                                             <div className="w-full max-w-[200px] h-1 bg-muted rounded-full overflow-hidden">
@@ -301,7 +296,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                                         </p>
                                                         {((audioFile as any).path) && (
                                                             <p className="text-xs text-green-600 flex items-center gap-1">
-                                                                ✓ Uploaded
+                                                                ✓ Validated
                                                             </p>
                                                         )}
                                                         {uploadProgress[(audioFile as any).id] !== undefined && (
@@ -367,7 +362,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                                             </div>
                                                         )}
                                                         {audioFile?.path && (
-                                                            <p className="text-xs text-green-600">✓ Uploaded</p>
+                                                            <p className="text-xs text-green-600">✓ Validated</p>
                                                         )}
                                                     </div>
                                                 </div>
@@ -399,7 +394,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                         <div className="flex items-center gap-2">
                                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
                                             <span className="text-base font-medium text-primary">
-                                                Uploading... {Math.round(uploadProgress[activeFileId] || 0)}%
+                                                Validating...
                                             </span>
                                         </div>
                                         <div className="w-full max-w-[200px] h-1 bg-muted rounded-full overflow-hidden">
