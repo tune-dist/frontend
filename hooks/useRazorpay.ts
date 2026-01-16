@@ -20,7 +20,8 @@ interface RazorpayOptions {
     currency: string;
     name: string;
     description: string;
-    order_id: string;
+    order_id?: string;
+    subscription_id?: string;
     handler: (response: RazorpayResponse) => void;
     prefill?: {
         name?: string;
@@ -37,7 +38,8 @@ interface RazorpayOptions {
 }
 
 interface RazorpayResponse {
-    razorpay_order_id: string;
+    razorpay_order_id?: string;
+    razorpay_subscription_id?: string;
     razorpay_payment_id: string;
     razorpay_signature: string;
 }
@@ -111,8 +113,9 @@ export function useRazorpay(): UseRazorpayReturn {
                     amount: order.amount,
                     currency: order.currency,
                     name: 'TuneFlow',
-                    description: `${order.planTitle} Subscription`,
+                    description: `${order.planTitle} ${order.subscriptionId ? 'Subscription' : 'Purchase'}`,
                     order_id: order.orderId,
+                    subscription_id: order.subscriptionId,
                     handler: (response: RazorpayResponse) => {
                         resolve(response);
                     },
@@ -162,6 +165,7 @@ export function useRazorpay(): UseRazorpayReturn {
                 // Step 3: Verify payment on backend
                 const result = await verifyPayment({
                     razorpay_order_id: razorpayResponse.razorpay_order_id,
+                    razorpay_subscription_id: razorpayResponse.razorpay_subscription_id,
                     razorpay_payment_id: razorpayResponse.razorpay_payment_id,
                     razorpay_signature: razorpayResponse.razorpay_signature,
                 });

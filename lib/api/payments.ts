@@ -2,7 +2,8 @@ import apiClient from '../api-client';
 
 // Types
 export interface CreateOrderResponse {
-    orderId: string;
+    orderId?: string;
+    subscriptionId?: string;
     amount: number;
     currency: string;
     keyId: string;
@@ -11,7 +12,8 @@ export interface CreateOrderResponse {
 }
 
 export interface VerifyPaymentData {
-    razorpay_order_id: string;
+    razorpay_order_id?: string;
+    razorpay_subscription_id?: string;
     razorpay_payment_id: string;
     razorpay_signature: string;
 }
