@@ -436,19 +436,60 @@ export default function UploadPage() {
             "previouslyReleased",
           ];
 
+          // Manual validation for primaryGenre (check fieldRules - database uses 'genres' key)
+          const primaryGenreRequired = fieldRules.genres?.required === true;
+          if (primaryGenreRequired && (!formData.primaryGenre || formData.primaryGenre.trim() === "")) {
+            form.setError("primaryGenre", {
+              type: "required",
+              message: "Primary genre is required",
+            });
+            isValid = false;
+          }
+
+          // Manual validation for secondaryGenre (check fieldRules - database uses 'subGenre' key)
+          const secondaryGenreRequired = fieldRules.subGenre?.required === true;
+          if (secondaryGenreRequired && (!formData.secondaryGenre || formData.secondaryGenre.trim() === "")) {
+            form.setError("secondaryGenre", {
+              type: "required",
+              message: "Sub-genre is required",
+            });
+            isValid = false;
+          }
+
+          // If genre validation failed, scroll to error and break
+          if (!isValid) {
+            scrollToError();
+            break;
+          }
+
           // Conditional validation based on fieldRules
           // Check songwriters (writers)
           const writersAllowed = fieldRules.songwriters?.allow !== false;
           const writersRequired = fieldRules.songwriters?.required !== false;
           if (writersAllowed) {
             // If required, we should convert to required array check via zod manually or check length
-            if (
-              writersRequired &&
-              (!formData.writers || formData.writers.length === 0)
-            ) {
-              toast.error("At least one songwriter is required");
-              isValid = false;
-              break; // Stop here
+            if (writersRequired) {
+              const writers = formData.writers || [];
+              if (writers.length === 0) {
+                toast.error("At least one songwriter is required");
+                isValid = false;
+                break;
+              }
+              // Check individual fields for blankness to show red error text
+              let hasBlankWriters = false;
+              writers.forEach((name, index) => {
+                if (!name || name.trim() === "") {
+                  form.setError(`writers.${index}`, {
+                    type: "required",
+                    message: "Name is required",
+                  });
+                  hasBlankWriters = true;
+                }
+              });
+              if (hasBlankWriters) {
+                isValid = false;
+                break;
+              }
             }
             // If present, validate content via trigger if needed, or rely on form submit
             fieldsToValidate.push("writers");
@@ -458,13 +499,27 @@ export default function UploadPage() {
           const composersAllowed = fieldRules.composers?.allow !== false;
           const composersRequired = fieldRules.composers?.required !== false;
           if (composersAllowed) {
-            if (
-              composersRequired &&
-              (!formData.composers || formData.composers.length === 0)
-            ) {
-              toast.error("At least one composer is required");
-              isValid = false;
-              break;
+            if (composersRequired) {
+              const composers = formData.composers || [];
+              if (composers.length === 0) {
+                toast.error("At least one composer is required");
+                isValid = false;
+                break;
+              }
+              let hasBlankComposers = false;
+              composers.forEach((name, index) => {
+                if (!name || name.trim() === "") {
+                  form.setError(`composers.${index}`, {
+                    type: "required",
+                    message: "Name is required",
+                  });
+                  hasBlankComposers = true;
+                }
+              });
+              if (hasBlankComposers) {
+                isValid = false;
+                break;
+              }
             }
             fieldsToValidate.push("composers");
           }
@@ -1009,6 +1064,27 @@ export default function UploadPage() {
                           )}
                         </div>
                       )}
+
+                      {/* Recording Year - between C-Line and P-Line */}
+                      <div className="space-y-1 mt-4">
+                        <Label htmlFor="recordingYear">
+                          Recording Year *
+                        </Label>
+                        <Input
+                          id="recordingYear"
+                          type="number"
+                          placeholder="e.g. 2026"
+                          min={1909}
+                          max={new Date().getFullYear() + 1}
+                          {...register("recordingYear", { valueAsNumber: true })}
+                          className={errors.recordingYear ? "border-red-500" : ""}
+                        />
+                        {errors.recordingYear && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {errors.recordingYear.message}
+                          </p>
+                        )}
+                      </div>
 
                       {/* Producers - always show if allowed */}
                       {fieldRules.producers?.allow !== false && (

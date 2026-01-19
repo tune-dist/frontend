@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 export const songwriterSchema = z.string()
-    .min(1, 'Name is required')
     .refine((val) => {
+        if (!val || val.trim() === '') return true;
         // Strict regex: "^[a-zA-Z]{3,} [a-zA-Z]{3,}$"
         return /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/.test(val.trim());
     }, {
@@ -58,6 +58,7 @@ export const trackSchema = z.object({
     youtubeMusicProfile: z.string().optional(),
     instagramProfile: z.string().optional(),
     facebookProfile: z.string().optional(),
+    recordingYear: z.number().min(1909).max(new Date().getFullYear() + 1).optional(),
 })
 
 export type Track = z.infer<typeof trackSchema>
@@ -150,6 +151,7 @@ export const uploadFormSchema = z.object({
     // Credits
     previewClipStartTime: z.string().optional(),
     copyright: z.string().optional(),
+    recordingYear: z.number().min(1909).max(new Date().getFullYear() + 1).optional(),
     instrumental: z.string().optional(),
 
     // Detailed Credits (UI State managed by FieldArray)
@@ -161,20 +163,9 @@ export const uploadFormSchema = z.object({
     selectedPlatforms: z.array(z.string()).optional(),
 }).superRefine((data, ctx) => {
     if (data.format === 'single') {
-        if (!data.primaryGenre) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Primary genre is required for single releases",
-                path: ["primaryGenre"]
-            });
-        }
-        if (!data.secondaryGenre) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Secondary genre is required for single releases",
-                path: ["secondaryGenre"]
-            });
-        }
+        // Genre validation is now handled manually in page.tsx based on fieldRules
+        // This allows plan-specific requirements
+
         if (!data.language) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -187,21 +178,6 @@ export const uploadFormSchema = z.object({
                 code: z.ZodIssueCode.custom,
                 message: "Release history is required for single releases",
                 path: ["previouslyReleased"]
-            });
-        }
-        if (!data.writers || data.writers.length === 0) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "At least one writer is required",
-                path: ["writers"]
-            });
-        }
-
-        if (!data.composers || data.composers.length === 0) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "At least one composer is required",
-                path: ["composers"]
             });
         }
     }

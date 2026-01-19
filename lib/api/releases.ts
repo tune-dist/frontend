@@ -119,6 +119,7 @@ export interface TrackPayload {
   secondaryGenre?: string;
   previouslyReleased?: string;
   originalReleaseDate?: string;
+  recordingYear?: number;
   fingerprint?: string;
   hash?: string;
 }
@@ -345,6 +346,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           originalReleaseDate: track.originalReleaseDate,
           primaryGenre: track.primaryGenre,
           secondaryGenre: track.secondaryGenre,
+          recordingYear: track.recordingYear,
         };
       });
     }

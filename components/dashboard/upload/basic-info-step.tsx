@@ -1261,6 +1261,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                             return `${yyyy}-${mm}-${dd}`;
                         })()}
                         {...register('releaseDate')}
+                        onClick={(e) => e.currentTarget.showPicker()}
                         className={errors.releaseDate ? 'border-red-500' : ''}
                     />
                     <p className="text-xs text-muted-foreground mt-1">

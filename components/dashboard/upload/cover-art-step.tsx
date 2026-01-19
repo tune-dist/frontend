@@ -301,25 +301,76 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                         </div>
                     )}
 
-                    {isUploading && (
-                        <div className={`mt-6 max-w-md mx-auto space-y-2 p-6 rounded-2xl bg-primary/5 border border-primary/20 ${!coverArtPreview ? 'absolute inset-0 flex flex-col items-center justify-center bg-card/90 z-20 rounded-3xl' : ''}`}>
-                            <div className="flex justify-between items-center w-full text-sm">
-                                <span className="text-primary font-semibold flex items-center gap-3 text-lg">
-                                    <Loader2 className="h-6 w-6 animate-spin" />
-                                    {isValidating ? 'Validating cover art...' : 'Uploading cover art...'}
-                                </span>
-                                {!isValidating && <span className="text-primary font-bold text-lg">{Math.round(uploadProgress)}%</span>}
-                            </div>
-                            {!isValidating && (
-                                <div className="w-full h-3 bg-primary/10 rounded-full overflow-hidden mt-2">
-                                    <div
-                                        className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_10px_rgba(var(--primary),0.5)]"
-                                        style={{ width: `${uploadProgress}%` }}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    <AnimatePresence>
+                        {isUploading && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/60 backdrop-blur-md"
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.9, opacity: 0 }}
+                                    className="max-w-md w-full mx-auto space-y-6 p-10 rounded-3xl bg-card border border-primary/20 shadow-2xl"
+                                >
+                                    <div className="flex flex-col items-center gap-6 text-center">
+                                        <div className="relative">
+                                            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                                            <Loader2 className="h-16 w-16 animate-spin text-primary relative" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h3 className="text-2xl font-bold tracking-tight">
+                                                {isValidating ? 'Validating Cover Art' : 'Uploading Cover Art'}
+                                            </h3>
+                                            <p className="text-muted-foreground">
+                                                {isValidating ? 'Our AI is checking your artwork against store standards...' : 'Sending your high-quality art to our secure servers...'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-sm font-medium">
+                                            <span className="text-primary">
+                                                {isValidating ? 'AI Analysis' : 'Upload Progress'}
+                                            </span>
+                                            {!isValidating && <span className="text-primary">{Math.round(uploadProgress)}%</span>}
+                                        </div>
+                                        {!isValidating && (
+                                            <div className="w-full h-3 bg-primary/10 rounded-full overflow-hidden">
+                                                <motion.div
+                                                    className="h-full bg-primary"
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${uploadProgress}%` }}
+                                                    transition={{ duration: 0.3 }}
+                                                />
+                                            </div>
+                                        )}
+                                        {isValidating && (
+                                            <div className="w-full h-3 bg-primary/10 rounded-full overflow-hidden relative">
+                                                <motion.div
+                                                    className="absolute inset-y-0 bg-primary/40 w-1/3"
+                                                    animate={{
+                                                        left: ['-100%', '200%'],
+                                                    }}
+                                                    transition={{
+                                                        repeat: Infinity,
+                                                        duration: 1.5,
+                                                        ease: "linear"
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <p className="text-xs text-center text-muted-foreground animate-pulse">
+                                        Please do not close this window
+                                    </p>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {errors.coverArt && (

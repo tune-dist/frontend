@@ -382,7 +382,10 @@ export default function CreditsStep({
               <div className="space-y-4 mt-6">
                 <div className="space-y-3">
                   <Label htmlFor="primaryGenre" className="text-lg font-semibold">
-                    Primary genre <span className="text-red-500">*</span>
+                    Primary genre
+                    {fieldRules.genres?.required === true && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
                   </Label>
                   <select
                     id="primaryGenre"
@@ -413,7 +416,10 @@ export default function CreditsStep({
                     htmlFor="secondaryGenre"
                     className="text-lg font-semibold"
                   >
-                    Sub-genre <span className="text-red-500">*</span>
+                    Sub-genre
+                    {fieldRules.subGenre?.required === true && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
                   </Label>
                   <select
                     id="secondaryGenre"
@@ -465,7 +471,7 @@ export default function CreditsStep({
                     >
                       <div className="grid grid-cols-1 gap-1">
                         <Input
-                          placeholder={`Enter Firstname Lastname${fieldRules.songwriters?.required !== false ? " *" : ""
+                          placeholder={`Enter Firstname Lastname ${fieldRules.songwriters?.required !== false ? "*" : ""
                             }`}
                           {...register(`writers.${index}` as const)}
                           className="text-sm"

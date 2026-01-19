@@ -58,6 +58,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [primaryGenre, setPrimaryGenre] = useState(track?.primaryGenre || '')
     const [secondaryGenre, setSecondaryGenre] = useState(track?.secondaryGenre || '')
     const [previewClipStartTime, setPreviewClipStartTime] = useState(track?.previewClipStartTime || '')
+    const [recordingYear, setRecordingYear] = useState<number | ''>(track?.recordingYear || '')
 
     // Local state for modal editing
     const [modalArtistSearch, setModalArtistSearch] = useState(track?.artistName || '')
@@ -151,6 +152,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setPrimaryGenre(track.primaryGenre || '')
             setSecondaryGenre(track.secondaryGenre || '')
             setPreviewClipStartTime(track.previewClipStartTime || '')
+            setRecordingYear(track.recordingYear || '')
 
             // If restricted plan, force mainArtistName AND profiles
             if (planLimits.artistLimit === 1 && mainArtistName) {
@@ -476,6 +478,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 primaryGenre,
                 secondaryGenre,
                 previewClipStartTime,
+                recordingYear: recordingYear === '' ? undefined : Number(recordingYear),
                 spotifyProfile: modalSpotifyProfile,
                 appleMusicProfile: modalAppleMusicProfile,
                 youtubeMusicProfile: modalYoutubeProfile,
@@ -510,6 +513,20 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             placeholder="Enter track title"
                             value={trackTitle}
                             onChange={(e) => setTrackTitle(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Recording Year */}
+                    <div className="space-y-2">
+                        <Label htmlFor="track-year">Recording Year *</Label>
+                        <Input
+                            id="track-year"
+                            type="number"
+                            placeholder="e.g. 2026"
+                            min={1909}
+                            max={new Date().getFullYear() + 1}
+                            value={recordingYear}
+                            onChange={(e) => setRecordingYear(e.target.value === '' ? '' : Number(e.target.value))}
                         />
                     </div>
 
