@@ -1495,7 +1495,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     className="h-4 w-4"
                                 />
                                 <Label htmlFor="track-instrumental-no" className="font-normal cursor-pointer">
-                                    This song contains lyrics
+                                    No
                                 </Label>
                             </div>
 
@@ -1510,7 +1510,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     className="h-4 w-4"
                                 />
                                 <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
-                                    This song is instrumental and contains no lyrics
+                                    Yes
                                 </Label>
                             </div>
                         </div>
