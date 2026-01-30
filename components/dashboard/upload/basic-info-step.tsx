@@ -1237,6 +1237,12 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                             <option value="album" disabled={!allowedFormats.includes('album')}>
                                 Album {!allowedFormats.includes('album') ? `(Creator+ Plan)` : ''}
                             </option>
+                            <option value="remix" disabled={!allowedFormats.includes('remix')}>
+                                Remix {!allowedFormats.includes('remix') ? `(Creator+ Plan)` : ''}
+                            </option>
+                            <option value="compilation" disabled={!allowedFormats.includes('compilation')}>
+                                Compilation {!allowedFormats.includes('compilation') ? `(Creator+ Plan)` : ''}
+                            </option>
                         </select>
                         {!allowedFormats.includes('album') && (
                             <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
@@ -1269,44 +1275,35 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     </p>
                     {errors.releaseDate && <p className="text-xs text-red-500 mt-1">{errors.releaseDate.message}</p>}
                 </div>
-                {/* Explicit Lyrics - Only show if allowed by plan */}
+                {/* UPC Field */}
                 <div className="space-y-3 pt-6 border-t border-border">
-                    <Label className="text-lg font-semibold flex items-center gap-2">
-                        Explicit lyrics <span className="text-red-500">*</span>
-                        <span className="inline-flex items-center justify-center bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800">
-                            18+
-                        </span>
-                    </Label>
-
-                    <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="radio"
-                                id="explicitNo"
-                                value="no"
-                                {...register('explicitLyrics')}
-                                className="h-4 w-4"
-                            />
-                            <Label htmlFor="explicitNo" className="font-normal cursor-pointer">
-                                No
-                            </Label>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="radio"
-                                id="explicitYes"
-                                value="yes"
-                                {...register('explicitLyrics')}
-                                className="h-4 w-4"
-                            />
-                            <Label htmlFor="explicitYes" className="font-normal cursor-pointer">
-                                Yes
-                            </Label>
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="upc" className="text-lg font-semibold">
+                            UPC
+                        </Label>
+                        <div className="group relative">
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            <div className="invisible group-hover:visible absolute left-0 top-6 z-50 w-72 p-3 bg-popover border border-border rounded-md shadow-lg text-xs">
+                                <p className="font-medium mb-1">Don't have a UPC?</p>
+                                <p className="text-muted-foreground">
+                                    If you don't have a UPC, or it is less than 13 characters, leave this field empty and we will generate one for you.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                    {errors.explicitLyrics && (
-                        <p className="text-xs text-red-500 mt-1">{errors.explicitLyrics.message}</p>
+
+                    <Input
+                        id="upc"
+                        placeholder="Enter 13-digit UPC"
+                        {...register('upc')}
+                        maxLength={13}
+                        className={errors.upc ? 'border-red-500' : ''}
+                    />
+                    {/* <p className="text-xs text-muted-foreground">
+                        UPC must be exactly 13 digits. Leave empty for auto-generation.
+                    </p> */}
+                    {errors.upc && (
+                        <p className="text-xs text-red-500 mt-1">{errors.upc.message}</p>
                     )}
                 </div>
 

@@ -337,7 +337,7 @@ export default function CreditsStep({
               {/* Previously Released */}
               <div className="space-y-3 pt-6 border-t border-border">
                 <Label className="text-lg font-semibold">
-                  Has this single been previously released?
+                  Has this single been previously released?<span className="text-red-500 ml-1">*</span>
                 </Label>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
@@ -567,9 +567,57 @@ export default function CreditsStep({
                 </div>
               )}
 
+              {/* Explicit Content */}
+              <div className="space-y-3 pt-6 border-t border-border">
+                <Label className="text-lg font-semibold flex items-center gap-2">
+                  Explicit Content
+                  <span className="inline-flex items-center justify-center bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800">
+                    18+
+                  </span>
+                </Label>
+
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="isExplicitNo"
+                      value="false"
+                      {...register("isExplicit", {
+                        setValueAs: (v) => v === 'true'
+                      })}
+                      className="h-4 w-4"
+                    />
+                    <Label
+                      htmlFor="isExplicitNo"
+                      className="font-normal cursor-pointer"
+                    >
+                      No - Clean content
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="isExplicitYes"
+                      value="true"
+                      {...register("isExplicit", {
+                        setValueAs: (v) => v === 'true'
+                      })}
+                      className="h-4 w-4"
+                    />
+                    <Label
+                      htmlFor="isExplicitYes"
+                      className="font-normal cursor-pointer"
+                    >
+                      Yes - Contains explicit content
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
               {/* Instrumental */}
               <div className="space-y-3 pt-6 border-t border-border">
-                <Label className="text-lg font-semibold">Instrumental?</Label>
+                <Label className="text-lg font-semibold"> Is Instrumental?</Label>
 
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
@@ -581,7 +629,7 @@ export default function CreditsStep({
                       className="h-4 w-4"
                     />
                     <Label
-                      htmlFor="instrumentalNo"
+                      htmlFor=" "
                       className="font-normal cursor-pointer"
                     >
                       This song contains lyrics
@@ -606,12 +654,12 @@ export default function CreditsStep({
                 </div>
               </div>
 
-              {/* Preview Clip Start Time */}
+              {/* Song Highlight Start Time */}
               <div className="space-y-3 pt-6 border-t border-border">
                 <Label className="text-lg font-semibold">
-                  Preview clip start time{" "}
+                  Song Highlight Start Time{" "}
                   <span className="text-muted-foreground font-normal">
-                    (TikTok, Apple Music, iTunes, Youtube)
+                    (Caller Tune (CRBT), TikTok, Apple Music, iTunes & YouTube Shorts)
                   </span>
                 </Label>
 

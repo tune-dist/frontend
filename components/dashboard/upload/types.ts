@@ -51,6 +51,7 @@ export const trackSchema = z.object({
     writers: z.array(songwriterSchema).optional(),
     composers: z.array(songwriterSchema).optional(),
     isInstrumental: z.string().optional(),
+    isExplicit: z.boolean().optional(),
     previewClipStartTime: z.string().optional(),
     // Social media profiles per track
     spotifyProfile: z.string().optional(),
@@ -99,12 +100,18 @@ export const uploadFormSchema = z.object({
     language: z.string().optional(),
     releaseType: z.string().default('single'),
     isExplicit: z.boolean().default(false),
-    explicitLyrics: z.string().optional(),
-    format: z.enum(['single', 'ep', 'album'], {
+    format: z.enum(['single', 'ep', 'album', 'remix', 'compilation'], {
         errorMap: () => ({ message: 'Format is required' })
     }),
     featuringArtist: z.string().optional(),
     trackPrice: z.string().optional().default('0.99'),
+    upc: z.string().optional().refine((val) => {
+        if (!val || val.trim() === '') return true;
+        // UPC should be exactly 13 digits
+        return /^\d{13}$/.test(val);
+    }, {
+        message: 'UPC must be exactly 13 digits or leave empty for auto-generation'
+    }),
 
     // Social media & platforms
     spotifyProfile: z.union([z.string(), artistProfileSchema]).optional(),

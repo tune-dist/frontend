@@ -296,18 +296,6 @@ export default function UploadPage() {
           isValid = false;
         }
 
-        // Check explicit lyrics validation using 'isExplicit' rule from API
-        if (!formData.explicitLyrics || formData.explicitLyrics === "") {
-          form.setError(
-            "explicitLyrics",
-            {
-              type: "required",
-              message: "Explicit lyrics is required",
-            },
-            { shouldFocus: true }
-          );
-          isValid = false;
-        }
 
         if (isValid) {
           // Check Artist Limits
@@ -426,6 +414,7 @@ export default function UploadPage() {
         }
         break;
       case 4: // Credits
+        isValid = true;
         // Validate required fields in Credits step
         if (formData.format === "single") {
           // For singles, validate genre and previously released
@@ -435,9 +424,10 @@ export default function UploadPage() {
             "secondaryGenre",
             "previouslyReleased",
           ];
-
+          console.log("fieldsToValidate", fieldRules);
           // Manual validation for primaryGenre (check fieldRules - database uses 'genres' key)
           const primaryGenreRequired = fieldRules.genres?.required === true;
+          console.log("primaryGenreRequired", primaryGenreRequired);
           if (primaryGenreRequired && (!formData.primaryGenre || formData.primaryGenre.trim() === "")) {
             form.setError("primaryGenre", {
               type: "required",
@@ -448,6 +438,7 @@ export default function UploadPage() {
 
           // Manual validation for secondaryGenre (check fieldRules - database uses 'subGenre' key)
           const secondaryGenreRequired = fieldRules.subGenre?.required === true;
+          console.log("secondaryGenreRequired", secondaryGenreRequired);
           if (secondaryGenreRequired && (!formData.secondaryGenre || formData.secondaryGenre.trim() === "")) {
             form.setError("secondaryGenre", {
               type: "required",
@@ -458,6 +449,7 @@ export default function UploadPage() {
 
           // If genre validation failed, scroll to error and break
           if (!isValid) {
+            console.log("Genre validation failed");
             scrollToError();
             break;
           }
@@ -547,6 +539,7 @@ export default function UploadPage() {
           const copyrightRequired = fieldRules.copyright?.required === true;
           if (copyrightAllowed) {
             if (copyrightRequired && !formData.copyright) {
+              console.log("Copyright is required");
               form.setError("copyright", {
                 type: "required",
                 message: "Copyright is required",
@@ -1068,7 +1061,7 @@ export default function UploadPage() {
                       {/* Recording Year - between C-Line and P-Line */}
                       <div className="space-y-1 mt-4">
                         <Label htmlFor="recordingYear">
-                          Recording Year *
+                          Recording Year <span className="text-red-500 ml-1">*</span>
                         </Label>
                         <Input
                           id="recordingYear"

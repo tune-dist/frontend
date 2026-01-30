@@ -50,3 +50,9 @@ export const getUsers = async (params: {
   const response = await apiClient.get<any>('/users', { params });
   return response.data;
 };
+
+// Update user permissions
+export const updateUserPermissions = async (userId: string, permissions: string[]): Promise<User> => {
+  const response = await apiClient.patch<User>(`/users/${userId}/permissions`, { permissions });
+  return response.data;
+};

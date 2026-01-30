@@ -59,6 +59,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [secondaryGenre, setSecondaryGenre] = useState(track?.secondaryGenre || '')
     const [previewClipStartTime, setPreviewClipStartTime] = useState(track?.previewClipStartTime || '')
     const [recordingYear, setRecordingYear] = useState<number | ''>(track?.recordingYear || '')
+    const [isExplicit, setIsExplicit] = useState<boolean>(track?.isExplicit || false)
+    const [instrumental, setInstrumental] = useState<string>(track?.isInstrumental || 'no')
 
     // Local state for modal editing
     const [modalArtistSearch, setModalArtistSearch] = useState(track?.artistName || '')
@@ -153,6 +155,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setSecondaryGenre(track.secondaryGenre || '')
             setPreviewClipStartTime(track.previewClipStartTime || '')
             setRecordingYear(track.recordingYear || '')
+            setIsExplicit(track.isExplicit || false)
+            setInstrumental(track.isInstrumental || 'no')
 
             // If restricted plan, force mainArtistName AND profiles
             if (planLimits.artistLimit === 1 && mainArtistName) {
@@ -483,7 +487,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 appleMusicProfile: modalAppleMusicProfile,
                 youtubeMusicProfile: modalYoutubeProfile,
                 instagramProfile: instagramStatus === 'yes' ? instagramUrl : '',
-                facebookProfile: facebookStatus === 'yes' ? facebookUrl : ''
+                facebookProfile: facebookStatus === 'yes' ? facebookUrl : '',
+                isExplicit,
+                isInstrumental: instrumental
             }
             onSave(updatedTrack, modalWriters, modalComposers)
             onClose()
@@ -1433,12 +1439,89 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </Button>
                     </div>
 
+                    {/* Explicit Content */}
+                    <div className="space-y-3 pt-4 border-t">
+                        <Label className="text-lg font-semibold flex items-center gap-2">
+                            Explicit Content
+                            <span className="inline-flex items-center justify-center bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800">
+                                18+
+                            </span>
+                        </Label>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-explicit-no"
+                                    name="track-explicit"
+                                    checked={!isExplicit}
+                                    onChange={() => setIsExplicit(false)}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="track-explicit-no" className="font-normal cursor-pointer">
+                                    No - Clean content
+                                </Label>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-explicit-yes"
+                                    name="track-explicit"
+                                    checked={isExplicit}
+                                    onChange={() => setIsExplicit(true)}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="track-explicit-yes" className="font-normal cursor-pointer">
+                                    Yes - Contains explicit content
+                                </Label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Instrumental */}
+                    <div className="space-y-3 pt-4 border-t">
+                        <Label className="text-lg font-semibold">Is Instrumental?</Label>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-instrumental-no"
+                                    name="track-instrumental"
+                                    value="no"
+                                    checked={instrumental === 'no'}
+                                    onChange={() => setInstrumental('no')}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="track-instrumental-no" className="font-normal cursor-pointer">
+                                    This song contains lyrics
+                                </Label>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-instrumental-yes"
+                                    name="track-instrumental"
+                                    value="yes"
+                                    checked={instrumental === 'yes'}
+                                    onChange={() => setInstrumental('yes')}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
+                                    This song is instrumental and contains no lyrics
+                                </Label>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Preview Clip Start Time */}
                     <div className="space-y-3 pt-6 border-t border-border">
                         <Label className="text-lg font-semibold">
-                            Preview clip start time{" "}
+                            Song Highlight Start Time{" "}
                             <span className="text-muted-foreground font-normal">
-                                (TikTok, Apple Music, iTunes)
+                                (Caller Tune (CRBT), TikTok, Apple Music, iTunes & YouTube Shorts)
                             </span>
                         </Label>
 
