@@ -1275,6 +1275,24 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     </p>
                     {errors.releaseDate && <p className="text-xs text-red-500 mt-1">{errors.releaseDate.message}</p>}
                 </div>
+                {/* Label Name Field - Conditional */}
+                {!['free', 'solo'].includes(user?.plan || '') && (
+                    <div className="space-y-3 pt-6 border-t border-border">
+                        <Label htmlFor="labelName" className="text-lg font-semibold">
+                            Label Name
+                        </Label>
+                        <Input
+                            id="labelName"
+                            placeholder="Enter Label Name"
+                            {...register('labelName')}
+                            className={errors.labelName ? 'border-red-500' : ''}
+                        />
+                        {errors.labelName && (
+                            <p className="text-xs text-red-500 mt-1">{errors.labelName.message}</p>
+                        )}
+                    </div>
+                )}
+
                 {/* UPC Field */}
                 <div className="space-y-3 pt-6 border-t border-border">
                     <div className="flex items-center gap-2">

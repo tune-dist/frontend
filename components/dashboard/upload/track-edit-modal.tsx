@@ -58,7 +58,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [primaryGenre, setPrimaryGenre] = useState(track?.primaryGenre || '')
     const [secondaryGenre, setSecondaryGenre] = useState(track?.secondaryGenre || '')
     const [previewClipStartTime, setPreviewClipStartTime] = useState(track?.previewClipStartTime || '')
-    const [recordingYear, setRecordingYear] = useState<number | ''>(track?.recordingYear || '')
+    const [version, setVersion] = useState<string>(track?.version || '')
     const [isExplicit, setIsExplicit] = useState<boolean>(track?.isExplicit || false)
     const [instrumental, setInstrumental] = useState<string>(track?.isInstrumental || 'no')
 
@@ -154,7 +154,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setPrimaryGenre(track.primaryGenre || '')
             setSecondaryGenre(track.secondaryGenre || '')
             setPreviewClipStartTime(track.previewClipStartTime || '')
-            setRecordingYear(track.recordingYear || '')
+            setVersion(track.version || '')
             setIsExplicit(track.isExplicit || false)
             setInstrumental(track.isInstrumental || 'no')
 
@@ -482,7 +482,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 primaryGenre,
                 secondaryGenre,
                 previewClipStartTime,
-                recordingYear: recordingYear === '' ? undefined : Number(recordingYear),
+                version,
                 spotifyProfile: modalSpotifyProfile,
                 appleMusicProfile: modalAppleMusicProfile,
                 youtubeMusicProfile: modalYoutubeProfile,
@@ -522,17 +522,14 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         />
                     </div>
 
-                    {/* Recording Year */}
+                    {/* Version/Subtitle */}
                     <div className="space-y-2">
-                        <Label htmlFor="track-year">Recording Year *</Label>
+                        <Label htmlFor="track-version">Version/Subtitle</Label>
                         <Input
-                            id="track-year"
-                            type="number"
-                            placeholder="e.g. 2026"
-                            min={1909}
-                            max={new Date().getFullYear() + 1}
-                            value={recordingYear}
-                            onChange={(e) => setRecordingYear(e.target.value === '' ? '' : Number(e.target.value))}
+                            id="track-version"
+                            placeholder="Enter version/subtitle (e.g., Extended Mix, Remix, etc.)"
+                            value={version}
+                            onChange={(e) => setVersion(e.target.value)}
                         />
                     </div>
 

@@ -59,7 +59,7 @@ export const trackSchema = z.object({
     youtubeMusicProfile: z.string().optional(),
     instagramProfile: z.string().optional(),
     facebookProfile: z.string().optional(),
-    recordingYear: z.number().min(1909).max(new Date().getFullYear() + 1).optional(),
+    version: z.string().optional(),
 })
 
 export type Track = z.infer<typeof trackSchema>
@@ -158,7 +158,6 @@ export const uploadFormSchema = z.object({
     // Credits
     previewClipStartTime: z.string().optional(),
     copyright: z.string().optional(),
-    recordingYear: z.number().min(1909).max(new Date().getFullYear() + 1).optional(),
     instrumental: z.string().optional(),
 
     // Detailed Credits (UI State managed by FieldArray)
