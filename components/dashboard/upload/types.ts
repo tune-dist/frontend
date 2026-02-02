@@ -99,6 +99,7 @@ export const uploadFormSchema = z.object({
     secondaryGenre: z.string().optional(),
     language: z.string().optional(),
     releaseType: z.string().default('single'),
+    explicitLyrics: z.enum(['yes', 'no']).optional(),
     isExplicit: z.boolean().default(false),
     format: z.enum(['single', 'ep', 'album', 'remix', 'compilation'], {
         errorMap: () => ({ message: 'Format is required' })
@@ -163,6 +164,8 @@ export const uploadFormSchema = z.object({
     // Detailed Credits (UI State managed by FieldArray)
     writers: z.array(songwriterSchema).default([]),
     composers: z.array(songwriterSchema).default([]),
+
+    recordingYear: z.number().optional(),
 
     // Legacy/Other
     producers: z.array(z.string()).optional(),
