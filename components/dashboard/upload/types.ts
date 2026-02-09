@@ -51,7 +51,10 @@ export const trackSchema = z.object({
     writers: z.array(songwriterSchema).optional(),
     composers: z.array(songwriterSchema).optional(),
     isInstrumental: z.string().optional(),
-    isExplicit: z.boolean().optional(),
+    isExplicit: z.preprocess((val) => {
+        if (typeof val === 'string') return val === 'true';
+        return val;
+    }, z.boolean().optional()),
     previewClipStartTime: z.string().optional(),
     // Social media profiles per track
     spotifyProfile: z.string().optional(),
@@ -60,6 +63,7 @@ export const trackSchema = z.object({
     instagramProfile: z.string().optional(),
     facebookProfile: z.string().optional(),
     version: z.string().optional(),
+    featuringArtist: z.string().optional(),
 })
 
 export type Track = z.infer<typeof trackSchema>
@@ -100,7 +104,10 @@ export const uploadFormSchema = z.object({
     language: z.string().optional(),
     releaseType: z.string().default('single'),
     explicitLyrics: z.enum(['yes', 'no']).optional(),
-    isExplicit: z.boolean().default(false),
+    isExplicit: z.preprocess((val) => {
+        if (typeof val === 'string') return val === 'true';
+        return val;
+    }, z.boolean().default(false)),
     format: z.enum(['single', 'ep', 'album', 'remix', 'compilation'], {
         errorMap: () => ({ message: 'Format is required' })
     }),

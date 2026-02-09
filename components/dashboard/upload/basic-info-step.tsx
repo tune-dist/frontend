@@ -74,6 +74,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
     // Check if featured artists are allowed by plan fieldRules
     const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false
+    const isLabelNameAllowed = fieldRules.labelName?.allow !== false
     const isExplicitAllowed = fieldRules.isExplicit?.allow !== false
 
     // Check if main artist name should be locked (Limit reached)
@@ -1179,23 +1180,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     </div>
                 </div>
 
-                {/* Featuring Artist - Only show if allowed by plan */}
-                {areFeaturedArtistsAllowed && (
-                    <div className="space-y-2">
-                        <Label htmlFor="featuringArtist">
-                            Featuring Artist{fieldRules.featuredArtists?.required && <span className="text-red-500 ml-1">*</span>}
-                        </Label>
-                        <Input
-                            id="featuringArtist"
-                            placeholder="Enter Featuring Artist"
-                            {...register('featuringArtist')}
-                            className={errors.featuringArtist ? 'border-red-500' : ''}
-                        />
-                        {errors.featuringArtist && (
-                            <p className="text-xs text-red-500 mt-1">{errors.featuringArtist.message}</p>
-                        )}
-                    </div>
-                )}
 
                 <div className="space-y-2">
                     <Label htmlFor="language">Language <span className="text-red-500">*</span></Label>
@@ -1275,23 +1259,28 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     </p>
                     {errors.releaseDate && <p className="text-xs text-red-500 mt-1">{errors.releaseDate.message}</p>}
                 </div>
-                {/* Label Name Field - Conditional */}
-                {!['free', 'solo'].includes(user?.plan || '') && (
-                    <div className="space-y-3 pt-6 border-t border-border">
-                        <Label htmlFor="labelName" className="text-lg font-semibold">
-                            Label Name
-                        </Label>
-                        <Input
-                            id="labelName"
-                            placeholder="Enter Label Name"
-                            {...register('labelName')}
-                            className={errors.labelName ? 'border-red-500' : ''}
-                        />
-                        {errors.labelName && (
-                            <p className="text-xs text-red-500 mt-1">{errors.labelName.message}</p>
-                        )}
-                    </div>
-                )}
+                {/* Label Name Field - Always show, but disable and show message if not allowed by plan */}
+                <div className="space-y-3 pt-6 border-t border-border">
+                    <Label htmlFor="labelName" className="text-lg font-semibold">
+                        Label Name
+                    </Label>
+                    <Input
+                        id="labelName"
+                        placeholder="Enter Label Name"
+                        {...register('labelName')}
+                        disabled={!isLabelNameAllowed}
+                        className={errors.labelName ? 'border-red-500' : ''}
+                    />
+                    {!isLabelNameAllowed && (
+                        <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
+                            <Info className="h-3 w-3 mt-0.5" />
+                            <span>Upgrade to Creator+ or higher to use custom Label Name.</span>
+                        </div>
+                    )}
+                    {errors.labelName && (
+                        <p className="text-xs text-red-500 mt-1">{errors.labelName.message}</p>
+                    )}
+                </div>
 
                 {/* UPC Field */}
                 <div className="space-y-3 pt-6 border-t border-border">

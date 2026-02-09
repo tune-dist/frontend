@@ -75,6 +75,7 @@ export interface ReleaseFormData {
   // Other
   releaseType: ReleaseType;
   featuredArtists?: string[];
+  featuringArtist?: string;
   audioConsent?: boolean;
   coverArtConsent?: boolean;
 }
@@ -121,6 +122,14 @@ export interface TrackPayload {
   originalReleaseDate?: string;
   fingerprint?: string;
   hash?: string;
+  featuringArtist?: string;
+  isrc?: string;
+  language?: string;
+  spotifyProfile?: any;
+  appleMusicProfile?: any;
+  youtubeMusicProfile?: any;
+  instagramProfile?: string;
+  facebookProfile?: string;
 }
 
 export interface Release {
@@ -345,8 +354,46 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           originalReleaseDate: track.originalReleaseDate,
           primaryGenre: track.primaryGenre,
           secondaryGenre: track.secondaryGenre,
+          featuringArtist: track.featuringArtist,
+          isrc: track.isrc || formData.isrc,
+          language: track.language || formData.language,
+          spotifyProfile: track.spotifyProfile || formData.spotifyProfile,
+          appleMusicProfile: track.appleMusicProfile || formData.appleMusicProfile,
+          youtubeMusicProfile: track.youtubeMusicProfile || formData.youtubeMusicProfile,
+          instagramProfile: track.instagramProfile || formData.instagramProfile,
+          facebookProfile: track.facebookProfile || formData.facebookProfile,
         };
       });
+    }
+
+    // For single releases, ensure we have track metadata even if tracks array is empty
+    if ((formData.format === 'single' || formData.releaseType === 'single') && tracksPayload.length === 0) {
+      console.log('Single release detected with empty tracks array. Creating track from root metadata...');
+
+      // Create a track from root form data
+      tracksPayload = [{
+        title: formData.title,
+        artistName: formData.artistName,
+        audioFile: null, // Will be populated below from audioData
+        isExplicit: formData.explicitLyrics === 'yes' || formData.isExplicit === true,
+        isInstrumental: formData.instrumental === 'yes',
+        previewStartTime: formData.previewClipStartTime,
+        price: undefined, // Not available in single release root form data
+        writers: formData.writers || [],
+        composers: formData.composers || [],
+        previouslyReleased: formData.previouslyReleased,
+        originalReleaseDate: formData.originalReleaseDate,
+        primaryGenre: formData.primaryGenre,
+        secondaryGenre: formData.secondaryGenre,
+        featuringArtist: formData.featuringArtist,
+        isrc: formData.isrc,
+        language: formData.language,
+        spotifyProfile: formData.spotifyProfile,
+        appleMusicProfile: formData.appleMusicProfile,
+        youtubeMusicProfile: formData.youtubeMusicProfile,
+        instagramProfile: formData.instagramProfile === 'yes' ? formData.instagramProfileUrl : formData.instagramProfile,
+        facebookProfile: formData.facebookProfile === 'yes' ? formData.facebookProfileUrl : formData.facebookProfile,
+      }];
     }
 
     // 2. Process audio file (if single/present)
@@ -479,6 +526,10 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
 
       ...(formData.featuredArtists && {
         featuredArtists: formData.featuredArtists,
+      }),
+      // Map singular featuringArtist to featuredArtists array for backend if present
+      ...(!formData.featuredArtists && formData.featuringArtist && {
+        featuredArtists: [formData.featuringArtist]
       }),
 
       ...(formData.labelName

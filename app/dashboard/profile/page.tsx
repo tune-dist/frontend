@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,9 +12,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { User as UserIcon, Mail, CreditCard, Loader2, Save } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { User as UserIcon, Mail, CreditCard, Loader2, Save, Phone, MapPin, FileText, Shield, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { updateUserProfile } from '@/lib/api/users'
+import { updateUserProfile, sendPhoneOTP, verifyPhoneOTP, updateAddress } from '@/lib/api/users'
+import { uploadFileDirectly } from '@/lib/upload/chunk-uploader'
 
 const profileSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -48,6 +51,14 @@ export default function ProfilePage() {
   const { user, refreshUser, loading } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [address, setAddress] = useState('')
+  const [isSendingOTP, setIsSendingOTP] = useState(false)
+  const [showOTPModal, setShowOTPModal] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false)
+  const [addressProofFile, setAddressProofFile] = useState<File | null>(null)
+  const [isUploadingProof, setIsUploadingProof] = useState(false)
 
   useEffect(() => {
     if (!loading && user) {
@@ -56,6 +67,94 @@ export default function ProfilePage() {
       }
     }
   }, [user, loading, router]);
+
+  // Initialize phone and address from user data
+  useEffect(() => {
+    if (user) {
+      setPhoneNumber(user.phoneNumber || '');
+      setAddress(user.address || '');
+    }
+  }, [user]);
+
+  const handleSendOTP = async () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast.error('Please enter a valid phone number');
+      return;
+    }
+
+    setIsSendingOTP(true);
+    try {
+      const response = await sendPhoneOTP(phoneNumber);
+      toast.success(response.otp
+        ? `OTP sent: ${response.otp}`
+        : 'OTP sent to your phone number. Please check console logs.');
+      setShowOTPModal(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send OTP');
+    } finally {
+      setIsSendingOTP(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otp) {
+      toast.error('Please enter the OTP');
+      return;
+    }
+
+    setIsVerifyingOTP(true);
+    try {
+      const result = await verifyPhoneOTP(otp);
+      toast.success(result.message);
+      setShowOTPModal(false);
+      setOtp('');
+      await refreshUser();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Invalid OTP');
+    } finally {
+      setIsVerifyingOTP(false);
+    }
+  };
+
+  const handleUpdateAddress = async () => {
+    setIsLoading(true);
+    try {
+      let addressProofData = undefined;
+
+      if (addressProofFile) {
+        setIsUploadingProof(true);
+        // Upload address proof
+        const result = await uploadFileDirectly(
+          addressProofFile,
+          '', // Access token handled by apiClient interceptor
+          undefined,
+          'address_proof'
+        );
+
+        addressProofData = {
+          url: result.path,
+          filename: addressProofFile.name,
+          uploadedAt: new Date()
+        };
+        setIsUploadingProof(false);
+      }
+
+      await updateUserProfile({
+        address,
+        addressProof: addressProofData
+      });
+
+      await refreshUser();
+      toast.success('Address and proof updated successfully');
+      setAddressProofFile(null);
+    } catch (error) {
+      console.error(error);
+      setIsUploadingProof(false);
+      toast.error(error instanceof Error ? error.message : 'Failed to update address');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   const {
@@ -186,6 +285,134 @@ export default function ProfilePage() {
           </Card>
         </motion.div>
 
+        {/* Phone Verification */}
+        <motion.div variants={itemVariants}>
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Phone className="h-5 w-5" />
+                Phone Verification
+              </CardTitle>
+              <CardDescription>
+                Verify your phone number for enhanced security
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    disabled={user?.isPhoneVerified}
+                    className={user?.isPhoneVerified ? 'bg-muted' : ''}
+                  />
+                  {user?.isPhoneVerified ? (
+                    <Button variant="outline" disabled className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      Verified
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleSendOTP}
+                      disabled={isSendingOTP || !phoneNumber}
+                      className="flex items-center gap-2"
+                    >
+                      {isSendingOTP ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="h-4 w-4" />
+                          Verify
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                {user?.isPhoneVerified && (
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    ✓ Your phone number has been verified
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Address Information */}
+        <motion.div variants={itemVariants}>
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Address Information
+              </CardTitle>
+              <CardDescription>
+                Update your residential address
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Textarea
+                  id="address"
+                  placeholder="Enter your full address..."
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="addressProof">Address Proof Document</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    id="addressProof"
+                    type="file"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setAddressProofFile(e.target.files[0]);
+                      }
+                    }}
+                    className="cursor-pointer"
+                  />
+                </div>
+                {user?.addressProof && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                    <FileText className="h-4 w-4" />
+                    <span>Current Proof: {user.addressProof.filename}</span>
+                    <span className="text-xs">({new Date(user.addressProof.uploadedAt).toLocaleDateString()})</span>
+                  </div>
+                )}
+              </div>
+
+              <Button
+                onClick={handleUpdateAddress}
+                disabled={isLoading || (!address && !addressProofFile)}
+                className="w-full sm:w-auto"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Address
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Subscription Information */}
         <motion.div variants={itemVariants}>
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
@@ -261,6 +488,58 @@ export default function ProfilePage() {
           </Card>
         </motion.div>
       </motion.div>
+
+      {/* OTP Verification Modal */}
+      <Dialog open={showOTPModal} onOpenChange={setShowOTPModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify Phone Number</DialogTitle>
+            <DialogDescription>
+              Enter the 6-digit OTP sent to {phoneNumber}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="otp">OTP Code</Label>
+              <Input
+                id="otp"
+                type="text"
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                maxLength={6}
+                className="text-center text-2xl tracking-widest"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowOTPModal(false);
+                  setOtp('');
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleVerifyOTP}
+                disabled={isVerifyingOTP || otp.length !== 6}
+                className="flex-1"
+              >
+                {isVerifyingOTP ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }

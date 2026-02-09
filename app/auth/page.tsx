@@ -15,6 +15,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { sendEmailOtp, verifyEmailOtp } from '@/lib/api/auth'
+import { getErrorMessage } from '@/lib/api-client'
 
 // Login form schema
 const loginSchema = z.object({
@@ -51,6 +53,14 @@ function AuthContent() {
   const [canResend, setCanResend] = useState(false)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showSignupPassword, setShowSignupPassword] = useState(false)
+
+  // Email verification state
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false)
+  const [showEmailOtpInput, setShowEmailOtpInput] = useState(false)
+  const [verificationToken, setVerificationToken] = useState<string | undefined>(undefined)
+  const [emailOtp, setEmailOtp] = useState('')
+
   const { login, register: registerUser, verifyOtp, resendOtp } = useAuth()
 
   useEffect(() => {
@@ -102,8 +112,21 @@ function AuthContent() {
   useEffect(() => {
     const email = searchParams.get('email')
     const fullName = searchParams.get('fullName')
+    const googleId = searchParams.get('googleId')
+    const spotifyId = searchParams.get('spotifyId')
+
     if (email) setSignupValue('email', email)
-    if (fullName) setSignupValue('fullName', fullName)
+
+    if (fullName) {
+      // Cleanup "undefined" string if it appears (e.g. "John Doe undefined")
+      const cleanName = fullName.replace(' undefined', '').trim()
+      setSignupValue('fullName', cleanName)
+    }
+
+    // Auto-verify if coming from social login
+    if (googleId || spotifyId) {
+      setEmailVerified(true)
+    }
   }, [searchParams, setSignupValue])
   // Get plan from URL if user came from pricing
   const planFromUrl = searchParams.get('plan')
@@ -140,7 +163,7 @@ function AuthContent() {
         toast.success('Welcome back!')
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Login failed')
+      toast.error(getErrorMessage(error))
     } finally {
       setIsLoading(false)
     }
@@ -153,7 +176,7 @@ function AuthContent() {
       await verifyOtp(otpEmail, data.otp, getRedirectUrl())
       toast.success('Login successful!')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Invalid OTP')
+      toast.error(getErrorMessage(error))
     } finally {
       setIsLoading(false)
     }
@@ -168,14 +191,69 @@ function AuthContent() {
       setCanResend(false)
       toast.success('OTP sent successfully')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to resend OTP')
+      toast.error(getErrorMessage(error))
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Handle email OTP sending
+  const handleSendEmailOtp = async () => {
+    const email = document.getElementById('signup-email') as HTMLInputElement
+    if (!email || !email.value) {
+      toast.error('Please enter your email address')
+      return
+    }
+
+    // Basic email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email.value)) {
+      toast.error('Please enter a valid email address')
+      return
+    }
+
+    setIsVerifyingEmail(true)
+    try {
+      const response = await sendEmailOtp(email.value)
+      toast.success('OTP sent to your email')
+      setShowEmailOtpInput(true)
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    } finally {
+      setIsVerifyingEmail(false)
+    }
+  }
+
+  // Handle email OTP verification
+  const handleVerifyEmailOtp = async () => {
+    const email = document.getElementById('signup-email') as HTMLInputElement
+
+    if (!emailOtp || emailOtp.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP')
+      return
+    }
+
+    setIsVerifyingEmail(true)
+    try {
+      const response = await verifyEmailOtp(email.value, emailOtp)
+      toast.success('Email verified successfully!')
+      setEmailVerified(true)
+      setVerificationToken(response.verificationToken)
+      setShowEmailOtpInput(false)
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    } finally {
+      setIsVerifyingEmail(false)
+    }
+  }
+
   // Handle signup
   const onSignup = async (data: SignupFormData) => {
+    if (!emailVerified) {
+      toast.error('Please verify your email address first')
+      return
+    }
+
     setIsLoading(true)
     try {
       const googleId = searchParams.get('googleId') || undefined
@@ -190,12 +268,13 @@ function AuthContent() {
         googleId,
         spotifyId,
         avatar,
-        getRedirectUrl()
+        getRedirectUrl(),
+        verificationToken // Pass the token
       )
       // await registerUser(data.email, data.password, data.fullName, 'artist', getRedirectUrl())
       toast.success('Account created successfully!')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Registration failed')
+      toast.error(getErrorMessage(error))
     } finally {
       setIsLoading(false)
     }
@@ -440,21 +519,70 @@ function AuthContent() {
 
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="you@example.com"
-                        className={`pl-10 ${signupErrors.email ? 'border-red-500' : ''}`}
-                        {...registerSignup('email')}
-                        onKeyDown={(e) => handleKeyDown(e, handleSubmitSignup(onSignup))}
-                      />
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          placeholder="you@example.com"
+                          className={`pl-10 ${signupErrors.email ? 'border-red-500' : ''}`}
+                          {...registerSignup('email')}
+                          onKeyDown={(e) => handleKeyDown(e, handleSubmitSignup(onSignup))}
+                          disabled={emailVerified || isVerifyingEmail}
+                        />
+                      </div>
+                      {!emailVerified && (
+                        <Button
+                          type="button"
+                          onClick={handleSendEmailOtp}
+                          disabled={isVerifyingEmail || emailVerified}
+                          variant="secondary"
+                        >
+                          {isVerifyingEmail ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Verify'
+                          )}
+                        </Button>
+                      )}
+                      {emailVerified && (
+                        <div className="flex items-center justify-center px-3 bg-green-100 text-green-700 rounded-md border border-green-200">
+                          <span className="text-sm font-medium">Verified</span>
+                        </div>
+                      )}
                     </div>
                     {signupErrors.email && (
                       <p className="text-sm text-red-500">
                         {signupErrors.email.message}
                       </p>
+                    )}
+
+                    {/* OTP Input for Email Verification */}
+                    {showEmailOtpInput && !emailVerified && (
+                      <div className="mt-2 space-y-2">
+                        <Label htmlFor="email-otp" className="text-sm">Enter verification code sent to your email</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="email-otp"
+                            value={emailOtp}
+                            onChange={(e) => setEmailOtp(e.target.value)}
+                            placeholder="Enter 6-digit code"
+                            maxLength={6}
+                            className="tracking-widest"
+                          />
+                          <Button
+                            type="button"
+                            onClick={handleVerifyEmailOtp}
+                            disabled={isVerifyingEmail || emailOtp.length !== 6}
+                          >
+                            {isVerifyingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm'}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Check your email for the code.
+                        </p>
+                      </div>
                     )}
                   </div>
 
@@ -491,7 +619,7 @@ function AuthContent() {
                     type="submit"
                     className="w-full"
                     size="lg"
-                    disabled={isLoading}
+                    disabled={isLoading || !emailVerified}
                   >
                     {isLoading ? (
                       <>

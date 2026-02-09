@@ -8,6 +8,7 @@ export interface RegisterData {
   googleId?: string;
   spotifyId?: string;
   avatar?: string;
+  verificationToken?: string;
 }
 
 export interface LoginData {
@@ -35,6 +36,15 @@ export interface User {
   isSuspended: boolean;
   createdAt: string;
   updatedAt: string;
+  phoneNumber?: string;
+  isPhoneVerified?: boolean;
+  phoneOtpExpiresAt?: string;
+  address?: string;
+  addressProof?: {
+    url: string;
+    filename: string;
+    uploadedAt: string;
+  };
 }
 
 export interface AuthResponse {
@@ -46,6 +56,8 @@ export interface AuthResponse {
 export interface RegisterResponse {
   message: string;
   user: User;
+  access_token?: string;
+  refresh_token?: string;
 }
 
 interface RefreshResponse {
@@ -119,6 +131,18 @@ export const resetPassword = async (token: string, password: string): Promise<{ 
     token,
     password
   });
+  return response.data;
+};
+
+// Send Email OTP
+export const sendEmailOtp = async (email: string): Promise<{ message: string; otp?: string }> => {
+  const response = await apiClient.post<{ message: string; otp?: string }>('/auth/email/send-otp', { email });
+  return response.data;
+};
+
+// Verify Email OTP
+export const verifyEmailOtp = async (email: string, otp: string): Promise<{ message: string; verificationToken: string }> => {
+  const response = await apiClient.post<{ message: string; verificationToken: string }>('/auth/email/verify-otp', { email, otp });
   return response.data;
 };
 

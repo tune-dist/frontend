@@ -79,6 +79,7 @@ export default function UploadPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -174,7 +175,7 @@ export default function UploadPage() {
       form.setValue("coverArtPreview", "");
       toast.error("Cover art cleared. Please re-upload to match new metadata.");
     }
-  }, [artistName, title, featuringArtist, form]);
+  }, [artistName, title, form]);
 
   // Separate state for internal component logic (Credits step songwriters list etc)
   // These could be moved into the form too, but for UI lists that map to a final field, local state is sometimes easier until submit.
@@ -256,464 +257,479 @@ export default function UploadPage() {
   };
 
   const handleNext = async () => {
-    let isValid = false;
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      let isValid = false;
 
-    // Step-based validation
-    switch (currentStep) {
-      case 1: {
-        // Basic Info
-        // Fetch plan data first to know what fields are required
-        const planKey = (user?.plan as string) || "free";
-        const [limits, fieldRules] = await Promise.all([
-          getPlanLimits(planKey, true),
-          getPlanFieldRules(planKey, true),
-        ]);
+      // Step-based validation
+      switch (currentStep) {
+        case 1: {
+          // Basic Info
+          // Fetch plan data first to know what fields are required
+          const planKey = (user?.plan as string) || "free";
+          const [limits, fieldRules] = await Promise.all([
+            getPlanLimits(planKey, true),
+            getPlanFieldRules(planKey, true),
+          ]);
 
-        // Build validation fields array based on plan
-        const fieldsToValidate = ["title", "artistName", "language", "format", "releaseDate"];
+          // Build validation fields array based on plan
+          const fieldsToValidate = ["title", "artistName", "language", "format", "releaseDate"];
 
-        // Add featuredArtist to validation if required by plan
-        if (fieldRules.featuredArtists?.required) {
-          fieldsToValidate.push("featuringArtist");
-        }
-
-        isValid = await form.trigger(fieldsToValidate as any);
-
-        // Manually check featuredArtist if required by plan
-        // form.trigger doesn't pick up dynamic validation because the Zod schema defines it as optional
-        if (
-          fieldRules.featuredArtists?.required &&
-          !formData.featuringArtist?.trim()
-        ) {
-          form.setError(
-            "featuringArtist",
-            {
-              type: "required",
-              message: "Featuring artist is required",
-            },
-            { shouldFocus: true }
-          );
-          isValid = false;
-        }
-
-
-        if (isValid) {
-          // Check Artist Limits
-          if (limits.artistLimit < Infinity) {
-            const currentArtists = [
-              formData.artistName,
-              ...(formData.artists || []).map((a: any) => a.name),
-            ].filter(Boolean);
-
-            // Count how many NEW artists are being introduced
-            let newArtistsCount = 0;
-            const uniqueCurrentArtists = new Set(currentArtists);
-
-            for (const artist of Array.from(uniqueCurrentArtists)) {
-              // Normalize check (case insensitive or exact? backend uses distinct so exact usually, but let's assume exact for now)
-              const isUsed = usedArtists.some((used) => {
-                const usedName = typeof used === "string" ? used : used.name;
-                return usedName === artist;
-              });
-
-              if (!isUsed) {
-                newArtistsCount++;
-              }
-            }
-
-            // Total unique artists user WILL have after this release
-            // = (already used artists count) + (newly unique artists in this release)
-            // Actually simple check: Used + New <= Limit
-            const totalUsedCount = usedArtists.length;
-
-            if (totalUsedCount + newArtistsCount > limits.artistLimit) {
-              toast.error(
-                `You have reached your artist limit (${limits.artistLimit
-                }) for the ${planKey === "creator_plus" ? "Creator+" : planKey
-                } plan.`
-              );
-              isValid = false;
-            }
-          }
-        }
-
-        if (!isValid) {
-          scrollToError();
-        }
-        break;
-      }
-      case 2: // Audio
-        if (formData.format === "single") {
-          // For single, we need audioFile.
-          // Note: 'audioFile' in zod is 'any'. We manually check if it's null.
-          // Ideally zod schema handles this with custom check, but File object is tricky in server/client boundary types.
-          if (!formData.audioFile) {
-            form.setError("audioFile", {
-              type: "required",
-              message: "Audio file is required",
-            });
-            isValid = false;
-          } else if (formData.audioDuplicateDetected && !formData.audioConsent) {
-            form.setError("audioConsent", {
-              type: "manual",
-              message: "Please provide consent to proceed with a duplicate file.",
-            });
-            toast.error("Please confirm you want to proceed with the duplicate audio");
-            isValid = false;
-          } else {
-            form.clearErrors("audioFile");
-            form.clearErrors("audioConsent");
-            isValid = true;
-          }
-        } else {
-          // EP/Album
-          if (formData.tracks.length === 0) {
-            toast.error("Please add at least one track");
-            isValid = false;
-          } else if (formData.audioDuplicateDetected && !formData.audioConsent) {
-            form.setError("audioConsent", {
-              type: "manual",
-              message: "Please provide consent to proceed with duplicate files.",
-            });
-            toast.error("Please confirm you want to proceed with the duplicate audio");
-            isValid = false;
-          } else {
-            form.clearErrors("audioConsent");
-            isValid = true;
-          }
-        }
-        break;
-      case 3: // Cover Art
-        if (!formData.coverArt) {
-          form.setError("coverArt", {
-            type: "required",
-            message: "Cover art is required",
-          });
-          isValid = false;
-        } else {
-          // Check for OCR validation warnings and consent
-          const status = formData.coverArtValidationStatus;
-          const issues = formData.coverArtValidationIssues || [];
-          const hasIssues = (status && status !== 'approved') || issues.length > 0;
-
-          if (hasIssues && !formData.coverArtConsent) {
-            form.setError("coverArtConsent", {
-              type: "manual",
-              message: "Please provide consent to proceed with current cover art.",
-            });
-            toast.error("Please confirm you want to proceed with the cover art warnings");
-            isValid = false;
-          } else {
-            form.clearErrors("coverArtConsent");
-            isValid = true;
-          }
-        }
-
-        if (!isValid) {
-          scrollToError();
-        }
-        break;
-      case 4: // Credits
-        isValid = true;
-        // Validate required fields in Credits step
-        if (formData.format === "single") {
-          // For singles, validate genre and previously released
-          // Also validate songwriters and composers based on fieldRules
-          const fieldsToValidate = [
-            "primaryGenre",
-            "secondaryGenre",
-            "previouslyReleased",
-          ];
-          console.log("fieldsToValidate", fieldRules);
-          // Manual validation for primaryGenre (check fieldRules - database uses 'genres' key)
-          const primaryGenreRequired = fieldRules.genres?.required === true;
-          console.log("primaryGenreRequired", primaryGenreRequired);
-          if (primaryGenreRequired && (!formData.primaryGenre || formData.primaryGenre.trim() === "")) {
-            form.setError("primaryGenre", {
-              type: "required",
-              message: "Primary genre is required",
-            });
-            isValid = false;
-          }
-
-          // Manual validation for secondaryGenre (check fieldRules - database uses 'subGenre' key)
-          const secondaryGenreRequired = fieldRules.subGenre?.required === true;
-          console.log("secondaryGenreRequired", secondaryGenreRequired);
-          if (secondaryGenreRequired && (!formData.secondaryGenre || formData.secondaryGenre.trim() === "")) {
-            form.setError("secondaryGenre", {
-              type: "required",
-              message: "Sub-genre is required",
-            });
-            isValid = false;
-          }
-
-          // If genre validation failed, scroll to error and break
-          if (!isValid) {
-            console.log("Genre validation failed");
-            scrollToError();
-            break;
-          }
-
-          // Conditional validation based on fieldRules
-          // Check songwriters (writers)
-          const writersAllowed = fieldRules.songwriters?.allow !== false;
-          const writersRequired = fieldRules.songwriters?.required !== false;
-          if (writersAllowed) {
-            // If required, we should convert to required array check via zod manually or check length
-            if (writersRequired) {
-              const writers = formData.writers || [];
-              if (writers.length === 0) {
-                toast.error("At least one songwriter is required");
-                isValid = false;
-                break;
-              }
-              // Check individual fields for blankness to show red error text
-              let hasBlankWriters = false;
-              writers.forEach((name, index) => {
-                if (!name || name.trim() === "") {
-                  form.setError(`writers.${index}`, {
-                    type: "required",
-                    message: "Name is required",
-                  });
-                  hasBlankWriters = true;
-                }
-              });
-              if (hasBlankWriters) {
-                isValid = false;
-                break;
-              }
-            }
-            // If present, validate content via trigger if needed, or rely on form submit
-            fieldsToValidate.push("writers");
-          }
-
-          // Check composers
-          const composersAllowed = fieldRules.composers?.allow !== false;
-          const composersRequired = fieldRules.composers?.required !== false;
-          if (composersAllowed) {
-            if (composersRequired) {
-              const composers = formData.composers || [];
-              if (composers.length === 0) {
-                toast.error("At least one composer is required");
-                isValid = false;
-                break;
-              }
-              let hasBlankComposers = false;
-              composers.forEach((name, index) => {
-                if (!name || name.trim() === "") {
-                  form.setError(`composers.${index}`, {
-                    type: "required",
-                    message: "Name is required",
-                  });
-                  hasBlankComposers = true;
-                }
-              });
-              if (hasBlankComposers) {
-                isValid = false;
-                break;
-              }
-            }
-            fieldsToValidate.push("composers");
-          }
-
-          // Check producers
-          const producersAllowed = fieldRules.producers?.allow !== false;
-          const producersRequired = fieldRules.producers?.required !== false;
-          if (producersAllowed) {
-            if (
-              producersRequired &&
-              (!formData.producers || formData.producers.length === 0)
-            ) {
-              form.setError("producers", {
-                type: "required",
-                message: "At least one producer is required",
-              });
-              isValid = false;
-              break;
-            }
-            fieldsToValidate.push("producers");
-          }
-
-          // Check copyright
-          const copyrightAllowed = fieldRules.copyright?.allow !== false;
-          const copyrightRequired = fieldRules.copyright?.required === true;
-          if (copyrightAllowed) {
-            if (copyrightRequired && !formData.copyright) {
-              console.log("Copyright is required");
-              form.setError("copyright", {
-                type: "required",
-                message: "Copyright is required",
-              });
-              isValid = false;
-              break;
-            }
+          // Add featuredArtist to validation if required by plan
+          if (fieldRules.featuredArtists?.required) {
+            fieldsToValidate.push("featuringArtist");
           }
 
           isValid = await form.trigger(fieldsToValidate as any);
-        } else {
-          // For Albums/EPs, validate all tracks have required metadata
-          if (formData.tracks.length === 0) {
-            toast.error("Please add at least one track");
+
+          // Manually check featuredArtist if required by plan
+          // form.trigger doesn't pick up dynamic validation because the Zod schema defines it as optional
+          if (
+            fieldRules.featuredArtists?.required &&
+            !formData.featuringArtist?.trim()
+          ) {
+            form.setError(
+              "featuringArtist",
+              {
+                type: "required",
+                message: "Featuring artist is required",
+              },
+              { shouldFocus: true }
+            );
+            isValid = false;
+          }
+
+
+          if (isValid) {
+            // Check Artist Limits
+            if (limits.artistLimit < Infinity) {
+              const currentArtists = [
+                formData.artistName,
+                ...(formData.artists || []).map((a: any) => a.name),
+              ].filter(Boolean);
+
+              // Count how many NEW artists are being introduced
+              let newArtistsCount = 0;
+              const uniqueCurrentArtists = new Set(currentArtists);
+
+              for (const artist of Array.from(uniqueCurrentArtists)) {
+                // Normalize check (case insensitive or exact? backend uses distinct so exact usually, but let's assume exact for now)
+                const isUsed = usedArtists.some((used) => {
+                  const usedName = typeof used === "string" ? used : used.name;
+                  return usedName === artist;
+                });
+
+                if (!isUsed) {
+                  newArtistsCount++;
+                }
+              }
+
+              // Total unique artists user WILL have after this release
+              // = (already used artists count) + (newly unique artists in this release)
+              // Actually simple check: Used + New <= Limit
+              const totalUsedCount = usedArtists.length;
+
+              if (totalUsedCount + newArtistsCount > limits.artistLimit) {
+                toast.error(
+                  `You have reached your artist limit (${limits.artistLimit
+                  }) for the ${planKey === "creator_plus" ? "Creator+" : planKey
+                  } plan.`
+                );
+                isValid = false;
+              }
+            }
+          }
+
+          if (!isValid) {
+            scrollToError();
+          }
+          break;
+        }
+        case 2: // Audio
+          if (formData.format === "single") {
+            // For single, we need audioFile.
+            // Note: 'audioFile' in zod is 'any'. We manually check if it's null.
+            // Ideally zod schema handles this with custom check, but File object is tricky in server/client boundary types.
+            if (!formData.audioFile) {
+              form.setError("audioFile", {
+                type: "required",
+                message: "Audio file is required",
+              });
+              isValid = false;
+            } else if (formData.audioDuplicateDetected && !formData.audioConsent) {
+              form.setError("audioConsent", {
+                type: "manual",
+                message: "Please provide consent to proceed with a duplicate file.",
+              });
+              toast.error("Please confirm you want to proceed with the duplicate audio");
+              isValid = false;
+            } else {
+              form.clearErrors("audioFile");
+              form.clearErrors("audioConsent");
+              isValid = true;
+            }
+          } else {
+            // EP/Album
+            if (formData.tracks.length === 0) {
+              toast.error("Please add at least one track");
+              isValid = false;
+            } else if (formData.audioDuplicateDetected && !formData.audioConsent) {
+              form.setError("audioConsent", {
+                type: "manual",
+                message: "Please provide consent to proceed with duplicate files.",
+              });
+              toast.error("Please confirm you want to proceed with the duplicate audio");
+              isValid = false;
+            } else {
+              form.clearErrors("audioConsent");
+              isValid = true;
+            }
+          }
+          break;
+        case 3: // Cover Art
+          if (!formData.coverArt) {
+            form.setError("coverArt", {
+              type: "required",
+              message: "Cover art is required",
+            });
             isValid = false;
           } else {
-            // Check each track for required fields
-            const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/;
-            let hasError = false;
+            // Check for OCR validation warnings and consent
+            const status = formData.coverArtValidationStatus;
+            const issues = formData.coverArtValidationIssues || [];
+            const hasIssues = (status && status !== 'approved') || issues.length > 0;
 
-            for (let i = 0; i < formData.tracks.length; i++) {
-              const track = formData.tracks[i];
+            if (hasIssues && !formData.coverArtConsent) {
+              form.setError("coverArtConsent", {
+                type: "manual",
+                message: "Please provide consent to proceed with current cover art.",
+              });
+              toast.error("Please confirm you want to proceed with the cover art warnings");
+              isValid = false;
+            } else {
+              form.clearErrors("coverArtConsent");
+              isValid = true;
+            }
+          }
 
-              if (!track.title?.trim()) {
-                toast.error(`Track ${i + 1}: Title is required`);
-                hasError = true;
+          if (!isValid) {
+            scrollToError();
+          }
+          break;
+        case 4: // Credits
+          isValid = true;
+          // Validate required fields in Credits step
+          if (formData.format === "single") {
+            // For singles, validate genre and previously released
+            // Also validate songwriters and composers based on fieldRules
+            const fieldsToValidate = [
+              "primaryGenre",
+              "secondaryGenre",
+              "previouslyReleased",
+            ];
+            console.log("fieldsToValidate", fieldRules);
+            // Manual validation for primaryGenre (check fieldRules - database uses 'genres' key)
+            const primaryGenreRequired = fieldRules.genres?.required === true;
+            console.log("primaryGenreRequired", primaryGenreRequired);
+            if (primaryGenreRequired && (!formData.primaryGenre || formData.primaryGenre.trim() === "")) {
+              form.setError("primaryGenre", {
+                type: "required",
+                message: "Primary genre is required",
+              });
+              isValid = false;
+            }
+
+            // Manual validation for secondaryGenre (check fieldRules - database uses 'subGenre' key)
+            const secondaryGenreRequired = fieldRules.subGenre?.required === true;
+            console.log("secondaryGenreRequired", secondaryGenreRequired);
+            if (secondaryGenreRequired && (!formData.secondaryGenre || formData.secondaryGenre.trim() === "")) {
+              form.setError("secondaryGenre", {
+                type: "required",
+                message: "Sub-genre is required",
+              });
+              isValid = false;
+            }
+
+            // If genre validation failed, scroll to error and break
+            if (!isValid) {
+              console.log("Genre validation failed");
+              scrollToError();
+              break;
+            }
+
+            // Conditional validation based on fieldRules
+            // Check songwriters (writers)
+            const writersAllowed = fieldRules.songwriters?.allow !== false;
+            const writersRequired = fieldRules.songwriters?.required !== false;
+            if (writersAllowed) {
+              // If required, we should convert to required array check via zod manually or check length
+              if (writersRequired) {
+                const writers = formData.writers || [];
+                if (writers.length === 0) {
+                  toast.error("At least one songwriter is required");
+                  isValid = false;
+                  break;
+                }
+                // Check individual fields for blankness to show red error text
+                let hasBlankWriters = false;
+                writers.forEach((name, index) => {
+                  if (!name || name.trim() === "") {
+                    form.setError(`writers.${index}`, {
+                      type: "required",
+                      message: "Name is required",
+                    });
+                    hasBlankWriters = true;
+                  }
+                });
+                if (hasBlankWriters) {
+                  isValid = false;
+                  break;
+                }
+              }
+              // If present, validate content via trigger if needed, or rely on form submit
+              fieldsToValidate.push("writers");
+            }
+
+            // Check composers
+            const composersAllowed = fieldRules.composers?.allow !== false;
+            const composersRequired = fieldRules.composers?.required !== false;
+            if (composersAllowed) {
+              if (composersRequired) {
+                const composers = formData.composers || [];
+                if (composers.length === 0) {
+                  toast.error("At least one composer is required");
+                  isValid = false;
+                  break;
+                }
+                let hasBlankComposers = false;
+                composers.forEach((name, index) => {
+                  if (!name || name.trim() === "") {
+                    form.setError(`composers.${index}`, {
+                      type: "required",
+                      message: "Name is required",
+                    });
+                    hasBlankComposers = true;
+                  }
+                });
+                if (hasBlankComposers) {
+                  isValid = false;
+                  break;
+                }
+              }
+              fieldsToValidate.push("composers");
+            }
+
+            // Check producers
+            const producersAllowed = fieldRules.producers?.allow !== false;
+            const producersRequired = fieldRules.producers?.required !== false;
+            if (producersAllowed) {
+              if (
+                producersRequired &&
+                (!formData.producers || formData.producers.length === 0)
+              ) {
+                form.setError("producers", {
+                  type: "required",
+                  message: "At least one producer is required",
+                });
+                isValid = false;
                 break;
               }
+              fieldsToValidate.push("producers");
+            }
 
-              if (!track.artistName?.trim()) {
-                toast.error(`Track ${i + 1}: Artist name is required`);
-                hasError = true;
+            // Featured Artist validation for Singles
+            if (fieldRules.featuredArtists?.required && (!formData.featuringArtist || formData.featuringArtist.trim() === "")) {
+              form.setError("featuringArtist", {
+                type: "required",
+                message: "Featuring artist is required",
+              });
+              isValid = false;
+            }
+
+            // Check copyright
+            const copyrightAllowed = fieldRules.copyright?.allow !== false;
+            const copyrightRequired = fieldRules.copyright?.required === true;
+            if (copyrightAllowed) {
+              if (copyrightRequired && !formData.copyright) {
+                console.log("Copyright is required");
+                form.setError("copyright", {
+                  type: "required",
+                  message: "Copyright is required",
+                });
+                isValid = false;
                 break;
               }
+            }
 
-              if (!track.primaryGenre) {
-                toast.error(`Track ${i + 1}: Primary genre is required`);
-                hasError = true;
-                break;
-              }
+            isValid = await form.trigger(fieldsToValidate as any);
+          } else {
+            // For Albums/EPs, validate all tracks have required metadata
+            if (formData.tracks.length === 0) {
+              toast.error("Please add at least one track");
+              isValid = false;
+            } else {
+              // Check each track for required fields
+              const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/;
+              let hasError = false;
 
-              if (!track.secondaryGenre) {
-                toast.error(`Track ${i + 1}: Sub-genre is required`);
-                hasError = true;
-                break;
-              }
+              for (let i = 0; i < formData.tracks.length; i++) {
+                const track = formData.tracks[i];
 
-              // Check songwriters (now called writers)
-              if (!track.writers || track.writers.length === 0) {
-                toast.error(`Track ${i + 1}: At least one writer is required`);
-                hasError = true;
-                break;
-              }
-
-              for (const sw of track.writers) {
-                if (!sw?.trim()) {
-                  toast.error(`Track ${i + 1}: Writer name cannot be empty`);
+                if (!track.title?.trim()) {
+                  toast.error(`Track ${i + 1}: Title is required`);
                   hasError = true;
                   break;
                 }
-                if (!nameRegex.test(sw.trim())) {
-                  toast.error(
-                    `Track ${i + 1
-                    }: Invalid writer name "${sw}". Must be "Firstname Lastname"`
-                  );
+
+                if (!track.artistName?.trim()) {
+                  toast.error(`Track ${i + 1}: Artist name is required`);
                   hasError = true;
                   break;
                 }
-              }
 
-              if (hasError) break;
+                if (!track.primaryGenre) {
+                  toast.error(`Track ${i + 1}: Primary genre is required`);
+                  hasError = true;
+                  break;
+                }
 
-              // Validate composers if provided
-              if (track.composers) {
-                for (const comp of track.composers) {
-                  if (comp?.trim() && !nameRegex.test(comp.trim())) {
+                if (!track.secondaryGenre) {
+                  toast.error(`Track ${i + 1}: Sub-genre is required`);
+                  hasError = true;
+                  break;
+                }
+
+                // Check songwriters (now called writers)
+                if (!track.writers || track.writers.length === 0) {
+                  toast.error(`Track ${i + 1}: At least one writer is required`);
+                  hasError = true;
+                  break;
+                }
+
+                for (const sw of track.writers) {
+                  if (!sw?.trim()) {
+                    toast.error(`Track ${i + 1}: Writer name cannot be empty`);
+                    hasError = true;
+                    break;
+                  }
+                  if (!nameRegex.test(sw.trim())) {
                     toast.error(
                       `Track ${i + 1
-                      }: Invalid composer name "${comp}". Must be "Firstname Lastname"`
+                      }: Invalid writer name "${sw}". Must be "Firstname Lastname"`
                     );
                     hasError = true;
                     break;
                   }
                 }
+
+                if (hasError) break;
+
+                // Validate composers if provided
+                if (track.composers) {
+                  for (const comp of track.composers) {
+                    if (comp?.trim() && !nameRegex.test(comp.trim())) {
+                      toast.error(
+                        `Track ${i + 1
+                        }: Invalid composer name "${comp}". Must be "Firstname Lastname"`
+                      );
+                      hasError = true;
+                      break;
+                    }
+                  }
+                }
+
+                if (hasError) break;
               }
 
-              if (hasError) break;
+              isValid = !hasError;
             }
-
-            isValid = !hasError;
           }
-        }
 
-        // Validate Artist Limit for all formats
-        if (isValid) {
-          const planKey = (user?.plan as string) || "free";
-          const limits = await getPlanLimits(planKey);
+          // Validate Artist Limit for all formats
+          if (isValid) {
+            const planKey = (user?.plan as string) || "free";
+            const limits = await getPlanLimits(planKey);
 
-          if (limits.artistLimit < Infinity) {
-            // Collect all unique artists in this release
-            const releaseArtists: string[] = [];
+            if (limits.artistLimit < Infinity) {
+              // Collect all unique artists in this release
+              const releaseArtists: string[] = [];
 
-            // Add main artist
-            if (formData.artistName?.trim()) {
-              releaseArtists.push(formData.artistName.trim());
-            }
+              // Add main artist
+              if (formData.artistName?.trim()) {
+                releaseArtists.push(formData.artistName.trim());
+              }
 
-            // Add featuring artists
-            if (formData.artists && formData.artists.length > 0) {
-              formData.artists.forEach((artist: any) => {
-                if (artist.name?.trim()) {
-                  releaseArtists.push(artist.name.trim());
+              // Add featuring artists
+              if (formData.artists && formData.artists.length > 0) {
+                formData.artists.forEach((artist: any) => {
+                  if (artist.name?.trim()) {
+                    releaseArtists.push(artist.name.trim());
+                  }
+                });
+              }
+
+              // Add track artists (for albums/EPs)
+              if (formData.tracks && formData.tracks.length > 0) {
+                formData.tracks.forEach((track: any) => {
+                  if (track.artistName?.trim()) {
+                    releaseArtists.push(track.artistName.trim());
+                  }
+                });
+              }
+
+              // Get unique artists
+              const uniqueArtists = new Set(releaseArtists);
+
+              // Count new artists
+              let newArtistsCount = 0;
+              for (const artist of Array.from(uniqueArtists)) {
+                // Normalize check: usedArtists can be string[] or object[]
+                const isUsed = usedArtists.some((used) => {
+                  const usedName = typeof used === "string" ? used : used.name;
+                  return usedName === artist;
+                });
+
+                if (!isUsed) {
+                  newArtistsCount++;
                 }
-              });
-            }
+              }
 
-            // Add track artists (for albums/EPs)
-            if (formData.tracks && formData.tracks.length > 0) {
-              formData.tracks.forEach((track: any) => {
-                if (track.artistName?.trim()) {
-                  releaseArtists.push(track.artistName.trim());
-                }
-              });
-            }
-
-            // Get unique artists
-            const uniqueArtists = new Set(releaseArtists);
-
-            // Count new artists
-            let newArtistsCount = 0;
-            for (const artist of Array.from(uniqueArtists)) {
-              // Normalize check: usedArtists can be string[] or object[]
-              const isUsed = usedArtists.some((used) => {
-                const usedName = typeof used === "string" ? used : used.name;
-                return usedName === artist;
-              });
-
-              if (!isUsed) {
-                newArtistsCount++;
+              // Check if exceeds limit
+              const totalUsedCount = usedArtists.length;
+              if (totalUsedCount + newArtistsCount > limits.artistLimit) {
+                const planName =
+                  planKey === "creator_plus"
+                    ? "Creator+"
+                    : planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                toast.error(
+                  `You have reached your artist limit (${limits.artistLimit}) for the ${planName} plan.`
+                );
+                isValid = false;
               }
             }
-
-            // Check if exceeds limit
-            const totalUsedCount = usedArtists.length;
-            if (totalUsedCount + newArtistsCount > limits.artistLimit) {
-              const planName =
-                planKey === "creator_plus"
-                  ? "Creator+"
-                  : planKey.charAt(0).toUpperCase() + planKey.slice(1);
-              toast.error(
-                `You have reached your artist limit (${limits.artistLimit}) for the ${planName} plan.`
-              );
-              isValid = false;
-            }
           }
-        }
 
-        if (!isValid) {
-          scrollToError();
-        }
-        break;
-      case 5: // Review
-        isValid = true;
-        break;
-      default:
-        isValid = true;
-    }
-
-    if (isValid) {
-      if (currentStep < steps.length) {
-        setCurrentStep(currentStep + 1);
+          if (!isValid) {
+            scrollToError();
+          }
+          break;
+        case 5: // Review
+          isValid = true;
+          break;
+        default:
+          isValid = true;
       }
-    } else {
-      console.log(form.formState.errors);
+
+      if (isValid) {
+        if (currentStep < steps.length) {
+          setCurrentStep(currentStep + 1);
+        }
+      } else {
+        console.log(form.formState.errors);
+      }
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -724,6 +740,8 @@ export default function UploadPage() {
   };
 
   const onSubmit = async (data: UploadFormData) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     console.log(data, "datatat");
     try {
       const response = await submitNewRelease({
@@ -736,6 +754,8 @@ export default function UploadPage() {
       console.error("Submission error:", error);
       toast.error(error.message || "Failed to submit release");
       scrollToError();
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -1127,12 +1147,14 @@ export default function UploadPage() {
 
                 <div className="flex gap-2">
                   {currentStep < 5 ? (
-                    <Button type="submit">
-                      Next
-                      <ArrowRight className="h-4 w-4 ml-2" />
+                    <Button type="submit" disabled={isProcessing}>
+                      {isProcessing ? "Processing..." : "Next"}
+                      {!isProcessing && <ArrowRight className="h-4 w-4 ml-2" />}
                     </Button>
                   ) : (
-                    <Button type="submit">Submit for Review</Button>
+                    <Button type="submit" disabled={isProcessing}>
+                      {isProcessing ? "Submitting..." : "Submit for Review"}
+                    </Button>
                   )}
                 </div>
               </motion.div>
@@ -1161,6 +1183,7 @@ export default function UploadPage() {
           instagram: watch("instagramProfile") === 'yes' ? watch("instagramProfileUrl") : watch("instagramProfile"),
           facebook: watch("facebookProfile") === 'yes' ? watch("facebookProfileUrl") : watch("facebookProfile")
         }}
+        fieldRules={fieldRules}
       />
     </DashboardLayout>
   );

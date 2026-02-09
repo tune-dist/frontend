@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { UploadFormData, Songwriter, Track } from "./types";
 import { useFormContext, useFieldArray } from "react-hook-form";
 import { useState, useEffect } from "react";
-import { Music, Pencil, Trash2 } from "lucide-react";
+import { Music, Pencil, Trash2, Info } from "lucide-react";
 import {
   getGenres,
   getSubGenresByGenreId,
@@ -50,6 +50,8 @@ export default function CreditsStep({
   const format = watch("format");
   const tracks = watch("tracks") || [];
   const isSingle = format === "single";
+  const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false;
+  const instrumentalValue = watch("instrumental");
 
   // ISRC State
   const [showIsrc, setShowIsrc] = useState(false);
@@ -57,6 +59,16 @@ export default function CreditsStep({
 
   // Genres state
   const [genres, setGenres] = useState<Genre[]>([]);
+  // Update featuringArtist validation when fieldRules change
+  useEffect(() => {
+    if (Object.keys(fieldRules).length > 0) {
+      register("featuringArtist", {
+        required: fieldRules.featuredArtists?.required
+          ? "Featuring artist is required"
+          : false,
+      });
+    }
+  }, [fieldRules, register]);
   const [genresLoading, setGenresLoading] = useState(true);
 
   // Fetch genres on mount
@@ -449,8 +461,74 @@ export default function CreditsStep({
                 </div>
               </div>
 
-              {/* Writers */}
-              {fieldRules.songwriters?.allow !== false && (
+              {/* Featuring Artist - Always show for singles, but disable and show message if not allowed by plan */}
+              {isSingle && (
+                <div className="space-y-4 pt-6 border-t border-border">
+                  <div className="space-y-2">
+                    <Label htmlFor="featuringArtist" className="text-lg font-semibold">
+                      Featuring Artist{fieldRules.featuredArtists?.required && <span className="text-red-500 ml-1">*</span>}
+                    </Label>
+                    <Input
+                      id="featuringArtist"
+                      placeholder="Enter Featuring Artist"
+                      {...register('featuringArtist')}
+                      disabled={!areFeaturedArtistsAllowed}
+                      className={errors.featuringArtist ? 'border-red-500' : ''}
+                    />
+                    {!areFeaturedArtistsAllowed && (
+                      <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
+                        <Info className="h-3 w-3 mt-0.5" />
+                        <span>Upgrade to Creator+ or higher to add featuring artists.</span>
+                      </div>
+                    )}
+                    {errors.featuringArtist && (
+                      <p className="text-xs text-red-500 mt-1">{String(errors.featuringArtist.message)}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Instrumental */}
+              <div className="space-y-3 pt-6 border-t border-border">
+                <Label className="text-lg font-semibold">Is Instrumental?</Label>
+
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="instrumentalNo"
+                      value="no"
+                      {...register("instrumental")}
+                      className="h-4 w-4"
+                    />
+                    <Label
+                      htmlFor="instrumentalNo"
+                      className="font-normal cursor-pointer"
+                    >
+                      This song contains lyrics
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="instrumentalYes"
+                      value="yes"
+                      {...register("instrumental")}
+                      className="h-4 w-4"
+                    />
+                    <Label
+                      htmlFor="instrumentalYes"
+                      className="font-normal cursor-pointer"
+                    >
+                      This song is instrumental and contains no lyrics
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Writers - Hidden when instrumental is yes */}
+              {fieldRules.songwriters?.allow !== false && instrumentalValue !== 'yes' && (
                 <div className="space-y-4 pt-6 border-t border-border">
                   <div>
                     <Label className="text-lg font-semibold">
@@ -615,44 +693,7 @@ export default function CreditsStep({
                 </div>
               </div>
 
-              {/* Instrumental */}
-              <div className="space-y-3 pt-6 border-t border-border">
-                <Label className="text-lg font-semibold"> Is Instrumental?</Label>
 
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="instrumentalNo"
-                      value="no"
-                      {...register("instrumental")}
-                      className="h-4 w-4"
-                    />
-                    <Label
-                      htmlFor=" "
-                      className="font-normal cursor-pointer"
-                    >
-                      This song contains lyrics
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="instrumentalYes"
-                      value="yes"
-                      {...register("instrumental")}
-                      className="h-4 w-4"
-                    />
-                    <Label
-                      htmlFor="instrumentalYes"
-                      className="font-normal cursor-pointer"
-                    >
-                      This song is instrumental and contains no lyrics
-                    </Label>
-                  </div>
-                </div>
-              </div>
 
               {/* Song Highlight Start Time */}
               <div className="space-y-3 pt-6 border-t border-border">

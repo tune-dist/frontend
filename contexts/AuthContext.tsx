@@ -12,7 +12,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string, redirectUrl?: string) => Promise<LoginResponse>;
-  register: (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string, verificationToken?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   loginWithToken: (token: string, refreshToken?: string) => Promise<void>;
@@ -115,16 +115,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [router]);
 
-  const register = React.useCallback(async (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string) => {
+  const register = React.useCallback(async (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string, verificationToken?: string) => {
     try {
-      await apiRegister({ email, password, fullName, role, googleId, spotifyId, avatar });
+      const response = await apiRegister({ email, password, fullName, role, googleId, spotifyId, avatar, verificationToken });
 
-      // After successful registration, log the user in
-      await login(email, password, redirectUrl);
+      // If registration returns tokens, log the user in directly (skipping OTP)
+      if (response.access_token && response.refresh_token) {
+        // Store tokens in cookie
+        Cookies.set(config.tokenKey, response.access_token, {
+          expires: 7, // 7 days
+          sameSite: 'lax',
+        });
+
+        Cookies.set('refresh_token', response.refresh_token, {
+          expires: 7,
+          sameSite: 'lax',
+        });
+
+        // Store user info in cookie for subscription page
+        Cookies.set('user', JSON.stringify(response.user), {
+          expires: 7,
+          sameSite: 'lax',
+        });
+
+        setUser(response.user);
+        router.push(redirectUrl || '/dashboard');
+      } else {
+        // Fallback to login if no tokens returned (should not happen with new backend)
+        await login(email, password, redirectUrl);
+      }
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
-  }, [login]);
+  }, [login, router]);
 
   const logout = React.useCallback(() => {
     Cookies.remove(config.tokenKey);

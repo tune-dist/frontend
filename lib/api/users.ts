@@ -19,6 +19,12 @@ export interface UsageStats {
 
 export interface UpdateProfileData {
   fullName?: string;
+  address?: string;
+  addressProof?: {
+    url: string;
+    filename: string;
+    uploadedAt: Date;
+  };
 }
 
 // Get user profile
@@ -54,5 +60,23 @@ export const getUsers = async (params: {
 // Update user permissions
 export const updateUserPermissions = async (userId: string, permissions: string[]): Promise<User> => {
   const response = await apiClient.patch<User>(`/users/${userId}/permissions`, { permissions });
+  return response.data;
+};
+
+// Send OTP to phone number
+export const sendPhoneOTP = async (phoneNumber: string): Promise<{ success: boolean; message: string; otp?: string }> => {
+  const response = await apiClient.post<{ success: boolean; message: string; otp?: string }>('/users/phone/send-otp', { phoneNumber });
+  return response.data;
+};
+
+// Verify phone OTP
+export const verifyPhoneOTP = async (otp: string): Promise<{ success: boolean; message: string }> => {
+  const response = await apiClient.post<{ success: boolean; message: string }>('/users/phone/verify-otp', { otp });
+  return response.data;
+};
+
+// Update address
+export const updateAddress = async (address: string): Promise<User> => {
+  const response = await apiClient.patch<User>('/users/profile/address', { address });
   return response.data;
 };

@@ -381,7 +381,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 )}
 
                 {/* OCR Warnings and Consent Section */}
-                {hasValidated && (watch('coverArtValidationStatus') === 'rejected' || watch('coverArtValidationStatus') === 'warned' || watch('coverArtValidationStatus') === 'warning' || validationErrors.length > 0) && (
+                {(watch('coverArtValidationStatus') === 'rejected' || watch('coverArtValidationStatus') === 'warned' || watch('coverArtValidationStatus') === 'warning') && (watch('coverArtValidationIssues') || []).length > 0 && (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}

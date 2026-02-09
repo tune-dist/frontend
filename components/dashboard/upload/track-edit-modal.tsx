@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Track, Songwriter } from './types'
 import { useState, useRef, useEffect } from 'react'
-import { Music, X, Loader2, Plus } from 'lucide-react'
+import { Music, X, Loader2, Plus, Info } from 'lucide-react'
 import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/lib/api/genres'
 import { useAuth } from '@/contexts/AuthContext'
 import { getPlanLimits } from '@/lib/api/plans'
@@ -28,9 +28,10 @@ interface TrackEditModalProps {
         instagram?: string
         facebook?: string
     }
+    fieldRules?: Record<string, any>
 }
 
-export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave, usedArtists = [], allTracks = [], mainArtistName = '', featuringArtists = [], mainArtistProfiles = {} }: TrackEditModalProps) {
+export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave, usedArtists = [], allTracks = [], mainArtistName = '', featuringArtists = [], mainArtistProfiles = {}, fieldRules = {} }: TrackEditModalProps) {
     const { user } = useAuth()
     const [planLimits, setPlanLimits] = useState({ artistLimit: 1, allowConcurrent: false, allowedFormats: ['single'] })
 
@@ -61,6 +62,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [version, setVersion] = useState<string>(track?.version || '')
     const [isExplicit, setIsExplicit] = useState<boolean>(track?.isExplicit || false)
     const [instrumental, setInstrumental] = useState<string>(track?.isInstrumental || 'no')
+    const [modalFeaturingArtist, setModalFeaturingArtist] = useState(track?.featuringArtist || '')
+
+    const areFeaturedArtistsAllowed = (fieldRules || {}).featuredArtists?.allow !== false
 
     // Local state for modal editing
     const [modalArtistSearch, setModalArtistSearch] = useState(track?.artistName || '')
@@ -157,6 +161,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setVersion(track.version || '')
             setIsExplicit(track.isExplicit || false)
             setInstrumental(track.isInstrumental || 'no')
+            setModalFeaturingArtist(track.featuringArtist || '')
 
             // If restricted plan, force mainArtistName AND profiles
             if (planLimits.artistLimit === 1 && mainArtistName) {
@@ -385,6 +390,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 return
             }
 
+            // Featured Artist validation
+            if ((fieldRules as any).featuredArtists?.required && !modalFeaturingArtist?.trim()) {
+                toast.error('Featuring artist is required')
+                return
+            }
+
             // Strict Songwriter/Composer Validation Regex
             // First Name (3+ letters) + Space + Last Name (3+ letters)
             const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
@@ -489,7 +500,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 instagramProfile: instagramStatus === 'yes' ? instagramUrl : '',
                 facebookProfile: facebookStatus === 'yes' ? facebookUrl : '',
                 isExplicit,
-                isInstrumental: instrumental
+                isInstrumental: instrumental,
+                featuringArtist: modalFeaturingArtist,
             }
             onSave(updatedTrack, modalWriters, modalComposers)
             onClose()
@@ -1324,61 +1336,100 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </select>
                     </div>
 
-                    {/* Writers */}
+                    {/* Instrumental */}
                     <div className="space-y-3 pt-4 border-t">
-                        <div>
-                            <Label className="text-lg font-semibold">Writer/Author <span className="text-red-500">*</span></Label>
-                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.</p>
-                        </div>
-                        {modalWriters.map((writer, idx) => (
-                            <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
-                                <Input
-                                    placeholder="Enter Firstname Lastname *"
-                                    value={writer}
-                                    onChange={(e) => {
-                                        const updated = [...modalWriters]
-                                        updated[idx] = e.target.value
-                                        setModalWriters(updated)
-                                        // Validate immediately
-                                        const errors = [...writerErrors]
-                                        errors[idx] = validateName(e.target.value)
-                                        setWriterErrors(errors)
-                                    }}
-                                    className={writerErrors[idx] ? 'border-red-500' : ''}
+                        <Label className="text-lg font-semibold">Is Instrumental?</Label>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-instrumental-no"
+                                    name="track-instrumental"
+                                    value="no"
+                                    checked={instrumental === 'no'}
+                                    onChange={() => setInstrumental('no')}
+                                    className="h-4 w-4"
                                 />
-                                {writerErrors[idx] && (
-                                    <p className="text-xs text-red-500 mt-1">
-                                        {writerErrors[idx]}
-                                    </p>
-                                )}
-                                {modalWriters.length > 1 && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                            setModalWriters(modalWriters.filter((_, i) => i !== idx))
-                                            setWriterErrors(writerErrors.filter((_, i) => i !== idx))
-                                        }}
-                                        className="text-destructive hover:text-destructive"
-                                        type="button"
-                                    >
-                                        Remove writer
-                                    </Button>
-                                )}
+                                <Label htmlFor="track-instrumental-no" className="font-normal cursor-pointer">
+                                    This song contains lyrics
+                                </Label>
                             </div>
-                        ))}
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setModalWriters([...modalWriters, ''])
-                                setWriterErrors([...writerErrors, ''])
-                            }}
-                            className="text-primary hover:text-primary"
-                            type="button"
-                        >
-                            + Add another writer
-                        </Button>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-instrumental-yes"
+                                    name="track-instrumental"
+                                    value="yes"
+                                    checked={instrumental === 'yes'}
+                                    onChange={() => setInstrumental('yes')}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
+                                    This song is instrumental and contains no lyrics
+                                </Label>
+                            </div>
+                        </div>
                     </div>
+
+                    {/* Writers - Hidden when instrumental is yes */}
+                    {instrumental !== 'yes' && (
+                        <div className="space-y-3 pt-4 border-t">
+                            <div>
+                                <Label className="text-lg font-semibold">Writer/Author <span className="text-red-500">*</span></Label>
+                                <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.</p>
+                            </div>
+                            {modalWriters.map((writer, idx) => (
+                                <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
+                                    <Input
+                                        placeholder="Enter Firstname Lastname *"
+                                        value={writer}
+                                        onChange={(e) => {
+                                            const updated = [...modalWriters]
+                                            updated[idx] = e.target.value
+                                            setModalWriters(updated)
+                                            // Validate immediately
+                                            const errors = [...writerErrors]
+                                            errors[idx] = validateName(e.target.value)
+                                            setWriterErrors(errors)
+                                        }}
+                                        className={writerErrors[idx] ? 'border-red-500' : ''}
+                                    />
+                                    {writerErrors[idx] && (
+                                        <p className="text-xs text-red-500 mt-1">
+                                            {writerErrors[idx]}
+                                        </p>
+                                    )}
+                                    {modalWriters.length > 1 && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                setModalWriters(modalWriters.filter((_, i) => i !== idx))
+                                                setWriterErrors(writerErrors.filter((_, i) => i !== idx))
+                                            }}
+                                            className="text-destructive hover:text-destructive"
+                                            type="button"
+                                        >
+                                            Remove writer
+                                        </Button>
+                                    )}
+                                </div>
+                            ))}
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setModalWriters([...modalWriters, ''])
+                                    setWriterErrors([...writerErrors, ''])
+                                }}
+                                className="text-primary hover:text-primary"
+                                type="button"
+                            >
+                                + Add another writer
+                            </Button>
+                        </div>
+                    )}
 
                     {/* Composers */}
                     <div className="space-y-3 pt-4 border-t">
@@ -1436,6 +1487,27 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </Button>
                     </div>
 
+
+                    {/* Featuring Artist - Always show, but disable and show message if not allowed by plan */}
+                    <div className="space-y-2 py-4 border-t">
+                        <Label htmlFor="modalFeaturingArtist" className="text-lg font-semibold">
+                            Featuring Artist{(fieldRules || {}).featuredArtists?.required && <span className="text-red-500 ml-1">*</span>}
+                        </Label>
+                        <Input
+                            id="modalFeaturingArtist"
+                            placeholder="Enter Featuring Artist"
+                            value={modalFeaturingArtist}
+                            onChange={(e) => setModalFeaturingArtist(e.target.value)}
+                            disabled={!areFeaturedArtistsAllowed}
+                        />
+                        {!areFeaturedArtistsAllowed && (
+                            <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
+                                <Info className="h-3 w-3 mt-0.5" />
+                                <span>Upgrade to Creator+ or higher to add featuring artists.</span>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Explicit Content */}
                     <div className="space-y-3 pt-4 border-t">
                         <Label className="text-lg font-semibold flex items-center gap-2">
@@ -1476,42 +1548,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </div>
                     </div>
 
-                    {/* Instrumental */}
-                    <div className="space-y-3 pt-4 border-t">
-                        <Label className="text-lg font-semibold">Is Instrumental?</Label>
 
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-instrumental-no"
-                                    name="track-instrumental"
-                                    value="no"
-                                    checked={instrumental === 'no'}
-                                    onChange={() => setInstrumental('no')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="track-instrumental-no" className="font-normal cursor-pointer">
-                                    No
-                                </Label>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-instrumental-yes"
-                                    name="track-instrumental"
-                                    value="yes"
-                                    checked={instrumental === 'yes'}
-                                    onChange={() => setInstrumental('yes')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
-                                    Yes
-                                </Label>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Preview Clip Start Time */}
                     <div className="space-y-3 pt-6 border-t border-border">
