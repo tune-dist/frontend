@@ -12,6 +12,8 @@ import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 
+import ScrollVelocity from './ScrollVelocity';
+
 export default function Testimonials() {
   const [dynamicTestimonials, setDynamicTestimonials] = useState<Testimonial[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,6 +67,12 @@ export default function Testimonials() {
             their music globally.
           </p>
         </motion.div>
+
+        <ScrollVelocity
+          texts={['React Bits', 'Scroll Down', 'ccc']}
+          velocity={100}
+          className="custom-scroll-text"
+        />
 
         <Swiper
           modules={[Navigation, Pagination, Autoplay]}

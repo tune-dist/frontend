@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Globe, TrendingUp, BarChart3, Upload } from 'lucide-react'
+import SpotlightCard from './SpotlightCard';
 
 const features = [
   {
@@ -30,6 +31,7 @@ const features = [
       'Upload your tracks, set release dates, and manage your catalog all from one intuitive dashboard.',
   },
 ]
+
 
 export default function Features() {
   return (
@@ -68,19 +70,21 @@ export default function Features() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
               >
-                <Card className="h-full border-border/50 hover:border-primary/50 transition-colors duration-300 bg-card/50 backdrop-blur-sm">
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                      <Icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <CardTitle className="text-xl mb-2">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
+                <SpotlightCard className="custom-spotlight-card !p-2 h-full" spotlightColor="rgba(0, 229, 255, 0.2)">
+                  <Card className="h-full bg-transparent border-0">
+                    <CardHeader>
+                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                        <Icon className="h-6 w-6 text-primary" />
+                      </div>
+                      <CardTitle className="text-xl mb-2">{feature.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-base">
+                        {feature.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </SpotlightCard>
               </motion.div>
             )
           })}

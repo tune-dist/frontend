@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Upload, Music, DollarSign } from 'lucide-react'
+import ScrollStack, { ScrollStackItem } from './ScrollStack'
 
 const steps = [
   {
@@ -49,7 +50,30 @@ export default function HowItWorks() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 relative">
+        <ScrollStack
+          useWindowScroll
+          stackPosition='20%'
+          itemDistance={0}
+          itemStackDistance={20}
+          baseScale={0.8}
+        >
+          <ScrollStackItem itemClassName='bg-sky-500'>
+            <h2>Card 1</h2>
+            <p>This is the first card in the stack</p>
+          </ScrollStackItem>
+          <ScrollStackItem itemClassName='bg-red-500'>
+            <h2>Card 2</h2>
+            <p>This is the second card in the stack</p>
+          </ScrollStackItem>
+          <ScrollStackItem itemClassName='bg-green-500'>
+            <h2>Card 3</h2>
+            <p>This is the third card in the stack</p>
+          </ScrollStackItem>
+        </ScrollStack>
+
+
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 relative hidden">
           {/* Connection Line for Desktop */}
           <div className="hidden md:block absolute top-24 left-0 right-0 h-0.5 animated-gradient-bg opacity-30" />
 
