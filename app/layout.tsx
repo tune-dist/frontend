@@ -4,8 +4,18 @@ import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { Toaster } from 'react-hot-toast'
 import VersionNotifier from '@/components/VersionNotifier'
+import { Righteous } from 'next/font/google'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-body',
+})
+
+const righteous = Righteous({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-heading',
+})
 
 export const metadata: Metadata = {
   title: 'KratoLib - Distribute Your Music Worldwide',
@@ -22,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${righteous.variable}`}>
         <AuthProvider>
           <VersionNotifier />
           {children}

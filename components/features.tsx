@@ -47,7 +47,7 @@ export default function Features() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading">
             Everything You Need to{' '}
             <span className="animated-gradient">
               Succeed

@@ -47,7 +47,7 @@ export default function Testimonials() {
                     <Card className="h-full border-border/50 hover:border-primary/50 transition-colors duration-300 bg-card/50 backdrop-blur-sm w-[400px]">
                         <CardContent className="p-6">
                             <Quote className="h-8 w-8 text-primary/50 mb-4" />
-                            <p className="text-muted-foreground mb-6 italic text-sm">
+                            <p className="text-muted-foreground mb-6 text-left text-sm font-base">
                                 "{testimonial.quote}"
                             </p>
                             <div className="flex items-center gap-4">

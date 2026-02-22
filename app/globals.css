@@ -177,7 +177,51 @@
   }
 }
 
+
+.font_heading {
+  font-family: var(--font-heading);
+}
+
+body {
+  font-family: var(--font-body);
+}
+
 .testimonial_scroll_content .whitespace-nowrap {
   white-space: inherit;
   letter-spacing: normal;
+}
+
+.testimonial_scroll_content {
+  position: relative;
+}
+.testimonial_scroll_content:before, .testimonial_scroll_content:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 200px;
+    z-index: 10;
+    pointer-events: none;
+}
+.testimonial_scroll_content:before {
+    left: 0;
+    background: linear-gradient(to right, #0a0a0a, transparent);
+}
+.testimonial_scroll_content:after {
+    right: 0;
+    background: linear-gradient(to left, #0a0a0a, transparent);
+}
+#home {
+  position: relative;
+}
+#home:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 10;
+    pointer-events: none;
+    background: linear-gradient(to top, #0a0a0a, transparent);
+    height: 200px;
 }

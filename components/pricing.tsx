@@ -65,7 +65,7 @@ export default function Pricing() {
 
   if (loading) {
     return (
-      <section className="py-20 md:py-32 bg-muted/30 relative">
+      <section className="py-20 md:py-32 bg-background relative">
         <div className="container mx-auto px-4 text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="mt-2 text-muted-foreground">Loading pricing...</p>
@@ -77,7 +77,7 @@ export default function Pricing() {
   return (
     <section
       id="pricing"
-      className="py-20 md:py-32 bg-muted/30 relative"
+      className="py-20 md:py-32 bg-background relative"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
@@ -87,7 +87,7 @@ export default function Pricing() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading">
             Simple, Transparent{' '}
             <span className="animated-gradient">
               Pricing

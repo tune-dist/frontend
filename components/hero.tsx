@@ -75,9 +75,9 @@ export default function Hero() {
           transition={{ duration: 0.6 }}
         >
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold mb-6 leading-tight">
-            <span className="block">Distribute Your Music.</span>
-            <span className="block mt-2">Grow Your Audience.</span>
-            <span className="block mt-2 animated-gradient">
+            <span className="block font_heading">Distribute Your Music.</span>
+            <span className="block mt-2 font_heading">Grow Your Audience.</span>
+            <span className="block mt-2 animated-gradient font_heading">
               Get Paid.
             </span>
           </h1>
