@@ -225,3 +225,38 @@ body {
     background: linear-gradient(to top, #0a0a0a, transparent);
     height: 200px;
 }
+
+
+/* .stack-section {
+  height: 100vh;
+} */
+
+.stack-wrapper {
+  position: relative;
+  width: 800px;
+  height: 420px;
+  margin: auto;
+}
+
+.stack-card {
+  position: absolute;
+  inset: 0;
+  /* background: white; */
+  border-radius: 22px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  transform-origin: center;
+}
+/* .stack-card:nth-child(1){
+  background-color: red;
+}
+.stack-card:nth-child(2){
+  background-color: green;
+}
+.stack-card:nth-child(3){
+  background-color: blue;
+} */

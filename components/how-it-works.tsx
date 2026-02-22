@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { Upload, Music, DollarSign } from 'lucide-react'
 import ScrollStack, { ScrollStackItem } from './ScrollStack'
+import HowItWorkStackingCard from './HowItWorkStackingCard'
 
 const steps = [
   {
@@ -50,7 +51,7 @@ export default function HowItWorks() {
           </p>
         </motion.div>
 
-        <ScrollStack
+        {/* <ScrollStack
           useWindowScroll
           stackPosition='20%'
           itemDistance={0}
@@ -69,7 +70,9 @@ export default function HowItWorks() {
             <h2>Card 3</h2>
             <p>This is the third card in the stack</p>
           </ScrollStackItem>
-        </ScrollStack>
+        </ScrollStack> */}
+
+        <HowItWorkStackingCard />
 
 
 
