@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion'
 import { Upload, Music, DollarSign } from 'lucide-react'
-import ScrollStack, { ScrollStackItem } from './ScrollStack'
 import HowItWorkStackingCard from './HowItWorkStackingCard'
 
 const steps = [
@@ -31,25 +30,9 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section className="py-20 md:py-32 bg-background relative overflow-hidden">
+    <section className="py-5 md:py-5 bg-background relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading">
-            How It{' '}
-            <span className="animated-gradient">
-              Works
-            </span>
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Get your music out there in three simple steps.
-          </p>
-        </motion.div>
+
 
         {/* <ScrollStack
           useWindowScroll
