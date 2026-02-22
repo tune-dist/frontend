@@ -176,3 +176,8 @@
     width: 12px;
   }
 }
+
+.testimonial_scroll_content .whitespace-nowrap {
+  white-space: inherit;
+  letter-spacing: normal;
+}

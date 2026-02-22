@@ -1,5 +1,6 @@
 'use client'
 
+import { ReactNode } from "react";
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Quote } from 'lucide-react'
@@ -13,38 +14,44 @@ import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 
 import ScrollVelocity from './ScrollVelocity';
+import TestiCard from './TestiCard'
 
 export default function Testimonials() {
-  const [dynamicTestimonials, setDynamicTestimonials] = useState<Testimonial[]>([])
-  const [loading, setLoading] = useState(true)
+  // const [dynamicTestimonials, setDynamicTestimonials] = useState<Testimonial[]>([])
+  // const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchTestimonials = async () => {
-      try {
-        const data = await testimonialsApi.getAll()
-        setDynamicTestimonials(data)
-      } catch (error) {
-        console.error('Failed to fetch testimonials:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchTestimonials()
-  }, [])
+  // useEffect(() => {
+  //   const fetchTestimonials = async () => {
+  //     try {
+  //       const data = await testimonialsApi.getAll()
+  //       setDynamicTestimonials(data)
+  //     } catch (error) {
+  //       console.error('Failed to fetch testimonials:', error)
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
+  //   fetchTestimonials()
+  // }, [])
 
-  if (loading) {
-    return (
-      <section className="py-20 md:py-32 bg-background relative">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-muted-foreground">Loading testimonials...</p>
-        </div>
-      </section>
-    )
-  }
+  // if (loading) {
+  //   return (
+  //     <section className="py-20 md:py-32 bg-background relative">
+  //       <div className="container mx-auto px-4 text-center">
+  //         <p className="text-muted-foreground">Loading testimonials...</p>
+  //       </div>
+  //     </section>
+  //   )
+  // }
 
-  if (dynamicTestimonials.length === 0) {
-    return null
-  }
+  // if (dynamicTestimonials.length === 0) {
+  //   return null
+  // }
+
+  const scrollItems: ReactNode[] = [
+    <TestiCard />,
+    <TestiCard />,
+  ]
 
   return (
     <section className="py-20 md:py-32 bg-background relative">
@@ -68,13 +75,15 @@ export default function Testimonials() {
           </p>
         </motion.div>
 
-        <ScrollVelocity
-          texts={['React Bits', 'Scroll Down', 'ccc']}
-          velocity={100}
-          className="custom-scroll-text"
-        />
+        <div className="relative w-full testimonial_scroll_content">
+          <ScrollVelocity
+            texts={scrollItems}
+            velocity={100}
+            className="custom-scroll-text"
+          />
+        </div>
 
-        <Swiper
+        {/* <Swiper
           modules={[Navigation, Pagination, Autoplay]}
           spaceBetween={24}
           slidesPerView={1}
@@ -145,7 +154,7 @@ export default function Testimonials() {
               </motion.div>
             </SwiperSlide>
           ))}
-        </Swiper>
+        </Swiper> */}
       </div>
     </section >
   )
