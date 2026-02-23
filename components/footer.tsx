@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Mail, Phone, MapPin, Music, Instagram, Twitter, Youtube, Facebook } from 'lucide-react'
 
+
 export default function Footer() {
   const currentYear = new Date().getFullYear()
 

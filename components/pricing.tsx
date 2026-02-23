@@ -78,7 +78,7 @@ export default function Pricing() {
   return (
     <section
       id="pricing"
-      className="py-10 md:py-15 bg-background relative"
+      className="py-20 md:py-35 bg-background relative"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
