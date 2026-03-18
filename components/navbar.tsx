@@ -19,6 +19,8 @@ export default function Navbar() {
   const navLinks = [
     { name: "Home", href: "#home" },
     { name: "Features", href: "#features" },
+    { name: "Smart Music", href: "/smart-music" },
+    { name: "Royalty Splits", href: "/royalty-splits" },
     { name: "Pricing", href: "#pricing" },
     { name: "Contact", href: "#contact" },
   ];
