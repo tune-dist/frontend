@@ -89,21 +89,6 @@ export default function Footer() {
 
       <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10">
 
-        {/* ── Top tagline banner ── */}
-        <div className="mb-14 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-xs text-muted-foreground mb-4">
-            <Music className="h-3.5 w-3.5 text-primary" />
-            Trusted by 50,000+ independent artists worldwide
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2 font_heading">
-            Your music.{' '}
-            <span className="animated-gradient">Your rights. Your revenue.</span>
-          </h2>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto">
-            Distribute globally, collect royalties automatically, and keep 100% ownership of your art.
-          </p>
-        </div>
-
         {/* ── Main grid ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-10 mb-14">
 

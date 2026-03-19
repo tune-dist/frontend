@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import {
   Bot, FileSearch, Copy, ImageIcon, Zap,
-  CheckCircle2, ChevronRight
+  CheckCircle2
 } from "lucide-react";
 
 const aiModules = [
@@ -74,10 +73,6 @@ const aiModules = [
 ];
 
 export default function SmartMusicAIEngine() {
-  const [active, setActive] = useState("metadata");
-  const activeModule = aiModules.find((m) => m.id === active)!;
-  const Icon = activeModule.icon;
-
   return (
     <section className="py-24 bg-muted/10 relative overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -90,102 +85,54 @@ export default function SmartMusicAIEngine() {
       <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-xs text-muted-foreground mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-sm text-muted-foreground mb-4">
             <Bot className="h-3.5 w-3.5 text-violet-400" />
-            Advanced AI Release Engine
+            Our AI Helps You Release Smarter
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font_heading mb-4">
-            Our AI Helps You{" "}
-            <span className="animated-gradient">Release Smarter</span>
+            Advanced {" "}
+            <span className="animated-gradient">AI Release Engine</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm leading-relaxed">
-            Our AI Release Engine optimises every release before it goes live — protecting your
-            metadata, artwork, audio quality, and distribution integrity.
+          <p className="text-muted-foreground max-w-xl mx-auto text-base leading-relaxed">
+            Our AI Release Engine helps optimize releases before they go live.
           </p>
         </div>
 
-        {/* Interactive tab layout */}
-        <div className="grid lg:grid-cols-5 gap-8 items-start">
-
-          {/* Left: Tab list */}
-          <div className="lg:col-span-2 flex flex-col gap-3">
-            {aiModules.map((mod) => {
-              const TabIcon = mod.icon;
-              const isActive = mod.id === active;
-              return (
-                <button
-                  key={mod.id}
-                  onClick={() => setActive(mod.id)}
-                  className={`group w-full text-left flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 ${
-                    isActive
-                      ? `${mod.bgActive} shadow-lg`
-                      : `border-border/50 bg-muted/20 ${mod.borderHover} hover:bg-muted/30`
-                  }`}
-                >
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/40 ${mod.iconBg}`}>
-                    <TabIcon className={`h-5 w-5 ${mod.color}`} />
+        {/* AI Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 xl:gap-6">
+          {aiModules.map((mod) => {
+            const Icon = mod.icon;
+            return (
+              <div
+                key={mod.id}
+                className={`rounded-3xl border border-border/50 bg-background/50 hover:bg-muted/20 backdrop-blur p-6 lg:p-5 xl:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${mod.borderHover}`}
+              >
+                {/* Header */}
+                <div className="flex flex-col items-start gap-4 mb-5">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 ${mod.iconBg}`}>
+                    <Icon className={`h-6 w-6 ${mod.color}`} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-semibold text-sm truncate ${isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"} transition-colors`}>
-                      {mod.title}
-                    </p>
-                  </div>
-                  <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${isActive ? `${mod.color} rotate-90` : "text-muted-foreground"}`} />
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Right: Detail panel */}
-          <div className="lg:col-span-3">
-            <div
-              key={active}
-              className={`rounded-3xl border ${activeModule.bgActive} p-8 h-full backdrop-blur transition-all duration-300`}
-              style={{ animation: "fadeSlideIn 0.3s ease" }}
-            >
-              {/* Icon header */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl border border-border/40 ${activeModule.iconBg}`}>
-                  <Icon className={`h-7 w-7 ${activeModule.color}`} />
+                  <h3 className="font-bold text-base font_heading leading-snug text-foreground">
+                    {mod.title}
+                  </h3>
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg font_heading leading-tight">{activeModule.title}</h3>
-                  <p className={`text-xs mt-0.5 ${activeModule.color}`}>AI-Powered Module</p>
-                </div>
+
+                {/* Checklist */}
+                <ul className="space-y-3">
+                  {mod.features.map((feat) => (
+                    <li key={feat} className="flex items-start gap-2.5">
+                      <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${mod.color}`} />
+                      <span className="text-[13px] text-muted-foreground leading-relaxed">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-              <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                {activeModule.tagline}
-              </p>
-
-              {/* Feature checklist */}
-              <ul className="space-y-3">
-                {activeModule.features.map((feat) => (
-                  <li key={feat} className="flex items-center gap-3">
-                    <CheckCircle2 className={`h-4 w-4 shrink-0 ${activeModule.color}`} />
-                    <span className="text-sm text-foreground">{feat}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Bottom tag */}
-              <div className="mt-8 pt-6 border-t border-border/30">
-                <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  <Bot className="h-3.5 w-3.5" />
-                  Powered by Ktarolib AI Release Engine — continuously learning with every release.
-                </p>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 
-      <style>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+
     </section>
   );
 }

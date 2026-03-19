@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import SmartMusicHero from "@/components/smart-music/SmartMusicHero";
-import SmartMusicStats from "@/components/smart-music/SmartMusicStats";
 import SmartMusicDistribution from "@/components/smart-music/SmartMusicDistribution";
 import SmartMusicAIEngine from "@/components/smart-music/SmartMusicAIEngine";
 import SmartMusicTechnology from "@/components/smart-music/SmartMusicTechnology";
@@ -20,7 +19,6 @@ export default function SmartMusicPage() {
     <main className="min-h-screen">
       <Navbar />
       <SmartMusicHero />
-      <SmartMusicStats />
       <SmartMusicDistribution />
       <SmartMusicAIEngine />
       <SmartMusicTechnology />

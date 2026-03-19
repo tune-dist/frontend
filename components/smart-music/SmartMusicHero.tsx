@@ -55,16 +55,16 @@ export default function SmartMusicHero() {
       `}</style>
 
       {/* ── Main content ── */}
-      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 text-center py-16">
+      <div className="relative w-full mx-auto px-4 sm:px-6 lg:px-8 text-center py-16 vertical_pattern_bg">
 
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-xs text-muted-foreground mb-8 backdrop-blur">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-sm text-muted-foreground mb-8 backdrop-blur">
           <Sparkles className="h-3.5 w-3.5 text-primary" />
-          AI Release Engine &amp; Smart Music Distribution
+          AI Release Engine & Smart Music Distribution — Ktarolib
         </div>
 
         {/* Floating icon */}
-        <div className="relative flex justify-center mb-10">
+        {/* <div className="relative flex justify-center mb-10">
           <span className="absolute inset-0 m-auto h-28 w-28 rounded-full border border-primary/30"
             style={{ animation: "pulseRing 2.2s ease-out infinite" }} />
           <span className="absolute inset-0 m-auto h-28 w-28 rounded-full border border-primary/15"
@@ -75,22 +75,21 @@ export default function SmartMusicHero() {
           >
             <Music2 className="h-12 w-12 text-primary" />
           </div>
-        </div>
+        </div> */}
 
         {/* Headline */}
-        <h1 className="text-4xl sm:text-6xl lg:text-[4.5rem] font-bold font_heading mb-6 leading-[1.05] tracking-tight">
+        <h1 className="text-4xl sm:text-6xl lg:text-[4rem] font-semibold font_heading mb-6">
           Next Generation
           <br />
           <span className="animated-gradient">Music Distribution</span>
+          Technology
         </h1>
 
         <p className="text-muted-foreground text-lg sm:text-xl max-w-2xl mx-auto mb-4 leading-relaxed">
-          Ktarolib delivers global music distribution powered by intelligent AI release technology —
-          making releases faster, safer, and more accurate.
+          Ktarolib delivers global music distribution powered by intelligent AI release technology designed to make music releases faster, safer, and more accurate.
         </p>
         <p className="text-muted-foreground text-sm max-w-xl mx-auto mb-10">
-          Our platform combines global distribution infrastructure with smart AI release protection,
-          metadata intelligence, and quality validation systems.
+          Our platform combines global distribution infrastructure with smart AI release protection, metadata intelligence, and quality validation systems.
         </p>
 
         {/* CTA buttons */}
