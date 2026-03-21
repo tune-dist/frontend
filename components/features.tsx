@@ -47,7 +47,7 @@ export default function Features() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading">
             Everything You Need to{' '}
             <span className="animated-gradient">
               Succeed
@@ -70,7 +70,7 @@ export default function Features() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
               >
-                <SpotlightCard className="custom-spotlight-card !p-2 h-full" spotlightColor="rgba(0, 229, 255, 0.2)">
+                <SpotlightCard className="custom-spotlight-card !p-2 h-full" spotlightColor="rgba(134, 96, 250, 0.2)">
                   <Card className="h-full bg-transparent border-0">
                     <CardHeader>
                       <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">

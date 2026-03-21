@@ -12,8 +12,8 @@ import { Navigation, Pagination, Autoplay } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
+import 'swiper/css/pagination'
 
-import ScrollVelocity from './ScrollVelocity';
 import TestiCard from './TestiCard'
 
 export default function Testimonials() {
@@ -48,11 +48,6 @@ export default function Testimonials() {
   //   return null
   // }
 
-  const scrollItems: ReactNode[] = [
-    <TestiCard />,
-    <TestiCard />,
-  ]
-
   return (
     <section className="py-20 md:py-32 bg-background relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -63,7 +58,7 @@ export default function Testimonials() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading">
             Loved by{' '}
             <span className="animated-gradient">
               Artists Worldwide
@@ -75,12 +70,11 @@ export default function Testimonials() {
           </p>
         </motion.div>
 
-        <div className="relative w-full testimonial_scroll_content">
-          <ScrollVelocity
-            texts={scrollItems}
-            velocity={100}
-            className="custom-scroll-text"
-          />
+        <div className="relative w-full overflow-hidden testimonial_scroll_content py-4">
+          <div className="animate-marquee gap-4">
+            <TestiCard />
+            <TestiCard />
+          </div>
         </div>
 
         {/* <Swiper

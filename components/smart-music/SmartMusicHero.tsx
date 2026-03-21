@@ -58,7 +58,7 @@ export default function SmartMusicHero() {
       <div className="relative w-full mx-auto px-4 sm:px-6 lg:px-8 text-center py-16 vertical_pattern_bg">
 
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-sm text-muted-foreground mb-8 backdrop-blur">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/20 bg-muted/30 text-sm text-muted-foreground mb-8 backdrop-blur">
           <Sparkles className="h-3.5 w-3.5 text-primary" />
           AI Release Engine & Smart Music Distribution — Ktarolib
         </div>
@@ -103,7 +103,7 @@ export default function SmartMusicHero() {
           </a>
           <a
             href="#pricing"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-border/60 bg-muted/30 text-foreground font-semibold text-sm hover:bg-muted/60 transition-colors backdrop-blur"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-white/10 bg-muted/30 text-foreground font-semibold text-sm hover:bg-muted/60 transition-colors backdrop-blur"
           >
             <Play className="h-4 w-4 fill-current" />
             View Pricing

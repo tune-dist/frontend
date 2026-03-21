@@ -4,7 +4,7 @@ import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { Toaster } from 'react-hot-toast'
 import VersionNotifier from '@/components/VersionNotifier'
-import { Righteous } from 'next/font/google'
+import { Poppins } from 'next/font/google'
 import SmoothScrollProvider from '@/components/SmoothScrollProvider'
 
 const manrope = Manrope({
@@ -12,9 +12,9 @@ const manrope = Manrope({
   variable: '--font-body',
 });
 
-const righteous = Righteous({
+const poppins = Poppins({
   subsets: ['latin'],
-  weight: '400',
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-heading',
 })
 
@@ -33,10 +33,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${manrope.variable} ${righteous.variable}`}>
+      <body className={`${manrope.variable} ${poppins.variable}`}>
         <AuthProvider>
           <SmoothScrollProvider>
-            <VersionNotifier />
+            {/* <VersionNotifier /> */}
             {children}
             <Toaster
               position="top-right"

@@ -47,7 +47,7 @@ export default function Testimonials() {
                     <Card className="h-full border-border/50 hover:border-primary/50 transition-colors duration-300 bg-card/50 backdrop-blur-sm w-[400px]">
                         <CardContent className="p-6">
                             <Quote className="h-8 w-8 text-primary/50 mb-4" />
-                            <p className="text-muted-foreground mb-6 text-left text-sm font-base">
+                            <p className="text-muted-foreground mb-6 text-left text-sm font-normal">
                                 "{testimonial.quote}"
                             </p>
                             <div className="flex items-center gap-4">
@@ -65,8 +65,8 @@ export default function Testimonials() {
                                     )}
                                 </div>
                                 <div className='flex flex-col items-start'>
-                                    <p className="font-semibold text-sm">{testimonial.name}</p>
-                                    <p className="text-sm text-muted-foreground">
+                                    <p className="font-normal text-sm">{testimonial.name}</p>
+                                    <p className="text-sm text-muted-foreground font-medium">
                                         {testimonial.role}
                                     </p>
                                 </div>

@@ -126,6 +126,21 @@
     }
   }
 
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .animate-marquee {
+    animation: marquee 40s linear infinite;
+    display: flex;
+    width: max-content;
+  }
+
+  .animate-marquee:hover {
+    animation-play-state: paused;
+  }
+
     /* Swiper Slider Custom Styles */
   .testimonials-swiper {
     padding-bottom: 50px !important;
@@ -182,6 +197,7 @@
 
 body {
   font-family: var(--font-body);
+  font-size: 14px;
 }
 
 .testimonial_scroll_content .whitespace-nowrap {
