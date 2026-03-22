@@ -23,10 +23,11 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
     const [isUploading, setIsUploading] = useState(false)
     const [activeFileId, setActiveFileId] = useState<string | null>(null)
 
-
+    // console.log('values', getValues())
     const format = watch('format')
     const audioFile = watch('audioFile')
-    const audioFileName = watch('audioFileName')
+    const audioFileName = getValues('title')
+    console.log(audioFileName, 'audioFileName')
     const audioFiles = watch('audioFiles') || []
     const tracks = watch('tracks') || []
 
@@ -131,7 +132,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                         hash: result.metaData?.hash,
                         fingerprint: result.metaData?.fingerprint
                     }, { shouldValidate: true })
-                    setValue('audioFileName', file.name, { shouldValidate: true })
+                    setValue('audioFileName', audioFileName, { shouldValidate: true })
                     break
                 } else {
                     const currentAudioFiles = getValues('audioFiles') || []
@@ -351,7 +352,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                                     <p className="font-medium">{index + 1}. {track.title || 'Untitled'}</p>
                                                     <div className="space-y-1">
                                                         <p className="text-sm text-muted-foreground">
-                                                            {audioFile?.fileName} • {audioFile?.size ? ((audioFile.size / 1024 / 1024).toFixed(2) + ' MB') : ''}
+                                                            {audioFileName}.{audioFile?.fileName.split('.').pop()} • {audioFile?.size ? ((audioFile.size / 1024 / 1024).toFixed(2) + ' MB') : ''}
                                                         </p>
                                                         {uploadProgress[audioFile?.id || ''] !== undefined && (
                                                             <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">

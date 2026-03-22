@@ -151,6 +151,7 @@ export default function UploadPage() {
       composers: [],
       copyright: process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib",
       producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib"],
+      recordingYear: new Date().getFullYear(),
     },
     mode: "onChange",
   });

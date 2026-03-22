@@ -172,7 +172,7 @@ export const uploadFormSchema = z.object({
     writers: z.array(songwriterSchema).default([]),
     composers: z.array(songwriterSchema).default([]),
 
-    recordingYear: z.number().optional(),
+    recordingYear: z.number().default(new Date().getFullYear()),
 
     // Legacy/Other
     producers: z.array(z.string()).optional(),

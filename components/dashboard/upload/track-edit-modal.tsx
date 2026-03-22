@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Track, Songwriter } from './types'
 import { useState, useRef, useEffect } from 'react'
-import { Music, X, Loader2, Plus, Info } from 'lucide-react'
+import { Music, X, Loader2, Plus, Info, UserCheck } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/lib/api/genres'
 import { useAuth } from '@/contexts/AuthContext'
 import { getPlanLimits } from '@/lib/api/plans'
@@ -17,7 +18,7 @@ interface TrackEditModalProps {
     track: Track | null
     trackIndex: number | null
     onSave: (updatedTrack: Track, writers: string[], composers: string[]) => void
-    usedArtists?: string[]
+    usedArtists?: any[]
     allTracks?: Track[]
     mainArtistName?: string
     featuringArtists?: Array<{ name: string }>
@@ -548,18 +549,108 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     {/* Artist Name with Rich Search UI */}
                     <div className="space-y-2">
                         <Label htmlFor="track-artist">Artist Name</Label>
-                        <div className="relative">
-                            <Input
-                                id="track-artist"
-                                placeholder="Search for artist..."
-                                value={modalArtistSearch}
-                                onChange={(e) => handleModalArtistSearch(e.target.value)}
-                                className={isSearching ? 'pr-10' : ''}
-                                disabled={planLimits.artistLimit === 1}
-                            />
-                            {isSearching && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        <div className="relative flex-1 space-y-2">
+                            {/* Artist Selection Dropdown */}
+                            {usedArtists.length > 0 && (
+                                <Select
+                                    value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch) ? modalArtistSearch : (planLimits.artistLimit === 1 && modalArtistSearch ? '' : 'new')}
+                                    onValueChange={(val) => {
+                                        if (val === 'new') {
+                                            handleModalArtistSearch('')
+                                            setModalSpotifyProfile('')
+                                            setModalAppleMusicProfile('')
+                                            setModalYoutubeProfile('')
+                                            setInstagramStatus('no')
+                                            setFacebookStatus('no')
+                                            setInstagramUrl('')
+                                            setFacebookUrl('')
+                                        } else {
+                                            const selectedArtist = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === val)
+                                            if (selectedArtist) {
+                                                const name = typeof selectedArtist === 'string' ? selectedArtist : selectedArtist.name
+                                                handleModalArtistSearch(name)
+
+                                                if (typeof selectedArtist === 'object') {
+                                                    if (selectedArtist.spotifyProfile) setModalSpotifyProfile(selectedArtist.spotifyProfile)
+                                                    if (selectedArtist.appleMusicProfile) setModalAppleMusicProfile(selectedArtist.appleMusicProfile)
+                                                    if (selectedArtist.youtubeMusicProfile) setModalYoutubeProfile(selectedArtist.youtubeMusicProfile)
+                                                        
+                                                    if (selectedArtist.instagramProfile) {
+                                                        if (typeof selectedArtist.instagramProfile === 'string' && selectedArtist.instagramProfile.startsWith('http')) {
+                                                            setInstagramStatus('yes')
+                                                            setInstagramUrl(selectedArtist.instagramProfile)
+                                                        } else {
+                                                            setInstagramStatus(selectedArtist.instagramProfile)
+                                                        }
+                                                    }
+                                                    if (selectedArtist.facebookProfile) {
+                                                        if (typeof selectedArtist.facebookProfile === 'string' && selectedArtist.facebookProfile.startsWith('http')) {
+                                                            setFacebookStatus('yes')
+                                                            setFacebookUrl(selectedArtist.facebookProfile)
+                                                        } else {
+                                                            setFacebookStatus(selectedArtist.facebookProfile)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }}
+                                    disabled={planLimits.artistLimit === 1}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select an artist" />
+                                    </SelectTrigger>
+                                    <SelectContent className="z-[999]">
+                                        {usedArtists.map((artist, i) => {
+                                            const name = typeof artist === 'string' ? artist : artist.name
+                                            return (
+                                                <SelectItem key={i} value={name}>
+                                                    <div className="flex items-center gap-2">
+                                                        <UserCheck className="h-4 w-4 text-primary" />
+                                                        <span>{name}</span>
+                                                    </div>
+                                                </SelectItem>
+                                            )
+                                        })}
+                                        <SelectItem value="new">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <Plus className="h-4 w-4" />
+                                                <span>Create New Artist</span>
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                            {/* Manual Input Search */}
+                            {(!usedArtists.length || (!usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch) && planLimits.artistLimit !== 1)) && (
+                                <div className="relative">
+                                    <Input
+                                        id="track-artist"
+                                        placeholder="Search for artist..."
+                                        value={modalArtistSearch}
+                                        onChange={(e) => handleModalArtistSearch(e.target.value)}
+                                        className={`${isSearching ? 'pr-10' : ''} ${(planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
+                                        readOnly={planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile}
+                                    />
+                                    {(!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) && planLimits.artistLimit !== 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                handleModalArtistSearch('')
+                                                setModalSpotifyProfile('')
+                                                setModalAppleMusicProfile('')
+                                                setModalYoutubeProfile('')
+                                            }}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary hover:text-primary/80 font-medium z-10"
+                                        >
+                                            Change Artist
+                                        </button>
+                                    )}
+                                    {isSearching && !(!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1216,9 +1307,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                         setShowIsrc(checked)
                                         if (checked) {
                                             // Pre-fill with default from env if empty
-                                            if (!isrc) {
-                                                setIsrc(process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")
-                                            }
+                                            // if (!isrc) {
+                                            //     setIsrc(process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")
+                                            // }
                                         } else {
                                             setIsrc('')
                                             setIsrcError('')
@@ -1242,7 +1333,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     value={isrc}
                                     onChange={(e) => {
                                         handleISRCChange(e.target.value)
-                                        if (user?.plan === 'free' && e.target.value !== (process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")) {
+                                        if (user?.plan === 'free') {
                                             toast.error("Upgrade to paid plan to use custom ISRC", { id: "isrc-warning" })
                                         }
                                     }}

@@ -17,16 +17,18 @@ interface CoverArtStepProps {
 type RequirementStatus = 'pending' | 'success' | 'error';
 
 export default function CoverArtStep({ formData: propFormData, setFormData: propSetFormData }: CoverArtStepProps) {
-    const { setValue, watch, formState: { errors } } = useFormContext<UploadFormData>()
+    const { setValue, watch, formState: { errors }, getValues } = useFormContext<UploadFormData>()
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
-    const [validationErrors, setValidationErrors] = useState<any[]>([]);
-    const [hasValidated, setHasValidated] = useState(false);
     const [isValidating, setIsValidating] = useState(false);
+    
+    const validationStatus = watch('coverArtValidationStatus');
+    const validationIssues = watch('coverArtValidationIssues') || [];
+    const hasValidated = !!validationStatus;
 
     const coverArtPreview = watch('coverArtPreview')
     const coverArt = watch('coverArt')
-
+    // console.log(coverArt, 'coverArt')
     const requirements = useMemo(() => [
         {
             id: 'resolution',
@@ -51,7 +53,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         {
             id: 'metadata',
             label: 'Artist & Title Match (No Misleading Names)',
-            codes: ['ARTIST_NAME_MISMATCH', 'TRACK_TITLE_MISMATCH', 'POTENTIAL_MISLEADING_ARTIST', 'MISLEADING_VERSION_TEXT']
+            codes: ['ARTIST_NAME_MISMATCH', 'TRACK_TITLE_MISMATCH', 'POTENTIAL_MISLEADING_ARTIST', 'MISLEADING_VERSION_TEXT', 'ARTIST_PARTIAL_MATCH', 'TITLE_PARTIAL_MATCH', 'ARTIST_MISSING', 'TITLE_MISSING', 'VERSION_MISMATCH']
         },
         {
             id: 'collab',
@@ -61,7 +63,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         {
             id: 'content',
             label: 'Prohibited Content & Social Handles',
-            codes: ['BANNED_CONTENT', 'PROHIBITED_VISUAL_CONTENT', 'SUGGESTIVE_VISUAL_CONTENT', 'SOCIAL_MEDIA_HANDLES', 'DISALLOWED_TEXT', 'DISALLOWED_YEAR', 'EXPLICIT_CONTENT_MISMATCH', 'DISALLOWED_LABEL_NAME']
+            codes: ['BANNED_CONTENT', 'PROHIBITED_VISUAL_CONTENT', 'SUGGESTIVE_VISUAL_CONTENT', 'SOCIAL_MEDIA_HANDLES', 'SOCIAL_HANDLE', 'DISALLOWED_TEXT', 'BLOCKED_TEXT', 'URL_DETECTED', 'DISALLOWED_YEAR', 'YEAR_DETECTED', 'EXPLICIT_CONTENT_MISMATCH', 'EXPLICIT_MISMATCH', 'DISALLOWED_LABEL_NAME']
         },
         {
             id: 'quality',
@@ -72,7 +74,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
     const getStatus = (reqCodes: string[]): RequirementStatus => {
         if (!hasValidated) return 'pending';
-        const hasError = validationErrors.some((err: any) => reqCodes.includes(err.code));
+        const hasError = validationIssues.some((err: any) => reqCodes.includes(err.code));
         return hasError ? 'error' : 'success';
     };
 
@@ -82,8 +84,8 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
             return;
         }
         console.log('🖼️ Album cover upload started:', file.name)
-        setHasValidated(false);
-        setValidationErrors([]);
+        setValue('coverArtValidationStatus', undefined);
+        setValue('coverArtValidationIssues', []);
 
         if (!file.type.startsWith('image/')) {
             toast.error('Please upload an image file (JPG, PNG, etc.)')
@@ -136,8 +138,6 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     const { validateCoverArt } = await import('@/lib/api/cover-art');
                     const validationResult = await validateCoverArt(file, validationMetadata);
 
-                    setValidationErrors(validationResult.errors || []);
-                    setHasValidated(true);
                     setIsValidating(false);
 
                     // Sync validation result with form state
@@ -214,8 +214,6 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         setValue('coverArtValidationStatus', undefined);
         setValue('coverArtValidationIssues', []);
         setValue('coverArtConsent', false);
-        setHasValidated(false);
-        setValidationErrors([]);
     }
 
     return (
@@ -292,7 +290,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
                             {coverArt && (
                                 <div className="flex flex-col items-center gap-1">
-                                    <p className="text-lg font-semibold truncate max-w-md">{(coverArt as any).fileName || (coverArt as File).name}</p>
+                                    <p className="text-lg font-semibold truncate max-w-md">{getValues('title')}.{coverArt?.fileName?.split('.').pop()}</p>
                                     <p className="text-muted-foreground">
                                         {((coverArt as any).size / 1024 / 1024).toFixed(2)} MB • {(coverArt as any).path ? 'Uploaded' : 'Validated'}
                                     </p>
@@ -393,7 +391,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                         </div>
 
                         <ul className="space-y-2">
-                            {(watch('coverArtValidationIssues') || validationErrors).map((issue: any, idx: number) => (
+                            {validationIssues.map((issue: any, idx: number) => (
                                 <li key={idx} className="flex items-start gap-2 text-sm text-amber-200/80">
                                     <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
                                     <span>{issue.message}</span>

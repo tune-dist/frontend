@@ -318,10 +318,7 @@ export default function CreditsStep({
                       {...register("isrc", {
                         onChange: (e) => {
                           if (
-                            user?.plan === "free" &&
-                            e.target.value !==
-                            (process.env.NEXT_PUBLIC_DEFAULT_ISRC ||
-                              "QZ-K6P-25-00001")
+                            user?.plan === "free"
                           ) {
                             toast.error(
                               "Upgrade to paid plan to use custom ISRC",
