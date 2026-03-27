@@ -23,6 +23,7 @@ export default function Navbar() {
     { name: "Features", href: "#features" },
     { name: "Smart Music", href: "/smart-music" },
     { name: "Royalty Splits", href: "/royalty-splits" },
+    { name: "Sell & Grow", href: "/sell-and-grow" },
     { name: "Pricing", href: "#pricing" },
     { name: "Contact", href: "#contact" },
   ];

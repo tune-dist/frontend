@@ -1,14 +1,6 @@
 "use client";
 
-import { BarChart3, Globe2, Layers, TrendingUp, Users2, DollarSign } from "lucide-react";
-
-const dimensions = [
-  { icon: Layers,     label: "Platforms",         desc: "See earnings broken down by Spotify, Apple Music, YouTube, and 150+ platforms side by side.", color: "text-blue-400",   bg: "bg-blue-500/10",   border: "hover:border-blue-500/30" },
-  { icon: Globe2,     label: "Releases",           desc: "Compare performance across singles, albums, and EPs in one unified financial view.", color: "text-cyan-400",    bg: "bg-cyan-500/10",   border: "hover:border-cyan-500/30" },
-  { icon: Users2,     label: "Contributors",       desc: "See each collaborator's earned share in real time — no manual spreadsheets required.", color: "text-violet-400", bg: "bg-violet-500/10", border: "hover:border-violet-500/30" },
-  { icon: Globe2,     label: "Territories",        desc: "Drill into country-level and region-level revenue to understand your strongest markets.", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "hover:border-emerald-500/30" },
-  { icon: TrendingUp, label: "Revenue Channels",   desc: "Streaming, downloads, syncs, CRBT — all revenue channels tracked in one place.", color: "text-amber-400",  bg: "bg-amber-500/10",  border: "hover:border-amber-500/30" },
-];
+import { ArrowRight, TrendingUp } from "lucide-react";
 
 export default function RoyaltySplitsRevenue() {
   return (
@@ -18,79 +10,77 @@ export default function RoyaltySplitsRevenue() {
           style={{ background: "radial-gradient(circle, #6366f1 0%, transparent 70%)" }} />
       </div>
 
-      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-xs text-muted-foreground mb-4">
-            <BarChart3 className="h-3.5 w-3.5 text-indigo-400" />
-            Unified Revenue Intelligence
+      <div className="relative max-w-7xl mx-auto px-8">
+
+        {/* Top Header */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 mb-16 w-full">
+          <div className="max-w-3xl">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font_heading mb-6 tracking-tight leading-[1.1]">
+              Unified Multi-Platform <br />
+              <span className="animated-gradient">Revenue Intelligence</span>
+            </h2>
+            <p className="text-muted-foreground text-sm sm:text-lg leading-relaxed max-w-2xl">
+              A consolidated home to ingest and report metadata from over 150+
+              streaming platforms across 200+ global territories.
+            </p>
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font_heading mb-4">
-            Multi-Platform{" "}
-            <span className="animated-gradient">Revenue Intelligence</span>
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm leading-relaxed">
-            Access real-time earnings data from global streaming and download platforms — all inside
-            one centralized dashboard. Make faster, data-driven decisions with live financial insights.
-          </p>
+          <a href="#" className="flex items-center gap-2 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors shrink-0">
+            View Analytics Live <ArrowRight className="h-4 w-4" />
+          </a>
         </div>
 
-        {/* Dimension cards */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-14">
-          {dimensions.map(({ icon: Icon, label, desc, color, bg, border }) => (
-            <div
-              key={label}
-              className={`group flex flex-col items-center text-center gap-4 px-5 py-8 rounded-2xl border border-border/50 bg-muted/20 hover:bg-muted/40 transition-all duration-300 ${border} hover:-translate-y-1 hover:shadow-lg`}
-            >
-              <div className={`flex h-13 w-13 h-12 w-12 items-center justify-center rounded-2xl border border-border/40 ${bg} group-hover:scale-110 transition-transform duration-300`}>
-                <Icon className={`h-6 w-6 ${color}`} />
-              </div>
-              <div>
-                <p className="font-semibold text-sm text-foreground mb-1">{label}</p>
-                <p className="text-muted-foreground text-xs leading-relaxed">{desc}</p>
+        {/* 2 Column Layout */}
+        <div className="grid lg:grid-cols-3 gap-6 w-full items-stretch">
+
+          {/* Left: Global Network Analytics Graph (takes 2 cols) */}
+          <div className="lg:col-span-2 rounded-3xl border border-border/50 bg-[#121214] p-6 sm:p-8 flex flex-col shadow-2xl relative overflow-hidden">
+            <div className="flex items-center gap-4 mb-8">
+              <h3 className="font-semibold text-base text-foreground">Global Network Analytics</h3>
+              <div className="flex bg-muted/30 p-1 rounded-lg gap-1">
+                {["Platform", "Territory", "Total Returns", "Royalties"].map((tab, i) => (
+                  <span key={i} className={`text-[10px] font-medium px-3 py-1 rounded-md ${i === 0 ? "bg-muted text-foreground" : "text-muted-foreground"}`}>{tab}</span>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Dashboard preview strip */}
-        <div className="rounded-3xl border border-border/50 bg-muted/20 p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex gap-1.5">
-              <span className="h-3 w-3 rounded-full bg-red-400/60" />
-              <span className="h-3 w-3 rounded-full bg-yellow-400/60" />
-              <span className="h-3 w-3 rounded-full bg-emerald-400/60" />
+            {/* Chart Placeholder / Mockup */}
+            <div className="flex-1 min-h-[250px] flex items-end gap-1 sm:gap-1.5 opacity-60 mt-auto">
+              {/* Generate random heights for a bar chart look */}
+              {[40, 50, 45, 60, 55, 70, 65, 80, 75, 90, 85, 95, 80, 85, 70, 75, 60, 65, 50, 55, 40, 45, 60, 80, 100, 95, 85, 75, 60, 50, 40, 45, 55, 45, 65, 75, 85].map((h, i) => (
+                <div
+                  key={i}
+                  className="flex-1 bg-gradient-to-t from-emerald-500/20 to-emerald-400 group-hover:from-emerald-400 group-hover:to-emerald-300 transition-all duration-300 rounded-t-sm max-w-[12px]"
+                  style={{ height: `${h}%` }}
+                />
+              ))}
             </div>
-            <span className="text-xs text-muted-foreground font-mono">kratolib — revenue dashboard</span>
+
+            {/* Grid overlay */}
+            <div className="absolute inset-x-8 bottom-8 top-24 pointer-events-none flex flex-col justify-between opacity-10">
+              <div className="w-full h-px bg-white"></div>
+              <div className="w-full h-px bg-white"></div>
+              <div className="w-full h-px bg-white"></div>
+              <div className="w-full h-px bg-white"></div>
+              <div className="w-full h-px bg-white"></div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            {[
-              { label: "Total Earnings", value: "$48,291", change: "+12.4%", color: "text-emerald-400" },
-              { label: "Pending Payouts", value: "$6,840",  change: "3 splits",  color: "text-amber-400" },
-              { label: "Active Releases", value: "142",     change: "↑ 8 this month", color: "text-blue-400" },
-              { label: "Collaborators",   value: "38",      change: "Across 12 labels", color: "text-violet-400" },
-            ].map(({ label, value, change, color }) => (
-              <div key={label} className="rounded-xl border border-border/40 bg-muted/30 p-4">
-                <p className="text-xs text-muted-foreground mb-1">{label}</p>
-                <p className={`text-xl font-bold font_heading ${color}`}>{value}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">{change}</p>
+          {/* Right: Revenue Channels (purple card) */}
+          <div className="rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-600 to-indigo-900 p-8 flex flex-col justify-center text-center shadow-[0_0_40px_rgba(99,102,241,0.2)]">
+            <div className="flex justify-center mb-6">
+              <div className="h-16 w-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                <TrendingUp className="h-8 w-8 text-white" />
               </div>
-            ))}
+            </div>
+            <h3 className="font-bold text-xl text-white mb-4">Revenue Channels</h3>
+            <p className="text-white/80 text-sm leading-relaxed">
+              Streaming, downloads, syncs, CRBT — all revenue channels tracked in one
+              unified platform with granular insights and daily updates.
+            </p>
           </div>
 
-          {/* Waveform chart mock */}
-          <div className="flex items-end gap-1 h-16 opacity-40">
-            {[30,55,40,70,60,80,50,90,65,75,45,85,60,70,40,95,55,80,60,75,50,88,65,70,45,92,58].map((h, i) => (
-              <div
-                key={i}
-                className="flex-1 rounded-t animated-gradient-bg transition-all duration-300 hover:opacity-80"
-                style={{ height: `${h}%` }}
-              />
-            ))}
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-2 text-right">Monthly streaming revenue by week</p>
         </div>
+
       </div>
     </section>
   );
