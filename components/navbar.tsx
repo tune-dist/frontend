@@ -19,7 +19,7 @@ export default function Navbar() {
   }, []);
 
   const navLinks = [
-    { name: "Home", href: "#home" },
+    { name: "Home", href: "/" },
     { name: "Features", href: "#features" },
     { name: "Smart Music", href: "/smart-music" },
     { name: "Royalty Splits", href: "/royalty-splits" },
@@ -39,7 +39,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <div className="flex-shrink-011">
-            <a href="#home">
+            <a href="/">
               <img
                 src="/logo.png"
                 alt="KratoLib"

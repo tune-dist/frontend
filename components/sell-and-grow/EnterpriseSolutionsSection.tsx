@@ -7,19 +7,19 @@ export default function EnterpriseSolutionsSection() {
     <section className="py-24 sm:py-32 bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="grid md:grid-cols-2 gap-16 lg:gap-24 items-center">
-          
+
           {/* Left: Content */}
           <div>
             <h2 className="text-4xl sm:text-5xl font-bold font_heading mb-6 tracking-tight leading-[1.1]">
               Label &amp; Professional Artist <br className="hidden sm:block" />
-              <span className="text-cyan-400 italic">Solutions</span>
+              <span className="animated-gradient">Solutions</span>
             </h2>
-            
-            <p className="text-muted-foreground text-sm sm:text-lg leading-relaxed mb-10 max-w-md">
-              Managing a large catalog? Our enterprise-grade dashboard provides the 
+
+            <p className="text-muted-foreground text-sm sm:text-lg leading-relaxed mb-10 max-w-lg">
+              Managing a large catalog? Our enterprise-grade dashboard provides the
               control you need to scale your music business efficiently.
             </p>
-            
+
             <div className="space-y-8">
               {[
                 {
@@ -39,8 +39,8 @@ export default function EnterpriseSolutionsSection() {
                 }
               ].map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="flex gap-5 group">
-                  <div className="h-12 w-12 rounded-2xl bg-muted/40 flex items-center justify-center shrink-0 border border-border/50 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 transition-colors">
-                    <Icon className="h-6 w-6 text-cyan-400" />
+                  <div className="h-12 w-12 rounded-2xl bg-muted/40 flex items-center justify-center shrink-0 border border-border/50 group-hover:border-violet-500/30 group-hover:bg-violet-500/10 transition-colors">
+                    <Icon className="h-6 w-6 text-violet-500" />
                   </div>
                   <div>
                     <h4 className="font-bold text-foreground text-base mb-1">{title}</h4>

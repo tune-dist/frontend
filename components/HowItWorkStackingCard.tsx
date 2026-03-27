@@ -34,7 +34,7 @@ export default function HowItWorkStackingCard() {
             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[500px] h-[500px] bg-violet-500/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
             <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
 
-            <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Heading */}
                 <motion.div
                     className="text-center mb-20"

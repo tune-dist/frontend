@@ -72,7 +72,7 @@ export default function SmartMusicFeatures() {
           />
         </div>
 
-        <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-xs text-muted-foreground mb-4">
               <BarChart3 className="h-3.5 w-3.5 text-blue-400" />
@@ -134,7 +134,7 @@ export default function SmartMusicFeatures() {
             style={{ background: "radial-gradient(circle, #ec4899 0%, transparent 70%)" }}
           />
         </div>
-        <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-xs text-muted-foreground mb-4">
               <Layers className="h-3.5 w-3.5 text-pink-400" />

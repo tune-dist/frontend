@@ -4,7 +4,7 @@ import { Sparkles, Timer, ArrowRight, Play } from "lucide-react";
 
 export default function SellAndGrowHero() {
   return (
-    <section className="relative flex items-center justify-center overflow-hidden bg-background py-24">
+    <section className="relative flex items-center justify-center overflow-hidden bg-background py-24 !pt-[150px]">
       {/* Background orbs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
@@ -50,18 +50,18 @@ export default function SellAndGrowHero() {
 
         {/* Hero Visual Card */}
         <div className="relative">
-          <div className="aspect-video rounded-[2rem] overflow-hidden shadow-2xl shadow-cyan-500/10 border border-border/40 relative z-0">
+          <div className="aspect-video rounded-[2rem] overflow-hidden shadow-2xl shadow-violet-500/10 border border-border/40 relative z-0">
             <div className="absolute inset-0 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuBZqK0BAzij31z1pqByiovSY3o2fi3ia-s6LU-K2xI6WmPD3HbkEAprGlwO9oPskv9_-he7Jjyf0i1zRvMm3XtVsy5HnLVNd-RvpHjtSXDgxOFPdi6_-tZq-c5GmHj4yCqX67rvKAyTZiBlwyHBiOSw4c2EcFzUUfS_2rDG5MRQ1t6iCFc6iwq8J0q3hvlaK-u7DGvTTRdFcR4F207COH1rcRzLawcB8b-hy0PIos5454OLIPsRUuOCc0bjdK2nZt6cdsKos858K_c')] bg-cover bg-center grayscale hover:grayscale-0 transition-all duration-700"></div>
           </div>
 
           {/* Floating Stats Card */}
-          <div className="absolute -bottom-8 -left-4 sm:-left-8 bg-muted/60 backdrop-blur-2xl p-6 rounded-2xl border border-cyan-500/20 max-w-[240px] shadow-2xl z-10 w-full text-foreground">
+          <div className="absolute -bottom-8 -left-4 sm:-left-8 bg-muted/60 backdrop-blur-2xl p-6 rounded-2xl border border-violet-500/20 max-w-[240px] shadow-2xl z-10 w-full text-foreground">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
-                <Timer className="h-6 w-6 text-cyan-400" />
+              <div className="w-12 h-12 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0">
+                <Timer className="h-6 w-6 text-violet-400" />
               </div>
               <div>
-                <div className="text-2xl font-bold font_heading text-cyan-400">24h</div>
+                <div className="text-2xl font-bold font_heading text-violet-400">24h</div>
                 <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mt-0.5">Velocity Delivery</div>
               </div>
             </div>

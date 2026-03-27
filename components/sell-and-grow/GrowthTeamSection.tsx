@@ -22,7 +22,7 @@ export default function GrowthTeamSection() {
           <div className="md:col-span-5 space-y-8 order-1 md:order-2 pl-0 md:pl-8 lg:pl-10">
             <h2 className="text-4xl sm:text-5xl font-bold font_heading leading-[1.1]">
               New Artist Special <br />
-              <span className="text-indigo-400 italic">Growth Team</span>
+              <span className="animated-gradient">Growth Team</span>
             </h2>
 
             <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
