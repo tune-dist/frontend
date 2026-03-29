@@ -278,12 +278,15 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     // Lock body scroll when modal is open
     useEffect(() => {
         if (isOpen) {
-            document.body.style.overflow = 'hidden'
+            document.body.style.setProperty('overflow', 'hidden', 'important')
+            document.documentElement.style.setProperty('overflow', 'hidden', 'important')
         } else {
-            document.body.style.overflow = 'unset'
+            document.body.style.overflow = ''
+            document.documentElement.style.overflow = ''
         }
         return () => {
-            document.body.style.overflow = 'unset'
+            document.body.style.overflow = ''
+            document.documentElement.style.overflow = ''
         }
     }, [isOpen])
 
@@ -521,7 +524,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     </Button>
                 </div>
 
-                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 overscroll-contain" data-lenis-prevent="true">
                     <p className="text-sm text-muted-foreground">Configure metadata for this track</p>
 
                     {/* Track Title */}
@@ -755,20 +758,33 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                     ) : (
                                                         (() => {
                                                             // Resolve the selected profile object or string
-                                                            let selected: any = searchResults.spotify.find(a => a.id === modalSpotifyProfile);
+                                                            let selected: any = null;
 
-                                                            // Fallback to mainArtistProfiles
-                                                            if (!selected && mainArtistProfiles?.spotify) {
-                                                                if (typeof mainArtistProfiles.spotify === 'object' && mainArtistProfiles.spotify.id === modalSpotifyProfile) {
-                                                                    selected = mainArtistProfiles.spotify;
-                                                                } else if (typeof mainArtistProfiles.spotify === 'string' && mainArtistProfiles.spotify === modalSpotifyProfile) {
-                                                                    selected = mainArtistProfiles.spotify;
-                                                                }
+                                                            if (typeof modalSpotifyProfile === 'object' && modalSpotifyProfile !== null) {
+                                                                selected = modalSpotifyProfile;
                                                             }
 
-                                                            // Fallback: If modalSpotifyProfile is just a string (not ID in search), treat as string profile
                                                             if (!selected && typeof modalSpotifyProfile === 'string' && modalSpotifyProfile.length > 0 && modalSpotifyProfile !== 'new') {
-                                                                selected = modalSpotifyProfile;
+                                                                selected = searchResults.spotify.find(a => a.id === modalSpotifyProfile || a.externalUrl === modalSpotifyProfile);
+                                                                
+                                                                if (!selected && modalArtistSearch === mainArtistName && mainArtistProfiles?.spotify) {
+                                                                    if (typeof mainArtistProfiles.spotify === 'object' && (mainArtistProfiles.spotify.id === modalSpotifyProfile || mainArtistProfiles.spotify.url === modalSpotifyProfile || mainArtistProfiles.spotify.externalUrl === modalSpotifyProfile)) {
+                                                                        selected = mainArtistProfiles.spotify;
+                                                                    }
+                                                                }
+
+                                                                if (!selected && usedArtists && usedArtists.length > 0) {
+                                                                    const ua = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch);
+                                                                    if (ua && typeof ua === 'object' && typeof ua.spotifyProfile === 'object' && ua.spotifyProfile !== null) {
+                                                                        if (ua.spotifyProfile.id === modalSpotifyProfile || ua.spotifyProfile.url === modalSpotifyProfile || ua.spotifyProfile.externalUrl === modalSpotifyProfile) {
+                                                                            selected = ua.spotifyProfile;
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                                if (!selected) {
+                                                                    selected = modalSpotifyProfile;
+                                                                }
                                                             }
 
                                                             if (!selected) return null;
@@ -777,16 +793,24 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                             if (typeof selected === 'string') {
                                                                 return (
                                                                     <div className="flex items-center gap-3">
-                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                                            <svg className="h-5 w-5 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
-                                                                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                                                                            </svg>
-                                                                        </div>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <p className="font-medium text-primary">Profile Linked</p>
-                                                                            <p className="text-sm text-muted-foreground truncate" title={selected}>{selected}</p>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1">
+                                                                        <a
+                                                                            href={selected.startsWith('http') ? selected : undefined}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+                                                                            style={{ cursor: selected.startsWith('http') ? 'pointer' : 'default' }}
+                                                                        >
+                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                                                                <svg className="h-5 w-5 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
+                                                                                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                                                                                </svg>
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="font-medium text-primary hover:underline">{modalArtistSearch || 'Profile Linked'}</p>
+                                                                                <p className="text-sm text-muted-foreground truncate" title={selected}>Profile Linked: {selected}</p>
+                                                                            </div>
+                                                                        </a>
+                                                                        <div className="flex items-center gap-1 shrink-0">
                                                                             <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
                                                                             {!['free', 'solo'].includes(user?.plan || '') && (
                                                                                 <button
@@ -803,20 +827,29 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                             }
 
                                                             // Object Case
+                                                            const profileUrl = selected.externalUrl || selected.url || selected.channelUrl;
                                                             return (
                                                                 <div className="flex items-center gap-3">
-                                                                    {selected.image ? (
-                                                                        <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover" />
-                                                                    ) : (
-                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                                            <Music className="h-5 w-5 text-muted-foreground" />
+                                                                    <a 
+                                                                        href={profileUrl || undefined}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+                                                                        style={{ cursor: profileUrl ? 'pointer' : 'default' }}
+                                                                    >
+                                                                        {selected.image ? (
+                                                                            <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                                                                        ) : (
+                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                                                                <Music className="h-5 w-5 text-muted-foreground" />
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className={`font-medium text-primary ${profileUrl ? 'hover:underline' : ''} truncate`}>{selected.name}</p>
+                                                                            <p className="text-sm text-muted-foreground truncate">{(selected.followers || 0).toLocaleString()} followers</p>
                                                                         </div>
-                                                                    )}
-                                                                    <div className="flex-1">
-                                                                        <p className="font-medium text-primary">{selected.name}</p>
-                                                                        <p className="text-sm text-muted-foreground">{(selected.followers || 0).toLocaleString()} followers</p>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1">
+                                                                    </a>
+                                                                    <div className="flex items-center gap-1 shrink-0">
                                                                         <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
                                                                         {!['free', 'solo'].includes(user?.plan || '') && (
                                                                             <button
@@ -915,19 +948,33 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                         </div>
                                                     ) : (
                                                         (() => {
-                                                            let selected: any = searchResults.apple.find(a => a.id === modalAppleMusicProfile);
+                                                            let selected: any = null;
 
-                                                            // Fallback to mainArtistProfiles
-                                                            if (!selected && mainArtistProfiles?.apple) {
-                                                                if (typeof mainArtistProfiles.apple === 'object' && mainArtistProfiles.apple.id === modalAppleMusicProfile) {
-                                                                    selected = mainArtistProfiles.apple;
-                                                                } else if (typeof mainArtistProfiles.apple === 'string' && mainArtistProfiles.apple === modalAppleMusicProfile) {
-                                                                    selected = mainArtistProfiles.apple;
-                                                                }
+                                                            if (typeof modalAppleMusicProfile === 'object' && modalAppleMusicProfile !== null) {
+                                                                selected = modalAppleMusicProfile;
                                                             }
 
                                                             if (!selected && typeof modalAppleMusicProfile === 'string' && modalAppleMusicProfile.length > 0 && modalAppleMusicProfile !== 'new') {
-                                                                selected = modalAppleMusicProfile;
+                                                                selected = searchResults.apple.find(a => a.id === modalAppleMusicProfile || a.url === modalAppleMusicProfile);
+                                                                
+                                                                if (!selected && modalArtistSearch === mainArtistName && mainArtistProfiles?.apple) {
+                                                                    if (typeof mainArtistProfiles.apple === 'object' && (mainArtistProfiles.apple.id === modalAppleMusicProfile || mainArtistProfiles.apple.url === modalAppleMusicProfile)) {
+                                                                        selected = mainArtistProfiles.apple;
+                                                                    }
+                                                                }
+
+                                                                if (!selected && usedArtists && usedArtists.length > 0) {
+                                                                    const ua = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch);
+                                                                    if (ua && typeof ua === 'object' && typeof ua.appleMusicProfile === 'object' && ua.appleMusicProfile !== null) {
+                                                                        if (ua.appleMusicProfile.id === modalAppleMusicProfile || ua.appleMusicProfile.url === modalAppleMusicProfile) {
+                                                                            selected = ua.appleMusicProfile;
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                                if (!selected) {
+                                                                    selected = modalAppleMusicProfile;
+                                                                }
                                                             }
 
                                                             if (!selected) return null;
@@ -935,16 +982,24 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                             if (typeof selected === 'string') {
                                                                 return (
                                                                     <div className="flex items-center gap-3">
-                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                                            <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
-                                                                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.227 15.653c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08z" />
-                                                                            </svg>
-                                                                        </div>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <p className="font-medium text-primary">Profile Linked</p>
-                                                                            <p className="text-sm text-muted-foreground truncate" title={selected}>{selected}</p>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1">
+                                                                        <a
+                                                                            href={selected.startsWith('http') ? selected : undefined}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+                                                                            style={{ cursor: selected.startsWith('http') ? 'pointer' : 'default' }}
+                                                                        >
+                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                                                                <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
+                                                                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.227 15.653c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08z" />
+                                                                                </svg>
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="font-medium text-primary hover:underline">{modalArtistSearch || 'Profile Linked'}</p>
+                                                                                <p className="text-sm text-muted-foreground truncate" title={selected}>Profile Linked: {selected}</p>
+                                                                            </div>
+                                                                        </a>
+                                                                        <div className="flex items-center gap-1 shrink-0">
                                                                             <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
                                                                             {!['free', 'solo'].includes(user?.plan || '') && (
                                                                                 <button
@@ -960,20 +1015,29 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                                 )
                                                             }
 
+                                                            const profileUrl = selected.externalUrl || selected.url || selected.channelUrl;
                                                             return (
                                                                 <div className="flex items-center gap-3">
-                                                                    {selected.image ? (
-                                                                        <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover" />
-                                                                    ) : (
-                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                                                    <a 
+                                                                        href={profileUrl || undefined}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+                                                                        style={{ cursor: profileUrl ? 'pointer' : 'default' }}
+                                                                    >
+                                                                        {selected.image ? (
+                                                                            <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                                                                        ) : (
+                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
                                                                             <Music className="h-5 w-5 text-muted-foreground" />
                                                                         </div>
-                                                                    )}
-                                                                    <div className="flex-1">
-                                                                        <p className="font-medium text-primary">{selected.name}</p>
-                                                                        <p className="text-sm text-muted-foreground">{selected.track || 'Apple Music Artist'}</p>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1">
+                                                                        )}
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className={`font-medium text-primary ${profileUrl ? 'hover:underline' : ''} truncate`}>{selected.name}</p>
+                                                                            <p className="text-sm text-muted-foreground truncate">{selected.track || 'Apple Music Artist'}</p>
+                                                                        </div>
+                                                                    </a>
+                                                                    <div className="flex items-center gap-1 shrink-0">
                                                                         <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
                                                                         {!['free', 'solo'].includes(user?.plan || '') && (
                                                                             <button
@@ -1072,19 +1136,33 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                         </div>
                                                     ) : (
                                                         (() => {
-                                                            let selected: any = searchResults.youtube.find(a => a.id === modalYoutubeProfile);
+                                                            let selected: any = null;
 
-                                                            // Fallback to mainArtistProfiles
-                                                            if (!selected && mainArtistProfiles?.youtube) {
-                                                                if (typeof mainArtistProfiles.youtube === 'object' && mainArtistProfiles.youtube.id === modalYoutubeProfile) {
-                                                                    selected = mainArtistProfiles.youtube;
-                                                                } else if (typeof mainArtistProfiles.youtube === 'string' && mainArtistProfiles.youtube === modalYoutubeProfile) {
-                                                                    selected = mainArtistProfiles.youtube;
-                                                                }
+                                                            if (typeof modalYoutubeProfile === 'object' && modalYoutubeProfile !== null) {
+                                                                selected = modalYoutubeProfile;
                                                             }
 
                                                             if (!selected && typeof modalYoutubeProfile === 'string' && modalYoutubeProfile.length > 0 && modalYoutubeProfile !== 'new') {
-                                                                selected = modalYoutubeProfile;
+                                                                selected = searchResults.youtube.find(a => a.id === modalYoutubeProfile || a.channelUrl === modalYoutubeProfile || a.url === modalYoutubeProfile);
+
+                                                                if (!selected && modalArtistSearch === mainArtistName && mainArtistProfiles?.youtube) {
+                                                                    if (typeof mainArtistProfiles.youtube === 'object' && (mainArtistProfiles.youtube.id === modalYoutubeProfile || mainArtistProfiles.youtube.url === modalYoutubeProfile || mainArtistProfiles.youtube.externalUrl === modalYoutubeProfile || mainArtistProfiles.youtube.channelUrl === modalYoutubeProfile)) {
+                                                                        selected = mainArtistProfiles.youtube;
+                                                                    }
+                                                                }
+
+                                                                if (!selected && usedArtists && usedArtists.length > 0) {
+                                                                    const ua = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch);
+                                                                    if (ua && typeof ua === 'object' && typeof ua.youtubeMusicProfile === 'object' && ua.youtubeMusicProfile !== null) {
+                                                                        if (ua.youtubeMusicProfile.id === modalYoutubeProfile || ua.youtubeMusicProfile.url === modalYoutubeProfile || ua.youtubeMusicProfile.channelUrl === modalYoutubeProfile) {
+                                                                            selected = ua.youtubeMusicProfile;
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                                if (!selected) {
+                                                                    selected = modalYoutubeProfile;
+                                                                }
                                                             }
 
                                                             if (!selected) return null;
@@ -1092,16 +1170,24 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                             if (typeof selected === 'string') {
                                                                 return (
                                                                     <div className="flex items-center gap-3">
-                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                                            <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
-                                                                                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-                                                                            </svg>
-                                                                        </div>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <p className="font-medium text-primary">Profile Linked</p>
-                                                                            <p className="text-sm text-muted-foreground truncate" title={selected}>{selected}</p>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1">
+                                                                        <a
+                                                                            href={selected.startsWith('http') ? selected : undefined}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+                                                                            style={{ cursor: selected.startsWith('http') ? 'pointer' : 'default' }}
+                                                                        >
+                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                                                                <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
+                                                                                    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+                                                                                </svg>
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="font-medium text-primary hover:underline">{modalArtistSearch || 'Profile Linked'}</p>
+                                                                                <p className="text-sm text-muted-foreground truncate" title={selected}>Profile Linked: {selected}</p>
+                                                                            </div>
+                                                                        </a>
+                                                                        <div className="flex items-center gap-1 shrink-0">
                                                                             <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
                                                                             {!['free', 'solo'].includes(user?.plan || '') && (
                                                                                 <button
@@ -1117,20 +1203,29 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                                 )
                                                             }
 
+                                                            const profileUrl = selected.externalUrl || selected.url || selected.channelUrl;
                                                             return (
                                                                 <div className="flex items-center gap-3">
-                                                                    {selected.image ? (
-                                                                        <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover" />
-                                                                    ) : (
-                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                                                    <a 
+                                                                        href={profileUrl || undefined}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+                                                                        style={{ cursor: profileUrl ? 'pointer' : 'default' }}
+                                                                    >
+                                                                        {selected.image ? (
+                                                                            <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                                                                        ) : (
+                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
                                                                             <Music className="h-5 w-5 text-muted-foreground" />
                                                                         </div>
-                                                                    )}
-                                                                    <div className="flex-1">
-                                                                        <p className="font-medium text-primary">{selected.name}</p>
-                                                                        <p className="text-sm text-muted-foreground">{selected.track || 'YouTube Channel'}</p>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1">
+                                                                        )}
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className={`font-medium text-primary ${profileUrl ? 'hover:underline' : ''} truncate`}>{selected.name}</p>
+                                                                            <p className="text-sm text-muted-foreground truncate">{selected.track || 'YouTube Channel'}</p>
+                                                                        </div>
+                                                                    </a>
+                                                                    <div className="flex items-center gap-1 shrink-0">
                                                                         <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
                                                                         {!['free', 'solo'].includes(user?.plan || '') && (
                                                                             <button

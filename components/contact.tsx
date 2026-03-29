@@ -76,7 +76,7 @@ export default function Contact() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.6 }}
                 >
-                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading">
                         Get in{' '}
                         <span className="animated-gradient">Touch</span>
                     </h2>
@@ -158,7 +158,7 @@ export default function Contact() {
                                         />
                                     </div>
 
-                                    <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                                    <Button type="submit" className="w-full animated-gradient-bg border-0 text-white" size="lg" disabled={isLoading}>
                                         {isLoading ? (
                                             <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

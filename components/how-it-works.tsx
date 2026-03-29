@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Upload, Music, DollarSign } from 'lucide-react'
+import HowItWorkStackingCard from './HowItWorkStackingCard'
 
 const steps = [
   {
@@ -29,27 +30,36 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section className="py-20 md:py-32 bg-muted/30 relative overflow-hidden">
+    <section className="py-5 md:py-5 bg-background relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
-            How It{' '}
-            <span className="animated-gradient">
-              Works
-            </span>
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Get your music out there in three simple steps.
-          </p>
-        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 relative">
+
+        {/* <ScrollStack
+          useWindowScroll
+          stackPosition='20%'
+          itemDistance={0}
+          itemStackDistance={20}
+          baseScale={0.8}
+        >
+          <ScrollStackItem itemClassName='bg-black border border-gray-800'>
+            <h2>Card 1</h2>
+            <p>This is the first card in the stack</p>
+          </ScrollStackItem>
+          <ScrollStackItem itemClassName='bg-black border border-gray-800'>
+            <h2>Card 2</h2>
+            <p>This is the second card in the stack</p>
+          </ScrollStackItem>
+          <ScrollStackItem itemClassName='bg-black border border-gray-800'>
+            <h2>Card 3</h2>
+            <p>This is the third card in the stack</p>
+          </ScrollStackItem>
+        </ScrollStack> */}
+
+        <HowItWorkStackingCard />
+
+
+
+        <div style={{ display: 'none' }} className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 relative hidden">
           {/* Connection Line for Desktop */}
           <div className="hidden md:block absolute top-24 left-0 right-0 h-0.5 animated-gradient-bg opacity-30" />
 

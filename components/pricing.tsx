@@ -9,6 +9,7 @@ import { Check, Loader2 } from 'lucide-react'
 import { getAllPlans, Plan } from '@/lib/api/plans'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import Cookies from 'js-cookie'
+import ElectricBorder from '@/components/ElectricBorder'
 
 export default function Pricing() {
   const [plans, setPlans] = useState<Plan[]>([])
@@ -65,7 +66,7 @@ export default function Pricing() {
 
   if (loading) {
     return (
-      <section className="py-20 md:py-32 bg-muted/30 relative">
+      <section className="py-20 md:py-32 bg-background relative">
         <div className="container mx-auto px-4 text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="mt-2 text-muted-foreground">Loading pricing...</p>
@@ -77,7 +78,7 @@ export default function Pricing() {
   return (
     <section
       id="pricing"
-      className="py-20 md:py-32 bg-muted/30 relative"
+      className="py-20 md:py-35 bg-background relative"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
@@ -87,7 +88,7 @@ export default function Pricing() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading">
             Simple, Transparent{' '}
             <span className="animated-gradient">
               Pricing
@@ -119,53 +120,93 @@ export default function Pricing() {
                     </span>
                   </div>
                 )}
-                <Card
-                  className={`w-full flex flex-col ${plan.isPopular
-                    ? 'border-primary border-2 shadow-xl shadow-primary/30 relative z-[5]'
-                    : 'border-border/50 hover:border-border/80 transition-colors'
-                    }`}
-                >
-                  <CardHeader className="text-center pb-6 pt-6">
-                    <CardTitle className="text-xl mb-2">{plan.title}</CardTitle>
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-3xl font-bold">{plan.priceDisplay}</span>
-                      {plan.period && (
-                        <span className="text-muted-foreground text-sm">{plan.period}</span>
-                      )}
-                    </div>
-                    <CardDescription className="mt-2 text-sm min-h-[40px]">
-                      {plan.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow pt-0">
-                    <ul className="space-y-3">
-                      {plan.features?.map((feature) => (
-                        <li key={feature} className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                          <span className="text-muted-foreground text-sm">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <CardFooter className="mt-auto pt-4">
-                    <Button
-                      variant={plan.isPopular ? 'default' : 'outline'}
-                      className={`w-full ${plan.isPopular ? 'animated-gradient-bg border-0' : ''}`}
-                      size="default"
-                      onClick={() => handlePlanSelect(plan)}
-                      disabled={isProcessing}
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        plan.ctaLabel || 'Get Started'
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
+                {plan.isPopular ? (
+                  <Card className="w-full flex flex-col border border-violet-500/90 shadow-xl shadow-violet-500/20 bg-background/80 relative z-[5]">
+                    <CardHeader className="text-center pb-6 pt-6">
+                      <CardTitle className="text-xl mb-2">{plan.title}</CardTitle>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-3xl font-bold">{plan.priceDisplay}</span>
+                        {plan.period && (
+                          <span className="text-muted-foreground text-sm">{plan.period}</span>
+                        )}
+                      </div>
+                      <CardDescription className="mt-2 text-sm min-h-[40px]">
+                        {plan.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow pt-0">
+                      <ul className="space-y-3">
+                        {plan.features?.map((feature) => (
+                          <li key={feature} className="flex items-start gap-2">
+                            <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            <span className="text-muted-foreground text-sm">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                    <CardFooter className="mt-auto pt-4">
+                      <Button
+                        variant="default"
+                        className="w-full animated-gradient-bg border-0 text-white"
+                        size="default"
+                        onClick={() => handlePlanSelect(plan)}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          plan.ctaLabel || 'Get Started'
+                        )}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ) : (
+                  <Card className="w-full flex flex-col border-border/50 hover:border-border/80 transition-colors">
+                    <CardHeader className="text-center pb-6 pt-6">
+                      <CardTitle className="text-xl mb-2">{plan.title}</CardTitle>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-3xl font-bold">{plan.priceDisplay}</span>
+                        {plan.period && (
+                          <span className="text-muted-foreground text-sm">{plan.period}</span>
+                        )}
+                      </div>
+                      <CardDescription className="mt-2 text-sm min-h-[40px]">
+                        {plan.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow pt-0">
+                      <ul className="space-y-2">
+                        {plan.features?.map((feature) => (
+                          <li key={feature} className="flex items-start gap-2">
+                            <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            <span className="text-muted-foreground text-sm">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                    <CardFooter className="mt-auto pt-4">
+                      <Button
+                        variant="outline"
+                        className="w-full hover:bg-white hover:text-black"
+                        size="default"
+                        onClick={() => handlePlanSelect(plan)}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          plan.ctaLabel || 'Get Started'
+                        )}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                )}
               </motion.div>
             )
           })}
