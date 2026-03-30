@@ -68,7 +68,7 @@ export default function Features() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                transition={{ duration: 0.6, delay: index * 1 }}
               >
                 <SpotlightCard className="custom-spotlight-card !p-2 h-full" spotlightColor="rgba(134, 96, 250, 0.2)">
                   <Card className="h-full bg-transparent border-0">

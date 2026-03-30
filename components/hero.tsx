@@ -182,6 +182,7 @@ export default function Hero() {
           <div className="w-1 h-3 bg-foreground/50 rounded-full mt-2" />
         </div>
       </motion.div>
+      <div className='hero_bg_gredient'></div>
     </section>
   )
 }
