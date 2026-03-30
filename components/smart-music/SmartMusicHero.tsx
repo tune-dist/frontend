@@ -110,21 +110,6 @@ export default function SmartMusicHero() {
           </a>
         </div>
 
-        {/* Animated waveform bar */}
-        <div className="flex items-end justify-center gap-1 h-14 opacity-20 mb-8">
-          {[4, 7, 10, 6, 9, 13, 8, 5, 11, 7, 4, 9, 6, 10, 5, 8, 12, 7, 4, 9, 6, 11, 5, 8, 4, 7, 10].map((h, i) => (
-            <span
-              key={i}
-              className="w-1.5 rounded-full animated-gradient-bg"
-              style={{
-                height: `${h * 4}px`,
-                animation: `waveBar ${0.7 + (i % 6) * 0.18}s ease-in-out infinite`,
-                animationDelay: `${i * 0.04}s`,
-              }}
-            />
-          ))}
-        </div>
-
 
       </div>
     </section>

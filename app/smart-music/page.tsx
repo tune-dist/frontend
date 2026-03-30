@@ -5,7 +5,6 @@ import SmartMusicHero from "@/components/smart-music/SmartMusicHero";
 import SmartMusicDistribution from "@/components/smart-music/SmartMusicDistribution";
 import SmartMusicAIEngine from "@/components/smart-music/SmartMusicAIEngine";
 import SmartMusicTechnology from "@/components/smart-music/SmartMusicTechnology";
-import SmartMusicFeatures from "@/components/smart-music/SmartMusicFeatures";
 import SmartMusicCTA from "@/components/smart-music/SmartMusicCTA";
 
 export const metadata: Metadata = {
@@ -22,7 +21,6 @@ export default function SmartMusicPage() {
       <SmartMusicDistribution />
       <SmartMusicAIEngine />
       <SmartMusicTechnology />
-      <SmartMusicFeatures />
       <SmartMusicCTA />
       <Footer />
     </main>
