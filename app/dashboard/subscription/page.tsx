@@ -173,10 +173,12 @@ export default function SubscriptionPage() {
                                 )}
                             </div>
 
-                            <Button onClick={handleUpgrade} className="flex items-center gap-2">
-                                {isFreePlan ? 'Upgrade Plan' : 'Change Plan'}
-                                <ArrowUpRight className="h-4 w-4" />
-                            </Button>
+                            {userInfo?.plan !== 'enterprise' && (
+                                <Button onClick={handleUpgrade} className="flex items-center gap-2">
+                                    {isFreePlan ? 'Upgrade Plan' : 'Change Plan'}
+                                    <ArrowUpRight className="h-4 w-4" />
+                                </Button>
+                            )}
                         </div>
 
                         {/* Plan Features */}

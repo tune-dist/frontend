@@ -45,15 +45,17 @@ export default function TopNavbar() {
       {/* Right Side Actions */}
       <div className="flex items-center gap-2 ml-auto">
         {/* Upgrade Button */}
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-primary hover:text-primary hover:bg-primary/10 gap-2 font-bold"
-          onClick={openUpgradeModal}
-        >
-          <Zap className="h-4 w-4 fill-primary" />
-          <span className="hidden sm:inline">Upgrade Plan</span>
-        </Button>
+        {user?.plan !== 'enterprise' && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-primary hover:text-primary hover:bg-primary/10 gap-2 font-bold"
+            onClick={openUpgradeModal}
+          >
+            <Zap className="h-4 w-4 fill-primary" />
+            <span className="hidden sm:inline">Upgrade Plan</span>
+          </Button>
+        )}
 
         {/* Upload Button */}
         <Link href="/dashboard/upload">

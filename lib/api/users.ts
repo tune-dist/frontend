@@ -25,6 +25,16 @@ export interface UpdateProfileData {
     filename: string;
     uploadedAt: Date;
   };
+  passport?: {
+    url: string;
+    filename: string;
+    uploadedAt: Date;
+  };
+  selfieWithPassport?: {
+    url: string;
+    filename: string;
+    uploadedAt: Date;
+  };
 }
 
 // Get user profile

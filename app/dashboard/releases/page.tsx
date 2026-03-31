@@ -6,8 +6,6 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/dashboard-layout";
-import { getPromotionByReleaseId } from "@/lib/api/promotions";
-import { FormatSelectionDialog } from "@/components/promotion/format-selection-dialog";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -92,16 +90,15 @@ export default function ReleasesPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [formatDialogOpen, setFormatDialogOpen] = useState(false);
-  const [selectedReleaseForPromo, setSelectedReleaseForPromo] = useState<string | null>(null);
-  const [promotions, setPromotions] = useState<Map<string, any>>(new Map());
+
   const { user } = useAuth();
   const router = useRouter();
 
   const isPrivileged =
     user?.role === "super_admin" ||
     user?.role === "admin" ||
-    user?.role === "release_manager";
+    user?.role === "release_manager" ||
+    user?.plan === "enterprise";
 
   const fetchReleases = async () => {
     try {
@@ -117,21 +114,7 @@ export default function ReleasesPage() {
       const response = await getReleases(params);
       setReleases(response.releases);
 
-      // Fetch promotions for all releases
-      const promoMap = new Map();
-      await Promise.all(
-        response.releases.map(async (release: Release) => {
-          try {
-            const promo = await getPromotionByReleaseId(release._id);
-            if (promo) {
-              promoMap.set(release._id, promo);
-            }
-          } catch (e) {
-            // No promotion exists for this release
-          }
-        })
-      );
-      setPromotions(promoMap);
+
     } catch (error) {
       toast.error("Failed to fetch releases");
       console.error(error);
@@ -223,16 +206,7 @@ export default function ReleasesPage() {
     }
   };
 
-  const handlePromoteClick = (releaseId: string) => {
-    setSelectedReleaseForPromo(releaseId);
-    setFormatDialogOpen(true);
-  };
 
-  const handleFormatSelect = (format: string) => {
-    if (selectedReleaseForPromo) {
-      router.push(`/dashboard/promotion/${selectedReleaseForPromo}?format=${format}`);
-    }
-  };
 
   const statusFilters: { value: StatusFilter; label: string }[] = [
     { value: "all", label: "All" },
@@ -387,36 +361,7 @@ export default function ReleasesPage() {
                                 <Link href={`/dashboard/releases/${release._id}`}>
                                   <Button variant="ghost" size="sm" title="View details"><Eye className="h-4 w-4" /></Button>
                                 </Link>
-                                {(release.status === "Released" || release.status === "Approved") && (
-                                  <>
-                                    {promotions.has(release._id) ? (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        title="Copy promotion link"
-                                        className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
-                                        onClick={async () => {
-                                          const promo = promotions.get(release._id);
-                                          const url = `${window.location.origin}/p/${promo.slug}`;
-                                          await navigator.clipboard.writeText(url);
-                                          toast.success("Promotion link copied to clipboard!");
-                                        }}
-                                      >
-                                        <ExternalLink className="h-4 w-4" />
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        title="Promote"
-                                        className="text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                                        onClick={() => handlePromoteClick(release._id)}
-                                      >
-                                        <Sparkles className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                  </>
-                                )}
+
                                 {release.status === "In Process" && (
                                   <Button variant="ghost" size="sm" onClick={() => handleDelete(release._id)} className="text-red-500 hover:bg-red-500/10"><Trash2 className="h-4 w-4" /></Button>
                                 )}
@@ -451,11 +396,7 @@ export default function ReleasesPage() {
         </AnimatePresence>
       </motion.div>
 
-      <FormatSelectionDialog
-        open={formatDialogOpen}
-        onClose={() => setFormatDialogOpen(false)}
-        onSelect={handleFormatSelect}
-      />
+
     </DashboardLayout>
   );
 }
