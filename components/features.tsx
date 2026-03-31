@@ -70,7 +70,7 @@ export default function Features() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 1 }}
               >
-                <SpotlightCard className="custom-spotlight-card !p-2 h-full" spotlightColor="rgba(134, 96, 250, 0.2)">
+                <SpotlightCard className="custom-spotlight-card !p-2 h-full" spotlightColor="rgba(132, 0, 255, 0.5)">
                   <Card className="h-full bg-transparent border-0">
                     <CardHeader>
                       <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">

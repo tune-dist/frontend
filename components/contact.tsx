@@ -13,7 +13,8 @@ import {
     MessageSquare,
     Instagram,
     Youtube,
-    Music2
+    Music2,
+    MapPin
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -23,6 +24,12 @@ const contactInfo = [
         label: 'Email',
         value: 'support@kratolib.com',
         href: 'mailto:support@kratolib.com',
+    },
+    {
+        icon: MapPin,
+        label: 'Office',
+        value: '15/9, Basement - Sarvapriya Vihar, New Delhi, India, 110017',
+        href: 'https://maps.google.com?q=15/9, Basement - Sarvapriya Vihar, New Delhi, India, 110017',
     },
 ]
 
