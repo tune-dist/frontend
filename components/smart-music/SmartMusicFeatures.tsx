@@ -29,6 +29,7 @@ const additionalFeatures = [
     iconBg: "bg-indigo-500/10",
     borderHover: "hover:border-indigo-500/30",
     title: "AI Music Mastering",
+    image: "/assets/images/ai-music-mastering-thumb.png",
     desc: "Master your track using AI mastering technology.",
     items: ["Loudness Optimization", "Platform Ready Sound", "Balanced Output", "Fast Processing"],
   },
@@ -38,6 +39,7 @@ const additionalFeatures = [
     iconBg: "bg-teal-500/10",
     borderHover: "hover:border-teal-500/30",
     title: "Telecom CRBT Distribution",
+    image: "/assets/images/telecom-crbt-distribution.png",
     desc: "Unlock additional revenue through telecom caller tune distribution.",
     items: ["Caller Tune Availability", "Telecom Revenue Channel", "Regional Market Expansion"],
   },
@@ -161,7 +163,7 @@ export default function SmartMusicFeatures() {
                   {/* Image / Graphic Side */}
                   <div className={`w-full md:w-1/2 min-h-[300px] flex items-center justify-center relative overflow-hidden ${isEven ? 'md:order-last' : ''}`}>
                     {image ? (
-                      <img src={image} alt={title} className="w-full h-full object-cover relative z-10 transition-transform duration-700 group-hover:scale-105" />
+                      <img src={image} alt={title} className="relative z-10 max-w-[500px]" />
                     ) : (
                       <div className="relative w-full h-full flex items-center justify-center">
                         <div className={`absolute inset-0 opacity-20 ${iconBg} blur-3xl rounded-full scale-150 transform transition-transform duration-700 group-hover:scale-110`} />
