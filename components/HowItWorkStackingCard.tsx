@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Upload, Music, DollarSign, ArrowRight } from "lucide-react";
+import { Upload, Music, IndianRupee, ArrowRight } from "lucide-react";
 
 const steps = [
     {
@@ -20,7 +20,7 @@ const steps = [
     },
     {
         number: "03",
-        icon: DollarSign,
+        icon: IndianRupee,
         title: "Get Your Royalties",
         description:
             "Track your streams, monitor earnings in real-time, and receive payments directly to your account.",

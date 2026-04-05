@@ -121,7 +121,7 @@ export default function Navbar() {
               </Button>
             </a>
             <a href="/auth?tab=signup">
-              <Button size="default" className="animated-gradient-bg text-white hover:gap-3 transition-all duration-300">
+              <Button size="default" className="animated-gradient-bg text-white transition-all duration-300">
                 Get Started <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 ml-1" />
               </Button>
             </a>

@@ -191,6 +191,16 @@ export default function Contact() {
                         transition={{ duration: 0.6, delay: 0.2 }}
                         className="flex flex-col justify-center"
                     >
+                        <div className="mb-10">
+                            <h3 className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight font_heading">
+                                Tell us what you <br className="hidden md:block" />
+                                need and we'll <br className="hidden md:block" />
+                                <span className='animated-gradient'>reply fast. </span>
+                            </h3>
+                            <p className="text-muted-foreground text-lg mb-0 max-w-md">
+                                Distribution help, custom pricing, marketing retainers, or partnerships—drop a note and we'll route it to the right specialist.
+                            </p>
+                        </div>
                         <div className="space-y-8">
                             {/* Contact Details */}
                             <div className="space-y-6">
@@ -202,7 +212,7 @@ export default function Contact() {
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                                        className="flex items-center gap-4 p-4 rounded-xl bg-card/50 border border-border/50 hover:border-primary/50 transition-all duration-300 group"
+                                        className="flex items-center gap-4 transition-all duration-300 group"
                                     >
                                         <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                                             <item.icon className="h-5 w-5 text-primary" />
