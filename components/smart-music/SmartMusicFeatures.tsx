@@ -20,6 +20,7 @@ const additionalFeatures = [
     iconBg: "bg-pink-500/10",
     borderHover: "hover:border-pink-500/30",
     title: "AI Cover Art Generator",
+    image: "/assets/images/ai-cover-art-generater-thumb.png",
     desc: "Create professional artwork instantly.",
     items: ["AI Generated Artwork", "Professional Quality Output", "Style Suggestions", "Export Ready Files"],
   },
@@ -143,11 +144,11 @@ export default function SmartMusicFeatures() {
               <Layers className="h-3.5 w-3.5 text-pink-400" />
               Platform Tools
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold font_heading mb-4">
+            <h2 className="text-4xl sm:text-5xl font-bold font_heading mb-4">
               Everything You Need{" "}
               <span className="animated-gradient">in One Platform</span>
             </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto text-sm">
+            <p className="text-muted-foreground max-w-lg mx-auto text-base">
               From AI-generated artwork to automatic mastering and telecom CRBT — you have every tool at your fingertips.
             </p>
           </div>
