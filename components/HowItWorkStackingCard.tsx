@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Upload, Music, DollarSign, ArrowRight } from "lucide-react";
+import { Upload, Music, IndianRupee, ArrowRight } from "lucide-react";
 
 const steps = [
     {
@@ -20,7 +20,7 @@ const steps = [
     },
     {
         number: "03",
-        icon: DollarSign,
+        icon: IndianRupee,
         title: "Get Your Royalties",
         description:
             "Track your streams, monitor earnings in real-time, and receive payments directly to your account.",
@@ -29,7 +29,7 @@ const steps = [
 
 export default function HowItWorkStackingCard() {
     return (
-        <section className="relative py-24 md:py-32 bg-background overflow-hidden">
+        <div className="relative py-24 md:py-32 bg-background overflow-hidden">
             {/* Ambient Background Glowing Effects */}
             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[500px] h-[500px] bg-violet-500/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
             <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
@@ -55,7 +55,7 @@ export default function HowItWorkStackingCard() {
                 {/* Grid Layout replacing the Stacking mechanism */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative">
                     {/* Connecting Line visible only on desktop */}
-                    <div className="hidden md:block absolute top-[6.5rem] left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-border to-transparent -z-10" />
+                    <div className="hidden md:block absolute top-1/2 -translate-y-1/2 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-transparent via-border to-transparent -z-10" />
 
                     {steps.map((step, index) => {
                         const Icon = step.icon;
@@ -66,37 +66,31 @@ export default function HowItWorkStackingCard() {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.5, delay: index * 0.2 }}
-                                className="group relative flex flex-col items-center text-center focus-within:outline-none"
+                                className="group relative flex flex-col focus-within:outline-none"
                             >
                                 {/* Step card */}
-                                <div className="w-full h-full relative bg-card/40 backdrop-blur-sm border border-border/50 rounded-3xl p-8 hover:border-violet-500/40 transition-colors duration-500 overflow-hidden">
-                                    {/* Subtle hover gradient inside card */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                                    {/* Icon Container */}
-                                    <div className="relative mb-8 mt-2 w-24 h-24 mx-auto flex items-center justify-center">
-                                        <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-hover:bg-violet-500/30 transition-colors duration-500" />
-                                        <div className="relative w-20 h-20 rounded-2xl bg-background border border-border/50 flex items-center justify-center shadow-lg group-hover:border-violet-500/50 group-hover:scale-110 transition-all duration-500 z-10">
-                                            <Icon className="h-8 w-8 text-foreground group-hover:text-violet-400 transition-colors duration-500" />
-                                        </div>
-                                        <div className="absolute -top-4 -right-2 text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-foreground/5 to-foreground/0 z-20 select-none group-hover:from-violet-500/20 group-hover:to-cyan-500/20 transition-all duration-500">
-                                            {step.number}
-                                        </div>
+                                <div className="w-full h-full bg-muted/20 p-10 rounded-[2.5rem] border border-border/40 relative overflow-hidden hover:bg-muted/40 transition-colors shadow-sm hover:shadow-xl hover:border-violet-500/20 text-left">
+                                    {/* Giant background number */}
+                                    <div className="absolute top-4 right-8 text-8xl md:text-9xl font-black font_heading text-foreground/[0.03] transition-transform duration-500 group-hover:scale-110 pointer-events-none">
+                                        {step.number}
                                     </div>
 
-                                    {/* Text */}
-                                    <h3 className="text-xl font-semibold text-foreground mb-4">
-                                        {step.title}
-                                    </h3>
-                                    <p className="text-muted-foreground leading-relaxed text-sm lg:text-base">
-                                        {step.description}
-                                    </p>
+                                    <Icon className="h-12 w-12 text-violet-500 mb-8" />
+
+                                    <h3 className="text-2xl font-bold mb-4 font_heading text-foreground relative z-10">{step.title}</h3>
+                                    <p className="text-muted-foreground text-sm leading-relaxed relative z-10">{step.description}</p>
                                 </div>
 
                                 {/* Arrow (between items, visible on md+) */}
                                 {index < steps.length - 1 && (
-                                    <div className="hidden md:flex absolute top-[5.5rem] -right-6 lg:-right-8 w-12 h-12 items-center justify-center text-muted-foreground/30 z-0">
-                                        <ArrowRight className="w-6 h-6" />
+                                    <div className="hidden md:flex absolute top-1/2 -translate-y-1/2 -right-6 lg:-right-8 items-center justify-center z-20 pointer-events-none">
+                                        <motion.div
+                                            animate={{ x: [0, 8, 0] }}
+                                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                                            className="bg-background border border-border shadow-sm rounded-full p-2"
+                                        >
+                                            <ArrowRight className="w-5 h-5 text-violet-500/80" />
+                                        </motion.div>
                                     </div>
                                 )}
                             </motion.div>
@@ -104,6 +98,6 @@ export default function HowItWorkStackingCard() {
                     })}
                 </div>
             </div>
-        </section>
+        </div>
     );
 }

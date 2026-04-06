@@ -6,23 +6,21 @@ import { Quote } from 'lucide-react'
 import { Testimonial } from '@/lib/api/testimonials'
 
 interface TestiCardProps {
-    testimonials: Testimonial[];
+    testimonial: Testimonial;
 }
 
-export default function TestiCard({ testimonials }: TestiCardProps) {
-    if (!testimonials || testimonials.length === 0) {
+export default function TestiCard({ testimonial }: TestiCardProps) {
+    if (!testimonial) {
         return null;
     }
 
     return (
-        <div className="flex gap-4">
-            {testimonials.map((testimonial, index) => (
-                <Card key={testimonial._id || index} className="h-full border-border/50 hover:border-primary/50 transition-colors duration-300 bg-card/50 backdrop-blur-sm w-[400px]">
-                    <CardContent className="p-6">
-                        <Quote className="h-8 w-8 text-primary/50 mb-4" />
-                        <p className="text-muted-foreground mb-6 text-left text-sm font-normal">
-                            "{testimonial.quote}"
-                        </p>
+        <Card className="h-full border-border/50 hover:border-primary/50 transition-colors duration-300 bg-card/50 backdrop-blur-sm w-full mx-auto max-w-sm md:max-w-[400px]">
+            <CardContent className="flex flex-col h-full p-6">
+                <Quote className="h-8 w-8 text-primary/50 mb-4 shrink-0" />
+                <p className="text-muted-foreground mb-6 text-left text-sm font-normal flex-grow">
+                    "{testimonial.quote}"
+                </p>
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
                                 {testimonial.image ? (
@@ -44,9 +42,7 @@ export default function TestiCard({ testimonials }: TestiCardProps) {
                                 </p>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
+            </CardContent>
+        </Card>
     )
 }

@@ -78,12 +78,12 @@
 @layer utilities {
   .animated-gradient {
     background: linear-gradient(-45deg,
-        #fff,
+        #c76cff,
         #8660fa,
         #a855f7,
         #8400ff,
         #a855f7,
-        #fff);
+        #c76cff);
     background-size: 400% 400%;
     animation: gradient-shift 15s ease infinite;
     -webkit-background-clip: text;
@@ -93,12 +93,24 @@
 
   .animated-gradient-bg {
     background: linear-gradient(-45deg,
-        #fff,
+        #c76cff,
         #8660fa,
         #a855f7,
         #8400ff,
         #a855f7,
-        #fff);
+        #c76cff);
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+  }
+
+  .animated-gradient-bg-hover:hover {
+    background: linear-gradient(-45deg,
+        #c76cff,
+        #8660fa,
+        #a855f7,
+        #8400ff,
+        #a855f7,
+        #c76cff);
     background-size: 400% 400%;
     animation: gradient-shift 15s ease infinite;
   }
@@ -142,9 +154,7 @@
   }
 
     /* Swiper Slider Custom Styles */
-  .testimonials-swiper {
-    padding-bottom: 50px !important;
-  }
+ 
 
   .testimonials-swiper .swiper-button-next,
   .testimonials-swiper .swiper-button-prev {
@@ -188,6 +198,18 @@
   .testimonials-swiper .swiper-button-prev svg {
     width: 12px;
   }
+    .testimonials-swiper .swiper-button-next {
+      right: -50px !important;
+    }
+    .testimonials-swiper .swiper-button-prev {
+      left: -50px !important;
+    }
+    .testimonials-swiper:hover .swiper-button-next {
+      right: 20px !important;
+    }
+    .testimonials-swiper:hover .swiper-button-prev {
+      left: 20px !important;
+    }
 }
 
 
@@ -291,4 +313,29 @@ body {
   height: 200px;
   background: linear-gradient(to bottom, transparent, #0a0a0a);
   pointer-events: none;
+}
+.header_bar {
+  /* margin: 0 7%; */
+}
+.header_bar_active {
+  margin: 0 10%;
+  backdrop-filter: blur(24px);
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 40px;
+    box-shadow: rgba(255, 255, 255, 0.2) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.16) 0px 2px 8px 0px;
+    transform: none;
+    transform-origin: 50% 50% 0px;
+}
+.hero_bg_gredient {
+    background: #a365ff80 !important;
+    border-radius: 50%;
+    filter: blur(250px) !important;
+    height: 520px;
+    pointer-events: none;
+    position: absolute;
+    width: 520px;
+    z-index: 0;
+    left: 50%;
+    top: 30%;
+    transform: translate(-50%, -50%) !important;
 }
