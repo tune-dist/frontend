@@ -9,6 +9,7 @@ import PlatformCarousel from './platform-carousel'
 
 import FloatingLines from './FloatingLines';
 import LogoLoop from './LogoLoop';
+import Plasma from './Plasma';
 
 export default function Hero() {
   const imageLogos = [
@@ -67,6 +68,17 @@ export default function Hero() {
           parallax={true}
         />
       </div> */}
+
+      <div className="absolute inset-0">
+        <Plasma
+          color="#b19eef"
+          speed={0.6}
+          direction="forward"
+          scale={1.1}
+          opacity={0.8}
+          mouseInteractive={false}
+        />
+      </div>
 
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -182,6 +194,7 @@ export default function Hero() {
           <div className="w-1 h-3 bg-foreground/50 rounded-full mt-2" />
         </div>
       </motion.div>
+      <div className='hero_bg_gredient'></div>
     </section>
   )
 }

@@ -15,16 +15,12 @@ export default function Footer() {
       { name: 'Contact', href: '#contact' },
     ],
     legal: [
-      { name: 'Terms of Service', href: '#terms' },
-      { name: 'Privacy Policy', href: '#privacy' },
-      { name: 'Cookie Policy', href: '#cookies' },
-      { name: 'DMCA', href: '#dmca' },
+      { name: 'Terms of Service', href: '/terms' },
+      { name: 'Privacy Policy', href: '/privacy' },
     ],
     support: [
-      { name: 'Help Center', href: '#help' },
-      { name: 'FAQs', href: '#faq' },
-      { name: 'Artist Guide', href: '#guide' },
-      { name: 'Status', href: '#status' },
+      { name: 'Help Center', href: '/help' },
+      { name: 'FAQs', href: '/faqs' },
     ],
   }
 
@@ -225,9 +221,9 @@ export default function Footer() {
             for independent artists
           </div>
           <div className="flex items-center gap-4">
-            <Link href="#terms" className="hover:text-primary transition-colors">Terms</Link>
-            <Link href="#privacy" className="hover:text-primary transition-colors">Privacy</Link>
-            <Link href="#cookies" className="hover:text-primary transition-colors">Cookies</Link>
+            <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
+            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
+            <Link href="/faqs" className="hover:text-primary transition-colors">FAQs</Link>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Sparkles } from "lucide-react";
+import MoneySplitAnimation from "./MoneySplitAnimation";
 
 export default function RoyaltySplitsHero() {
   return (
@@ -59,6 +60,10 @@ export default function RoyaltySplitsHero() {
             Start with Kratolib
           </a>
         </div>
+
+
+
+        <MoneySplitAnimation />
       </div>
     </section>
   );

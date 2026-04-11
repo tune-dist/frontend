@@ -20,6 +20,7 @@ const additionalFeatures = [
     iconBg: "bg-pink-500/10",
     borderHover: "hover:border-pink-500/30",
     title: "AI Cover Art Generator",
+    image: "/assets/images/ai-cover-art-generater-thumb.png",
     desc: "Create professional artwork instantly.",
     items: ["AI Generated Artwork", "Professional Quality Output", "Style Suggestions", "Export Ready Files"],
   },
@@ -29,6 +30,7 @@ const additionalFeatures = [
     iconBg: "bg-indigo-500/10",
     borderHover: "hover:border-indigo-500/30",
     title: "AI Music Mastering",
+    image: "/assets/images/ai-music-mastering-thumb.png",
     desc: "Master your track using AI mastering technology.",
     items: ["Loudness Optimization", "Platform Ready Sound", "Balanced Output", "Fast Processing"],
   },
@@ -38,6 +40,7 @@ const additionalFeatures = [
     iconBg: "bg-teal-500/10",
     borderHover: "hover:border-teal-500/30",
     title: "Telecom CRBT Distribution",
+    image: "/assets/images/telecom-crbt-distribution.png",
     desc: "Unlock additional revenue through telecom caller tune distribution.",
     items: ["Caller Tune Availability", "Telecom Revenue Channel", "Regional Market Expansion"],
   },
@@ -48,6 +51,7 @@ const additionalFeatures = [
     borderHover: "hover:border-amber-500/30",
     title: "Credit & Revenue Protection",
     desc: "100% transparent royalty tracking and credit accuracy.",
+    image: "/assets/images/credit-and-revenue-protection-thumb.png",
     items: ["Artist Credit Protection", "Contributor Credit Accuracy", "Store Matching Protection", "Transparent Revenue Tracking"],
   },
 ];
@@ -140,36 +144,54 @@ export default function SmartMusicFeatures() {
               <Layers className="h-3.5 w-3.5 text-pink-400" />
               Platform Tools
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold font_heading mb-4">
+            <h2 className="text-4xl sm:text-5xl font-bold font_heading mb-4">
               Everything You Need{" "}
               <span className="animated-gradient">in One Platform</span>
             </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto text-sm">
+            <p className="text-muted-foreground max-w-lg mx-auto text-base">
               From AI-generated artwork to automatic mastering and telecom CRBT — you have every tool at your fingertips.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {additionalFeatures.map(({ icon: Icon, color, iconBg, borderHover, title, desc, items }) => (
-              <div
-                key={title}
-                className={`group rounded-2xl border border-border/50 bg-muted/20 p-6 transition-all duration-300 ${borderHover} hover:-translate-y-1 hover:shadow-xl hover:bg-muted/30`}
-              >
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl border border-border/40 ${iconBg} mb-4`}>
-                  <Icon className={`h-5 w-5 ${color}`} />
+          <div className="flex flex-col gap-12 md:gap-16">
+            {additionalFeatures.map(({ icon: Icon, color, iconBg, borderHover, title, desc, items, image }, index) => {
+              const isEven = index % 2 !== 0;
+              return (
+                <div
+                  key={title}
+                  className={`group rounded-3xl overflow-hidden flex flex-col md:flex-row transition-all duration-300`}
+                >
+                  {/* Image / Graphic Side */}
+                  <div className={`w-full md:w-1/2 min-h-[300px] flex items-center justify-center relative overflow-hidden ${isEven ? 'md:order-last' : ''}`}>
+                    {image ? (
+                      <img src={image} alt={title} className="relative z-10 max-w-[500px]" />
+                    ) : (
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <div className={`absolute inset-0 opacity-20 ${iconBg} blur-3xl rounded-full scale-150 transform transition-transform duration-700 group-hover:scale-110`} />
+                        <Icon className={`w-32 h-32 ${color} relative z-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content Side */}
+                  <div className="w-full md:w-1/2 p-8 md:p-14 flex flex-col justify-center">
+                    <div className={`flex h-14 w-14 items-center justify-center rounded-2xl border border-border/40 ${iconBg} mb-6 transition-transform duration-300 group-hover:scale-110`}>
+                      <Icon className={`h-6 w-6 ${color}`} />
+                    </div>
+                    <h3 className="font-bold text-2xl md:text-3xl font_heading mb-4">{title}</h3>
+                    <p className="text-muted-foreground text-base md:text-lg mb-8 leading-relaxed max-w-lg">{desc}</p>
+                    <ul className="space-y-4">
+                      {items.map((item) => (
+                        <li key={item} className="flex items-center gap-3 text-sm md:text-base text-foreground font-medium">
+                          <CheckCircle2 className={`h-5 w-5 shrink-0 ${color}`} />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <h3 className="font-bold text-sm font_heading mb-1">{title}</h3>
-                <p className="text-muted-foreground text-xs mb-4 leading-relaxed">{desc}</p>
-                <ul className="space-y-2">
-                  {items.map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <CheckCircle2 className={`h-3 w-3 shrink-0 ${color}`} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

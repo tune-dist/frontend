@@ -190,7 +190,7 @@ export default function Pricing() {
                     <CardFooter className="mt-auto pt-4">
                       <Button
                         variant="outline"
-                        className="w-full hover:bg-white hover:text-black"
+                        className="w-full animated-gradient-bg-hover"
                         size="default"
                         onClick={() => handlePlanSelect(plan)}
                         disabled={isProcessing}

@@ -4,9 +4,9 @@
   "private": true,
   "author": "Divyanshu Singh",
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 8080",
     "build": "next build",
-    "start": "next start --port 3000",
+    "start": "next start --port 8080",
     "lint": "next lint"
   },
   "dependencies": {
@@ -30,6 +30,7 @@
     "mongoose": "^9.0.0",
     "motion": "^12.34.1",
     "next": "^14.0.0",
+    "ogl": "^1.0.11",
     "re-resizable": "^6.11.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
