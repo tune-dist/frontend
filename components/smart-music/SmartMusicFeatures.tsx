@@ -159,12 +159,12 @@ export default function SmartMusicFeatures() {
               return (
                 <div
                   key={title}
-                  className={`group rounded-3xl overflow-hidden flex flex-col md:flex-row transition-all duration-300`}
+                  className={`group rounded-3xl flex flex-col md:flex-row transition-all duration-300`}
                 >
                   {/* Image / Graphic Side */}
-                  <div className={`w-full md:w-1/2 min-h-[300px] flex items-center justify-center relative overflow-hidden ${isEven ? 'md:order-last' : ''}`}>
+                  <div className={`w-full md:w-1/2 min-h-[300px] flex items-center justify-center relative  ${isEven ? 'md:order-last' : ''}`}>
                     {image ? (
-                      <img src={image} alt={title} className="relative z-10 max-w-[500px]" />
+                      <img src={image} alt={title} className="relative z-10" />
                     ) : (
                       <div className="relative w-full h-full flex items-center justify-center">
                         <div className={`absolute inset-0 opacity-20 ${iconBg} blur-3xl rounded-full scale-150 transform transition-transform duration-700 group-hover:scale-110`} />

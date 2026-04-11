@@ -5,11 +5,9 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, Play } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import PlatformCarousel from './platform-carousel'
 
-import FloatingLines from './FloatingLines';
 import LogoLoop from './LogoLoop';
-import Plasma from './Plasma';
+import heroBanner from '@/public/assets/images/hero-banner-thumb.png';
 
 export default function Hero() {
   const imageLogos = [
@@ -21,64 +19,7 @@ export default function Hero() {
       id="home"
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
     >
-      {/* Animated Gradient Background */}
-      {/* <div className="absolute inset-0 bg-background">
-        <div className="absolute inset-0 animated-gradient-bg opacity-10" />
-      </div> */}
 
-      {/* Floating Elements */}
-      {/* <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute top-20 left-10 w-72 h-72 animated-gradient-bg rounded-full blur-3xl opacity-30"
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -50, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-        <motion.div
-          className="absolute bottom-20 right-10 w-96 h-96 animated-gradient-bg rounded-full blur-3xl opacity-30"
-          animate={{
-            x: [0, -100, 0],
-            y: [0, 50, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-      </div> */}
-      {/* <div className="absolute inset-0">
-        <FloatingLines
-          enabledWaves={["top", "middle", "bottom"]}
-          // Array - specify line count per wave; Number - same count for all waves
-          lineCount={5}
-          // Array - specify line distance per wave; Number - same distance for all waves
-          lineDistance={5}
-          bendRadius={5}
-          bendStrength={-0.5}
-          interactive={true}
-          parallax={true}
-        />
-      </div> */}
-
-      <div className="absolute inset-0">
-        <Plasma
-          color="#b19eef"
-          speed={0.6}
-          direction="forward"
-          scale={1.1}
-          opacity={0.8}
-          mouseInteractive={false}
-        />
-      </div>
 
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -147,7 +88,7 @@ export default function Hero() {
               // transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
               >
                 <Image
-                  src="/assets/images/hero-cirle-music.svg"
+                  src={heroBanner}
                   alt="Distribute Your Music Globally"
                   fill
                   priority
@@ -169,7 +110,6 @@ export default function Hero() {
         <p className="text-sm text-muted-foreground mb-6 uppercase tracking-wider text-center">
           Distribute to 150+ platforms including
         </p>
-        {/* <PlatformCarousel /> */}
         <LogoLoop
           logos={imageLogos}
           speed={80}
