@@ -65,7 +65,7 @@ export interface ReleaseFormData {
   copyright?: string;
   recordingYear?: string | number;
   albumTitle?: string;
-  selectedPlatforms?: string[];
+
   distributionTerritories?: string[];
   format?: string;
 
@@ -178,7 +178,17 @@ export interface Release {
   }>;
   // Multi-track
   tracks?: TrackPayload[];
+  socialPlatforms?: {
+    spotifyProfile?: any;
+    appleMusicProfile?: any;
+    youtubeMusicProfile?: any;
+    instagramProfile?: string;
+    instagramProfileUrl?: string;
+    facebookProfile?: string;
+    facebookProfileUrl?: string;
+  };
 }
+
 
 export interface CreateReleaseData {
   title: string;
@@ -205,7 +215,7 @@ export interface CreateReleaseData {
   copyright?: string;
   recordingYear?: number;
   albumTitle?: string;
-  selectedPlatforms?: string[];
+
 
   // PRIMARY ARTISTS
   primaryArtists?: Array<{
@@ -553,9 +563,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.copyright && { copyright: formData.copyright }),
       ...(formData.recordingYear && { recordingYear: formData.recordingYear }),
       ...(formData.albumTitle && { albumTitle: formData.albumTitle }),
-      ...(formData.selectedPlatforms && {
-        selectedPlatforms: formData.selectedPlatforms,
-      }),
+
 
       ...(formData.numberOfSongs && {
         numberOfSongs: parseInt(formData.numberOfSongs || "1") || 1,
@@ -654,6 +662,33 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
   }
 };
 
+// Helper to normalize release data from backend
+export const normalizeRelease = (release: any): Release => {
+  if (!release) return release;
+
+  // Hydrate root fields from socialPlatforms for UI compatibility
+  if (release.socialPlatforms) {
+    const s = release.socialPlatforms;
+    release.spotifyProfile = release.spotifyProfile || s.spotifyProfile;
+    release.appleMusicProfile = release.appleMusicProfile || s.appleMusicProfile;
+    release.youtubeMusicProfile = release.youtubeMusicProfile || s.youtubeMusicProfile;
+
+    // Special handling for instagram/facebook which might be "yes" or URL
+    release.instagramProfile = release.instagramProfile || s.instagramProfile;
+    release.instagramProfileUrl = release.instagramProfileUrl || s.instagramProfileUrl;
+    release.facebookProfile = release.facebookProfile || s.facebookProfile;
+    release.facebookProfileUrl = release.facebookProfileUrl || s.facebookProfileUrl;
+  }
+
+  // Ensure recordingYear is a number if it comes in as string
+  if (release.recordingYear) {
+    release.recordingYear = typeof release.recordingYear === 'string' ? parseInt(release.recordingYear) : release.recordingYear;
+  }
+
+  return release;
+};
+
+
 // Get all user releases
 export const getReleases = async (
   params?: GetReleasesParams
@@ -661,14 +696,19 @@ export const getReleases = async (
   const response = await apiClient.get<ReleasesResponse>("/releases", {
     params,
   });
+  if (response.data.releases) {
+    response.data.releases = response.data.releases.map(normalizeRelease);
+  }
   return response.data;
+
 };
 
 // Get single release by ID
 export const getRelease = async (id: string): Promise<Release> => {
   const response = await apiClient.get<Release>(`/releases/${id}`);
-  return response.data;
+  return normalizeRelease(response.data);
 };
+
 
 // Create new release (draft)
 export const createRelease = async (

@@ -250,7 +250,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                     {/* Single Upload Logic */}
                     {format === 'single' ? (
                         <>
-                            {!audioFileName ? (
+                            {!audioFile ? (
                                 <div
                                     className={`border-2 border-dashed rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer ${errors.audioFile ? 'border-red-500' : 'border-border'
                                         }`}
