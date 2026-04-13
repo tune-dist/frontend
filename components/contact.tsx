@@ -28,8 +28,8 @@ const contactInfo = [
     {
         icon: MapPin,
         label: 'Office',
-        value: '15/9, Basement - Sarvapriya Vihar, New Delhi, India, 110017',
-        href: 'https://maps.google.com?q=15/9, Basement - Sarvapriya Vihar, New Delhi, India, 110017',
+        value: 'D-1 4044 TRP Mall, The Retail Park Rajyash City, BRTS, Main Rd, Central Bopal, Bopal, Ahmedabad, Gujarat 380058',
+        href: '#',
     },
 ]
 
@@ -214,7 +214,7 @@ export default function Contact() {
                                         transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
                                         className="flex items-center gap-4 transition-all duration-300 group"
                                     >
-                                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                                        <div className="w-12 h-12 rounded-full bg-primary/10 flex flex-shrink-0 items-center justify-center group-hover:bg-primary/20 transition-colors">
                                             <item.icon className="h-5 w-5 text-primary" />
                                         </div>
                                         <div>

@@ -33,8 +33,8 @@ export default function Footer() {
 
   const contactDetails = [
     { icon: Mail, text: 'support@kratolib.com', href: 'mailto:support@kratolib.com' },
-    { icon: Phone, text: '+1 (800) 555-0199', href: 'tel:+18005550199' },
-    { icon: MapPin, text: 'Mumbai, India', href: '#' },
+    { icon: Phone, text: '02717448117', href: 'tel:+02717448117' },
+    { icon: MapPin, text: 'D-1 4044 TRP Mall, The Retail Park Rajyash City, BRTS, Main Rd, Central Bopal, Bopal, Ahmedabad, Gujarat 380058', href: '#' },
   ]
 
   return (
