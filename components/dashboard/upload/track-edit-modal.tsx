@@ -1367,24 +1367,24 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             onChange={(e) => setLanguage(e.target.value)}
                         >
                             <option value="">Select a language</option>
-                            <option value="english">English</option>
-                            <option value="spanish">Spanish</option>
-                            <option value="french">French</option>
-                            <option value="german">German</option>
-                            <option value="italian">Italian</option>
-                            <option value="portuguese">Portuguese</option>
-                            <option value="japanese">Japanese</option>
-                            <option value="korean">Korean</option>
-                            <option value="chinese">Chinese (Mandarin)</option>
-                            <option value="hindi">Hindi</option>
-                            <option value="arabic">Arabic</option>
-                            <option value="russian">Russian</option>
-                            <option value="turkish">Turkish</option>
-                            <option value="dutch">Dutch</option>
-                            <option value="swedish">Swedish</option>
-                            <option value="polish">Polish</option>
-                            <option value="urdu">Urdu</option>
-                            <option value="other">Other</option>
+                            <option value="English">English</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="French">French</option>
+                            <option value="German">German</option>
+                            <option value="Italian">Italian</option>
+                            <option value="Portuguese">Portuguese</option>
+                            <option value="Japanese">Japanese</option>
+                            <option value="Korean">Korean</option>
+                            <option value="Chinese">Chinese (Mandarin)</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Arabic">Arabic</option>
+                            <option value="Russian">Russian</option>
+                            <option value="Turkish">Turkish</option>
+                            <option value="Dutch">Dutch</option>
+                            <option value="Swedish">Swedish</option>
+                            <option value="Polish">Polish</option>
+                            <option value="Urdu">Urdu</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
 

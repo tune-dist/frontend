@@ -13,6 +13,8 @@ export interface ReleaseFormData {
     spotifyProfile?: any;
     appleMusicProfile?: any;
     youtubeMusicProfile?: any;
+    instagramProfile?: string;
+    facebookProfile?: string;
   }>;
   numberOfSongs?: string;
   userId?: string;
@@ -606,15 +608,28 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.radioEdit && { radioEdit: formData.radioEdit }),
       ...(formData.instrumental && { instrumental: formData.instrumental }),
 
-      ...(formData.artists &&
-        formData.artists.length > 0 && {
-        primaryArtists: formData.artists.map((artist) => ({
-          name: artist.name,
-          spotifyProfile: artist.spotifyProfile,
-          appleMusicProfile: artist.appleMusicProfile,
-          youtubeMusicProfile: artist.youtubeMusicProfile,
-        })),
-      }),
+      ...(formData.artistName || (formData.artists && formData.artists.length > 0) ? {
+        primaryArtists: [
+          {
+            name: formData.artistName,
+            spotifyProfile: formData.spotifyProfile,
+            appleMusicProfile: formData.appleMusicProfile,
+            youtubeMusicProfile: formData.youtubeMusicProfile,
+            instagramProfile: formData.instagramProfile === 'yes' ? formData.instagramProfileUrl : formData.instagramProfile,
+            facebookProfile: formData.facebookProfile === 'yes' ? formData.facebookProfileUrl : formData.facebookProfile,
+          },
+          ...((formData.artists || [])
+            .filter((artist) => artist.name?.trim())
+            .map((artist) => ({
+              name: artist.name,
+              spotifyProfile: artist.spotifyProfile,
+              appleMusicProfile: artist.appleMusicProfile,
+              youtubeMusicProfile: artist.youtubeMusicProfile,
+              instagramProfile: artist.instagramProfile,
+              facebookProfile: artist.facebookProfile,
+            })) || []),
+        ],
+      } : {}),
       ...(formData.userId && { userId: formData.userId }),
 
       // Map mandatory checks to backend fields

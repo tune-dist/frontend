@@ -1078,6 +1078,45 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                                     {/* Secondary Artist Search Results */}
                                     {renderSearchResults(index)}
+
+                                    {/* Secondary Artist Social Media Profiles */}
+                                    <div className="mt-4 space-y-4 pl-4 border-l-2 border-border/50">
+                                        {/* Instagram Profile for Secondary Artist */}
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium flex items-center gap-2">
+                                                <span className="text-[#E4405F] font-bold text-base">Instagram</span>
+                                                <span className="text-xs text-muted-foreground">Optional</span>
+                                            </Label>
+                                            <Input
+                                                placeholder="https://instagram.com/username"
+                                                value={artist.instagramProfile || ''}
+                                                onChange={(e) => {
+                                                    const currentArtists = [...(artists || [])]
+                                                    currentArtists[index] = { ...currentArtists[index], instagramProfile: e.target.value }
+                                                    setValue('artists', currentArtists, { shouldValidate: true })
+                                                }}
+                                                className="text-sm"
+                                            />
+                                        </div>
+
+                                        {/* Facebook Profile for Secondary Artist */}
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium flex items-center gap-2">
+                                                <span className="text-[#1877F2] font-bold text-base">Facebook</span>
+                                                <span className="text-xs text-muted-foreground">Optional</span>
+                                            </Label>
+                                            <Input
+                                                placeholder="https://facebook.com/username"
+                                                value={artist.facebookProfile || ''}
+                                                onChange={(e) => {
+                                                    const currentArtists = [...(artists || [])]
+                                                    currentArtists[index] = { ...currentArtists[index], facebookProfile: e.target.value }
+                                                    setValue('artists', currentArtists, { shouldValidate: true })
+                                                }}
+                                                className="text-sm"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -1207,18 +1246,18 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         {...register('language')}
                     >
                         <option value="">Select a language</option>
-                        <option value="hindi">Hindi</option>
-                        <option value="english">English</option>
-                        <option value="punjabi">Punjabi</option>
-                        <option value="tamil">Tamil</option>
-                        <option value="telugu">Telugu</option>
-                        <option value="bengali">Bengali</option>
-                        <option value="marathi">Marathi</option>
-                        <option value="gujarati">Gujarati</option>
-                        <option value="kannada">Kannada</option>
-                        <option value="malayalam">Malayalam</option>
-                        <option value="urdu">Urdu</option>
-                        <option value="other">Other</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="English">English</option>
+                        <option value="Punjabi">Punjabi</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Bengali">Bengali</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="Gujarati">Gujarati</option>
+                        <option value="Kannada">Kannada</option>
+                        <option value="Malayalam">Malayalam</option>
+                        <option value="Urdu">Urdu</option>
+                        <option value="Other">Other</option>
                     </select>
                     {errors.language && <p className="text-xs text-red-500 mt-1">{errors.language.message}</p>}
                 </div>
