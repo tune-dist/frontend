@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import uploadIcon from "@/public/assets/images/upload-music-icon.png";
-import networkIcon from "@/public/assets/images/global-network-icon.png";
-import earnIcon from "@/public/assets/images/earn-revenue-icon.png";
+import uploadIcon from "@/public/assets/images/upload-music-icon.svg";
+import networkIcon from "@/public/assets/images/global-network-icon.svg";
+import earnIcon from "@/public/assets/images/earn-revenue-icon.svg";
 
 const steps = [
   {

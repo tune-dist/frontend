@@ -49,8 +49,8 @@ export default function RoyaltySplitsTransparency() {
                     <Icon className="h-6 w-6 text-emerald-400" />
                   </div>
                 </div>
-                <h3 className="font-bold text-sm font_heading mb-2">{label}</h3>
-                <p className="text-muted-foreground text-xs leading-relaxed">{desc}</p>
+                <h3 className="font-bold text-base font_heading mb-2">{label}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -77,7 +77,7 @@ export default function RoyaltySplitsTransparency() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-sm text-foreground mb-1">{title}</h3>
-                      <p className="text-muted-foreground text-xs leading-relaxed">{desc}</p>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
                     </div>
                   </div>
                 ))}

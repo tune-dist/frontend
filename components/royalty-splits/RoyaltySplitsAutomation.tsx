@@ -88,10 +88,10 @@ export default function RoyaltySplitsAutomation() {
             <div className="space-y-4">
               {rightCards.map((card, i) => (
                 <div key={i} className="rounded-2xl border border-border/50 bg-muted/20 p-5 sm:p-6 hover:bg-muted/40 transition-colors">
-                  <h4 className={`font-semibold text-sm mb-2 ${card.color}`}>
+                  <h4 className={`font-semibold text-base mb-2 ${card.color}`}>
                     {card.title}
                   </h4>
-                  <p className="text-muted-foreground text-xs leading-relaxed">
+                  <p className="text-muted-foreground text-sm leading-relaxed">
                     {card.desc}
                   </p>
                 </div>

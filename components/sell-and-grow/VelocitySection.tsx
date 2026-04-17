@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import worldwideIcon from "@/public/assets/images/worldwide-distribution-icon.png";
-import protectionIcon from "@/public/assets/images/protection-icon.png";
-import callerTuneIcon from "@/public/assets/images/caller-tune-icon.png";
-import growthIcon from "@/public/assets/images/gowth-strategy-icon.png";
+import worldwideIcon from "@/public/assets/images/worldwide-distribution-icon.svg";
+import protectionIcon from "@/public/assets/images/protection-icon.svg";
+import callerTuneIcon from "@/public/assets/images/caller-tune-icon.svg";
+import growthIcon from "@/public/assets/images/gowth-strategy-icon.svg";
 
 const features = [
   {
