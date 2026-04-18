@@ -128,7 +128,7 @@ export const submitUploadForm = async (formData: UploadFormData) => {
             title: formData.title,
             artistName: formData.artistName,
             genres: formData.genres,
-            language: formData.language,
+            language: formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1).toLowerCase() : '',
             releaseType: formData.releaseType,
             isExplicit: formData.isExplicit,
             releaseDate: formData.releaseDate,

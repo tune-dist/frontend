@@ -491,7 +491,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 ...track,
                 title: trackTitle,
                 artistName: modalArtistSearch,
-                language,
+                language: language ? language.charAt(0).toUpperCase() + language.slice(1).toLowerCase() : '',
                 isrc,
                 previouslyReleased,
                 primaryGenre,
