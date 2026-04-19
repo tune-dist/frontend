@@ -78,7 +78,6 @@ export interface ReleaseFormData {
   featuringArtist?: string;
   audioConsent?: boolean;
   coverArtConsent?: boolean;
-  mood?: string;
 }
 
 export type ReleaseStatus = "In Process" | "Approved" | "Rejected" | "Released";
@@ -270,7 +269,6 @@ export interface CreateReleaseData {
   rightsAccepted?: boolean;
   audioConsent?: boolean;
   coverArtConsent?: boolean;
-  mood?: string;
 }
 
 export interface ReleasesResponse {
@@ -375,7 +373,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           youtubeMusicProfile: track.youtubeMusicProfile || formData.youtubeMusicProfile,
           instagramProfile: track.instagramProfile || formData.instagramProfile,
           facebookProfile: track.facebookProfile || formData.facebookProfile,
-          mood: track.mood || formData.mood,
+          mood: track.mood,
         };
       });
     }
@@ -407,7 +405,6 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         youtubeMusicProfile: formData.youtubeMusicProfile,
         instagramProfile: formData.instagramProfile === 'yes' ? formData.instagramProfileUrl : formData.instagramProfile,
         facebookProfile: formData.facebookProfile === 'yes' ? formData.facebookProfileUrl : formData.facebookProfile,
-        mood: formData.mood,
       }];
     }
 
@@ -522,7 +519,6 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ).filter(Boolean) as string[],
 
       audioFile: audioData,
-      mood: formData.mood,
 
       coverArt: {
         url: coverUrl,

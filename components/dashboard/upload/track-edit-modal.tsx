@@ -580,7 +580,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                     if (selectedArtist.spotifyProfile) setModalSpotifyProfile(selectedArtist.spotifyProfile)
                                                     if (selectedArtist.appleMusicProfile) setModalAppleMusicProfile(selectedArtist.appleMusicProfile)
                                                     if (selectedArtist.youtubeMusicProfile) setModalYoutubeProfile(selectedArtist.youtubeMusicProfile)
-                                                        
+
                                                     if (selectedArtist.instagramProfile) {
                                                         if (typeof selectedArtist.instagramProfile === 'string' && selectedArtist.instagramProfile.startsWith('http')) {
                                                             setInstagramStatus('yes')
@@ -769,7 +769,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                                                             if (!selected && typeof modalSpotifyProfile === 'string' && modalSpotifyProfile.length > 0 && modalSpotifyProfile !== 'new') {
                                                                 selected = searchResults.spotify.find(a => a.id === modalSpotifyProfile || a.externalUrl === modalSpotifyProfile);
-                                                                
+
                                                                 if (!selected && modalArtistSearch === mainArtistName && mainArtistProfiles?.spotify) {
                                                                     if (typeof mainArtistProfiles.spotify === 'object' && (mainArtistProfiles.spotify.id === modalSpotifyProfile || mainArtistProfiles.spotify.url === modalSpotifyProfile || mainArtistProfiles.spotify.externalUrl === modalSpotifyProfile)) {
                                                                         selected = mainArtistProfiles.spotify;
@@ -833,7 +833,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                             const profileUrl = selected.externalUrl || selected.url || selected.channelUrl;
                                                             return (
                                                                 <div className="flex items-center gap-3">
-                                                                    <a 
+                                                                    <a
                                                                         href={profileUrl || undefined}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
@@ -959,7 +959,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                                                             if (!selected && typeof modalAppleMusicProfile === 'string' && modalAppleMusicProfile.length > 0 && modalAppleMusicProfile !== 'new') {
                                                                 selected = searchResults.apple.find(a => a.id === modalAppleMusicProfile || a.url === modalAppleMusicProfile);
-                                                                
+
                                                                 if (!selected && modalArtistSearch === mainArtistName && mainArtistProfiles?.apple) {
                                                                     if (typeof mainArtistProfiles.apple === 'object' && (mainArtistProfiles.apple.id === modalAppleMusicProfile || mainArtistProfiles.apple.url === modalAppleMusicProfile)) {
                                                                         selected = mainArtistProfiles.apple;
@@ -1021,7 +1021,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                             const profileUrl = selected.externalUrl || selected.url || selected.channelUrl;
                                                             return (
                                                                 <div className="flex items-center gap-3">
-                                                                    <a 
+                                                                    <a
                                                                         href={profileUrl || undefined}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
@@ -1031,9 +1031,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                                         {selected.image ? (
                                                                             <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
                                                                         ) : (
-                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                                                            <Music className="h-5 w-5 text-muted-foreground" />
-                                                                        </div>
+                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                                                                <Music className="h-5 w-5 text-muted-foreground" />
+                                                                            </div>
                                                                         )}
                                                                         <div className="flex-1 min-w-0">
                                                                             <p className={`font-medium text-primary ${profileUrl ? 'hover:underline' : ''} truncate`}>{selected.name}</p>
@@ -1209,7 +1209,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                             const profileUrl = selected.externalUrl || selected.url || selected.channelUrl;
                                                             return (
                                                                 <div className="flex items-center gap-3">
-                                                                    <a 
+                                                                    <a
                                                                         href={profileUrl || undefined}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
@@ -1219,9 +1219,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                                         {selected.image ? (
                                                                             <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
                                                                         ) : (
-                                                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                                                            <Music className="h-5 w-5 text-muted-foreground" />
-                                                                        </div>
+                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                                                                <Music className="h-5 w-5 text-muted-foreground" />
+                                                                            </div>
                                                                         )}
                                                                         <div className="flex-1 min-w-0">
                                                                             <p className={`font-medium text-primary ${profileUrl ? 'hover:underline' : ''} truncate`}>{selected.name}</p>
@@ -1391,35 +1391,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </select>
                     </div>
 
-                    {/* Mood */}
-                    <div className="space-y-2">
-                        <Label htmlFor="track-mood">Mood</Label>
-                        <select
-                            id="track-mood"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={mood}
-                            onChange={(e) => setMood(e.target.value)}
-                        >
-                            <option value="">Select a mood</option>
-                            <option value="Romantic">Romantic</option>
-                            <option value="Happy">Happy</option>
-                            <option value="Sad">Sad</option>
-                            <option value="Dance">Dance</option>
-                            <option value="Bhangra">Bhangra</option>
-                            <option value="Patriotic">Patriotic</option>
-                            <option value="Nostalgic">Nostalgic</option>
-                            <option value="Inspirational">Inspirational</option>
-                            <option value="Enthusiastic">Enthusiastic</option>
-                            <option value="Optimistic">Optimistic</option>
-                            <option value="Passion">Passion</option>
-                            <option value="Pessimistic">Pessimistic</option>
-                            <option value="Spiritual">Spiritual</option>
-                            <option value="Peppy">Peppy</option>
-                            <option value="Philosophical">Philosophical</option>
-                            <option value="Mellow">Mellow</option>
-                            <option value="Calm">Calm</option>
-                        </select>
-                    </div>
 
                     {/* ISRC */}
                     <div className="space-y-4 pt-4 border-t border-border">
@@ -1552,6 +1523,36 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     {subGenre.name}
                                 </option>
                             ))}
+                        </select>
+                    </div>
+
+                    {/* Mood */}
+                    <div className="space-y-2">
+                        <Label htmlFor="track-mood">Vibe</Label>
+                        <select
+                            id="track-mood"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={mood}
+                            onChange={(e) => setMood(e.target.value)}
+                        >
+                            <option value="">Select a mood</option>
+                            <option value="Romantic">Romantic</option>
+                            <option value="Happy">Happy</option>
+                            <option value="Sad">Sad</option>
+                            <option value="Dance">Dance</option>
+                            <option value="Bhangra">Bhangra</option>
+                            <option value="Patriotic">Patriotic</option>
+                            <option value="Nostalgic">Nostalgic</option>
+                            <option value="Inspirational">Inspirational</option>
+                            <option value="Enthusiastic">Enthusiastic</option>
+                            <option value="Optimistic">Optimistic</option>
+                            <option value="Passion">Passion</option>
+                            <option value="Pessimistic">Pessimistic</option>
+                            <option value="Spiritual">Spiritual</option>
+                            <option value="Peppy">Peppy</option>
+                            <option value="Philosophical">Philosophical</option>
+                            <option value="Mellow">Mellow</option>
+                            <option value="Calm">Calm</option>
                         </select>
                     </div>
 

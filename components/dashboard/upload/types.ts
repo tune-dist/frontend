@@ -178,7 +178,6 @@ export const uploadFormSchema = z.object({
     // Legacy/Other
     producers: z.array(z.string()).optional(),
     selectedPlatforms: z.array(z.string()).optional(),
-    mood: z.string().optional(),
 })
 
 export type UploadFormData = z.infer<typeof uploadFormSchema>

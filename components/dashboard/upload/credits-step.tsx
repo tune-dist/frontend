@@ -490,45 +490,6 @@ export default function CreditsStep({
                 </div>
               </div>
 
-              {/* Mood */}
-              <div className="space-y-4 pt-6 border-t border-border">
-                <div className="space-y-3">
-                  <Label htmlFor="mood" className="text-lg font-semibold">
-                    Mood
-                  </Label>
-                  <select
-                    id="mood"
-                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.mood ? "border-red-500" : ""
-                      }`}
-                    {...register("mood")}
-                  >
-                    <option value="">Select a mood</option>
-                    <option value="Romantic">Romantic</option>
-                    <option value="Happy">Happy</option>
-                    <option value="Sad">Sad</option>
-                    <option value="Dance">Dance</option>
-                    <option value="Bhangra">Bhangra</option>
-                    <option value="Patriotic">Patriotic</option>
-                    <option value="Nostalgic">Nostalgic</option>
-                    <option value="Inspirational">Inspirational</option>
-                    <option value="Enthusiastic">Enthusiastic</option>
-                    <option value="Optimistic">Optimistic</option>
-                    <option value="Passion">Passion</option>
-                    <option value="Pessimistic">Pessimistic</option>
-                    <option value="Spiritual">Spiritual</option>
-                    <option value="Peppy">Peppy</option>
-                    <option value="Philosophical">Philosophical</option>
-                    <option value="Mellow">Mellow</option>
-                    <option value="Calm">Calm</option>
-                  </select>
-                  {errors.mood && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {String(errors.mood.message)}
-                    </p>
-                  )}
-                </div>
-              </div>
-
               {/* Featuring Artist - Always show for singles, but disable and show message if not allowed by plan */}
               <div className="space-y-4 pt-6 border-t border-border">
                 <div className="space-y-2">
