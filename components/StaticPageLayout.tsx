@@ -15,16 +15,16 @@ export default function StaticPageLayout({ title, subtitle, children }: StaticPa
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
-      
+
       {/* Hero Section for Static Pages */}
       <section className="relative pt-32 pb-20 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-96 h-96 animated-gradient-bg rounded-full blur-3xl opacity-10" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 animated-gradient-bg rounded-full blur-3xl opacity-10" />
         </div>
-        
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -33,7 +33,7 @@ export default function StaticPageLayout({ title, subtitle, children }: StaticPa
             <h1 className="text-4xl md:text-6xl font-bold mb-6 font_heading tracking-tight">
               {title.split(' ').map((word, i) => (
                 <span key={i} className={i === title.split(' ').length - 1 ? "animated-gradient" : ""}>
-                   {word}{' '}
+                  {word}{' '}
                 </span>
               ))}
             </h1>
@@ -49,12 +49,12 @@ export default function StaticPageLayout({ title, subtitle, children }: StaticPa
 
       {/* Content Section */}
       <section className="pb-32">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-4xl mx-auto prose prose-invert prose-headings:font_heading prose-p:text-muted-foreground prose-p:leading-relaxed"
+            className="w-full mx-auto prose prose-invert prose-headings:font_heading prose-p:text-muted-foreground prose-p:leading-relaxed"
           >
             {children}
           </motion.div>

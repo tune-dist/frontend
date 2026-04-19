@@ -55,7 +55,7 @@ export default function SmartMusicHero() {
       `}</style>
 
       {/* ── Main content ── */}
-      <div className="relative w-full mx-auto px-4 sm:px-6 lg:px-8 text-center py-16 vertical_pattern_bg">
+      <div className="relative w-full mx-auto px-4 sm:px-6 lg:px-8 text-center py-16">
 
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/20 bg-muted/30 text-sm text-muted-foreground mb-8 backdrop-blur">

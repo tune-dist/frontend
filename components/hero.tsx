@@ -56,19 +56,21 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <Link href="/auth">
+              <Link href="/contact">
                 <Button className="text-sm px-6 py-6 group animated-gradient-bg text-white border-0">
                   Start for Free
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Button
-                variant="outline"
-                className="text-sm px-6 py-6 group hover:bg-white hover:text-black transition-colors"
-              >
-                <Play className="mr-2 h-5 w-5" />
-                Learn More
-              </Button>
+              <Link href="/features">
+                <Button
+                  variant="outline"
+                  className="text-sm px-6 py-6 group hover:bg-white hover:text-black transition-colors"
+                >
+                  <Play className="mr-2 h-5 w-5" />
+                  Learn More
+                </Button>
+              </Link>
             </motion.div>
           </motion.div>
 

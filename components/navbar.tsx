@@ -41,7 +41,7 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-[10px] left-0 right-0 z-50 transition-all duration-300 header_bar ${isScrolled
+      className={`fixed top-[10px] left-0 right-0 z-50 transition-all duration-700 delay-500 header_bar ${isScrolled
         ? "header_bar_active"
         : "bg-transparent"
         }`}
@@ -116,12 +116,12 @@ export default function Navbar() {
 
           {/* Auth Buttons - Right */}
           <div className="hidden md:flex md:items-center md:space-x-3 flex-shrink-0">
-            <Link href="/auth?tab=login">
+            {/* <Link href="/auth?tab=login">
               <Button variant="outline" size="default" className="border border-white/10">
                 Login
               </Button>
-            </Link>
-            <Link href="/auth?tab=signup">
+            </Link> */}
+            <Link href="/contact">
               <Button size="default" className="animated-gradient-bg text-white transition-all duration-300">
                 Get Started <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 ml-1" />
               </Button>

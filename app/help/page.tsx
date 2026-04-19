@@ -89,9 +89,16 @@ export default function HelpCenter() {
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
           Our specialized support team is available 24/7 to assist you with any questions or issues you may have.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="/contact" className="px-10 py-5 rounded-2xl bg-primary text-white font-bold hover:opacity-90 transition-opacity">Contact Support</a>
-          <a href="mailto:support@kratolib.com" className="px-10 py-5 rounded-2xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all">Email Us</a>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
+          <a href="/contact" className="px-10 py-5 rounded-2xl animated-gradient-bg text-white font-bold hover:opacity-90 transition-opacity flex items-center justify-center whitespace-nowrap">
+            Contact Support
+          </a>
+          <a href="mailto:support@kratolib.com" className="px-10 py-5 rounded-2xl bg-card/50 border border-border/50 text-white font-bold hover:bg-card/80 hover:border-primary/50 transition-all flex items-center justify-center backdrop-blur-sm whitespace-nowrap">
+            Email Us
+          </a>
+          <a href="tel:02717448117" className="px-10 py-5 rounded-2xl bg-card/50 border border-border/50 text-white font-bold hover:bg-card/80 hover:border-primary/50 transition-all flex items-center justify-center backdrop-blur-sm whitespace-nowrap">
+            Call Us
+          </a>
         </div>
       </div>
     </StaticPageLayout>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -145,22 +146,15 @@ export default function Pricing() {
                       </ul>
                     </CardContent>
                     <CardFooter className="mt-auto pt-4">
-                      <Button
-                        variant="default"
-                        className="w-full animated-gradient-bg border-0 text-white"
-                        size="default"
-                        onClick={() => handlePlanSelect(plan)}
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          plan.ctaLabel || 'Get Started'
-                        )}
-                      </Button>
+                      <Link href="/contact" className="w-full">
+                        <Button
+                          variant="default"
+                          className="w-full animated-gradient-bg border-0 text-white"
+                          size="default"
+                        >
+                          Contact Us
+                        </Button>
+                      </Link>
                     </CardFooter>
                   </Card>
                 ) : (
@@ -188,22 +182,15 @@ export default function Pricing() {
                       </ul>
                     </CardContent>
                     <CardFooter className="mt-auto pt-4">
-                      <Button
-                        variant="outline"
-                        className="w-full animated-gradient-bg-hover"
-                        size="default"
-                        onClick={() => handlePlanSelect(plan)}
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          plan.ctaLabel || 'Get Started'
-                        )}
-                      </Button>
+                      <Link href="/contact" className="w-full">
+                        <Button
+                          variant="outline"
+                          className="w-full animated-gradient-bg-hover"
+                          size="default"
+                        >
+                          Contact Us
+                        </Button>
+                      </Link>
                     </CardFooter>
                   </Card>
                 )}
