@@ -275,7 +275,7 @@ export default function UploadPage() {
           ]);
 
           // Build validation fields array based on plan
-          const fieldsToValidate = ["title", "artistName", "language", "format", "releaseDate"];
+          const fieldsToValidate = ["title", "artistName", "format", "releaseDate"];
 
           // Add featuredArtist to validation if required by plan
           if (fieldRules.featuredArtists?.required) {
@@ -428,6 +428,7 @@ export default function UploadPage() {
               "primaryGenre",
               "secondaryGenre",
               "previouslyReleased",
+              "language",
             ];
             console.log("fieldsToValidate", fieldRules);
             // Manual validation for primaryGenre (check fieldRules - database uses 'genres' key)
@@ -452,9 +453,27 @@ export default function UploadPage() {
               isValid = false;
             }
 
-            // If genre validation failed, scroll to error and break
+            // Manual validation for language
+            if (!formData.language || formData.language.trim() === "") {
+              form.setError("language", {
+                type: "required",
+                message: "Language is required for single releases",
+              });
+              isValid = false;
+            }
+
+            // Manual validation for previouslyReleased
+            if (!formData.previouslyReleased) {
+              form.setError("previouslyReleased", {
+                type: "required",
+                message: "Release history is required for single releases",
+              });
+              isValid = false;
+            }
+
+            // If validation failed, scroll to error and break
             if (!isValid) {
-              console.log("Genre validation failed");
+              console.log("Credits validation failed");
               scrollToError();
               break;
             }
@@ -563,7 +582,8 @@ export default function UploadPage() {
               }
             }
 
-            isValid = await form.trigger(fieldsToValidate as any);
+            const triggerResult = await form.trigger(fieldsToValidate as any);
+            isValid = isValid && triggerResult;
           } else {
             // For Albums/EPs, validate all tracks have required metadata
             if (formData.tracks.length === 0) {

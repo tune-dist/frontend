@@ -168,12 +168,10 @@ export default function CreditsStep({
     appendComposer("");
   };
 
-  // ... (rest of logic) Note: I'm skipping openTrackModal and saveTrackModal in replacement content to let them be removed
 
   return (
     <>
       <div className="space-y-4">
-        {/* ... (JSX until track list) */}
 
         <h3 className="text-xl font-semibold">Credits & Metadata</h3>
         <p className="text-muted-foreground">Give credit to everyone involved</p>
@@ -458,32 +456,103 @@ export default function CreditsStep({
                 </div>
               </div>
 
-              {/* Featuring Artist - Always show for singles, but disable and show message if not allowed by plan */}
-              {isSingle && (
-                <div className="space-y-4 pt-6 border-t border-border">
-                  <div className="space-y-2">
-                    <Label htmlFor="featuringArtist" className="text-lg font-semibold">
-                      Featuring Artist{fieldRules.featuredArtists?.required && <span className="text-red-500 ml-1">*</span>}
-                    </Label>
-                    <Input
-                      id="featuringArtist"
-                      placeholder="Enter Featuring Artist"
-                      {...register('featuringArtist')}
-                      disabled={!areFeaturedArtistsAllowed}
-                      className={errors.featuringArtist ? 'border-red-500' : ''}
-                    />
-                    {!areFeaturedArtistsAllowed && (
-                      <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
-                        <Info className="h-3 w-3 mt-0.5" />
-                        <span>Upgrade to Creator+ or higher to add featuring artists.</span>
-                      </div>
-                    )}
-                    {errors.featuringArtist && (
-                      <p className="text-xs text-red-500 mt-1">{String(errors.featuringArtist.message)}</p>
-                    )}
-                  </div>
+              {/* Language */}
+              <div className="space-y-4 pt-6 border-t border-border">
+                <div className="space-y-3">
+                  <Label htmlFor="language" className="text-lg font-semibold">
+                    Language <span className="text-red-500 ml-1">*</span>
+                  </Label>
+                  <select
+                    id="language"
+                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.language ? "border-red-500" : ""
+                      }`}
+                    {...register("language")}
+                  >
+                    <option value="">Select a language</option>
+                    <option value="hindi">Hindi</option>
+                    <option value="english">English</option>
+                    <option value="punjabi">Punjabi</option>
+                    <option value="tamil">Tamil</option>
+                    <option value="telugu">Telugu</option>
+                    <option value="bengali">Bengali</option>
+                    <option value="marathi">Marathi</option>
+                    <option value="gujarati">Gujarati</option>
+                    <option value="kannada">Kannada</option>
+                    <option value="malayalam">Malayalam</option>
+                    <option value="urdu">Urdu</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {errors.language && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {String(errors.language.message)}
+                    </p>
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Mood */}
+              <div className="space-y-4 pt-6 border-t border-border">
+                <div className="space-y-3">
+                  <Label htmlFor="mood" className="text-lg font-semibold">
+                    Mood
+                  </Label>
+                  <select
+                    id="mood"
+                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.mood ? "border-red-500" : ""
+                      }`}
+                    {...register("mood")}
+                  >
+                    <option value="">Select a mood</option>
+                    <option value="Romantic">Romantic</option>
+                    <option value="Happy">Happy</option>
+                    <option value="Sad">Sad</option>
+                    <option value="Dance">Dance</option>
+                    <option value="Bhangra">Bhangra</option>
+                    <option value="Patriotic">Patriotic</option>
+                    <option value="Nostalgic">Nostalgic</option>
+                    <option value="Inspirational">Inspirational</option>
+                    <option value="Enthusiastic">Enthusiastic</option>
+                    <option value="Optimistic">Optimistic</option>
+                    <option value="Passion">Passion</option>
+                    <option value="Pessimistic">Pessimistic</option>
+                    <option value="Spiritual">Spiritual</option>
+                    <option value="Peppy">Peppy</option>
+                    <option value="Philosophical">Philosophical</option>
+                    <option value="Mellow">Mellow</option>
+                    <option value="Calm">Calm</option>
+                  </select>
+                  {errors.mood && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {String(errors.mood.message)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Featuring Artist - Always show for singles, but disable and show message if not allowed by plan */}
+              <div className="space-y-4 pt-6 border-t border-border">
+                <div className="space-y-2">
+                  <Label htmlFor="featuringArtist" className="text-lg font-semibold">
+                    Featuring Artist{fieldRules.featuredArtists?.required && <span className="text-red-500 ml-1">*</span>}
+                  </Label>
+                  <Input
+                    id="featuringArtist"
+                    placeholder="Enter Featuring Artist"
+                    {...register('featuringArtist')}
+                    disabled={!areFeaturedArtistsAllowed}
+                    className={errors.featuringArtist ? 'border-red-500' : ''}
+                  />
+                  {!areFeaturedArtistsAllowed && (
+                    <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
+                      <Info className="h-3 w-3 mt-0.5" />
+                      <span>Upgrade to Creator+ or higher to add featuring artists.</span>
+                    </div>
+                  )}
+                  {errors.featuringArtist && (
+                    <p className="text-xs text-red-500 mt-1">{String(errors.featuringArtist.message)}</p>
+                  )}
+                </div>
+              </div>
 
               {/* Instrumental */}
               <div className="space-y-3 pt-6 border-t border-border">

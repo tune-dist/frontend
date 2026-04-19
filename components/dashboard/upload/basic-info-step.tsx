@@ -1199,29 +1199,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 </div>
 
 
-                <div className="space-y-2">
-                    <Label htmlFor="language">Language <span className="text-red-500">*</span></Label>
-                    <select
-                        id="language"
-                        className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.language ? 'border-red-500' : ''}`}
-                        {...register('language')}
-                    >
-                        <option value="">Select a language</option>
-                        <option value="hindi">Hindi</option>
-                        <option value="english">English</option>
-                        <option value="punjabi">Punjabi</option>
-                        <option value="tamil">Tamil</option>
-                        <option value="telugu">Telugu</option>
-                        <option value="bengali">Bengali</option>
-                        <option value="marathi">Marathi</option>
-                        <option value="gujarati">Gujarati</option>
-                        <option value="kannada">Kannada</option>
-                        <option value="malayalam">Malayalam</option>
-                        <option value="urdu">Urdu</option>
-                        <option value="other">Other</option>
-                    </select>
-                    {errors.language && <p className="text-xs text-red-500 mt-1">{errors.language.message}</p>}
-                </div>
+
                 <div className="space-y-2">
                     <Label htmlFor="format">Format <span className="text-red-500">*</span></Label>
                     <div className="space-y-2">

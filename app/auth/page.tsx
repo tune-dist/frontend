@@ -409,7 +409,7 @@ function AuthContent() {
                       <div className="flex items-center justify-between">
                         <Label htmlFor="login-password">Password</Label>
                         <Link
-                          href="#forgot-password"
+                          href="/auth/forgot-password"
                           className="text-sm text-primary hover:underline"
                         >
                           Forgot Password?

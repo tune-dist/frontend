@@ -64,6 +64,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [isExplicit, setIsExplicit] = useState<boolean>(track?.isExplicit || false)
     const [instrumental, setInstrumental] = useState<string>(track?.isInstrumental || 'no')
     const [modalFeaturingArtist, setModalFeaturingArtist] = useState(track?.featuringArtist || '')
+    const [mood, setMood] = useState(track?.mood || '')
 
     const areFeaturedArtistsAllowed = (fieldRules || {}).featuredArtists?.allow !== false
 
@@ -163,6 +164,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setIsExplicit(track.isExplicit || false)
             setInstrumental(track.isInstrumental || 'no')
             setModalFeaturingArtist(track.featuringArtist || '')
+            setMood(track.mood || '')
 
             // If restricted plan, force mainArtistName AND profiles
             if (planLimits.artistLimit === 1 && mainArtistName) {
@@ -506,6 +508,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 isExplicit,
                 isInstrumental: instrumental,
                 featuringArtist: modalFeaturingArtist,
+                mood: mood,
             }
             onSave(updatedTrack, modalWriters, modalComposers)
             onClose()
@@ -1385,6 +1388,36 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             <option value="polish">Polish</option>
                             <option value="urdu">Urdu</option>
                             <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    {/* Mood */}
+                    <div className="space-y-2">
+                        <Label htmlFor="track-mood">Mood</Label>
+                        <select
+                            id="track-mood"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={mood}
+                            onChange={(e) => setMood(e.target.value)}
+                        >
+                            <option value="">Select a mood</option>
+                            <option value="Romantic">Romantic</option>
+                            <option value="Happy">Happy</option>
+                            <option value="Sad">Sad</option>
+                            <option value="Dance">Dance</option>
+                            <option value="Bhangra">Bhangra</option>
+                            <option value="Patriotic">Patriotic</option>
+                            <option value="Nostalgic">Nostalgic</option>
+                            <option value="Inspirational">Inspirational</option>
+                            <option value="Enthusiastic">Enthusiastic</option>
+                            <option value="Optimistic">Optimistic</option>
+                            <option value="Passion">Passion</option>
+                            <option value="Pessimistic">Pessimistic</option>
+                            <option value="Spiritual">Spiritual</option>
+                            <option value="Peppy">Peppy</option>
+                            <option value="Philosophical">Philosophical</option>
+                            <option value="Mellow">Mellow</option>
+                            <option value="Calm">Calm</option>
                         </select>
                     </div>
 

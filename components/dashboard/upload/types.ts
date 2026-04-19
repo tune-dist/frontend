@@ -64,6 +64,7 @@ export const trackSchema = z.object({
     facebookProfile: z.string().optional(),
     version: z.string().optional(),
     featuringArtist: z.string().optional(),
+    mood: z.string().optional(),
 })
 
 export type Track = z.infer<typeof trackSchema>
@@ -177,26 +178,7 @@ export const uploadFormSchema = z.object({
     // Legacy/Other
     producers: z.array(z.string()).optional(),
     selectedPlatforms: z.array(z.string()).optional(),
-}).superRefine((data, ctx) => {
-    if (data.format === 'single') {
-        // Genre validation is now handled manually in page.tsx based on fieldRules
-        // This allows plan-specific requirements
-
-        if (!data.language) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Language is required for single releases",
-                path: ["language"]
-            });
-        }
-        if (!data.previouslyReleased) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Release history is required for single releases",
-                path: ["previouslyReleased"]
-            });
-        }
-    }
+    mood: z.string().optional(),
 })
 
 export type UploadFormData = z.infer<typeof uploadFormSchema>
