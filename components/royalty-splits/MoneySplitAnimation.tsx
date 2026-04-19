@@ -108,7 +108,7 @@ export default function MoneySplitAnimation() {
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 opacity-60">Global Revenue</p>
               <h4 className="text-lg font-bold text-white flex items-center gap-2">
                 <IndianRupee className="w-4 h-4 text-emerald-400" />
-                100
+                100%
               </h4>
             </div>
             <div className="flex gap-1.5">
@@ -183,7 +183,7 @@ export default function MoneySplitAnimation() {
                 </div>
                 <h5 className="text-sm font-bold text-white flex items-center gap-1.5">
                   <IndianRupee className="w-3 h-3 text-emerald-400" />
-                  50
+                  50%
                 </h5>
                 <p className="text-[9px] text-emerald-400 mt-1 flex items-center gap-1">
                   <ShieldCheck className="w-2.5 h-2.5" /> Secured Payout
@@ -208,7 +208,7 @@ export default function MoneySplitAnimation() {
                 </div>
                 <h5 className="text-sm font-bold text-white flex items-center gap-1.5">
                   <IndianRupee className="w-3 h-3 text-violet-400" />
-                  50
+                  50%
                 </h5>
                 <p className="text-[9px] text-violet-400 mt-1 flex items-center gap-1">
                   <TrendingUp className="w-2.5 h-2.5" /> High Performance

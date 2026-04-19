@@ -58,7 +58,7 @@ export default function RoyaltySplitsTransparency() {
       </section>
 
       {/* ── Future of Collaboration ── */}
-      <section className="py-24 bg-muted/10 relative overflow-hidden">
+      <section className="py-24 bg-muted/10 relative overflow-hidden music_colobration_sec">
         <div className="relative max-w-7xl mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
 
@@ -85,10 +85,10 @@ export default function RoyaltySplitsTransparency() {
             </div>
 
             {/* Right: Image placeholder */}
-            <div className="rounded-3xl border border-border/40 bg-muted/20 overflow-hidden shadow-2xl h-[400px] relative group flex items-center justify-center">
+            {/* <div className="rounded-3xl border border-border/40 bg-muted/20 overflow-hidden shadow-2xl h-[400px] relative group flex items-center justify-center">
               <div className="opacity-40 w-full h-full absolute inset-0 bg-[url('https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center transition-transform duration-700 group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent pointer-events-none" />
-            </div>
+            </div> */}
 
           </div>
         </div>

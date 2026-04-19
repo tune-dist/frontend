@@ -2,12 +2,134 @@
 
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play } from 'lucide-react'
+import { ArrowRight, Play, Music2, Music, Youtube, Instagram, DollarSign, Copyright, Diamond } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
 import LogoLoop from './LogoLoop';
-import heroBanner from '@/public/assets/images/hero-banner-thumb.png';
+
+import YoutubeCircleIcon from "@/public/assets/images/youtube-circle-logo.png";
+import SpotifyCircleIcon from "@/public/assets/images/spotify-circle-logo.png";
+import InstagramCircleIcon from "@/public/assets/images/instagram-circle-logo.png";
+import AmazonMusicCircleIcon from "@/public/assets/images/amazon-music-circle-logo.png";
+import AppleMusicCircleIcon from "@/public/assets/images/apple-music-circle-icon.png";
+import TiktokCircleIcon from "@/public/assets/images/tiktok-circle-logo.png";
+import JioSaavnCircleIcon from "@/public/assets/images/jiosavan-circle-icon.png";
+import FacebookCircleIcon from "@/public/assets/images/facebook-circle-logo.png";
+import GannaCircleIcon from "@/public/assets/images/ganna-circle-logo.png";
+import SnapCircleIcon from "@/public/assets/images/snap-circle-logo.png";
+
+// --- Orbital Animation Components ---
+
+const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: number, delay?: number, children: React.ReactNode }) => (
+  <motion.div
+    className="absolute rounded-full border border-white/10"
+    style={{
+      width: radius * 2,
+      height: radius * 2,
+    }}
+    initial={{ scale: 0, opacity: 0 }}
+    animate={{ scale: 1, opacity: 1 }}
+    transition={{ 
+      duration: 2.5, 
+      delay, 
+      ease: [0.16, 1, 0.3, 1], 
+      rotate: { duration: speed, repeat: Infinity, ease: "linear" } 
+    }}
+  >
+    <motion.div
+      className="w-full h-full"
+      animate={{ rotate: 360 }}
+      transition={{ duration: speed, repeat: Infinity, ease: "linear" }}
+    >
+      {children}
+    </motion.div>
+  </motion.div>
+);
+
+const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, delay = 0 }: { angle: number, radius: number, color: string, icon: any, size?: number, orbitSpeed: number, delay?: number }) => {
+  const x = radius * Math.cos((angle * Math.PI) / 180);
+  const y = radius * Math.sin((angle * Math.PI) / 180);
+
+  return (
+    <motion.div
+      className="absolute flex items-center justify-center rounded-full shadow-lg border border-white/20"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: color,
+        left: `calc(50% + ${x}px - ${size / 2}px)`,
+        top: `calc(50% + ${y}px - ${size / 2}px)`,
+      }}
+      initial={{ x: -x, y: -y, scale: 0, opacity: 0 }}
+      animate={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+      transition={{ 
+        type: "spring",
+        stiffness: 40,
+        damping: 20,
+        mass: 1.2,
+        delay,
+        rotate: { duration: orbitSpeed, repeat: Infinity, ease: "linear" }
+      }}
+    >
+      <motion.div
+        className="w-full h-full flex items-center justify-center"
+        animate={{ rotate: -360 }} // Counter-rotate to stay upright
+        transition={{ duration: orbitSpeed, repeat: Infinity, ease: "linear" }}
+      >
+        {typeof Icon === 'string' || (typeof Icon === 'object' && Icon?.src) ? (
+          <Image
+            src={Icon}
+            alt=""
+            className="w-full h-full object-contain"
+          />
+        ) : (
+          <Icon className="text-white w-1/2 h-1/2" />
+        )}
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const OrbitalAnimation = () => {
+  return (
+    <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100">
+      {/* Central Logo */}
+      <motion.div
+        className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-black flex items-center justify-center shadow-[0_0_50px_rgba(132,0,215,0.4)]"
+        animate={{ scale: [1, 1.05, 1] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {/* <Music2 className="text-white w-1/2 h-1/2" /> */}
+        <img src="/logo.png" alt="" className='w-full h-full object-contain p-4' />
+        {/* Subtle glow rings */}
+        <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20" />
+      </motion.div>
+
+      {/* Orbit 1: Inner */}
+      <Orbit radius={80} speed={40} delay={0.6}>
+        <OrbitIcon angle={90} radius={80} color="#ffb700ff" icon={SnapCircleIcon} size={40} orbitSpeed={40} delay={0.9} />
+        <OrbitIcon angle={270} radius={80} color="#e03607ff" icon={GannaCircleIcon} size={40} orbitSpeed={40} delay={0.9} />
+      </Orbit>
+
+      {/* Orbit 2: Middle */}
+      <Orbit radius={140} speed={60} delay={1.2}>
+        <OrbitIcon angle={0} radius={140} color="#FC3C44" icon={AppleMusicCircleIcon} size={50} orbitSpeed={60} delay={1.5} />
+        <OrbitIcon angle={120} radius={140} color="#000000" icon={TiktokCircleIcon} size={50} orbitSpeed={60} delay={1.5} />
+        <OrbitIcon angle={240} radius={140} color="#10B981" icon={JioSaavnCircleIcon} size={50} orbitSpeed={60} delay={1.5} />
+      </Orbit>
+
+      {/* Orbit 3: Outer */}
+      <Orbit radius={210} speed={90} delay={1.8}>
+        <OrbitIcon angle={0} radius={210} color="#FF0000" icon={YoutubeCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
+        <OrbitIcon angle={72} radius={210} color="#E4405F" icon={InstagramCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
+        <OrbitIcon angle={144} radius={210} color="#1DB954" icon={SpotifyCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
+        <OrbitIcon angle={216} radius={210} color="#00A8E1" icon={FacebookCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
+        <OrbitIcon angle={288} radius={210} color="#000" icon={AmazonMusicCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
+      </Orbit>
+    </div>
+  );
+};
 
 export default function Hero() {
   const imageLogos = [
@@ -74,30 +196,13 @@ export default function Hero() {
             </motion.div>
           </motion.div>
 
-          {/* Right Side: Image */}
           <motion.div
             className="relative flex justify-center items-center w-full mt-12 lg:mt-0"
-            initial={{ opacity: 0, scale: 0.9, x: 20 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
           >
-            <div className="relative w-full max-w-[500px] aspect-square flex items-center justify-center">
-              {/* Optional Subtle Glow Behind Image */}
-              {/* <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full pointer-events-none" /> */}
-              <motion.div
-                className="relative w-full h-full"
-              // animate={{ y: [0, -15, 0] }}
-              // transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Image
-                  src={heroBanner}
-                  alt="Distribute Your Music Globally"
-                  fill
-                  priority
-                  className="object-contain relative z-10 drop-shadow-2xl"
-                />
-              </motion.div>
-            </div>
+            <OrbitalAnimation />
           </motion.div>
         </div>
       </div>
