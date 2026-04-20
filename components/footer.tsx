@@ -33,8 +33,8 @@ export default function Footer() {
 
   const contactDetails = [
     { icon: Mail, text: 'support@kratolib.com', href: 'mailto:support@kratolib.com' },
-    { icon: Phone, text: '02717448117', href: 'tel:+02717448117' },
-    { icon: MapPin, text: '4044, The Retail Park Rajyash City, Bopal, Ahmedabad, Gujarat - 380058', href: '#' },
+    // { icon: Phone, text: '02717448117', href: 'tel:+02717448117' },
+    { icon: MapPin, text: '4044, The Retail Park Rajyash City,<br /> Bopal, Ahmedabad, Gujarat - 380058', href: '#' },
   ]
 
   return (
@@ -109,7 +109,12 @@ export default function Footer() {
                     <Icon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </span>
                   <span className="text-muted-foreground text-sm group-hover:text-foreground transition-colors">
-                    {text}
+                    {text.split('<br />').map((line, i, arr) => (
+                      <span key={i}>
+                        {line}
+                        {i < arr.length - 1 && <br />}
+                      </span>
+                    ))}
                   </span>
                 </a>
               ))}

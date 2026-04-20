@@ -30,11 +30,11 @@ const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: 
     }}
     initial={{ scale: 0, opacity: 0 }}
     animate={{ scale: 1, opacity: 1 }}
-    transition={{ 
-      duration: 2.5, 
-      delay, 
-      ease: [0.16, 1, 0.3, 1], 
-      rotate: { duration: speed, repeat: Infinity, ease: "linear" } 
+    transition={{
+      duration: 2.5,
+      delay,
+      ease: [0.16, 1, 0.3, 1],
+      rotate: { duration: speed, repeat: Infinity, ease: "linear" }
     }}
   >
     <motion.div
@@ -63,7 +63,7 @@ const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, de
       }}
       initial={{ x: -x, y: -y, scale: 0, opacity: 0 }}
       animate={{ x: 0, y: 0, scale: 1, opacity: 1 }}
-      transition={{ 
+      transition={{
         type: "spring",
         stiffness: 40,
         damping: 20,
@@ -132,17 +132,11 @@ const OrbitalAnimation = () => {
 };
 
 export default function Hero() {
-  const imageLogos = [
-    { src: "https://cdn.prod.website-files.com/66a2518ff5fcac851841fbe7/66af509ce30b267f537d7dbc_jio.webp", alt: "Company 1", href: "https://company1.com" },
-    { src: "https://cdn.prod.website-files.com/66a2518ff5fcac851841fbe7/66af509c531437b23665284c_deezer.webp", alt: "Company 1", href: "https://company1.com" },
-  ];
   return (
     <section
       id="home"
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
     >
-
-
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center w-full min-h-[70vh] pb-24 md:pb-32 pt-20 lg:pt-0">
@@ -218,31 +212,25 @@ export default function Hero() {
           Distribute to 150+ platforms including
         </p>
         <LogoLoop
-          logos={imageLogos}
           speed={80}
-          direction="left"
-          logoHeight={40}
-          gap={60}
-          hoverSpeed={0}
-          scaleOnHover
-          fadeOut
-          fadeOutColor="transparent"
-          ariaLabel="Technology partners"
+          logoHeight={20}
+          gap={30}
         />
       </motion.div>
 
       {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer"
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
       >
-        <div className="w-6 h-10 border-2 border-foreground/30 rounded-full flex justify-center">
-          <div className="w-1 h-3 bg-foreground/50 rounded-full mt-2" />
-        </div>
+        <Link href="#features">
+          <div className="w-6 h-10 border-2 border-foreground/30 rounded-full flex justify-center hover:border-primary/50 transition-colors">
+            <div className="w-1 h-3 bg-foreground/50 rounded-full mt-2" />
+          </div>
+        </Link>
       </motion.div>
       <div className='hero_bg_gredient'></div>
     </section>
   )
 }
-
