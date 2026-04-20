@@ -127,7 +127,7 @@ export default function MoneySplitAnimation() {
           <motion.div
             animate={{
               x: [-200, 0, 70, 200],
-              y: [0, 0, -135, -135],
+              y: [0, 0, -130, -130],
               opacity: [0, 1, 1, 0],
               scale: [0.6, 1, 1, 0.6],
               rotate: [0, 15, -15, 0],
@@ -147,7 +147,7 @@ export default function MoneySplitAnimation() {
           <motion.div
             animate={{
               x: [-200, 0, 70, 200],
-              y: [0, 0, 125, 125],
+              y: [0, 0, 130, 130],
               opacity: [0, 1, 1, 0],
               scale: [0.6, 1, 1, 0.6],
               rotate: [0, -15, 15, 0],
@@ -166,57 +166,59 @@ export default function MoneySplitAnimation() {
       ))}
 
       {/* 5. Recipient Nodes: Elite Cards */}
-      <div className="absolute right-[100px] h-full flex flex-col justify-between py-8 z-20">
+      <div className="absolute right-[100px] w-full h-full z-20 pointer-events-none">
 
         {/* Recipient 1: Artist (Top) */}
-        <FloatingNode isInView={isInView} delay={0.5}>
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-3xl blur opacity-15" />
-            <div className="relative bg-[#0a0a0c]/90 backdrop-blur-2xl border border-white/10 rounded-2xl p-5 shadow-xl flex items-center gap-5 min-w-[240px]">
-              <div className="bg-emerald-500/20 rounded-xl p-3 border border-emerald-500/20">
-                <User className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between gap-12 mb-1">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Artist Split</p>
-                  <span className="text-[10px] font-bold bg-emerald-500 text-black px-1.5 py-0.5 rounded-md">50%</span>
+        <div className="absolute right-0 top-[120px] -translate-y-1/2 pointer-events-auto">
+          <FloatingNode isInView={isInView} delay={0.5}>
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-3xl blur opacity-15" />
+              <div className="relative bg-[#0a0a0c]/90 backdrop-blur-2xl border border-white/10 rounded-2xl p-5 shadow-xl flex items-center gap-5 min-w-[240px]">
+                <div className="bg-emerald-500/20 rounded-xl p-3 border border-emerald-500/20">
+                  <User className="w-6 h-6 text-emerald-400" />
                 </div>
-                <h5 className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <IndianRupee className="w-3 h-3 text-emerald-400" />
-                  50%
-                </h5>
-                <p className="text-[9px] text-emerald-400 mt-1 flex items-center gap-1">
-                  <ShieldCheck className="w-2.5 h-2.5" /> Secured Payout
-                </p>
+                <div>
+                  <div className="flex items-center justify-between gap-12 mb-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Artist Split</p>
+                  </div>
+                  <h5 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <IndianRupee className="w-3 h-3 text-emerald-400" />
+                    50%
+                  </h5>
+                  <p className="text-[9px] text-emerald-400 mt-1 flex items-center gap-1">
+                    <ShieldCheck className="w-2.5 h-2.5" /> Secured Payout
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        </FloatingNode>
+          </FloatingNode>
+        </div>
 
         {/* Recipient 2: Label/Producer (Bottom) */}
-        <FloatingNode isInView={isInView} delay={1.2}>
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-violet-500 to-violet-400 rounded-3xl blur opacity-15" />
-            <div className="relative bg-[#0a0a0c]/90 backdrop-blur-2xl border border-white/10 rounded-2xl p-5 shadow-xl flex items-center gap-5 min-w-[240px]">
-              <div className="bg-violet-500/20 rounded-xl p-3 border border-violet-500/20">
-                <Briefcase className="w-6 h-6 text-violet-400" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between gap-12 mb-1">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Label Share</p>
-                  <span className="text-[10px] font-bold bg-violet-500 text-white px-1.5 py-0.5 rounded-md">50%</span>
+        <div className="absolute right-0 top-[380px] -translate-y-1/2 pointer-events-auto">
+          <FloatingNode isInView={isInView} delay={1.2}>
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-violet-500 to-violet-400 rounded-3xl blur opacity-15" />
+              <div className="relative bg-[#0a0a0c]/90 backdrop-blur-2xl border border-white/10 rounded-2xl p-5 shadow-xl flex items-center gap-5 min-w-[240px]">
+                <div className="bg-violet-500/20 rounded-xl p-3 border border-violet-500/20">
+                  <Briefcase className="w-6 h-6 text-violet-400" />
                 </div>
-                <h5 className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <IndianRupee className="w-3 h-3 text-violet-400" />
-                  50%
-                </h5>
-                <p className="text-[9px] text-violet-400 mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-2.5 h-2.5" /> High Performance
-                </p>
+                <div>
+                  <div className="flex items-center justify-between gap-12 mb-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Label Share</p>
+                  </div>
+                  <h5 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <IndianRupee className="w-3 h-3 text-violet-400" />
+                    50%
+                  </h5>
+                  <p className="text-[9px] text-violet-400 mt-1 flex items-center gap-1">
+                    <TrendingUp className="w-2.5 h-2.5" /> High Performance
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        </FloatingNode>
+          </FloatingNode>
+        </div>
 
       </div>
 

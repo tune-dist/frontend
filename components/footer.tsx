@@ -11,7 +11,7 @@ export default function Footer() {
     company: [
       { name: 'Home', href: '#' },
       { name: 'Features', href: '#features' },
-      { name: 'Pricing', href: '#pricing' },
+      // { name: 'Pricing', href: '#pricing' },
       { name: 'Contact', href: '#contact' },
     ],
     legal: [
@@ -19,7 +19,7 @@ export default function Footer() {
       { name: 'Privacy Policy', href: '/privacy' },
     ],
     support: [
-      { name: 'Help Center', href: '/help' },
+      // { name: 'Help Center', href: '/help' },
       { name: 'FAQs', href: '/faqs' },
     ],
   }

@@ -3,11 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Music, ExternalLink, Play, Disc, Share2 } from "lucide-react";
+import { Music, ExternalLink, Play, Disc, Share2 } from "lucide-react";
 import { getPublicPromotionBySlug, getPromoTemplates } from "@/lib/api/promotions";
 import { PLATFORM_BADGES } from "@/config/platform-badges";
 import { PROMO_TEMPLATES } from "@/config/promo-templates";
 import { getDisplayUrl } from "@/lib/api/s3";
+import Preloader from "@/components/Preloader";
 
 export default function PublicPromotionPage() {
     const params = useParams();
@@ -99,11 +100,7 @@ export default function PublicPromotionPage() {
     }, [data, templates]); // Depend on templates for correct initial calculation
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        );
+        return <Preloader />;
     }
 
     if (error || !data) {

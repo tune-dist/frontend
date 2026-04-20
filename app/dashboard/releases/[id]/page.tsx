@@ -11,13 +11,13 @@ import {
   Globe,
   Disc,
   FileAudio,
-  Loader2,
   Disc3,
   QrCode,
   BookOpenText,
   AudioWaveform,
 } from "lucide-react";
 import { getRelease, Release, TrackPayload } from "@/lib/api/releases";
+import Preloader from "@/components/Preloader";
 import DashboardLayout from "@/components/dashboard/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,14 +76,7 @@ export default function ReleaseDetailsPage() {
   };
 
   if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground">Loading release details...</p>
-        </div>
-      </DashboardLayout>
-    );
+    return <Preloader />;
   }
 
   if (error || !release) {
