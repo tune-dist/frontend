@@ -1,25 +1,29 @@
 "use client";
 
-import { Globe, ShieldCheck, Smartphone, LineChart } from "lucide-react";
+import Image from "next/image";
+import worldwideIcon from "@/public/assets/images/worldwide-distribution-icon.svg";
+import protectionIcon from "@/public/assets/images/protection-icon.svg";
+import callerTuneIcon from "@/public/assets/images/caller-tune-icon.svg";
+import growthIcon from "@/public/assets/images/gowth-strategy-icon.svg";
 
 const features = [
   {
-    icon: Globe,
+    image: worldwideIcon,
     title: "Worldwide Distribution",
     desc: "Access 150+ stores globally including Spotify, Apple Music, and Amazon."
   },
   {
-    icon: ShieldCheck,
+    image: protectionIcon,
     title: "100% Artist Protection",
     desc: "Full credit protection and automated rights management for every release."
   },
   {
-    icon: Smartphone,
+    image: callerTuneIcon,
     title: "CRBT / Caller Tune",
     desc: "Unique revenue streams through telecom partnerships and caller tunes."
   },
   {
-    icon: LineChart,
+    image: growthIcon,
     title: "Growth Strategy",
     desc: "Dedicated team helping new artists navigate the global music landscape."
   }
@@ -50,7 +54,13 @@ export default function VelocitySection() {
               key={i}
               className="group bg-muted/20 p-8 rounded-2xl transition-all duration-300 hover:bg-muted/40 border-l-[3px] border-transparent hover:border-violet-400 hover:shadow-xl"
             >
-              <item.icon className="h-8 w-8 text-violet-400 mb-6 group-hover:scale-110 transition-transform" />
+              <Image
+                src={item.image}
+                alt={item.title}
+                width={70}
+                height={70}
+                className="mb-6 group-hover:scale-110 transition-transform object-contain"
+              />
               <h3 className="font-bold font_heading text-lg sm:text-xl mb-3 leading-snug">{item.title}</h3>
               <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{item.desc}</p>
             </div>

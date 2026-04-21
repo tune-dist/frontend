@@ -11,7 +11,7 @@ export default function Footer() {
     company: [
       { name: 'Home', href: '#' },
       { name: 'Features', href: '#features' },
-      { name: 'Pricing', href: '#pricing' },
+      // { name: 'Pricing', href: '#pricing' },
       { name: 'Contact', href: '#contact' },
     ],
     legal: [
@@ -19,7 +19,7 @@ export default function Footer() {
       { name: 'Privacy Policy', href: '/privacy' },
     ],
     support: [
-      { name: 'Help Center', href: '/help' },
+      // { name: 'Help Center', href: '/help' },
       { name: 'FAQs', href: '/faqs' },
     ],
   }
@@ -33,8 +33,8 @@ export default function Footer() {
 
   const contactDetails = [
     { icon: Mail, text: 'support@kratolib.com', href: 'mailto:support@kratolib.com' },
-    { icon: Phone, text: '+1 (800) 555-0199', href: 'tel:+18005550199' },
-    { icon: MapPin, text: 'Mumbai, India', href: '#' },
+    // { icon: Phone, text: '02717448117', href: 'tel:+02717448117' },
+    { icon: MapPin, text: '4044, The Retail Park Rajyash City,<br /> Bopal, Ahmedabad, Gujarat - 380058', href: '#' },
   ]
 
   return (
@@ -109,7 +109,12 @@ export default function Footer() {
                     <Icon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </span>
                   <span className="text-muted-foreground text-sm group-hover:text-foreground transition-colors">
-                    {text}
+                    {text.split('<br />').map((line, i, arr) => (
+                      <span key={i}>
+                        {line}
+                        {i < arr.length - 1 && <br />}
+                      </span>
+                    ))}
                   </span>
                 </a>
               ))}
@@ -219,11 +224,6 @@ export default function Footer() {
               style={{ animation: 'heartbeat 1.4s ease-in-out infinite' }}
             >❤️</span>
             for independent artists
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
-            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
-            <Link href="/faqs" className="hover:text-primary transition-colors">FAQs</Link>
           </div>
         </div>
       </div>

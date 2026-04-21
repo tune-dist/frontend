@@ -1,23 +1,26 @@
 "use client";
 
-import { UploadCloud, Globe2, Banknote } from "lucide-react";
+import Image from "next/image";
+import uploadIcon from "@/public/assets/images/upload-music-icon.svg";
+import networkIcon from "@/public/assets/images/global-network-icon.svg";
+import earnIcon from "@/public/assets/images/earn-revenue-icon.svg";
 
 const steps = [
   {
     num: "01",
-    icon: UploadCloud,
+    image: uploadIcon,
     title: "Upload Your Music",
     desc: "Studio-quality metadata management, credit tracking, and automatic formatting for all platforms."
   },
   {
     num: "02",
-    icon: Globe2,
+    image: networkIcon,
     title: "Global Distribution",
     desc: "Instant push to streaming services, social platforms, and regional telecom networks worldwide."
   },
   {
     num: "03",
-    icon: Banknote,
+    image: earnIcon,
     title: "Earn Revenue",
     desc: "Transparent reporting dashboard with real-time analytics and direct payout options."
   }
@@ -46,7 +49,13 @@ export default function PipelineSection() {
                 {step.num}
               </div>
 
-              <step.icon className="h-12 w-12 text-violet-500 mb-8" />
+              <Image
+                src={step.image}
+                alt={step.title}
+                width={100}
+                height={100}
+                className="mb-8 object-contain"
+              />
 
               <h3 className="text-2xl font-bold mb-4 font_heading text-foreground relative z-10">{step.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed relative z-10">{step.desc}</p>

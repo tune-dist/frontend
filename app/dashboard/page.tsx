@@ -23,6 +23,7 @@ import { TrendingUp, DollarSign, Globe, Music, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getReleases, Release } from "@/lib/api/releases";
 import { getUsageStats, UsageStats } from "@/lib/api/users";
+import Preloader from "@/components/Preloader";
 
 // Animation variants
 const containerVariants = {
@@ -109,13 +110,7 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
+    return <Preloader />;
   }
 
   return (

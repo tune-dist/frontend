@@ -90,7 +90,7 @@ export default function RoyaltySplitsCollaboration() {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-foreground mb-2 leading-snug">{card.title}</h3>
-                  <p className="text-muted-foreground text-xs leading-relaxed">{card.desc}</p>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{card.desc}</p>
                 </div>
               </div>
             ))}
