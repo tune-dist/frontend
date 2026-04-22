@@ -91,6 +91,8 @@ export const uploadFormSchema = z.object({
         spotifyProfile: z.union([z.string(), artistProfileSchema]).optional(),
         appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
         youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
+        instagramProfile: z.string().optional(),
+        facebookProfile: z.string().optional(),
     })).default([]),
     isrc: z.string().optional().refine((val) => {
         if (!val || val.trim() === '') return true;

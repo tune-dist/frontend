@@ -13,6 +13,8 @@ export interface ReleaseFormData {
     spotifyProfile?: any;
     appleMusicProfile?: any;
     youtubeMusicProfile?: any;
+    instagramProfile?: string;
+    facebookProfile?: string;
   }>;
   numberOfSongs?: string;
   userId?: string;
@@ -366,7 +368,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           secondaryGenre: track.secondaryGenre,
           featuringArtist: track.featuringArtist,
           isrc: track.isrc || formData.isrc,
-          language: track.language || formData.language,
+          language: (track.language || formData.language) ? (track.language || formData.language).charAt(0).toUpperCase() + (track.language || formData.language).slice(1).toLowerCase() : undefined,
           spotifyProfile: track.spotifyProfile || formData.spotifyProfile,
           appleMusicProfile: track.appleMusicProfile || formData.appleMusicProfile,
           youtubeMusicProfile: track.youtubeMusicProfile || formData.youtubeMusicProfile,
@@ -397,7 +399,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         secondaryGenre: formData.secondaryGenre,
         featuringArtist: formData.featuringArtist,
         isrc: formData.isrc,
-        language: formData.language,
+        language: formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1).toLowerCase() : undefined,
         spotifyProfile: formData.spotifyProfile,
         appleMusicProfile: formData.appleMusicProfile,
         youtubeMusicProfile: formData.youtubeMusicProfile,
@@ -499,7 +501,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       title: formData.title,
       artistName: formData.artistName,
       version: formData.version,
-      ...(formData.language && { language: formData.language }),
+      ...(formData.language && { language: formData.language.charAt(0).toUpperCase() + formData.language.slice(1).toLowerCase() }),
       ...(formData.primaryGenre && { primaryGenre: formData.primaryGenre }),
       ...(formData.secondaryGenre && {
         secondaryGenre: formData.secondaryGenre,
@@ -614,15 +616,28 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.radioEdit && { radioEdit: formData.radioEdit }),
       ...(formData.instrumental && { instrumental: formData.instrumental }),
 
-      ...(formData.artists &&
-        formData.artists.length > 0 && {
-        primaryArtists: formData.artists.map((artist) => ({
-          name: artist.name,
-          spotifyProfile: artist.spotifyProfile,
-          appleMusicProfile: artist.appleMusicProfile,
-          youtubeMusicProfile: artist.youtubeMusicProfile,
-        })),
-      }),
+      ...(formData.artistName || (formData.artists && formData.artists.length > 0) ? {
+        primaryArtists: [
+          {
+            name: formData.artistName,
+            spotifyProfile: formData.spotifyProfile,
+            appleMusicProfile: formData.appleMusicProfile,
+            youtubeMusicProfile: formData.youtubeMusicProfile,
+            instagramProfile: formData.instagramProfile === 'yes' ? formData.instagramProfileUrl : formData.instagramProfile,
+            facebookProfile: formData.facebookProfile === 'yes' ? formData.facebookProfileUrl : formData.facebookProfile,
+          },
+          ...((formData.artists || [])
+            .filter((artist) => artist.name?.trim())
+            .map((artist) => ({
+              name: artist.name,
+              spotifyProfile: artist.spotifyProfile,
+              appleMusicProfile: artist.appleMusicProfile,
+              youtubeMusicProfile: artist.youtubeMusicProfile,
+              instagramProfile: artist.instagramProfile,
+              facebookProfile: artist.facebookProfile,
+            })) || []),
+        ],
+      } : {}),
       ...(formData.userId && { userId: formData.userId }),
 
       // Map mandatory checks to backend fields
