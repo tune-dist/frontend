@@ -11,7 +11,7 @@ export default function GrowthTeamSection() {
           {/* Decorative Left visual */}
           <div className="md:col-span-7 relative order-2 md:order-1">
             <div className="relative z-10 rounded-[2.5rem] overflow-hidden border border-border/40 aspect-[16/10] shadow-2xl">
-              <div className="absolute inset-0 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuC41NksV7upYBaJUF23RNdVd_W2nNLLSncXpHXk20jJk6VbPkTs9L6iM6srx70uIGh-Sw_tuG7JFI3LI28pHfTPDL13fiJ0pHRcxrdx5F-IiN9fWKrd1sQ1QaE_s-3o5xUYO79iZCgXt0cWMBmf-2wxPJ5FfsOz8t0YGx9czorRXfw_FYDZ_XqX8TDUgkx-zk7vlVYqRRuPeuIb1Vn8fS6Ow_BjRISUqslYPqmY2lWV0ZMLrXmnYFmrtS36pz3IAKbNsB7x6GdujMc')] bg-cover bg-center opacity-80" />
+              <div className="absolute inset-0 bg-[url('/assets/images/music-banner2.jpg')] bg-cover bg-center opacity-80" />
             </div>
 
             {/* Glow orb offset behind the image */}

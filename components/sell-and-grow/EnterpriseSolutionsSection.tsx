@@ -54,7 +54,7 @@ export default function EnterpriseSolutionsSection() {
           {/* Right: Dashboard Image Mockup */}
           <div className="bg-muted/10 p-4 sm:p-6 rounded-[3rem] border border-border/40  shadow-2xl">
             <div className="rounded-[2.5rem] overflow-hidden bg-background border border-border/50 relative aspect-[4/3] group">
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
+              <div className="absolute inset-0 bg-[url('/assets/images/music-banner3.jpg')] bg-cover bg-center grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
               <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent" />
             </div>
           </div>

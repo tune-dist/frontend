@@ -42,8 +42,8 @@ export default function FAQPage() {
   }
 
   return (
-    <StaticPageLayout 
-      title="Common Questions" 
+    <StaticPageLayout
+      title="Common Questions"
       subtitle="Find answers to frequently asked questions about music distribution, royalties, and more."
     >
       <div className="space-y-16">
@@ -57,14 +57,14 @@ export default function FAQPage() {
                 {category.title}
               </h2>
             </div>
-            
+
             <div className="grid gap-4">
               {category.faqs.map((faq, faqIndex) => {
                 const id = `${catIndex}-${faqIndex}`
                 const isOpen = openIndex === id
-                
+
                 return (
-                  <div 
+                  <div
                     key={id}
                     className={`border border-border/50 rounded-2xl transition-all duration-300 ${isOpen ? 'bg-card/50 ring-1 ring-primary/20' : 'bg-card/20 hover:bg-card/30'}`}
                   >
@@ -77,7 +77,7 @@ export default function FAQPage() {
                       </span>
                       <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
                     </button>
-                    
+
                     <AnimatePresence>
                       {isOpen && (
                         <motion.div
@@ -100,13 +100,51 @@ export default function FAQPage() {
           </div>
         ))}
       </div>
-      
-      <div className="mt-20 text-center">
-        <div className="inline-flex items-center gap-4 p-6 rounded-full bg-card/50 border border-border/50 text-muted-foreground">
-          <MessageSquare className="w-5 h-5 text-primary" />
-          <span>Can't find what you're looking for? <a href="/contact" className="text-primary font-semibold hover:underline">Ask us directly</a>.</span>
+
+      {/* New Section: Still have a question? */}
+      <motion.section
+        className="mt-24 relative rounded-[2.5rem] overflow-hidden border border-border/40 p-8 md:p-14 bg-[#0d0d0d]"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+      >
+        {/* Background Noise Texture Overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.9] pointer-events-none"
+          style={{
+            backgroundImage: "url('/assets/images/bg-noice-texture.jpg')",
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'cover'
+          }}
+        />
+
+        <div className="relative z-10 flex flex-col items-center text-center gap-10">
+          <div className="space-y-4 max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-5xl font-bold text-white font_heading leading-tight transition-all pb-3">
+              Still have a question?
+            </h2>
+            <p className="text-white text-lg leading-relaxed mx-auto">
+              Our team responds fast. Start free and get your music earning on 150+ platforms —
+              including CRBT Hello Tune across all Indian telecoms.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto min-w-[280px] justify-center">
+            <a
+              href="/auth/register"
+              className="px-10 py-5 bg-white text-black font-bold rounded-2xl text-center hover:scale-[1.02] transition-all shadow-2xl flex items-center justify-center min-w-[240px]"
+            >
+              Start Free on KratoLib
+            </a>
+            <a
+              href="/contact"
+              className="px-10 py-5 border border-white/20 text-white font-bold rounded-2xl text-center hover:bg-white/5 hover:border-white/40 transition-all flex items-center justify-center min-w-[240px]"
+            >
+              Talk to Support
+            </a>
+          </div>
         </div>
-      </div>
+      </motion.section>
     </StaticPageLayout>
   )
 }

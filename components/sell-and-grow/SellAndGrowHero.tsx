@@ -51,7 +51,7 @@ export default function SellAndGrowHero() {
         {/* Hero Visual Card */}
         <div className="relative">
           <div className="aspect-video rounded-[2rem] overflow-hidden shadow-2xl shadow-violet-500/10 border border-border/40 relative z-0">
-            <div className="absolute inset-0 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuBZqK0BAzij31z1pqByiovSY3o2fi3ia-s6LU-K2xI6WmPD3HbkEAprGlwO9oPskv9_-he7Jjyf0i1zRvMm3XtVsy5HnLVNd-RvpHjtSXDgxOFPdi6_-tZq-c5GmHj4yCqX67rvKAyTZiBlwyHBiOSw4c2EcFzUUfS_2rDG5MRQ1t6iCFc6iwq8J0q3hvlaK-u7DGvTTRdFcR4F207COH1rcRzLawcB8b-hy0PIos5454OLIPsRUuOCc0bjdK2nZt6cdsKos858K_c')] bg-cover bg-center grayscale hover:grayscale-0 transition-all duration-700"></div>
+            <div className="absolute inset-0 bg-[url('/assets/images/music-banner1.jpg')] bg-cover bg-center grayscale hover:grayscale-0 transition-all duration-700"></div>
           </div>
 
           {/* Floating Stats Card */}

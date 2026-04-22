@@ -11,6 +11,7 @@ import HowItWorks from '@/components/how-it-works'
 import Testimonials from '@/components/testimonials'
 import Pricing from '@/components/pricing'
 import Contact from '@/components/contact'
+import FaqSection from '@/components/faq-section'
 import Footer from '@/components/footer'
 
 export default function Home() {
@@ -43,6 +44,7 @@ export default function Home() {
       <Testimonials />
       <Pricing />
       <Contact />
+      <FaqSection />
       <Footer />
     </main>
   )

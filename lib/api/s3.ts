@@ -11,8 +11,12 @@ const CACHE_DURATION_MS = 45 * 60 * 1000;
  */
 export const isS3Key = (url: string): boolean => {
     if (!url) return false;
-    // S3 keys don't start with http/https and typically follow pattern: type/uuid.ext or s3://...
-    return url.startsWith('s3://') || (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/uploads/'));
+    // Explicit S3 protocol is always a key
+    if (url.startsWith('s3://')) return true;
+    
+    // If it's a full URL or a root-relative path, it's NOT an S3 key
+    // Root-relative paths (starting with /) are local assets like /_next/... or /assets/...
+    return !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/');
 };
 
 /**
