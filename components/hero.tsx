@@ -96,7 +96,7 @@ const OrbitalAnimation = () => {
     <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100">
       {/* Central Logo */}
       <motion.div
-        className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-black flex items-center justify-center shadow-[0_0_50px_rgba(132,0,215,0.4)]"
+        className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-[#52009e] flex items-center justify-center shadow-[0_0_50px_rgba(132,0,215,0.6)]"
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
@@ -214,7 +214,7 @@ export default function Hero() {
         <LogoLoop
           speed={80}
           logoHeight={20}
-          gap={30}
+          gap={45}
         />
       </motion.div>
 

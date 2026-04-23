@@ -54,7 +54,7 @@ export default function Testimonials() {
       _id: '4',
       name: 'Dj Kwid',
       role: 'Music Producer',
-      quote: 'Kratolib is best',
+      quote: 'KratoLib has helped me take my sound to a global audience with ease. Their fast delivery, smooth release process, and professional support allow me to focus completely on creating quality music.',
       image: DjKwidImg.src
     },
     {

@@ -43,8 +43,8 @@ export default function Home() {
       <HowItWorks />
       <Testimonials />
       <Pricing />
-      <Contact />
       <FaqSection />
+      <Contact />
       <Footer />
     </main>
   )

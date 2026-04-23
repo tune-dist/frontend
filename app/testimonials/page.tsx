@@ -50,7 +50,7 @@ export default function TestimonialsPage() {
       _id: '4',
       name: 'Dj Kwid',
       role: 'Music Producer',
-      quote: 'Kratolib is best',
+      quote: 'KratoLib has helped me take my sound to a global audience with ease. Their fast delivery, smooth release process, and professional support allow me to focus completely on creating quality music.',
       image: DjKwidImg.src
     },
     {
@@ -133,12 +133,12 @@ export default function TestimonialsPage() {
   return (
     <main className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      
+
       <section className="py-20 md:py-35 relative overflow-hidden flex-grow">
         {/* Decorative background elements */}
         <div className="absolute top-1/4 right-0 w-full h-1/2 bg-primary/5 blur-[120px] rounded-[100%] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-violet-500/5 blur-[120px] rounded-[100%] pointer-events-none" />
-        
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             className="text-center mb-16 pt-12"

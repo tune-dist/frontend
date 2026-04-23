@@ -1,7 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { Mail, Phone, MapPin, Music, Instagram, Twitter, Youtube, Facebook } from 'lucide-react'
+import { Mail, Phone, MapPin, Music, Instagram, Twitter, Youtube, Linkedin } from 'lucide-react'
+
+const SpotifyIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.503 17.306c-.22.36-.68.473-1.04.253-2.884-1.763-6.512-2.162-10.785-1.183-.41.094-.823-.16-.917-.57-.094-.41.16-.823.57-.917 4.675-1.07 8.683-.62 11.92 1.36.36.22.473.68.252 1.04zm1.47-3.26c-.276.45-.86.593-1.31.317-3.298-2.028-8.326-2.617-12.23-1.433-.51.155-1.04-.138-1.194-.648-.154-.51.138-1.04.648-1.194 4.453-1.353 10.003-.703 13.77 1.614.45.276.593.86.316 1.31zm.126-3.415c-3.955-2.348-10.48-2.564-14.26-1.417-.607.184-1.25-.16-1.435-.767-.184-.607.16-1.25.767-1.435 4.34-1.318 11.536-1.066 16.085 1.633.546.324.726 1.03.402 1.576-.324.546-1.03.726-1.576.41z"/>
+  </svg>
+)
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.292 19.49h2.039L6.486 3.24H4.298l13.311 17.403z"/>
+  </svg>
+)
 
 
 export default function Footer() {
@@ -25,10 +37,11 @@ export default function Footer() {
   }
 
   const socialLinks = [
-    { icon: Instagram, href: '#', label: 'Instagram', color: 'hover:text-pink-400' },
-    { icon: Twitter, href: '#', label: 'Twitter', color: 'hover:text-sky-400' },
-    { icon: Youtube, href: '#', label: 'YouTube', color: 'hover:text-red-400' },
-    { icon: Facebook, href: '#', label: 'Facebook', color: 'hover:text-blue-400' },
+    { icon: Youtube, href: '#', label: 'YouTube', color: 'hover:text-red-500' },
+    { icon: Instagram, href: '#', label: 'Instagram', color: 'hover:text-pink-500' },
+    { icon: SpotifyIcon, href: '#', label: 'Spotify', color: 'hover:text-green-500' },
+    { icon: Linkedin, href: '#', label: 'LinkedIn', color: 'hover:text-blue-600' },
+    { icon: XIcon, href: '#', label: 'X (Twitter)', color: 'hover:text-foreground' },
   ]
 
   const contactDetails = [
