@@ -245,6 +245,7 @@ export interface CreateReleaseData {
 
   primaryGenre?: string;
   secondaryGenre?: string;
+  subGenre?: string;
 
   socialPlatforms?: {
     spotifyProfile?: any;
@@ -508,6 +509,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.secondaryGenre && {
         secondaryGenre: formData.secondaryGenre,
       }),
+      ...(formData.subGenre && { subGenre: formData.subGenre }),
       releaseType: (formData.format as any) || formData.releaseType || "single",
       isExplicit: formData.explicitLyrics === "yes" || formData.isExplicit === true,
       releaseDate: formData.releaseDate || new Date().toISOString(),

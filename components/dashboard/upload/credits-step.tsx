@@ -99,8 +99,8 @@ export default function CreditsStep({
         return;
       }
 
-      // Find the genre _id from the selected slug
-      const selectedGenre = genres.find((g) => g.slug === primaryGenre);
+      // Find the genre _id from the selected name
+      const selectedGenre = genres.find((g) => g.name === primaryGenre);
       if (!selectedGenre) {
         setSubGenres([]);
         return;
@@ -114,7 +114,7 @@ export default function CreditsStep({
         const currentSecondary = watch("secondaryGenre");
         if (
           currentSecondary &&
-          !fetchedSubGenres.some((sg) => sg.slug === currentSecondary)
+          !fetchedSubGenres.some((sg) => sg.name === currentSecondary)
         ) {
           setValue("secondaryGenre", "");
         }
@@ -405,7 +405,7 @@ export default function CreditsStep({
                       <option disabled>Loading genres...</option>
                     ) : (
                       genres.map((genre) => (
-                        <option key={genre._id} value={genre.slug}>
+                        <option key={genre._id} value={genre.name}>
                           {genre.name}
                         </option>
                       ))
@@ -443,7 +443,7 @@ export default function CreditsStep({
                           : "Select a sub-genre"}
                     </option>
                     {subGenres.map((subGenre) => (
-                      <option key={subGenre._id} value={subGenre.slug}>
+                      <option key={subGenre._id} value={subGenre.name}>
                         {subGenre.name}
                       </option>
                     ))}
