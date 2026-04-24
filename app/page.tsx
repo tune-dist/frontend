@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from '@/components/navbar'
+import Preloader from '@/components/Preloader'
 import Hero from '@/components/hero'
 import Features from '@/components/features'
 import HowItWorks from '@/components/how-it-works'
@@ -25,11 +26,7 @@ export default function Home() {
 
   // Show loading state while checking authentication
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
+    return <Preloader />
   }
 
   // Don't render landing page if authenticated (redirect is in progress)

@@ -1078,6 +1078,45 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                                     {/* Secondary Artist Search Results */}
                                     {renderSearchResults(index)}
+
+                                    {/* Secondary Artist Social Media Profiles */}
+                                    <div className="mt-4 space-y-4 pl-4 border-l-2 border-border/50">
+                                        {/* Instagram Profile for Secondary Artist */}
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium flex items-center gap-2">
+                                                <span className="text-[#E4405F] font-bold text-base">Instagram</span>
+                                                <span className="text-xs text-muted-foreground">Optional</span>
+                                            </Label>
+                                            <Input
+                                                placeholder="https://instagram.com/username"
+                                                value={artist.instagramProfile || ''}
+                                                onChange={(e) => {
+                                                    const currentArtists = [...(artists || [])]
+                                                    currentArtists[index] = { ...currentArtists[index], instagramProfile: e.target.value }
+                                                    setValue('artists', currentArtists, { shouldValidate: true })
+                                                }}
+                                                className="text-sm"
+                                            />
+                                        </div>
+
+                                        {/* Facebook Profile for Secondary Artist */}
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-medium flex items-center gap-2">
+                                                <span className="text-[#1877F2] font-bold text-base">Facebook</span>
+                                                <span className="text-xs text-muted-foreground">Optional</span>
+                                            </Label>
+                                            <Input
+                                                placeholder="https://facebook.com/username"
+                                                value={artist.facebookProfile || ''}
+                                                onChange={(e) => {
+                                                    const currentArtists = [...(artists || [])]
+                                                    currentArtists[index] = { ...currentArtists[index], facebookProfile: e.target.value }
+                                                    setValue('artists', currentArtists, { shouldValidate: true })
+                                                }}
+                                                className="text-sm"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -1197,7 +1236,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         </div>
                     </div>
                 </div>
-
 
 
                 <div className="space-y-2">

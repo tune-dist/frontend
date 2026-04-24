@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown, ArrowRight, Music2, Users2, TrendingUp, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,14 +34,14 @@ export default function Navbar() {
         { name: "Sell & Grow", href: "/sell-and-grow" },
       ],
     },
-    { name: "Pricing", href: "/pricing" },
+    // { name: "Pricing", href: "/pricing" },
     { name: "Testimonials", href: "/testimonials" },
     { name: "Contact", href: "/contact" },
   ];
 
   return (
     <nav
-      className={`fixed top-[10px] left-0 right-0 z-50 transition-all duration-300 header_bar ${isScrolled
+      className={`fixed top-[10px] left-0 right-0 z-50 transition-all duration-700 delay-500 header_bar ${isScrolled
         ? "header_bar_active"
         : "bg-transparent"
         }`}
@@ -49,13 +50,13 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <a href="/">
+            <Link href="/">
               <img
                 src="/logo.png"
                 alt="KratoLib"
                 className="h-[2rem] max-w-100%"
               />
-            </a>
+            </Link>
           </div>
 
           {/* Desktop Navigation - Centered */}
@@ -67,7 +68,7 @@ export default function Navbar() {
                 onMouseEnter={() => link.dropdown && setIsDistributionOpen(true)}
                 onMouseLeave={() => link.dropdown && setIsDistributionOpen(false)}
               >
-                <a
+                <Link
                   href={link.href}
                   className={`${pathname === link.href || (link.dropdown && link.dropdown.some(sub => sub.href === pathname))
                     ? "text-violet-500"
@@ -78,7 +79,7 @@ export default function Navbar() {
                   {link.dropdown && (
                     <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isDistributionOpen ? 'rotate-180' : ''}`} />
                   )}
-                </a>
+                </Link>
 
                 {link.dropdown && (
                   <AnimatePresence>
@@ -92,7 +93,7 @@ export default function Navbar() {
                       >
                         <div className="grid gap-1">
                           {link.dropdown.map((subItem) => (
-                            <a
+                            <Link
                               key={subItem.name}
                               href={subItem.href}
                               className={`block p-3 rounded-lg hover:bg-white/5 transition-colors group ${pathname === subItem.href ? "bg-white/5" : ""
@@ -102,7 +103,7 @@ export default function Navbar() {
                                 }`}>
                                 {subItem.name}
                               </div>
-                            </a>
+                            </Link>
                           ))}
                         </div>
                       </motion.div>
@@ -115,16 +116,16 @@ export default function Navbar() {
 
           {/* Auth Buttons - Right */}
           <div className="hidden md:flex md:items-center md:space-x-3 flex-shrink-0">
-            <a href="/auth?tab=login">
+            {/* <Link href="/auth?tab=login">
               <Button variant="outline" size="default" className="border border-white/10">
                 Login
               </Button>
-            </a>
-            <a href="/auth?tab=signup">
+            </Link> */}
+            <Link href="/contact">
               <Button size="default" className="animated-gradient-bg text-white transition-all duration-300">
                 Get Started <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 ml-1" />
               </Button>
-            </a>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -167,7 +168,7 @@ export default function Navbar() {
                               className="overflow-hidden pl-4 space-y-1"
                             >
                               {link.dropdown.map((subItem) => (
-                                <a
+                                <Link
                                   key={subItem.name}
                                   href={subItem.href}
                                   className={`block p-2 text-sm transition-colors ${pathname === subItem.href ? "text-primary font-semibold" : "text-foreground/60 hover:text-primary"
@@ -175,34 +176,34 @@ export default function Navbar() {
                                   onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                   {subItem.name}
-                                </a>
+                                </Link>
                               ))}
                             </motion.div>
                           )}
                         </AnimatePresence>
                       </div>
                     ) : (
-                      <a
+                      <Link
                         href={link.href}
                         className={`block p-2 transition-colors ${pathname === link.href ? "text-primary font-semibold" : "text-foreground/80 hover:text-primary"
                           }`}
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         {link.name}
-                      </a>
+                      </Link>
                     )}
                   </div>
                 ))}
 
                 <div className="pt-4 border-t border-white/5 space-y-2">
-                  <a href="/auth?tab=login" className="w-full block">
+                  <Link href="/auth?tab=login" className="w-full block">
                     <Button variant="outline" className="w-full border-white/10">
                       Login
                     </Button>
-                  </a>
-                  <a href="/auth?tab=signup" className="w-full block">
+                  </Link>
+                  <Link href="/auth?tab=signup" className="w-full block">
                     <Button className="w-full animated-gradient-bg">Get Started</Button>
-                  </a>
+                  </Link>
                 </div>
               </div>
             </motion.div>

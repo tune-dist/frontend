@@ -102,32 +102,6 @@ export default function SmartMusicTechnology() {
           ))}
         </div>
 
-        {/* Wide system diagram strip */}
-        <div className="mt-14 rounded-3xl border border-border/50 bg-muted/20 p-8 table ml-auto mr-auto">
-          <div className="flex flex-col lg:flex-row items-center gap-6 justify-center text-center">
-            {[
-              { step: "01", label: "Upload Release", icon: "🎵" },
-              { step: "02", label: "AI Quality Scan", icon: "🤖" },
-              { step: "03", label: "Metadata Check", icon: "🧾" },
-              { step: "04", label: "Artwork Verify", icon: "🎨" },
-              { step: "05", label: "Duplicate Guard", icon: "🛑" },
-              { step: "06", label: "Distribute", icon: "🚀" },
-            ].map(({ step, label, icon }, i, arr) => (
-              <div key={step} className="flex items-center gap-4 lg:gap-6">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border/50 bg-muted/40 text-2xl hover:scale-110 transition-transform duration-300 cursor-default">
-                    {icon}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{step}</p>
-                  <p className="text-xs font-semibold text-foreground whitespace-nowrap">{label}</p>
-                </div>
-                {i < arr.length - 1 && (
-                  <div className="hidden lg:block h-px w-8 bg-border/60 shrink-0" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
 
       </div>
     </section>
