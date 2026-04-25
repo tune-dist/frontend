@@ -152,6 +152,7 @@ export default function UploadPage() {
       copyright: process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib",
       producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib"],
       recordingYear: new Date().getFullYear(),
+      mood: "",
     },
     mode: "onChange",
   });
@@ -467,6 +468,15 @@ export default function UploadPage() {
               form.setError("previouslyReleased", {
                 type: "required",
                 message: "Release history is required for single releases",
+              });
+              isValid = false;
+            }
+
+            // Manual validation for mood (Vibe)
+            if (!formData.mood || formData.mood.trim() === "") {
+              form.setError("mood", {
+                type: "required",
+                message: "Vibe is required",
               });
               isValid = false;
             }

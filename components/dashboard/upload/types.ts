@@ -64,7 +64,7 @@ export const trackSchema = z.object({
     facebookProfile: z.string().optional(),
     version: z.string().optional(),
     featuringArtist: z.string().optional(),
-    mood: z.string().optional(),
+    mood: z.string().min(1, 'Vibe is required'),
 })
 
 export type Track = z.infer<typeof trackSchema>
@@ -176,10 +176,20 @@ export const uploadFormSchema = z.object({
     composers: z.array(songwriterSchema).default([]),
 
     recordingYear: z.number().default(new Date().getFullYear()),
+    mood: z.string().optional(),
 
     // Legacy/Other
     producers: z.array(z.string()).optional(),
     selectedPlatforms: z.array(z.string()).optional(),
+}).superRefine((data, ctx) => {
+    // Mood is required only for single releases at the root level
+    if (data.format === 'single' && (!data.mood || data.mood.trim() === '')) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Vibe is required',
+            path: ['mood'],
+        });
+    }
 })
 
 export type UploadFormData = z.infer<typeof uploadFormSchema>

@@ -70,6 +70,7 @@ export interface ReleaseFormData {
 
   distributionTerritories?: string[];
   format?: string;
+  mood?: string;
 
   // Multi-track support
   tracks?: any[];
@@ -82,7 +83,7 @@ export interface ReleaseFormData {
   coverArtConsent?: boolean;
 }
 
-export type ReleaseStatus = "In Process" | "Approved" | "Rejected" | "Released";
+export type ReleaseStatus = "Draft" | "In Process" | "Submitted" | "Approved" | "Rejected" | "Released";
 export type ReleaseType = "single" | "ep" | "album" | "compilation";
 
 export interface AudioFile {
@@ -408,6 +409,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         youtubeMusicProfile: formData.youtubeMusicProfile,
         instagramProfile: formData.instagramProfile === 'yes' ? formData.instagramProfileUrl : formData.instagramProfile,
         facebookProfile: formData.facebookProfile === 'yes' ? formData.facebookProfileUrl : formData.facebookProfile,
+        mood: (formData as any).mood,
       }];
     }
 
@@ -568,6 +570,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.publisher && { publisher: formData.publisher }),
       ...(formData.copyright && { copyright: formData.copyright }),
       ...(formData.recordingYear && { recordingYear: formData.recordingYear }),
+      ...(formData.mood && { mood: formData.mood }),
       ...(formData.albumTitle && { albumTitle: formData.albumTitle }),
 
 
@@ -774,6 +777,18 @@ export const rejectRelease = async (
   const response = await apiClient.post<Release>(`/releases/${id}/reject`, {
     reason,
   });
+  return response.data;
+};
+
+// PDL Submit (First Step - Verification)
+export const submitToPdl = async (id: string, data: any = {}): Promise<any> => {
+  const response = await apiClient.post(`/releases/${id}/submit-to-pdl`, data);
+  return response.data;
+};
+
+// PDL Submit (Final Step - Distribution)
+export const pdlSubmit = async (id: string, data: any = {}): Promise<any> => {
+  const response = await apiClient.post(`/releases/${id}/pdl-submit`, data);
   return response.data;
 };
 

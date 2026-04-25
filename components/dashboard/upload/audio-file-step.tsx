@@ -157,6 +157,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                         audioFileId: fileId,
                         writers: [],
                         composers: [],
+                        mood: "",
                     }
                     setValue('tracks', [...currentTracks, newTrack], { shouldValidate: true })
                 }

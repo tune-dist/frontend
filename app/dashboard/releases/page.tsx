@@ -45,6 +45,8 @@ import {
   deleteRelease,
   approveRelease,
   rejectRelease,
+  submitToPdl,
+  pdlSubmit,
   Release,
   ReleaseStatus,
 } from "@/lib/api/releases";
@@ -149,8 +151,12 @@ export default function ReleasesPage() {
         return "bg-purple-500/10 text-purple-500";
       case "In Process":
         return "bg-blue-500/10 text-blue-500";
+      case "Submitted":
+        return "bg-cyan-500/10 text-cyan-500";
       case "Rejected":
         return "bg-red-500/10 text-red-500";
+      case "Draft":
+        return "bg-yellow-500/10 text-yellow-500";
       default:
         return "bg-gray-500/10 text-gray-500";
     }
@@ -178,14 +184,15 @@ export default function ReleasesPage() {
   };
 
   const handleApprove = async (id: string) => {
-    if (!confirm("Approve this release?")) return;
+    if (!confirm("Approve and initialize PDL submission for this release?")) return;
     try {
       setActionLoading(id);
-      await approveRelease(id);
-      toast.success("Release approved");
+      // For approval, we now call submitToPdl (the verification step)
+      await submitToPdl(id);
+      toast.success("Release approved and initialized in PDL");
       fetchReleases();
-    } catch (error) {
-      toast.error("Failed to approve release");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to approve release");
     } finally {
       setActionLoading(null);
     }
@@ -206,11 +213,28 @@ export default function ReleasesPage() {
     }
   };
 
+  const handleSubmitToPDL = async (id: string) => {
+    if (!confirm("Are you sure you want to finalize and distribute this release to all platforms?")) return;
+    try {
+      setActionLoading(id);
+      // For the final step, we call pdlSubmit (the distribution step)
+      await pdlSubmit(id);
+      toast.success("Release distributed to all platforms successfully");
+      fetchReleases();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to distribute to platforms");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
 
 
   const statusFilters: { value: StatusFilter; label: string }[] = [
     { value: "all", label: "All" },
+    { value: "Draft", label: "Draft" },
     { value: "In Process", label: "In Process" },
+    { value: "Submitted", label: "Submitted" },
     { value: "Approved", label: "Approved" },
     { value: "Rejected", label: "Rejected" },
     { value: "Released", label: "Released" },
@@ -362,15 +386,21 @@ export default function ReleasesPage() {
                                   <Button variant="ghost" size="sm" title="View details"><Eye className="h-4 w-4" /></Button>
                                 </Link>
 
-                                {release.status === "In Process" && (
-                                  <Button variant="ghost" size="sm" onClick={() => handleDelete(release._id)} className="text-red-500 hover:bg-red-500/10"><Trash2 className="h-4 w-4" /></Button>
-                                )}
-                                {isPrivileged && release.status === "In Process" && (
-                                  <>
-                                    <Button variant="ghost" size="sm" onClick={() => handleApprove(release._id)} className="text-purple-500 hover:bg-purple-500/10"><CheckCircle className="h-4 w-4" /></Button>
-                                    <Button variant="ghost" size="sm" onClick={() => handleReject(release._id)} className="text-red-500 hover:bg-red-500/10"><Ban className="h-4 w-4" /></Button>
-                                  </>
-                                )}
+                                 {release.status === "Draft" && (
+                                   <Button variant="ghost" size="sm" onClick={() => handleDelete(release._id)} className="text-red-500 hover:bg-red-500/10" title="Delete"><Trash2 className="h-4 w-4" /></Button>
+                                 )}
+                                 {isPrivileged && release.status === "Draft" && (
+                                   <>
+                                     <Button variant="ghost" size="sm" onClick={() => handleApprove(release._id)} className="text-purple-500 hover:bg-purple-500/10" title="Approve"><CheckCircle className="h-4 w-4" /></Button>
+                                     <Button variant="ghost" size="sm" onClick={() => handleReject(release._id)} className="text-red-500 hover:bg-red-500/10" title="Reject"><Ban className="h-4 w-4" /></Button>
+                                   </>
+                                 )}
+                                 {isPrivileged && (release.status === "Approved") && (
+                                   <Button size="sm" onClick={() => handleSubmitToPDL(release._id)} className="gap-1.5 text-[10px] h-7 px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all border-none">
+                                     <Send className="h-3 w-3" />
+                                     Submit to PDL
+                                   </Button>
+                                 )}
                               </div>
                             </TableCell>
                           </TableRow>

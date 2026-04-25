@@ -390,6 +390,11 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 return
             }
 
+            if (!mood) {
+                toast.error("Vibe is required")
+                return
+            }
+
             // Check for ISRC validation error
             if (isrcError) {
                 toast.error("Please fix ISRC error before saving")
@@ -473,8 +478,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                 // Count how many NEW artists this would introduce
                 let newArtistsCount = 0;
+                const usedArtistNames = usedArtists.map(a => 
+                    typeof a === 'string' ? a.toLowerCase().trim() : a.name?.toLowerCase().trim()
+                ).filter(Boolean);
+
                 for (const artist of Array.from(uniqueArtistsInRelease)) {
-                    if (!usedArtists.includes(artist)) {
+                    if (!usedArtistNames.includes(artist.toLowerCase().trim())) {
                         newArtistsCount++;
                     }
                 }
@@ -1528,7 +1537,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                     {/* Mood */}
                     <div className="space-y-2">
-                        <Label htmlFor="track-mood">Vibe</Label>
+                        <Label htmlFor="track-mood">Vibe <span className="text-red-500">*</span></Label>
                         <select
                             id="track-mood"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"

@@ -149,6 +149,12 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
                             <span className="text-xs text-muted-foreground uppercase tracking-tight">Release Type</span>
                             <p className="font-semibold text-base capitalize">{formData.format}</p>
                         </div>
+                        {format === 'single' && (
+                            <div className="space-y-1">
+                                <span className="text-xs text-muted-foreground uppercase tracking-tight">Vibe</span>
+                                <p className="font-semibold text-base">{formData.mood || 'Not set'}</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
