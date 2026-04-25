@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -60,25 +61,45 @@ const socialLinks = [
     { icon: XIcon, label: 'X (Twitter)', href: '#', color: 'hover:text-foreground' },
 ]
 
+import { sendContactMessage } from '@/lib/api/contact'
+
 export default function Contact() {
+    const searchParams = useSearchParams()
+    const planFromUrl = searchParams.get('plan')
+
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         subject: '',
         message: '',
+        plan: '',
     })
+
+    // Auto-fill plan from URL
+    useEffect(() => {
+        if (planFromUrl) {
+            setFormData(prev => ({
+                ...prev,
+                plan: planFromUrl
+            }))
+        }
+    }, [planFromUrl])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
 
-        // Simulate form submission
-        await new Promise(resolve => setTimeout(resolve, 1500))
-
-        toast.success('Message sent successfully! We\'ll get back to you soon.')
-        setFormData({ name: '', email: '', subject: '', message: '' })
-        setIsLoading(false)
+        try {
+            await sendContactMessage(formData)
+            toast.success('Message sent successfully! We\'ll get back to you soon.')
+            setFormData({ name: '', email: '', subject: '', message: '', plan: '' })
+        } catch (error: any) {
+            console.error('Failed to send message:', error)
+            toast.error(error.response?.data?.message || 'Failed to send message. Please try again later.')
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -159,6 +180,7 @@ export default function Contact() {
                                             />
                                         </div>
                                     </div>
+
 
                                     <div className="space-y-2">
                                         <Label htmlFor="subject">Subject</Label>

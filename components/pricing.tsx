@@ -146,7 +146,7 @@ export default function Pricing() {
                       </ul>
                     </CardContent>
                     <CardFooter className="mt-auto pt-4">
-                      <Link href="/contact" className="w-full">
+                      <Link href={`/contact?plan=${encodeURIComponent(plan.title)}`} className="w-full">
                         <Button
                           variant="default"
                           className="w-full animated-gradient-bg border-0 text-white"
@@ -182,7 +182,7 @@ export default function Pricing() {
                       </ul>
                     </CardContent>
                     <CardFooter className="mt-auto pt-4">
-                      <Link href="/contact" className="w-full">
+                      <Link href={`/contact?plan=${encodeURIComponent(plan.title)}`} className="w-full">
                         <Button
                           variant="outline"
                           className="w-full animated-gradient-bg-hover"
