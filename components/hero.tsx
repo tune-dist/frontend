@@ -147,7 +147,7 @@ export default function Hero() {
     >
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center w-full min-h-[70vh] pb-24 md:pb-32 pt-20 lg:pt-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-8 items-center w-full min-h-[70vh] pb-24 md:pb-32 pt-20 lg:pt-0">
           {/* Left Side: Text */}
           <motion.div
             className="text-left flex flex-col justify-center"
@@ -155,7 +155,7 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[50px] font-semibold mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-3xl md:text-6xl lg:text-[50px] font-semibold mb-6 leading-tight">
               <span className="block font_heading">Distribute Your Music.</span>
               <span className="mt-2 font_heading">Grow Your Audience.</span> {' '}
               <span className="mt-2 animated-gradient font_heading">
@@ -164,7 +164,7 @@ export default function Hero() {
             </h1>
 
             <motion.p
-              className="text-lg sm:text-lg md:text-lg text-muted-foreground mb-8 max-w-xl leading-relaxed"
+              className="text-base sm:text-base md:text-lg text-muted-foreground mb-8 max-w-xl leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
@@ -180,16 +180,16 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <Link href="/contact">
-                <Button className="text-sm px-6 py-6 group animated-gradient-bg text-white border-0">
+              <Link href="/contact" className=' w-full sm:w-auto'>
+                <Button className="text-sm w-full sm:w-auto px-6 py-6 group animated-gradient-bg text-white border-0">
                   Start for Free
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Link href="/features">
+              <Link href="/features" className=' w-full sm:w-auto'>
                 <Button
                   variant="outline"
-                  className="text-sm px-6 py-6 group hover:bg-white hover:text-black transition-colors"
+                  className="text-sm w-full sm:w-auto px-6 py-6 group hover:bg-white hover:text-black transition-colors"
                 >
                   <Play className="mr-2 h-5 w-5" />
                   Learn More

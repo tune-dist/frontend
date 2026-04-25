@@ -362,3 +362,20 @@ body {
 .testimonials-swiper .swiper-wrapper {
   transition-timing-function: linear !important;
 }
+
+
+
+@media (max-width: 767px) {
+  .header_bar  {
+    top: 0;
+  }
+   .header_bar_active {
+    border-radius: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+@media (min-width: 768px) {
+ 
+}
