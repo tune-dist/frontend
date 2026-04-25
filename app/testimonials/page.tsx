@@ -141,16 +141,16 @@ export default function TestimonialsPage() {
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
-            className="text-center mb-16 pt-12"
+            className="text-center mb-10 md:mb-16 pt-2 md:pt-12"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 font_heading leading-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 font_heading leading-tight">
               Voices of the <br />
               <span className="animated-gradient">Global Community</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto">
               See what artists and creators around the world are saying about their experience with KratoLib.
             </p>
           </motion.div>

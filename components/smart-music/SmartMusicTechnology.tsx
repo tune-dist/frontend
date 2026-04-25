@@ -52,7 +52,7 @@ const systemCards = [
 
 export default function SmartMusicTechnology() {
   return (
-    <section className="py-24 bg-background relative overflow-hidden">
+    <section className="py-14 md:py-24 bg-background relative overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div
           className="absolute top-1/2 right-0 w-[400px] h-[400px] -translate-y-1/2 rounded-full opacity-[0.05]"
@@ -67,11 +67,11 @@ export default function SmartMusicTechnology() {
             <Brain className="h-3.5 w-3.5 text-purple-400" />
             Smart Release Technology System
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font_heading mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
             Intelligent Release{" "}
             <span className="animated-gradient">Technology</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm leading-relaxed">
+          <p className="text-muted-foreground max-w-4xl mx-auto text-base md:text-lg leading-relaxed">
             Ktarolib uses intelligent release processing to improve distribution accuracy and speed —
             combining AI detection, metadata validation, artwork verification, and quality control
             into one unified workflow.
@@ -83,16 +83,16 @@ export default function SmartMusicTechnology() {
           {systemCards.map(({ icon: Icon, color, iconBg, borderHover, title, subtitle, checks }) => (
             <div
               key={title}
-              className={`group rounded-2xl border border-border/50 bg-muted/20 p-6 transition-all duration-300 ${borderHover} hover:-translate-y-1 hover:shadow-xl hover:bg-muted/30`}
+              className={`group rounded-2xl border border-white/20 md:border-white/10 bg-muted/20 p-6 transition-all duration-300 ${borderHover} hover:-translate-y-1 hover:shadow-xl hover:bg-muted/30`}
             >
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl border border-border/40 ${iconBg} mb-5`}>
                 <Icon className={`h-6 w-6 ${color}`} />
               </div>
-              <h3 className="font-bold text-base font_heading mb-1">{title}</h3>
-              <p className="text-muted-foreground text-xs mb-5 leading-relaxed">{subtitle}</p>
+              <h3 className="font-bold text-base md:text-lg font_heading mb-2">{title}</h3>
+              <p className="text-muted-foreground text-xs md:text-sm mb-5 leading-relaxed">{subtitle}</p>
               <ul className="space-y-2.5">
                 {checks.map((c) => (
-                  <li key={c} className="flex items-center gap-2.5 text-sm text-muted-foreground group-hover:text-foreground/80 transition-colors">
+                  <li key={c} className="flex items-center gap-2.5 text-md text-muted-foreground group-hover:text-foreground/80 transition-colors">
                     <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 ${color}`} />
                     {c}
                   </li>

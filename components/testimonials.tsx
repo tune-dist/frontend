@@ -8,9 +8,10 @@ import { useEffect, useState } from 'react'
 import { testimonialsApi, Testimonial } from '@/lib/api/testimonials'
 import { S3Image } from '@/components/ui/s3-image'
 import { Swiper, SwiperSlide } from 'swiper/react'
-import { Autoplay, Navigation } from 'swiper/modules'
+import { Autoplay, Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/navigation'
+import 'swiper/css/free-mode'
 
 import KirtidanGadhviImg from '@/public/assets/images/testi-img/kirtidan-gadhvi.jpg'
 import GeetaJhalaImg from '@/public/assets/images/testi-img/geeta-jhala.jpg'
@@ -149,10 +150,10 @@ export default function Testimonials() {
   */
 
   return (
-    <section className="py-20 md:py-32 bg-background relative">
+    <section className="py-14 md:py-24 bg-background relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-4 md:mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -164,7 +165,7 @@ export default function Testimonials() {
               Artists Worldwide
             </span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Trusted by celebrated artists and creators who rely on KratoLib to distribute
             their music globally.
           </p>
@@ -173,7 +174,7 @@ export default function Testimonials() {
 
       <div className="relative w-full py-8 px-6 cursor-grab active:cursor-grabbing">
         <Swiper
-          modules={[Autoplay, Navigation]}
+          modules={[Autoplay, Navigation, FreeMode]}
           spaceBetween={25}
           slidesPerView={1}
           breakpoints={{
@@ -181,12 +182,13 @@ export default function Testimonials() {
             1024: { slidesPerView: 4 },
           }}
           loop={true}
+          freeMode={true}
           autoplay={{
-            delay: 3000,
+            delay: 0,
             disableOnInteraction: false,
             pauseOnMouseEnter: true,
           }}
-          speed={2000}
+          speed={5000}
           navigation={true}
           className="px-12 testimonials-swiper"
         >

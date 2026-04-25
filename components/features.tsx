@@ -42,11 +42,11 @@ export default function Features() {
   return (
     <section
       id="features"
-      className="py-20 md:py-32 bg-background relative"
+      className="py-14 md:py-24 bg-background relative"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-10 md:mb-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -58,7 +58,7 @@ export default function Features() {
               Succeed
             </span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Powerful tools designed for independent artists to distribute, track,
             and grow their music career.
           </p>
@@ -76,15 +76,12 @@ export default function Features() {
                 transition={{ duration: 1, delay: index * 0.2 }}
               >
                 <SpotlightCard
-                  className="custom-spotlight-card bg-[#07080c] !p-2 h-full"
+                  className="custom-spotlight-card bg-[#07080c] !p-2 h-full border-white/10"
                   spotlightColor="rgba(132, 0, 255, 0.5)"
                 >
-                  <Card className="h-[520px] bg-transparent border-0">
+                  <Card className="h-auto md:h-[520px] bg-transparent border-0">
                     <CardHeader className='pb-4'>
-                      {/* <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                        <Icon className="h-6 w-6 text-primary" />
-                      </div> */}
-                      <CardTitle className="text-2xl">{feature.title}</CardTitle>
+                      <CardTitle className="text-xl md:text-2xl">{feature.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <CardDescription className="text-base mb-2">
@@ -95,7 +92,7 @@ export default function Features() {
                         alt={feature.title}
                         width={600}
                         height={400}
-                        className="w-full h-auto mt-6 rounded-xl border border-border/20 group-hover:scale-[1.02] transition-transform duration-500 absolute left-0 bottom-0"
+                        className="w-full h-auto mt-6 rounded-xl border border-border/20 group-hover:scale-[1.02] transition-transform duration-500 relative md:absolute left-0 bottom-0"
                       />
                     </CardContent>
                   </Card>

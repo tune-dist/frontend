@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -357,4 +357,34 @@ body {
   width: 100%;
   height: 100%;
  background: linear-gradient(90deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.95) 49%, rgba(0, 0, 0, 0.62) 100%);
+}
+
+.testimonials-swiper .swiper-wrapper {
+  transition-timing-function: linear !important;
+}
+
+
+
+@media (max-width: 767px) {
+  .header_bar  {
+    top: 0;
+  }
+   .header_bar_active {
+    border-radius: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  #home:before {
+    display: none;
+  }
+  .scroll_indicator {
+    display: none;
+  }
+  .custom-spotlight-card {
+    padding: 0;
+  }
+}
+
+@media (min-width: 768px) {
+ 
 }

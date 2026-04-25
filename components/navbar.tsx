@@ -34,7 +34,7 @@ export default function Navbar() {
         { name: "Sell & Grow", href: "/sell-and-grow" },
       ],
     },
-    // { name: "Pricing", href: "/pricing" },
+    { name: "Pricing", href: "/pricing" },
     { name: "Testimonials", href: "/testimonials" },
     { name: "Contact", href: "/contact" },
   ];

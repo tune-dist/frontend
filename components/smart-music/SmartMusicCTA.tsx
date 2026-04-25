@@ -10,7 +10,7 @@ export default function SmartMusicCTA() {
   return (
     <>
       {/* ── Main CTA band ── */}
-      <section className="py-28 bg-background relative overflow-hidden">
+      <section className="py-14 !pt-0 md:py-24 bg-background relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div
             className="absolute inset-0 m-auto w-[800px] h-[400px] rounded-full opacity-[0.06]"
@@ -24,7 +24,7 @@ export default function SmartMusicCTA() {
             Start Your Global Music Distribution
           </div>
 
-          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-bold font_heading mb-6 leading-[1.1]">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
             Release Faster.{" "}
             <span className="animated-gradient">Distribute Smarter.</span>
             <br />
@@ -39,14 +39,14 @@ export default function SmartMusicCTA() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
             <a
               href="/auth?tab=signup"
-              className="group inline-flex items-center gap-2 px-10 py-4 rounded-xl animated-gradient-bg text-white font-bold text-base hover:opacity-90 transition-opacity shadow-2xl"
+              className="group inline-flex items-center gap-2 px-10 py-4 rounded-xl animated-gradient-bg text-white font-bold text-base hover:opacity-90 transition-opacity shadow-2xl w-full md:w-auto justify-center"
             >
               Create Account
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </a>
             <a
               href="#contact"
-              className="inline-flex items-center gap-2 px-10 py-4 rounded-xl border border-border/60 bg-muted/30 text-foreground font-bold text-base hover:bg-muted/60 transition-colors"
+              className="inline-flex items-center gap-2 px-10 py-4 rounded-xl border border-border/60 bg-muted/30 text-foreground font-bold text-base hover:bg-muted/60 transition-colors w-full md:w-auto justify-center"
             >
               Start Distribution
             </a>
