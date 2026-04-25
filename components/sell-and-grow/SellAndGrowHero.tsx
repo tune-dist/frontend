@@ -50,12 +50,12 @@ export default function SellAndGrowHero() {
 
         {/* Hero Visual Card */}
         <div className="relative">
-          <div className="aspect-video rounded-[2rem] overflow-hidden shadow-2xl shadow-violet-500/10 border border-border/40 relative z-0">
-            <div className="absolute inset-0 bg-[url('/assets/images/music-banner1.jpg')] bg-cover bg-center grayscale hover:grayscale-0 transition-all duration-700"></div>
+          <div className="aspect-[4/3] rounded-[2rem] overflow-hidden relative z-0">
+            <div className="absolute inset-0 bg-[url('/assets/images/music-banner1.jpg')] bg-contain bg-center bg-no-repeat transition-all duration-700"></div>
           </div>
 
           {/* Floating Stats Card */}
-          <div className="absolute -bottom-8 -left-4 sm:-left-8 bg-muted/60 backdrop-blur-2xl p-6 rounded-2xl border border-violet-500/20 max-w-[240px] shadow-2xl z-10 w-full text-foreground">
+          <div className="absolute -bottom-6 -left-4 sm:-left-8 bg-muted/60 backdrop-blur-2xl p-6 rounded-2xl border border-violet-500/20 max-w-[240px] shadow-2xl z-10 w-full text-foreground">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0">
                 <Timer className="h-6 w-6 text-violet-400" />

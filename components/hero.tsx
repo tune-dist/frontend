@@ -23,7 +23,7 @@ import SnapCircleIcon from "@/public/assets/images/snap-circle-logo.png";
 
 const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: number, delay?: number, children: React.ReactNode }) => (
   <motion.div
-    className="absolute rounded-full border border-white/10"
+    className="absolute rounded-full border border-white/10 z-30"
     style={{
       width: radius * 2,
       height: radius * 2,
@@ -96,12 +96,20 @@ const OrbitalAnimation = () => {
     <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100">
       {/* Central Logo */}
       <motion.div
-        className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-[#52009e] flex items-center justify-center shadow-[0_0_50px_rgba(132,0,215,0.6)]"
+        className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-transparent flex items-center justify-center shadow-[0_0_50px_rgba(132,0,215,0.6)] overflow-hidden"
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         {/* <Music2 className="text-white w-1/2 h-1/2" /> */}
-        <img src="/logo.png" alt="" className='w-full h-full object-contain p-4' />
+        {/* <img src="/logo.png" alt="" className='w-full h-full object-contain p-4' /> */}
+        <video
+          src="/assets/images/globe-krato-hero.MP4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover scale-[1.28]"
+        />
         {/* Subtle glow rings */}
         <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20" />
       </motion.div>

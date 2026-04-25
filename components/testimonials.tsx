@@ -8,9 +8,10 @@ import { useEffect, useState } from 'react'
 import { testimonialsApi, Testimonial } from '@/lib/api/testimonials'
 import { S3Image } from '@/components/ui/s3-image'
 import { Swiper, SwiperSlide } from 'swiper/react'
-import { Autoplay, Navigation } from 'swiper/modules'
+import { Autoplay, Navigation, FreeMode } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/navigation'
+import 'swiper/css/free-mode'
 
 import KirtidanGadhviImg from '@/public/assets/images/testi-img/kirtidan-gadhvi.jpg'
 import GeetaJhalaImg from '@/public/assets/images/testi-img/geeta-jhala.jpg'
@@ -173,7 +174,7 @@ export default function Testimonials() {
 
       <div className="relative w-full py-8 px-6 cursor-grab active:cursor-grabbing">
         <Swiper
-          modules={[Autoplay, Navigation]}
+          modules={[Autoplay, Navigation, FreeMode]}
           spaceBetween={25}
           slidesPerView={1}
           breakpoints={{
@@ -181,12 +182,13 @@ export default function Testimonials() {
             1024: { slidesPerView: 4 },
           }}
           loop={true}
+          freeMode={true}
           autoplay={{
-            delay: 3000,
+            delay: 0,
             disableOnInteraction: false,
             pauseOnMouseEnter: true,
           }}
-          speed={2000}
+          speed={5000}
           navigation={true}
           className="px-12 testimonials-swiper"
         >
