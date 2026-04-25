@@ -147,7 +147,7 @@ export default function Hero() {
     >
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-8 items-center w-full min-h-[70vh] pb-16 md:pb-32 pt-20 lg:pt-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-8 items-center w-full min-h-[70vh] pb-16 md:pb-32 pt-24 lg:pt-0">
           {/* Left Side: Text */}
           <motion.div
             className="text-left flex flex-col justify-center"

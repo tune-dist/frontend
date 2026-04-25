@@ -4,13 +4,13 @@ import { Layers, Split, PackageOpen } from "lucide-react";
 
 export default function EnterpriseSolutionsSection() {
   return (
-    <section className="py-24 sm:py-32 bg-background">
+    <section className="py-12 sm:py-24 bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="grid md:grid-cols-2 gap-16 lg:gap-24 items-center">
+        <div className="grid md:grid-cols-2 gap-10 lg:gap-24 items-center">
 
           {/* Left: Content */}
           <div>
-            <h2 className="text-4xl sm:text-5xl font-bold font_heading mb-6 tracking-tight leading-[1.1]">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
               Label &amp; Professional Artist <br className="hidden sm:block" />
               <span className="animated-gradient">Solutions</span>
             </h2>

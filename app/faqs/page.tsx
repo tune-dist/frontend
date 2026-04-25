@@ -296,13 +296,13 @@ export default function FAQPage() {
   return (
     <StaticPageLayout>
       {/* New Hero Section (from user image 1) */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section className="relative pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden">
 
-        <div className="max-w-7xl mx-auto px-6 text-center">
+        <div className="max-w-7xl mx-auto px-0 md:px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-sm uppercase tracking-[0.15em] mb-6"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs md:text-sm uppercase tracking-[0.15em] mb-6"
           >
             <HelpCircle className="w-3 h-3" />
             Frequently Asked Questions
@@ -321,7 +321,7 @@ export default function FAQPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-lg text-muted-foreground max-w-2xl mx-auto"
+            className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto"
           >
             Plans, pricing, royalties, CRBT, Spotify, JioSaavn — everything an Indian independent artist needs to know, answered honestly.
           </motion.p>
@@ -331,7 +331,7 @@ export default function FAQPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mt-12 px-4"
+            className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mt-6 md:mt-12 px-4"
           >
             {stats.map((stat, i) => (
               <div
@@ -340,12 +340,12 @@ export default function FAQPage() {
                   background: stat.color,
                   borderColor: stat.border
                 }}
-                className="flex flex-col items-center p-8 md:p-5 rounded-[2.5rem] border transition-all duration-300 hover:scale-[1.02] hover:bg-opacity-20"
+                className="flex flex-col items-center p-8 md:p-5 rounded-2xl md:rounded-[2.5rem] border transition-all duration-300 hover:scale-[1.02] hover:bg-opacity-20"
               >
                 <span className={`text-2xl md:text-3xl font-bold mb-2 ${stat.text}`}>
                   {stat.value}
                 </span>
-                <span className="text-[10px] md:text-xs font-bold text-white/30 uppercase text-center">
+                <span className="text-xs md:text-xs font-bold text-white/30 uppercase text-center">
                   {stat.label}
                 </span>
               </div>
@@ -355,16 +355,44 @@ export default function FAQPage() {
       </section>
 
       {/* Main Content (2-column layout) */}
-      <div className="max-w-7xl mx-auto px-6 pb-20 pt-4">
+      <div className="max-w-7xl mx-auto px-0 md:px-6 pb-8 md:pb-20 pt-4">
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
           {/* Left Side: Category Buttons */}
           <div className="lg:w-1/4">
-            <div className="lg:sticky lg:top-32 flex flex-wrap lg:flex-col gap-3">
+            {/* ── Mobile / Tablet: dropdown ── */}
+            <div className="lg:hidden w-full mb-0">
+              <h2 className="text-xl md:text-2xl font-bold mb-2 font_heading">Everything <span className="animated-gradient"> about Kratolib</span></h2>
+              <div className="relative">
+                <select
+                  value={activeCategory}
+                  onChange={(e) => scrollToCategory(e.target.value)}
+                  className="w-full appearance-none bg-white/5 border border-white/10 text-white text-sm font-semibold rounded-2xl px-5 py-3.5 pr-10 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 cursor-pointer capitalize transition-all duration-200"
+                  style={{ backgroundImage: 'none' }}
+                >
+                  {faqCategories.map((category) => (
+                    <option
+                      key={category.id}
+                      value={category.id}
+                      className="bg-[#0f0f14] text-white capitalize"
+                    >
+                      {category.title}
+                    </option>
+                  ))}
+                </select>
+                {/* custom chevron */}
+                <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+                  <ChevronDown className="w-4 h-4 text-purple-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Desktop: sticky button list ── */}
+            <div className="hidden lg:flex lg:sticky lg:top-32 lg:flex-col gap-3">
               {faqCategories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => scrollToCategory(category.id)}
-                  className={`px-6 py-3 rounded-full border transition-all duration-300 text-xs font-semibold text-left w-fit lg:w-full group capitalize ${activeCategory === category.id
+                  className={`px-6 py-3 rounded-full border transition-all duration-300 text-xs font-semibold text-left w-full group capitalize ${activeCategory === category.id
                     ? 'bg-purple-800 text-white border-purple-800 shadow-xl shadow-purple-800/10'
                     : 'bg-white/5 text-white/60 border-white/10 hover:border-white/30 hover:bg-white/10'
                     }`}
@@ -470,12 +498,12 @@ export default function FAQPage() {
           }}
         />
 
-        <div className="relative z-10 flex flex-col items-center text-center gap-10">
+        <div className="relative z-10 flex flex-col items-center text-center gap-5 md:gap-10">
           <div className="space-y-4 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-5xl font-bold text-white font_heading leading-tight transition-all pb-3">
+            <h2 className="text-2xl md:text-5xl font-bold text-white font_heading leading-tight transition-all pb-0">
               Still have a question?
             </h2>
-            <p className="text-white text-lg leading-relaxed mx-auto">
+            <p className="text-white text-base md:text-lg leading-relaxed mx-auto">
               Our team responds fast. Start free and get your music earning on 150+ platforms —
               including CRBT Hello Tune across all Indian telecoms.
             </p>

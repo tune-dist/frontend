@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 
 export default function GrowthTeamSection() {
   return (
-    <section id="growth" className="py-24 sm:py-32 overflow-hidden bg-background">
+    <section id="growth" className="py-12 md:py-24 overflow-hidden bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="grid md:grid-cols-12 gap-12 lg:gap-16 items-center">
 
@@ -19,8 +19,8 @@ export default function GrowthTeamSection() {
           </div>
 
           {/* Right Text Block */}
-          <div className="md:col-span-5 space-y-8 order-1 md:order-2 pl-0 md:pl-8 lg:pl-10">
-            <h2 className="text-4xl sm:text-5xl font-bold font_heading leading-[1.1]">
+          <div className="md:col-span-5 space-y-4 md:space-y-8 order-1 md:order-2 pl-0 md:pl-8 lg:pl-10">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold font_heading leading-[1.1]">
               New Artist Special <br />
               <span className="animated-gradient">Growth Team</span>
             </h2>

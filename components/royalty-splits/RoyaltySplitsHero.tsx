@@ -33,7 +33,7 @@ export default function RoyaltySplitsHero() {
         </div>
 
         {/* Headline */}
-        <h1 className="text-4xl sm:text-6xl lg:text-[4rem] font-semibold font_heading mb-6">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
           Next-Generation <br className="hidden sm:block" />
           <span className="animated-gradient bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400">Royalty Splitting</span> For The <br className="hidden sm:block" />
           Modern Music Industry
@@ -49,13 +49,13 @@ export default function RoyaltySplitsHero() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
           <a
             href="/auth?tab=signup"
-            className="group inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl animated-gradient-bg text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-xl min-w-[220px]"
+            className="group inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl animated-gradient-bg text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-xl min-w-[220px] w-full md:w-auto"
           >
             Start managing splits smarter
           </a>
           <a
             href="/demo"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-[#202022] hover:bg-[#2a2a2c] text-white font-semibold text-sm transition-colors border border-white/5 min-w-[220px]"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-muted/30 hover:bg-white hover:text-black text-white font-semibold text-sm transition-colors border border-white/10 min-w-[220px] w-full md:w-auto"
           >
             Start with Kratolib
           </a>
