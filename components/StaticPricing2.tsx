@@ -199,7 +199,7 @@ const plans = [
 
 export default function StaticPricing2() {
   return (
-    <section id="pricing" className="py-20 md:py-32 bg-background relative overflow-hidden">
+    <section id="pricing" className="py-14 md:py-24 bg-background relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-16"

@@ -96,14 +96,11 @@ const categories: Category[] = [
 
 export default function StaticPricing() {
   return (
-    <section id="pricing" className="py-20 md:py-32 bg-background relative overflow-hidden isolate">
-      {/* Dynamic Background Glows */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/20 blur-[120px] rounded-full -z-10 animate-pulse" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-violet-600/10 blur-[120px] rounded-full -z-10" />
+    <section id="pricing" className="py-14 md:py-24 bg-background relative overflow-hidden isolate">
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-8 md:mb-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -115,7 +112,7 @@ export default function StaticPricing() {
               Pricing
             </span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Choose the plan that fits your needs. All plans include global distribution,
             automated royalty collection, and 24/7 support.
           </p>
@@ -163,7 +160,7 @@ export default function StaticPricing() {
                         variant={plan.isPopular ? "default" : "outline"}
                         className={`w-full h-11 rounded-xl font-semibold transition-all duration-300 ${plan.isPopular
                           ? 'animated-gradient-bg border-0 text-white hover:scale-105 shadow-[0_0_20px_rgba(132,0,215,0.3)]'
-                          : 'hover:bg-white/10 border-white/20'
+                          : 'hover:bg-white border-white/10 hover:text-black'
                           }`}
                       >
                         {plan.key === 'enterprise' ? 'Contact Us' : 'Select Plan'}

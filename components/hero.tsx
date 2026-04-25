@@ -143,11 +143,11 @@ export default function Hero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex-col md:flex-row flex items-center justify-center overflow-hidden"
     >
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-8 items-center w-full min-h-[70vh] pb-24 md:pb-32 pt-20 lg:pt-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-8 items-center w-full min-h-[70vh] pb-16 md:pb-32 pt-20 lg:pt-0">
           {/* Left Side: Text */}
           <motion.div
             className="text-left flex flex-col justify-center"
@@ -211,7 +211,7 @@ export default function Hero() {
 
       {/* Platform Carousel - Full Width */}
       <motion.div
-        className="absolute bottom-16 left-0 right-0 w-screen"
+        className="relative md:absolute bottom-0 md:bottom-16 left-0 right-0 w-screen overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.6 }}
@@ -228,7 +228,7 @@ export default function Hero() {
 
       {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer"
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer scroll_indicator"
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
       >

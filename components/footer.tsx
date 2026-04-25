@@ -96,10 +96,10 @@ export default function Footer() {
         }
       `}</style>
 
-      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10">
+      <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 pt-8 md:pt-16 pb-10">
 
         {/* ── Main grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-10 mb-14">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-10 mb-8 md:mb-14">
 
           {/* Brand + Contact — spans 2 cols */}
           <div className="sm:col-span-2 lg:col-span-2 space-y-6">

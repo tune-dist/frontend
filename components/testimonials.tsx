@@ -150,10 +150,10 @@ export default function Testimonials() {
   */
 
   return (
-    <section className="py-20 md:py-32 bg-background relative">
+    <section className="py-14 md:py-24 bg-background relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-4 md:mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -165,7 +165,7 @@ export default function Testimonials() {
               Artists Worldwide
             </span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Trusted by celebrated artists and creators who rely on KratoLib to distribute
             their music globally.
           </p>

@@ -73,13 +73,13 @@ const migrationPoints = [
 export default function SmartMusicFeatures() {
   return (
     <>
-      <section className="py-24 relative overflow-hidden bg-[#030303]">
+      <section className="py-14 md:py-16 relative overflow-hidden">
         {/* Ambient background glows */}
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-8 md:mb-16">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -93,7 +93,7 @@ export default function SmartMusicFeatures() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl md:text-6xl font-bold font_heading mb-6 tracking-tight"
+              className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight"
             >
               Advanced Music <span className="animated-gradient">Analytics Engine</span>
             </motion.h2>
@@ -102,7 +102,7 @@ export default function SmartMusicFeatures() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed font-light"
+              className="text-muted-foreground max-w-2xl mx-auto text-base md:text-lg leading-relaxed font-light"
             >
               Precision tools to track, analyze, and scale your music career across every global platform and territory.
             </motion.p>
@@ -123,8 +123,8 @@ export default function SmartMusicFeatures() {
                 {/* Internal radial glow */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${glow} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
-                <div className="relative z-10">
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${bg} ${border} mb-4 group-hover:scale-110 transition-transform duration-500 shadow-xl`}>
+                <div className="relative z-10 text-center">
+                  <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${bg} ${border} mb-4 group-hover:scale-110 transition-transform duration-500 shadow-xl ml-auto mr-auto`}>
                     <Icon className={`h-6 w-6 ${color}`} />
                   </div>
                   <h4 className="text-sm font-semibold text-white group-hover:text-white/90 transition-colors">{label}</h4>
@@ -150,7 +150,7 @@ export default function SmartMusicFeatures() {
                   <span className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Enterprise Safe</span>
                 </div>
                 <h3 className="font-bold text-3xl md:text-4xl font_heading mb-6 tracking-tight text-white">Hassle-Free <span className="text-indigo-400">Catalog Migration</span></h3>
-                <p className="text-muted-foreground text-lg leading-relaxed max-w-xl font-light">
+                <p className="text-muted-foreground text-base md:text-lg leading-relaxed max-w-xl font-light">
                   Seamlessly transition your entire library without losing a single cent. We guarantee zero downtime and maximum protection for your metadata.
                 </p>
               </div>
@@ -177,9 +177,9 @@ export default function SmartMusicFeatures() {
       </section>
 
       {/* ── Feature Cards - Alternate Design ── */}
-      <section className="py-24 bg-[#030303] relative overflow-hidden">
+      <section className="py-14 bg-[#030303] relative overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
+          <div className="text-center mb-4 md:mb-20">
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
@@ -189,13 +189,13 @@ export default function SmartMusicFeatures() {
               <Zap className="h-3.5 w-3.5" />
               Creative Suite
             </motion.div>
-            <h2 className="text-4xl md:text-6xl font-bold font_heading tracking-tight mb-6">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
               Empower Your <br />
               <span className="animated-gradient">Creative Workflow</span>
             </h2>
           </div>
 
-          <div className="flex flex-col gap-32">
+          <div className="flex flex-col gap-10 md:gap-32">
             {additionalFeatures.map(({ icon: Icon, color, iconBg, borderHover, glow, title, desc, items, image }, index) => {
               const isEven = index % 2 !== 0;
               return (
@@ -223,11 +223,11 @@ export default function SmartMusicFeatures() {
 
                   {/* Text Content */}
                   <div className="w-full md:w-1/2">
-                    <div className={`flex h-16 w-16 items-center justify-center rounded-3xl border border-white/10 ${iconBg} mb-8 shadow-inner`}>
+                    <div className={`flex h-16 w-16 items-center justify-center rounded-3xl border border-white/10 ${iconBg} mb-4 md:mb-8 shadow-inner`}>
                       <Icon className={`h-8 w-8 ${color}`} />
                     </div>
-                    <h3 className="font-bold text-3xl md:text-4xl font_heading mb-6 tracking-tight">{title}</h3>
-                    <p className="text-muted-foreground text-md md:text-lg mb-10 leading-relaxed font-light">{desc}</p>
+                    <h3 className="font-bold text-2xl md:text-4xl font_heading mb-2 md:mb-6 tracking-tight">{title}</h3>
+                    <p className="text-muted-foreground text-md md:text-lg mb-4 md:mb-10 leading-relaxed font-light">{desc}</p>
                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
                       {items.map((item) => (
                         <li key={item} className="flex items-center gap-3 text-sm md:text-base text-white/70 group-hover:text-white transition-colors duration-300">

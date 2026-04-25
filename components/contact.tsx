@@ -20,13 +20,13 @@ import {
 
 const SpotifyIcon = ({ className }: { className?: string }) => (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.503 17.306c-.22.36-.68.473-1.04.253-2.884-1.763-6.512-2.162-10.785-1.183-.41.094-.823-.16-.917-.57-.094-.41.16-.823.57-.917 4.675-1.07 8.683-.62 11.92 1.36.36.22.473.68.252 1.04zm1.47-3.26c-.276.45-.86.593-1.31.317-3.298-2.028-8.326-2.617-12.23-1.433-.51.155-1.04-.138-1.194-.648-.154-.51.138-1.04.648-1.194 4.453-1.353 10.003-.703 13.77 1.614.45.276.593.86.316 1.31zm.126-3.415c-3.955-2.348-10.48-2.564-14.26-1.417-.607.184-1.25-.16-1.435-.767-.184-.607.16-1.25.767-1.435 4.34-1.318 11.536-1.066 16.085 1.633.546.324.726 1.03.402 1.576-.324.546-1.03.726-1.576.41z"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.503 17.306c-.22.36-.68.473-1.04.253-2.884-1.763-6.512-2.162-10.785-1.183-.41.094-.823-.16-.917-.57-.094-.41.16-.823.57-.917 4.675-1.07 8.683-.62 11.92 1.36.36.22.473.68.252 1.04zm1.47-3.26c-.276.45-.86.593-1.31.317-3.298-2.028-8.326-2.617-12.23-1.433-.51.155-1.04-.138-1.194-.648-.154-.51.138-1.04.648-1.194 4.453-1.353 10.003-.703 13.77 1.614.45.276.593.86.316 1.31zm.126-3.415c-3.955-2.348-10.48-2.564-14.26-1.417-.607.184-1.25-.16-1.435-.767-.184-.607.16-1.25.767-1.435 4.34-1.318 11.536-1.066 16.085 1.633.546.324.726 1.03.402 1.576-.324.546-1.03.726-1.576.41z" />
     </svg>
 )
 
 const XIcon = ({ className }: { className?: string }) => (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.292 19.49h2.039L6.486 3.24H4.298l13.311 17.403z"/>
+        <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.292 19.49h2.039L6.486 3.24H4.298l13.311 17.403z" />
     </svg>
 )
 import toast from 'react-hot-toast'
@@ -89,7 +89,7 @@ export default function Contact() {
     }
 
     return (
-        <section id="contact" className="py-20 md:py-32 bg-background relative overflow-hidden">
+        <section id="contact" className="py-14 md:py-24 bg-background relative overflow-hidden">
             {/* Background decoration */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-0 right-0 w-96 h-96 animated-gradient-bg rounded-full blur-3xl opacity-10" />
@@ -98,7 +98,7 @@ export default function Contact() {
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 <motion.div
-                    className="text-center mb-16"
+                    className="text-center mb-10 md:mb-16"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -108,7 +108,7 @@ export default function Contact() {
                         Get in{' '}
                         <span className="animated-gradient">Touch</span>
                     </h2>
-                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                    <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
                         Have questions about distributing your music? We're here to help you every step of the way.
                     </p>
                 </motion.div>
@@ -121,7 +121,7 @@ export default function Contact() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
                     >
-                        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                        <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
                             <CardContent className="p-6 md:p-8">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="w-10 h-10 rounded-full animated-gradient-bg flex items-center justify-center">
@@ -218,7 +218,7 @@ export default function Contact() {
                                 need and we'll <br className="hidden md:block" />
                                 <span className='animated-gradient'>reply fast. </span>
                             </h3>
-                            <p className="text-muted-foreground text-lg mb-0 max-w-md">
+                            <p className="text-muted-foreground text-base md:text-lg mb-0 max-w-md">
                                 Distribution help, custom pricing, marketing retainers, or partnerships—drop a note and we'll route it to the right specialist.
                             </p>
                         </div>

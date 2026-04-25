@@ -15,7 +15,7 @@ export default function TestiCard({ testimonial }: TestiCardProps) {
     }
 
     return (
-        <Card className="h-full border-border/50 hover:border-primary/50 transition-colors duration-300 bg-card/50 backdrop-blur-sm w-full mx-auto rounded-2xl">
+        <Card className="h-full border-white/10 hover:border-white/50 transition-colors duration-300 bg-card/50 backdrop-blur-sm w-full mx-auto rounded-2xl">
             <CardContent className="flex flex-col h-full p-6">
                 <Quote className="h-8 w-8 text-primary/50 mb-4 shrink-0" />
                 <p className="text-muted-foreground mb-6 text-left text-sm font-normal flex-grow">

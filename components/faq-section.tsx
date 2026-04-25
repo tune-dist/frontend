@@ -39,7 +39,7 @@ export default function FaqSection() {
   }
 
   return (
-    <section className="py-24 bg-background relative overflow-hidden">
+    <section className="py-14 md:py-24 bg-background relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute top-0 right-0 w-1/3 h-1/2 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-violet-500/5 blur-[120px] rounded-full pointer-events-none" />
@@ -52,15 +52,11 @@ export default function FaqSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4 border border-primary/20">
-            <HelpCircle className="w-4 h-4" />
-            <span>Support Center</span>
-          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading text-white">
             Frequently Asked{' '}
             <span className="animated-gradient">Questions</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Everything you need to know about distributing your music, tracking royalties,
             and growing your career with KratoLib.
           </p>
@@ -78,14 +74,14 @@ export default function FaqSection() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
                 <div
-                  className={`group border border-border/60 rounded-2xl transition-all duration-300 ${isOpen ? 'bg-card/40 border-primary/30 ring-1 ring-primary/10' : 'bg-card/10 hover:bg-card/20 hover:border-border/60'
+                  className={`group border border-white/10 rounded-2xl transition-all duration-300 ${isOpen ? 'bg-card/40 border-primary/30 ring-1 ring-primary/10' : 'bg-card/10 hover:bg-card/20 hover:border-border/60'
                     }`}
                 >
                   <button
                     onClick={() => toggle(index)}
-                    className="w-full text-left p-6 sm:p-7 flex items-center justify-between gap-4"
+                    className="w-full text-left p-4 sm:p-4 flex items-center justify-between gap-4"
                   >
-                    <span className={`text-lg transition-colors duration-300 ${isOpen ? 'text-white font-medium' : 'text-muted-foreground group-hover:text-white'
+                    <span className={`text-base transition-colors duration-300 ${isOpen ? 'text-white font-medium' : 'text-muted-foreground group-hover:text-white'
                       }`}>
                       {faq.q}
                     </span>
@@ -104,7 +100,7 @@ export default function FaqSection() {
                         transition={{ duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] }}
                         className="overflow-hidden"
                       >
-                        <div className="px-6 pb-6 pt-2 sm:px-7 sm:pb-7 text-muted-foreground leading-relaxed text-[17px] border-t border-border/10">
+                        <div className="px-4 pb-4 pt-2 sm:px-4 sm:pb-4 text-muted-foreground leading-relaxed text-md border-t border-border/10">
                           {faq.a}
                         </div>
                       </motion.div>

@@ -74,7 +74,7 @@ const aiModules = [
 
 export default function SmartMusicAIEngine() {
   return (
-    <section className="py-24 bg-muted/10 relative overflow-hidden">
+    <section className="py-14 md:py-24 bg-muted/10 relative overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div
           className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full opacity-[0.05]"
@@ -84,16 +84,16 @@ export default function SmartMusicAIEngine() {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-8 md:mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-muted/30 text-sm text-muted-foreground mb-4">
             <Bot className="h-3.5 w-3.5 text-violet-400" />
             Our AI Helps You Release Smarter
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font_heading mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
             Advanced {" "}
             <span className="animated-gradient">AI Release Engine</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-base leading-relaxed">
+          <p className="text-muted-foreground max-w-xl mx-auto text-base md:text-lg leading-relaxed">
             Our AI Release Engine helps optimize releases before they go live.
           </p>
         </div>
@@ -105,7 +105,7 @@ export default function SmartMusicAIEngine() {
             return (
               <div
                 key={mod.id}
-                className={`rounded-3xl border border-border/50 bg-background/50 hover:bg-muted/20 backdrop-blur p-6 lg:p-5 xl:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${mod.borderHover}`}
+                className={`rounded-3xl border border-white/20 md:border-white/10 bg-background/50 hover:bg-muted/20 backdrop-blur p-6 lg:p-5 xl:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${mod.borderHover}`}
               >
                 {/* Header */}
                 <div className="flex flex-col items-start gap-4 mb-5">

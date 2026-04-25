@@ -374,6 +374,15 @@ body {
     margin-left: 0;
     margin-right: 0;
   }
+  #home:before {
+    display: none;
+  }
+  .scroll_indicator {
+    display: none;
+  }
+  .custom-spotlight-card {
+    padding: 0;
+  }
 }
 
 @media (min-width: 768px) {

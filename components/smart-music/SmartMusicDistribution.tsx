@@ -12,7 +12,7 @@ const distributionItems = [
 
 export default function SmartMusicDistribution() {
   return (
-    <section className="py-24 bg-background relative overflow-hidden">
+    <section className="py-14 md:py-24 bg-background relative overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div
           className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full opacity-[0.05]"
@@ -28,11 +28,11 @@ export default function SmartMusicDistribution() {
               <Globe2 className="h-3.5 w-3.5 text-violet-400" />
               Global Reach
             </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font_heading mb-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
               Global Music{" "}
               <span className="animated-gradient">Distribution Network</span>
             </h2>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-lg">
+            <p className="text-muted-foreground text-base md:text-lg leading-relaxed max-w-lg">
               Distribute your music across 150+ major streaming platforms and digital music services worldwide.
             </p>
           </div>
@@ -44,12 +44,12 @@ export default function SmartMusicDistribution() {
               {[distributionItems[0], distributionItems[2]].map(({ icon: Icon, label }) => (
                 <div
                   key={label}
-                  className="group flex flex-col items-center justify-center text-center gap-2 sm:gap-3 px-2 py-5 sm:px-4 sm:py-6 rounded-2xl border border-border/50 bg-muted/20 hover:bg-muted/40 hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                  className="group flex flex-col items-center justify-center text-center gap-2 sm:gap-3 px-2 py-5 sm:px-4 sm:py-6 rounded-2xl border border-white/20 md:border-white/10 bg-muted/20 hover:bg-muted/40 hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl border border-border/50 bg-muted/40 group-hover:bg-violet-500/10 group-hover:border-violet-500/40 transition-colors group-hover:scale-110 duration-300">
                     <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-violet-400" />
                   </div>
-                  <p className="font-normal text-[14px] sm:text-sm text-foreground leading-snug">{label}</p>
+                  <p className="font-normal text-[12px] sm:text-sm text-foreground leading-snug">{label}</p>
                 </div>
               ))}
             </div>
@@ -65,7 +65,7 @@ export default function SmartMusicDistribution() {
                   <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl border border-violet-500/40 bg-violet-500/10 group-hover:bg-violet-500/20 transition-colors group-hover:scale-110 duration-300 z-10">
                     <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-violet-400" />
                   </div>
-                  <p className="font-normal text-[14px] sm:text-sm text-foreground leading-snug z-10">{label}</p>
+                  <p className="font-normal text-[12px] sm:text-sm text-foreground leading-snug z-10">{label}</p>
                 </div>
               ))}
             </div>
@@ -75,12 +75,12 @@ export default function SmartMusicDistribution() {
               {[distributionItems[1], distributionItems[3]].map(({ icon: Icon, label }) => (
                 <div
                   key={label}
-                  className="group flex flex-col items-center justify-center text-center gap-2 sm:gap-3 px-2 py-5 sm:px-4 sm:py-6 rounded-2xl border border-border/50 bg-muted/20 hover:bg-muted/40 hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                  className="group flex flex-col items-center justify-center text-center gap-2 sm:gap-3 px-2 py-5 sm:px-4 sm:py-6 rounded-2xl border border-white/20 md:border-white/10 bg-muted/20 hover:bg-muted/40 hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl border border-border/50 bg-muted/40 group-hover:bg-violet-500/10 group-hover:border-violet-500/40 transition-colors group-hover:scale-110 duration-300">
                     <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-violet-400" />
                   </div>
-                  <p className="font-normal text-[14px] sm:text-sm text-foreground leading-snug">{label}</p>
+                  <p className="font-normal text-[12px] sm:text-sm text-foreground leading-snug">{label}</p>
                 </div>
               ))}
             </div>
