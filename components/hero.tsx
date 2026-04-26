@@ -129,6 +129,9 @@ const OrbitalAnimation = () => {
           loop
           muted
           playsInline
+          webkit-playsinline="true"
+          controls={false}
+          preload="auto"
           disablePictureInPicture
           disableRemotePlayback
           className="w-full h-full object-cover scale-[1.28] pointer-events-none"
