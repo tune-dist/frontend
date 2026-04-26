@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Play, Music2, Music, Youtube, Instagram, DollarSign, Copyright, Diamond } from 'lucide-react'
@@ -22,9 +22,12 @@ import SnapCircleIcon from "@/public/assets/images/snap-circle-logo.png";
 
 // --- Orbital Animation Components ---
 
-const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: number, delay?: number, children: React.ReactNode }) => (
+const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: number, delay?: number, children: React.ReactNode }) => {
+  const shouldReduceMotion = useReducedMotion();
+  
+  return (
   <motion.div
-    className="absolute rounded-full border border-white/10 z-30"
+    className="absolute rounded-full border border-white/10 z-30 will-change-transform"
     style={{
       width: radius * 2,
       height: radius * 2,
@@ -35,26 +38,28 @@ const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: 
       duration: 2.5,
       delay,
       ease: [0.16, 1, 0.3, 1],
-      rotate: { duration: speed, repeat: Infinity, ease: "linear" }
+      ...(shouldReduceMotion ? {} : { rotate: { duration: speed, repeat: Infinity, ease: "linear" } })
     }}
   >
     <motion.div
-      className="w-full h-full"
-      animate={{ rotate: 360 }}
-      transition={{ duration: speed, repeat: Infinity, ease: "linear" }}
+      className="w-full h-full will-change-transform"
+      animate={{ rotate: shouldReduceMotion ? 0 : 360 }}
+      transition={shouldReduceMotion ? {} : { duration: speed, repeat: Infinity, ease: "linear" }}
     >
       {children}
     </motion.div>
   </motion.div>
-);
+  );
+};
 
 const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, delay = 0, alt = '' }: { angle: number, radius: number, color: string, icon: any, size?: number, orbitSpeed: number, delay?: number, alt?: string }) => {
+  const shouldReduceMotion = useReducedMotion();
   const x = radius * Math.cos((angle * Math.PI) / 180);
   const y = radius * Math.sin((angle * Math.PI) / 180);
 
   return (
     <motion.div
-      className="absolute flex items-center justify-center rounded-full shadow-lg border border-white/20"
+      className="absolute flex items-center justify-center rounded-full shadow-lg border border-white/20 will-change-transform"
       style={{
         width: size,
         height: size,
@@ -70,13 +75,13 @@ const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, de
         damping: 20,
         mass: 1.2,
         delay,
-        rotate: { duration: orbitSpeed, repeat: Infinity, ease: "linear" }
+        ...(shouldReduceMotion ? {} : { rotate: { duration: orbitSpeed, repeat: Infinity, ease: "linear" } })
       }}
     >
       <motion.div
-        className="w-full h-full flex items-center justify-center"
-        animate={{ rotate: -360 }} // Counter-rotate to stay upright
-        transition={{ duration: orbitSpeed, repeat: Infinity, ease: "linear" }}
+        className="w-full h-full flex items-center justify-center will-change-transform"
+        animate={{ rotate: shouldReduceMotion ? 0 : -360 }} // Counter-rotate to stay upright
+        transition={shouldReduceMotion ? {} : { duration: orbitSpeed, repeat: Infinity, ease: "linear" }}
       >
         {typeof Icon === 'string' || (typeof Icon === 'object' && Icon?.src) ? (
           <Image

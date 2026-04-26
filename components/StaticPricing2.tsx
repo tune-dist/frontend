@@ -240,94 +240,100 @@ export default function StaticPricing2() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 items-stretch">
+        {/* Scrollable container on mobile/tablet, grid on xl */}
+        <div className="flex xl:grid xl:grid-cols-5 gap-6 overflow-x-auto pb-8 pt-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {plans.map((plan, index) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="relative flex h-full"
-            >
-              <Card className={`w-full flex flex-col bg-card border-white/10 hover:border-white/20 transition-all duration-300 ${plan.isPopular ? 'border border-violet-500/90 shadow-xl shadow-violet-500/20 hover:border-violet-500/90' : ''}`}>
-                {plan.isPopular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 animated-gradient-bg text-white text-[10px] font-bold rounded-full uppercase z-20">
-                    Most popular
-                  </div>
-                )}
-
-                <CardHeader className="pb-4">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xs font-bold text-muted-foreground tracking-widest uppercase">
-                      {plan.name}
-                    </CardTitle>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground text-sm font-medium">{plan.period}</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground font-medium italic">
-                      {plan.details}
-                    </p>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-6 flex-grow">
-                  <div className="space-y-2">
-                    <div className={`px-4 py-1.5 rounded-full text-center text-[11px] font-bold border ${plan.earningsColor}`}>
-                      {plan.earnings}
-                    </div>
-                    <div className="px-4 py-1.5 rounded-full text-center text-[11px] font-bold bg-white/5 text-muted-foreground border border-white/5">
-                      {plan.support}
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    {plan.sections.map((section) => (
-                      <div key={section.title} className="space-y-3">
-                        <h4 className="text-[10px] font-black text-muted-foreground tracking-widest uppercase pb-1 border-b border-white/5">
-                          {section.title}
-                        </h4>
-                        <ul className="space-y-2.5">
-                          {section.items.map((item) => (
-                            <li key={item.label} className="flex items-start gap-2.5 group">
-                              {item.type === 'included' && <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />}
-                              {item.type === 'excluded' && <Minus className="h-3.5 w-3.5 text-rose-500/30 shrink-0 mt-0.5" />}
-                              {item.type === 'addon' && <div className="h-2 w-2 rounded-full bg-blue-400 shrink-0 mt-1.5 mx-0.5" />}
-                              {item.type === 'inherited' && <div className="h-2 w-2 rounded-full bg-slate-400 shrink-0 mt-1.5 mx-0.5" />}
-                              <span className={`text-[12px] font-medium leading-tight ${item.type === 'excluded' ? 'text-muted-foreground/40' : 'text-muted-foreground group-hover:text-foreground transition-colors'}`}>
-                                {item.label}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-
-                <CardFooter className="pt-6">
-                  <Link href="/contact" className="w-full">
-                    <Button
-                      variant={plan.isPopular ? "default" : "outline"}
-                      className={`w-full rounded-xl text-sm font-bold h-12 transition-all duration-300 ${plan.isPopular ? 'animated-gradient-bg border-0 text-white' : 'bg-white/5 hover:bg-white/10 border-white/5 hover:bg-white hover:text-black'}`}
-                    >
-                      {plan.buttonText}
-                      <motion.span
-                        className="ml-2"
-                        initial={{ x: 0 }}
-                        whileHover={{ x: 3 }}
-                      >
-                        →
-                      </motion.span>
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            </motion.div>
+            <PricingCardItem key={plan.name} plan={plan} index={index} />
           ))}
         </div>
       </div>
     </section>
+  )
+}
+
+function PricingCardItem({ plan, index }: { plan: typeof plans[0], index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      className="relative flex h-full min-w-[280px] sm:min-w-[320px] max-w-[85vw] shrink-0 snap-center xl:min-w-0 xl:max-w-none xl:shrink"
+    >
+      <Card className={`w-full flex flex-col bg-card border-white/10 hover:border-white/20 transition-all duration-300 ${plan.isPopular ? 'border border-violet-500/90 shadow-xl shadow-violet-500/20 hover:border-violet-500/90' : ''}`}>
+        {plan.isPopular && (
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 animated-gradient-bg text-white text-[10px] font-bold rounded-full uppercase z-20">
+            Most popular
+          </div>
+        )}
+
+        <CardHeader className="pb-4">
+          <div className="space-y-1">
+            <CardTitle className="text-xs font-bold text-muted-foreground tracking-widest uppercase">
+              {plan.name}
+            </CardTitle>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-bold">{plan.price}</span>
+              <span className="text-muted-foreground text-sm font-medium">{plan.period}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground font-medium italic">
+              {plan.details}
+            </p>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6 flex-grow">
+          <div className="space-y-2">
+            <div className={`px-4 py-1.5 rounded-full text-center text-[11px] font-bold border ${plan.earningsColor}`}>
+              {plan.earnings}
+            </div>
+            <div className="px-4 py-1.5 rounded-full text-center text-[11px] font-bold bg-white/5 text-muted-foreground border border-white/5">
+              {plan.support}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {plan.sections.map((section) => (
+              <div key={section.title} className="space-y-3">
+                <h4 className="text-[10px] font-black text-muted-foreground tracking-widest uppercase pb-1 border-b border-white/5">
+                  {section.title}
+                </h4>
+                <ul className="space-y-2.5">
+                  {section.items.map((item) => (
+                    <li key={item.label} className="flex items-start gap-2.5 group">
+                      {item.type === 'included' && <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />}
+                      {item.type === 'excluded' && <Minus className="h-3.5 w-3.5 text-rose-500/30 shrink-0 mt-0.5" />}
+                      {item.type === 'addon' && <div className="h-2 w-2 rounded-full bg-blue-400 shrink-0 mt-1.5 mx-0.5" />}
+                      {item.type === 'inherited' && <div className="h-2 w-2 rounded-full bg-slate-400 shrink-0 mt-1.5 mx-0.5" />}
+                      <span className={`text-[12px] font-medium leading-tight ${item.type === 'excluded' ? 'text-muted-foreground/40' : 'text-muted-foreground group-hover:text-foreground transition-colors'}`}>
+                        {item.label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+
+        <CardFooter className="pt-6">
+          <Link href="/contact" className="w-full">
+            <Button
+              variant={plan.isPopular ? "default" : "outline"}
+              className={`w-full rounded-xl text-sm font-bold h-12 transition-all duration-300 ${plan.isPopular ? 'animated-gradient-bg border-0 text-white' : 'bg-white/5 hover:bg-white/10 border-white/5 hover:bg-white hover:text-black'}`}
+            >
+              {plan.buttonText}
+              <motion.span
+                className="ml-2"
+                initial={{ x: 0 }}
+                whileHover={{ x: 3 }}
+              >
+                →
+              </motion.span>
+            </Button>
+          </Link>
+        </CardFooter>
+      </Card>
+    </motion.div>
   )
 }

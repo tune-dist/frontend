@@ -86,8 +86,8 @@ export const LogoLoop: React.FC<LogoLoopProps> = ({
   logoHeight = 40,
   gap = 20,
 }) => {
-  // Triple the logos to ensure seamless looping on larger screens
-  const duplicatedLogos = [...DEFAULT_LOGOS, ...DEFAULT_LOGOS, ...DEFAULT_LOGOS]
+  // Duplicate logos to ensure seamless looping
+  const duplicatedLogos = [...DEFAULT_LOGOS, ...DEFAULT_LOGOS]
 
   return (
     <div
@@ -103,6 +103,7 @@ export const LogoLoop: React.FC<LogoLoopProps> = ({
           style={{
             gap: `${gap}px`,
             animationDuration: `${speed}s`,
+            willChange: 'transform',
           }}
         >
           {duplicatedLogos.map((logo, index) => (
@@ -128,7 +129,7 @@ export const LogoLoop: React.FC<LogoLoopProps> = ({
             transform: translateX(0);
           }
           100% {
-            transform: translateX(calc(-100% / 3));
+            transform: translateX(-50%);
           }
         }
         .animate-marquee {
