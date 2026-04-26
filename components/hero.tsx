@@ -166,7 +166,7 @@ export default function Hero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex-col md:flex-row flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex-col md:flex-row flex items-center justify-center overflow-hidden hero_section_bg"
     >
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
