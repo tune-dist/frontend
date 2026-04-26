@@ -87,7 +87,7 @@ export const LogoLoop: React.FC<LogoLoopProps> = ({
   gap = 20,
 }) => {
   // Duplicate logos to ensure seamless looping
-  const duplicatedLogos = [...DEFAULT_LOGOS, ...DEFAULT_LOGOS]
+  const duplicatedLogos = [...DEFAULT_LOGOS]
 
   return (
     <div

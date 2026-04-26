@@ -7,7 +7,7 @@ import { ArrowRight, Play, Music2, Music, Youtube, Instagram, DollarSign, Copyri
 import Link from 'next/link'
 import Image from 'next/image'
 
-// import LogoLoop from './LogoLoop';
+import LogoLoop from './LogoLoop';
 
 import YoutubeCircleIcon from "@/public/assets/images/youtube-circle-logo.png";
 import SpotifyCircleIcon from "@/public/assets/images/spotify-circle-logo.png";
@@ -113,7 +113,7 @@ const OrbitalAnimation = () => {
   }, []);
 
   return (
-    <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100 hidden">
+    <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100">
       {/* Central Logo */}
       <motion.div
         className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-transparent flex items-center justify-center shadow-[0_0_50px_rgba(132,0,215,0.6)] overflow-hidden"
@@ -227,7 +227,7 @@ export default function Hero() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
-            {/* <OrbitalAnimation /> */}
+            <OrbitalAnimation />
           </motion.div>
         </div>
       </div>
@@ -242,11 +242,11 @@ export default function Hero() {
         <p className="text-sm text-muted-foreground mb-6 uppercase tracking-wider text-center">
           Distribute to 150+ platforms including
         </p>
-        {/* <LogoLoop
+        <LogoLoop
           speed={80}
           logoHeight={20}
           gap={45}
-        /> */}
+        />
       </motion.div>
 
       {/* Scroll Indicator */}
@@ -261,7 +261,7 @@ export default function Hero() {
           </div>
         </Link>
       </motion.div>
-      <div className='hero_bg_gredient'></div>
+      {/* <div className='hero_bg_gredient'></div> */}
     </section>
   )
 }
