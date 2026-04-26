@@ -189,7 +189,7 @@ export default function Testimonials() {
             pauseOnMouseEnter: true,
           }}
           speed={5000}
-          navigation={true}
+          navigation={false}
           className="px-12 testimonials-swiper"
         >
           {staticTestimonials.map((testimonial, idx) => (
