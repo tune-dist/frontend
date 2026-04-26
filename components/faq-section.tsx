@@ -6,28 +6,36 @@ import { ChevronDown, HelpCircle } from 'lucide-react'
 
 const faqs = [
   {
-    q: "How long does it take for my music to go live?",
-    a: "Typically, it takes 24-48 hours for review by our team and another 3-7 days for DSPs like Spotify and Apple Music to process your upload. We recommend uploading at least 2 weeks before your release date."
+    q: "What is Kratolib music distribution and how does it work?",
+    a: "Kratolib is a music distribution platform for Indian independent artists that helps you release your songs on 150+ streaming platforms like Spotify, Apple Music, JioSaavn, and YouTube Music. You upload your track once, and Kratolib handles delivery, metadata, and royalty collection while you keep full ownership of your music."
   },
   {
-    q: "Which platforms do you distribute to?",
-    a: "We distribute to over 150+ Digital Service Providers worldwide, including Spotify, Apple Music, YouTube Music, Instagram, TikTok, Amazon Music, and many more."
+    q: "Is Kratolib free for music distribution in India?",
+    a: "Yes, Kratolib offers a free plan that allows artists to distribute up to 2 releases per year at ₹0. You can earn royalties, access YouTube Content ID, and enable CRBT (caller tunes) even on the free plan."
   },
   {
-    q: "When do I get paid?",
-    a: "DSP payout cycles vary, but most report royalties 45-60 days after the end of the month. Once we receive your royalties, they are credited to your KratoLib account immediately."
+    q: "How can I upload my song to Spotify and other platforms?",
+    a: "To upload your song, sign up on Kratolib, add your audio file, cover art, and metadata, then select platforms like Spotify, Apple Music, and JioSaavn. Your music usually goes live within 24–72 hours."
   },
   {
-    q: "Do I keep 100% ownership of my music?",
-    a: "Yes! You always retain 100% ownership of your master recordings and publishing when distributing through KratoLib."
+    q: "How do artists earn money from music streaming?",
+    a: "Artists earn royalties every time their music is streamed on platforms like Spotify, Apple Music, and YouTube Music. Additional income comes from CRBT (caller tunes), YouTube Content ID, and sync licensing opportunities."
   },
   {
-    q: "How do I handle royalty splits with collaborators?",
-    a: "You can easily set up automated royalty splits directly in your dashboard. Just invite your collaborators via email and set their percentage share."
+    q: "What is CRBT (Caller Tune) and how can I earn from it?",
+    a: "CRBT (Caller Ring Back Tone) is the music callers hear before you pick up a call. With Kratolib, your songs can be set as caller tunes on networks like Jio, Airtel, Vi, and BSNL, helping you earn royalties whenever users activate your song."
   },
   {
-    q: "Do you take a percentage of my royalties?",
-    a: "Depending on your plan, we offer 100% royalty retention for our Pro and Label tiers, while our Free tier may have a small commission."
+    q: "How and when do I receive my music royalties?",
+    a: "Kratolib collects royalties from all platforms and credits them monthly to your account. You can withdraw your earnings via UPI or bank transfer in INR, with on-demand payouts available on higher plans."
+  },
+  {
+    q: "Can independent artists release music without a record label?",
+    a: "Yes, independent artists can distribute music without a record label using Kratolib. You retain 100% ownership of your songs and control your releases, earnings, and audience growth."
+  },
+  {
+    q: "Which is the best music distributor for Indian artists?",
+    a: "Kratolib is one of the best music distributors for Indian artists because it offers INR pricing, CRBT support, 100% royalty earnings on paid plans, and distribution to both global and India-specific platforms like JioSaavn and Gaana."
   }
 ]
 

@@ -23,7 +23,7 @@ export default function RoyaltySplitsCTA() {
             Create Your First Split
           </a>
           <a
-            href="/demo"
+            href="/contact"
             className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-muted/20 hover:bg-white hover:text-black text-white font-semibold text-md transition-colors border border-white/5 min-w-[200px] w-full md:w-auto"
           >
             Schedule a Demo

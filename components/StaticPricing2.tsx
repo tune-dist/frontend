@@ -307,7 +307,7 @@ export default function StaticPricing2() {
                 </CardContent>
 
                 <CardFooter className="pt-6">
-                  <Link href={plan.buttonLink} className="w-full">
+                  <Link href="/contact" className="w-full">
                     <Button
                       variant={plan.isPopular ? "default" : "outline"}
                       className={`w-full rounded-xl text-sm font-bold h-12 transition-all duration-300 ${plan.isPopular ? 'animated-gradient-bg border-0 text-white' : 'bg-white/5 hover:bg-white/10 border-white/5 hover:bg-white hover:text-black'}`}

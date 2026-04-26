@@ -47,7 +47,7 @@ const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: 
   </motion.div>
 );
 
-const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, delay = 0 }: { angle: number, radius: number, color: string, icon: any, size?: number, orbitSpeed: number, delay?: number }) => {
+const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, delay = 0, alt = '' }: { angle: number, radius: number, color: string, icon: any, size?: number, orbitSpeed: number, delay?: number, alt?: string }) => {
   const x = radius * Math.cos((angle * Math.PI) / 180);
   const y = radius * Math.sin((angle * Math.PI) / 180);
 
@@ -80,7 +80,7 @@ const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, de
         {typeof Icon === 'string' || (typeof Icon === 'object' && Icon?.src) ? (
           <Image
             src={Icon}
-            alt=""
+            alt={alt}
             className="w-full h-full object-contain"
           />
         ) : (
@@ -116,24 +116,24 @@ const OrbitalAnimation = () => {
 
       {/* Orbit 1: Inner */}
       <Orbit radius={80} speed={40} delay={0.6}>
-        <OrbitIcon angle={90} radius={80} color="#ffb700ff" icon={SnapCircleIcon} size={40} orbitSpeed={40} delay={0.9} />
-        <OrbitIcon angle={270} radius={80} color="#e03607ff" icon={GannaCircleIcon} size={40} orbitSpeed={40} delay={0.9} />
+        <OrbitIcon angle={90} radius={80} color="#ffb700ff" icon={SnapCircleIcon} size={40} orbitSpeed={40} delay={0.9} alt="Snapchat music distribution" />
+        <OrbitIcon angle={270} radius={80} color="#e03607ff" icon={GannaCircleIcon} size={40} orbitSpeed={40} delay={0.9} alt="Gaana music streaming platform" />
       </Orbit>
 
       {/* Orbit 2: Middle */}
       <Orbit radius={140} speed={60} delay={1.2}>
-        <OrbitIcon angle={0} radius={140} color="#FC3C44" icon={AppleMusicCircleIcon} size={50} orbitSpeed={60} delay={1.5} />
-        <OrbitIcon angle={120} radius={140} color="#000000" icon={TiktokCircleIcon} size={50} orbitSpeed={60} delay={1.5} />
-        <OrbitIcon angle={240} radius={140} color="#10B981" icon={JioSaavnCircleIcon} size={50} orbitSpeed={60} delay={1.5} />
+        <OrbitIcon angle={0} radius={140} color="#FC3C44" icon={AppleMusicCircleIcon} size={50} orbitSpeed={60} delay={1.5} alt="Apple Music distribution" />
+        <OrbitIcon angle={120} radius={140} color="#000000" icon={TiktokCircleIcon} size={50} orbitSpeed={60} delay={1.5} alt="TikTok music distribution" />
+        <OrbitIcon angle={240} radius={140} color="#10B981" icon={JioSaavnCircleIcon} size={50} orbitSpeed={60} delay={1.5} alt="JioSaavn music streaming" />
       </Orbit>
 
       {/* Orbit 3: Outer */}
       <Orbit radius={210} speed={90} delay={1.8}>
-        <OrbitIcon angle={0} radius={210} color="#FF0000" icon={YoutubeCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
-        <OrbitIcon angle={72} radius={210} color="#E4405F" icon={InstagramCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
-        <OrbitIcon angle={144} radius={210} color="#1DB954" icon={SpotifyCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
-        <OrbitIcon angle={216} radius={210} color="#00A8E1" icon={FacebookCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
-        <OrbitIcon angle={288} radius={210} color="#000" icon={AmazonMusicCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
+        <OrbitIcon angle={0} radius={210} color="#FF0000" icon={YoutubeCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="YouTube Music distribution" />
+        <OrbitIcon angle={72} radius={210} color="#E4405F" icon={InstagramCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="Instagram music distribution" />
+        <OrbitIcon angle={144} radius={210} color="#1DB954" icon={SpotifyCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="Spotify music distribution" />
+        <OrbitIcon angle={216} radius={210} color="#00A8E1" icon={FacebookCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="Facebook music distribution" />
+        <OrbitIcon angle={288} radius={210} color="#000" icon={AmazonMusicCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="Amazon Music distribution" />
       </Orbit>
     </div>
   );

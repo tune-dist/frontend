@@ -54,7 +54,7 @@ export default function RoyaltySplitsHero() {
             Start managing splits smarter
           </a>
           <a
-            href="/demo"
+            href="/contact"
             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-muted/30 hover:bg-white hover:text-black text-white font-semibold text-sm transition-colors border border-white/10 min-w-[220px] w-full md:w-auto"
           >
             Start with Kratolib

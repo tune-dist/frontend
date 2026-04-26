@@ -102,7 +102,7 @@ export default function SmartMusicHero() {
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </a>
           <a
-            href="#pricing"
+            href="/contact"
             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-white/10 bg-muted/30 text-foreground font-semibold text-sm hover:bg-muted/60 transition-colors backdrop-blur w-full md:w-auto"
           >
             <Play className="h-4 w-4 fill-current" />

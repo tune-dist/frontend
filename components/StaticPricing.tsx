@@ -155,7 +155,7 @@ export default function StaticPricing() {
                         <span className="text-muted-foreground text-xs uppercase">/{plan.price.split('/')[1]}</span>
                       )}
                     </div>
-                    <Link href={plan.key === 'enterprise' ? '/contact' : `/auth?plan=${plan.key}`} className="w-full mt-auto">
+                    <Link href="/contact" className="w-full mt-auto">
                       <Button
                         variant={plan.isPopular ? "default" : "outline"}
                         className={`w-full h-11 rounded-xl font-semibold transition-all duration-300 ${plan.isPopular
@@ -163,7 +163,7 @@ export default function StaticPricing() {
                           : 'hover:bg-white border-white/10 hover:text-black'
                           }`}
                       >
-                        {plan.key === 'enterprise' ? 'Contact Us' : 'Select Plan'}
+                        Contact Us
                       </Button>
                     </Link>
                   </div>
