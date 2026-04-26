@@ -7,7 +7,7 @@ import { ArrowRight, Play, Music2, Music, Youtube, Instagram, DollarSign, Copyri
 import Link from 'next/link'
 import Image from 'next/image'
 
-import LogoLoop from './LogoLoop';
+// import LogoLoop from './LogoLoop';
 
 import YoutubeCircleIcon from "@/public/assets/images/youtube-circle-logo.png";
 import SpotifyCircleIcon from "@/public/assets/images/spotify-circle-logo.png";
@@ -227,7 +227,7 @@ export default function Hero() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
-            <OrbitalAnimation />
+            {/* <OrbitalAnimation /> */}
           </motion.div>
         </div>
       </div>
@@ -242,11 +242,11 @@ export default function Hero() {
         <p className="text-sm text-muted-foreground mb-6 uppercase tracking-wider text-center">
           Distribute to 150+ platforms including
         </p>
-        <LogoLoop
+        {/* <LogoLoop
           speed={80}
           logoHeight={20}
           gap={45}
-        />
+        /> */}
       </motion.div>
 
       {/* Scroll Indicator */}
