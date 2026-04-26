@@ -24,31 +24,31 @@ import SnapCircleIcon from "@/public/assets/images/snap-circle-logo.png";
 
 const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: number, delay?: number, children: React.ReactNode }) => {
   const shouldReduceMotion = useReducedMotion();
-  
+
   return (
-  <motion.div
-    className="absolute rounded-full border border-white/10 z-30 will-change-transform"
-    style={{
-      width: radius * 2,
-      height: radius * 2,
-    }}
-    initial={{ scale: 0, opacity: 0 }}
-    animate={{ scale: 1, opacity: 1 }}
-    transition={{
-      duration: 2.5,
-      delay,
-      ease: [0.16, 1, 0.3, 1],
-      ...(shouldReduceMotion ? {} : { rotate: { duration: speed, repeat: Infinity, ease: "linear" } })
-    }}
-  >
     <motion.div
-      className="w-full h-full will-change-transform"
-      animate={{ rotate: shouldReduceMotion ? 0 : 360 }}
-      transition={shouldReduceMotion ? {} : { duration: speed, repeat: Infinity, ease: "linear" }}
+      className="absolute rounded-full border border-white/10 z-30 will-change-transform"
+      style={{
+        width: radius * 2,
+        height: radius * 2,
+      }}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{
+        duration: 2.5,
+        delay,
+        ease: [0.16, 1, 0.3, 1],
+        ...(shouldReduceMotion ? {} : { rotate: { duration: speed, repeat: Infinity, ease: "linear" } })
+      }}
     >
-      {children}
+      <motion.div
+        className="w-full h-full will-change-transform"
+        animate={{ rotate: shouldReduceMotion ? 0 : 360 }}
+        transition={shouldReduceMotion ? {} : { duration: speed, repeat: Infinity, ease: "linear" }}
+      >
+        {children}
+      </motion.div>
     </motion.div>
-  </motion.div>
   );
 };
 
@@ -113,7 +113,7 @@ const OrbitalAnimation = () => {
   }, []);
 
   return (
-    <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100">
+    <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100 hidden">
       {/* Central Logo */}
       <motion.div
         className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-transparent flex items-center justify-center shadow-[0_0_50px_rgba(132,0,215,0.6)] overflow-hidden"
