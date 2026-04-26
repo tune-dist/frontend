@@ -39,7 +39,7 @@ const rightCards = [
 
 export default function RoyaltySplitsAutomation() {
   return (
-    <section className="py-24 bg-[#030303] relative overflow-hidden">
+    <section className="py-12 md:py-24 bg-[#030303] relative overflow-hidden">
       {/* Background Ambience */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute top-1/2 left-0 w-[600px] h-[600px] -translate-y-1/2 rounded-full opacity-[0.05] bg-emerald-500 blur-[120px]" />
@@ -60,7 +60,7 @@ export default function RoyaltySplitsAutomation() {
               Intelligence Automation
             </div>
 
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold font_heading mb-8 tracking-tight leading-[1.05] text-white">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
               Fully Automated <br />
               <span className="animated-gradient">Global Payouts</span>
             </h2>
@@ -100,7 +100,7 @@ export default function RoyaltySplitsAutomation() {
               viewport={{ once: true }}
               className="mb-10 text-center lg:text-left"
             >
-              <h3 className="text-3xl md:text-4xl font-bold font_heading text-white tracking-tight">
+              <h3 className="text-2xl md:text-3xl font-bold font_heading text-white tracking-tight">
                 Advanced Recoupment <br /> & Smart Payments
               </h3>
             </motion.div>

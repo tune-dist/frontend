@@ -42,7 +42,7 @@ const rightCards = [
 
 export default function RoyaltySplitsCollaboration() {
   return (
-    <section id="collaboration" className="py-24 bg-background relative overflow-hidden">
+    <section id="collaboration" className="py-12 md:py-24 bg-background relative overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full opacity-[0.05]"
           style={{ background: "radial-gradient(circle, #10b981 0%, transparent 70%)" }} />
@@ -53,17 +53,17 @@ export default function RoyaltySplitsCollaboration() {
 
           {/* Left Column */}
           <div>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font_heading mb-6 tracking-tight leading-[1.1]">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
               Intelligent <span className="animated-gradient">Royalty <br /> Collaboration</span>
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base leading-relaxed mb-8 max-w-md">
+            <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-8 max-w-md">
               Our instantly accessible platform enables frictionless collaboration
               across every stakeholder in the music ecosystem.
             </p>
 
             <ul className="space-y-4 mb-10">
               {leftCheckmarks.map((label, idx) => (
-                <li key={idx} className="flex items-center gap-3 text-sm text-foreground font-medium">
+                <li key={idx} className="flex items-center gap-3 text-md text-foreground font-medium">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
                   {label}
                 </li>
@@ -83,14 +83,14 @@ export default function RoyaltySplitsCollaboration() {
             {rightCards.map((card, i) => (
               <div
                 key={i}
-                className="group flex flex-col items-start gap-4 p-6 sm:p-8 rounded-2xl border border-border/50 bg-muted/20 hover:bg-muted/40 transition-all duration-300 hover:border-emerald-500/30 hover:shadow-xl"
+                className="group flex flex-col items-start gap-4 p-6 sm:p-8 rounded-2xl border border-white/10 bg-muted/20 hover:bg-muted/40 transition-all duration-300 hover:border-emerald-500/30 hover:shadow-xl"
               >
                 <div className={`flex h-12 w-12 items-center justify-center rounded-xl border border-border/40 ${card.bg} group-hover:scale-110 transition-transform duration-300`}>
                   <card.icon className={`h-6 w-6 ${card.color}`} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-foreground mb-2 leading-snug">{card.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{card.desc}</p>
+                  <h3 className="font-bold text-base text-foreground mb-2 leading-snug">{card.title}</h3>
+                  <p className="text-muted-foreground text-md leading-relaxed">{card.desc}</p>
                 </div>
               </div>
             ))}

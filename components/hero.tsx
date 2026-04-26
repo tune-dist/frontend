@@ -23,7 +23,7 @@ import SnapCircleIcon from "@/public/assets/images/snap-circle-logo.png";
 
 const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: number, delay?: number, children: React.ReactNode }) => (
   <motion.div
-    className="absolute rounded-full border border-white/10"
+    className="absolute rounded-full border border-white/10 z-30"
     style={{
       width: radius * 2,
       height: radius * 2,
@@ -47,7 +47,7 @@ const Orbit = ({ radius, speed, delay = 0, children }: { radius: number, speed: 
   </motion.div>
 );
 
-const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, delay = 0 }: { angle: number, radius: number, color: string, icon: any, size?: number, orbitSpeed: number, delay?: number }) => {
+const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, delay = 0, alt = '' }: { angle: number, radius: number, color: string, icon: any, size?: number, orbitSpeed: number, delay?: number, alt?: string }) => {
   const x = radius * Math.cos((angle * Math.PI) / 180);
   const y = radius * Math.sin((angle * Math.PI) / 180);
 
@@ -80,7 +80,7 @@ const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, de
         {typeof Icon === 'string' || (typeof Icon === 'object' && Icon?.src) ? (
           <Image
             src={Icon}
-            alt=""
+            alt={alt}
             className="w-full h-full object-contain"
           />
         ) : (
@@ -96,36 +96,44 @@ const OrbitalAnimation = () => {
     <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100">
       {/* Central Logo */}
       <motion.div
-        className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-black flex items-center justify-center shadow-[0_0_50px_rgba(132,0,215,0.4)]"
+        className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-transparent flex items-center justify-center shadow-[0_0_50px_rgba(132,0,215,0.6)] overflow-hidden"
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         {/* <Music2 className="text-white w-1/2 h-1/2" /> */}
-        <img src="/logo.png" alt="" className='w-full h-full object-contain p-4' />
+        {/* <img src="/logo.png" alt="" className='w-full h-full object-contain p-4' /> */}
+        <video
+          src="/assets/images/globe-krato-hero.MP4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover scale-[1.28]"
+        />
         {/* Subtle glow rings */}
         <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20" />
       </motion.div>
 
       {/* Orbit 1: Inner */}
       <Orbit radius={80} speed={40} delay={0.6}>
-        <OrbitIcon angle={90} radius={80} color="#ffb700ff" icon={SnapCircleIcon} size={40} orbitSpeed={40} delay={0.9} />
-        <OrbitIcon angle={270} radius={80} color="#e03607ff" icon={GannaCircleIcon} size={40} orbitSpeed={40} delay={0.9} />
+        <OrbitIcon angle={90} radius={80} color="#ffb700ff" icon={SnapCircleIcon} size={40} orbitSpeed={40} delay={0.9} alt="Snapchat music distribution" />
+        <OrbitIcon angle={270} radius={80} color="#e03607ff" icon={GannaCircleIcon} size={40} orbitSpeed={40} delay={0.9} alt="Gaana music streaming platform" />
       </Orbit>
 
       {/* Orbit 2: Middle */}
       <Orbit radius={140} speed={60} delay={1.2}>
-        <OrbitIcon angle={0} radius={140} color="#FC3C44" icon={AppleMusicCircleIcon} size={50} orbitSpeed={60} delay={1.5} />
-        <OrbitIcon angle={120} radius={140} color="#000000" icon={TiktokCircleIcon} size={50} orbitSpeed={60} delay={1.5} />
-        <OrbitIcon angle={240} radius={140} color="#10B981" icon={JioSaavnCircleIcon} size={50} orbitSpeed={60} delay={1.5} />
+        <OrbitIcon angle={0} radius={140} color="#FC3C44" icon={AppleMusicCircleIcon} size={50} orbitSpeed={60} delay={1.5} alt="Apple Music distribution" />
+        <OrbitIcon angle={120} radius={140} color="#000000" icon={TiktokCircleIcon} size={50} orbitSpeed={60} delay={1.5} alt="TikTok music distribution" />
+        <OrbitIcon angle={240} radius={140} color="#10B981" icon={JioSaavnCircleIcon} size={50} orbitSpeed={60} delay={1.5} alt="JioSaavn music streaming" />
       </Orbit>
 
       {/* Orbit 3: Outer */}
       <Orbit radius={210} speed={90} delay={1.8}>
-        <OrbitIcon angle={0} radius={210} color="#FF0000" icon={YoutubeCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
-        <OrbitIcon angle={72} radius={210} color="#E4405F" icon={InstagramCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
-        <OrbitIcon angle={144} radius={210} color="#1DB954" icon={SpotifyCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
-        <OrbitIcon angle={216} radius={210} color="#00A8E1" icon={FacebookCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
-        <OrbitIcon angle={288} radius={210} color="#000" icon={AmazonMusicCircleIcon} size={65} orbitSpeed={90} delay={2.1} />
+        <OrbitIcon angle={0} radius={210} color="#FF0000" icon={YoutubeCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="YouTube Music distribution" />
+        <OrbitIcon angle={72} radius={210} color="#E4405F" icon={InstagramCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="Instagram music distribution" />
+        <OrbitIcon angle={144} radius={210} color="#1DB954" icon={SpotifyCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="Spotify music distribution" />
+        <OrbitIcon angle={216} radius={210} color="#00A8E1" icon={FacebookCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="Facebook music distribution" />
+        <OrbitIcon angle={288} radius={210} color="#000" icon={AmazonMusicCircleIcon} size={65} orbitSpeed={90} delay={2.1} alt="Amazon Music distribution" />
       </Orbit>
     </div>
   );
@@ -135,11 +143,11 @@ export default function Hero() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex-col md:flex-row flex items-center justify-center overflow-hidden"
     >
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center w-full min-h-[70vh] pb-24 md:pb-32 pt-20 lg:pt-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-8 items-center w-full min-h-[70vh] pb-16 md:pb-32 pt-24 lg:pt-0">
           {/* Left Side: Text */}
           <motion.div
             className="text-left flex flex-col justify-center"
@@ -147,7 +155,7 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[50px] font-semibold mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-3xl md:text-6xl lg:text-[50px] font-semibold mb-6 leading-tight">
               <span className="block font_heading">Distribute Your Music.</span>
               <span className="mt-2 font_heading">Grow Your Audience.</span> {' '}
               <span className="mt-2 animated-gradient font_heading">
@@ -156,7 +164,7 @@ export default function Hero() {
             </h1>
 
             <motion.p
-              className="text-lg sm:text-lg md:text-lg text-muted-foreground mb-8 max-w-xl leading-relaxed"
+              className="text-base sm:text-base md:text-lg text-muted-foreground mb-8 max-w-xl leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
@@ -172,16 +180,16 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <Link href="/contact">
-                <Button className="text-sm px-6 py-6 group animated-gradient-bg text-white border-0">
+              <Link href="/contact" className=' w-full sm:w-auto'>
+                <Button className="text-sm w-full sm:w-auto px-6 py-6 group animated-gradient-bg text-white border-0">
                   Start for Free
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Link href="/features">
+              <Link href="/features" className=' w-full sm:w-auto'>
                 <Button
                   variant="outline"
-                  className="text-sm px-6 py-6 group hover:bg-white hover:text-black transition-colors"
+                  className="text-sm w-full sm:w-auto px-6 py-6 group hover:bg-white hover:text-black transition-colors"
                 >
                   <Play className="mr-2 h-5 w-5" />
                   Learn More
@@ -203,7 +211,7 @@ export default function Hero() {
 
       {/* Platform Carousel - Full Width */}
       <motion.div
-        className="absolute bottom-16 left-0 right-0 w-screen"
+        className="relative md:absolute bottom-0 md:bottom-16 left-0 right-0 w-screen overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.6 }}
@@ -214,13 +222,13 @@ export default function Hero() {
         <LogoLoop
           speed={80}
           logoHeight={20}
-          gap={30}
+          gap={45}
         />
       </motion.div>
 
       {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer"
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer scroll_indicator"
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
       >

@@ -29,7 +29,7 @@ const steps = [
 
 export default function HowItWorkStackingCard() {
     return (
-        <div className="relative py-24 md:py-32 bg-background overflow-hidden">
+        <div className="relative py-14 md:py-24 bg-background overflow-hidden">
             {/* Ambient Background Glowing Effects */}
             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[500px] h-[500px] bg-violet-500/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
             <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
@@ -37,7 +37,7 @@ export default function HowItWorkStackingCard() {
             <div className="max-w-7xl relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Heading */}
                 <motion.div
-                    className="text-center mb-20"
+                    className="text-center mb-10 md:mb-20"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -69,7 +69,7 @@ export default function HowItWorkStackingCard() {
                                 className="group relative flex flex-col focus-within:outline-none"
                             >
                                 {/* Step card */}
-                                <div className="w-full h-full bg-muted/20 p-10 rounded-[2.5rem] border border-border/40 relative overflow-hidden hover:bg-muted/40 transition-colors shadow-sm hover:shadow-xl hover:border-violet-500/20 text-left">
+                                <div className="w-full h-full bg-muted/20 p-8 md:p-10 rounded-[2.5rem] border border-white/10 relative overflow-hidden hover:bg-muted/40 transition-colors shadow-sm hover:shadow-xl hover:border-violet-500/20 text-left">
                                     {/* Giant background number */}
                                     <div className="absolute top-4 right-8 text-8xl md:text-9xl font-black font_heading text-foreground/[0.03] transition-transform duration-500 group-hover:scale-110 pointer-events-none">
                                         {step.number}
@@ -77,8 +77,8 @@ export default function HowItWorkStackingCard() {
 
                                     <Icon className="h-12 w-12 text-violet-500 mb-8" />
 
-                                    <h3 className="text-2xl font-bold mb-4 font_heading text-foreground relative z-10">{step.title}</h3>
-                                    <p className="text-muted-foreground text-sm leading-relaxed relative z-10">{step.description}</p>
+                                    <h3 className="text-xl md:text-2xl font-bold mb-4 font_heading text-foreground relative z-10">{step.title}</h3>
+                                    <p className="text-muted-foreground text-base leading-relaxed relative z-10">{step.description}</p>
                                 </div>
 
                                 {/* Arrow (between items, visible on md+) */}

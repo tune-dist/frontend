@@ -20,7 +20,7 @@ export default function RoyaltySplitsTransparency() {
   return (
     <>
       {/* ── Transparency ── */}
-      <section className="py-24 bg-background relative overflow-hidden">
+      <section className="py-12 md:py-24 bg-background relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full opacity-[0.04]"
             style={{ background: "radial-gradient(ellipse, #10b981 0%, transparent 70%)" }} />
@@ -28,29 +28,29 @@ export default function RoyaltySplitsTransparency() {
 
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font_heading mb-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
               Enterprise-Grade <span className="animated-gradient">Transparency</span> <br /> &amp; Financial Trust
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
+            <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
               Unrivaled transparency built on distributed ledger technology providing
               irrefutable Proof Of Performance for every cent processed.
             </p>
           </div>
 
           {/* 4 trust pillars */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {trustItems.map(({ icon: Icon, label, desc }) => (
               <div
                 key={label}
-                className="group rounded-2xl border border-border/50 bg-muted/20 hover:bg-muted/40 transition-all duration-300 hover:-translate-y-1 p-6 text-center shadow-lg hover:shadow-xl hover:border-emerald-500/30"
+                className="group rounded-2xl border border-white/10 bg-muted/20 hover:bg-muted/40 transition-all duration-300 hover:-translate-y-1 p-6 text-center shadow-lg hover:shadow-xl hover:border-emerald-500/30"
               >
                 <div className="flex justify-center mb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 bg-background group-hover:bg-emerald-500/10 group-hover:border-emerald-500/30 transition-colors">
                     <Icon className="h-6 w-6 text-emerald-400" />
                   </div>
                 </div>
-                <h3 className="font-bold text-base font_heading mb-2">{label}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
+                <h3 className="font-bold text-lg font_heading mb-2">{label}</h3>
+                <p className="text-muted-foreground text-base leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -58,13 +58,13 @@ export default function RoyaltySplitsTransparency() {
       </section>
 
       {/* ── Future of Collaboration ── */}
-      <section className="py-24 bg-muted/10 relative overflow-hidden music_colobration_sec">
+      <section className="py-12 md:py-24 bg-muted/10 relative overflow-hidden music_colobration_sec">
         <div className="relative max-w-7xl mx-auto px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
 
             {/* Left: List */}
             <div>
-              <h2 className="text-3xl sm:text-4xl font-bold font_heading mb-8">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-8 font_heading tracking-tight">
                 Built For The Future Of <br className="hidden sm:block" />
                 <span className="animated-gradient">Music Collaboration</span>
               </h2>
@@ -76,8 +76,8 @@ export default function RoyaltySplitsTransparency() {
                       {num}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm text-foreground mb-1">{title}</h3>
-                      <p className="text-muted-foreground text-sm leading-relaxed">{desc}</p>
+                      <h3 className="font-semibold text-base md:text-lg text-foreground mb-1">{title}</h3>
+                      <p className="text-muted-foreground text-sm md:text-base leading-relaxed">{desc}</p>
                     </div>
                   </div>
                 ))}

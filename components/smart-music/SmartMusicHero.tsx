@@ -4,7 +4,7 @@ import { ArrowRight, Music2, Play, Sparkles } from "lucide-react";
 
 export default function SmartMusicHero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background pt-20">
+    <section className="relative min-h-auto md:min-h-screen flex items-center justify-center overflow-hidden bg-background pt-20">
       {/* ── Animated BG orbs ── */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
@@ -55,10 +55,10 @@ export default function SmartMusicHero() {
       `}</style>
 
       {/* ── Main content ── */}
-      <div className="relative w-full mx-auto px-4 sm:px-6 lg:px-8 text-center py-16">
+      <div className="relative w-full mx-auto px-4 sm:px-6 lg:px-8 text-center py-0 md:py-16">
 
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/20 bg-muted/30 text-sm text-muted-foreground mb-8 backdrop-blur">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/20 bg-muted/30 text-xs md:text-sm text-muted-foreground mb-8 backdrop-blur mt-5 md:mt-0">
           <Sparkles className="h-3.5 w-3.5 text-primary" />
           AI Release Engine & Smart Music Distribution — Ktarolib
         </div>
@@ -78,14 +78,14 @@ export default function SmartMusicHero() {
         </div> */}
 
         {/* Headline */}
-        <h1 className="text-4xl sm:text-6xl lg:text-[4rem] font-semibold font_heading mb-6">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
           Next Generation
           <br />
           <span className="animated-gradient">Music Distribution</span>
           Technology
         </h1>
 
-        <p className="text-muted-foreground text-lg sm:text-xl max-w-2xl mx-auto mb-4 leading-relaxed">
+        <p className="text-muted-foreground text-base md:text-lg sm:text-xl max-w-2xl mx-auto mb-4 leading-relaxed">
           Ktarolib delivers global music distribution powered by intelligent AI release technology designed to make music releases faster, safer, and more accurate.
         </p>
         <p className="text-muted-foreground text-sm max-w-xl mx-auto mb-10">
@@ -96,14 +96,14 @@ export default function SmartMusicHero() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <a
             href="/auth?tab=signup"
-            className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-xl animated-gradient-bg text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-xl"
+            className="group inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl animated-gradient-bg text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-xl w-full md:w-auto"
           >
             Free Sign Up
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </a>
           <a
-            href="#pricing"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-white/10 bg-muted/30 text-foreground font-semibold text-sm hover:bg-muted/60 transition-colors backdrop-blur"
+            href="/contact"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-white/10 bg-muted/30 text-foreground font-semibold text-sm hover:bg-muted/60 transition-colors backdrop-blur w-full md:w-auto"
           >
             <Play className="h-4 w-4 fill-current" />
             View Pricing

@@ -4,13 +4,13 @@ import { Layers, Split, PackageOpen } from "lucide-react";
 
 export default function EnterpriseSolutionsSection() {
   return (
-    <section className="py-24 sm:py-32 bg-background">
+    <section className="py-12 sm:py-24 bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="grid md:grid-cols-2 gap-16 lg:gap-24 items-center">
+        <div className="grid md:grid-cols-2 gap-10 lg:gap-24 items-center">
 
           {/* Left: Content */}
           <div>
-            <h2 className="text-4xl sm:text-5xl font-bold font_heading mb-6 tracking-tight leading-[1.1]">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
               Label &amp; Professional Artist <br className="hidden sm:block" />
               <span className="animated-gradient">Solutions</span>
             </h2>
@@ -54,7 +54,7 @@ export default function EnterpriseSolutionsSection() {
           {/* Right: Dashboard Image Mockup */}
           <div className="bg-muted/10 p-4 sm:p-6 rounded-[3rem] border border-border/40  shadow-2xl">
             <div className="rounded-[2.5rem] overflow-hidden bg-background border border-border/50 relative aspect-[4/3] group">
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
+              <div className="absolute inset-0 bg-[url('/assets/images/music-banner3.jpg')] bg-cover bg-center grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
               <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent" />
             </div>
           </div>

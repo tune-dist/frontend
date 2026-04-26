@@ -50,7 +50,7 @@ export default function TestimonialsPage() {
       _id: '4',
       name: 'Dj Kwid',
       role: 'Music Producer',
-      quote: 'Kratolib is best',
+      quote: 'KratoLib has helped me take my sound to a global audience with ease. Their fast delivery, smooth release process, and professional support allow me to focus completely on creating quality music.',
       image: DjKwidImg.src
     },
     {
@@ -133,24 +133,24 @@ export default function TestimonialsPage() {
   return (
     <main className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      
+
       <section className="py-20 md:py-35 relative overflow-hidden flex-grow">
         {/* Decorative background elements */}
         <div className="absolute top-1/4 right-0 w-full h-1/2 bg-primary/5 blur-[120px] rounded-[100%] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-violet-500/5 blur-[120px] rounded-[100%] pointer-events-none" />
-        
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
-            className="text-center mb-16 pt-12"
+            className="text-center mb-10 md:mb-16 pt-2 md:pt-12"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 font_heading leading-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 font_heading leading-tight">
               Voices of the <br />
               <span className="animated-gradient">Global Community</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto">
               See what artists and creators around the world are saying about their experience with KratoLib.
             </p>
           </motion.div>

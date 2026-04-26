@@ -7,7 +7,7 @@ const chartData = [40, 50, 45, 60, 55, 70, 65, 80, 75, 90, 85, 95, 80, 85, 70, 7
 
 export default function RoyaltySplitsRevenue() {
   return (
-    <section className="py-24 bg-muted/10 relative overflow-hidden">
+    <section className="py-12 md:py-24 bg-muted/10 relative overflow-hidden">
       {/* Background radial effects */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute top-1/2 right-0 w-[600px] h-[600px] -translate-y-1/2 rounded-full opacity-[0.08]"
@@ -19,9 +19,9 @@ export default function RoyaltySplitsRevenue() {
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
 
         {/* Header Section */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 mb-16">
+        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 mb-8 md:mb-16">
           <div className="max-w-3xl">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -30,21 +30,21 @@ export default function RoyaltySplitsRevenue() {
               <Globe className="h-3 w-3" />
               Global Reach
             </motion.div>
-            <motion.h2 
+            <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl lg:text-6xl font-bold font_heading mb-6 tracking-tight leading-[1.1] text-white"
+              className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight"
             >
               Unified Multi-Platform <br />
               <span className="animated-gradient">Revenue Intelligence</span>
             </motion.h2>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-muted-foreground text-lg leading-relaxed max-w-2xl font-light"
+              className="text-muted-foreground text-base sm:text-lg leading-relaxed max-w-2xl font-light"
             >
               A consolidated home to ingest and report metadata from over 150+
               streaming platforms across 200+ global territories with surgical precision.
@@ -56,7 +56,7 @@ export default function RoyaltySplitsRevenue() {
         <div className="grid lg:grid-cols-3 gap-8 items-stretch">
 
           {/* Analytics Visualization Card */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -80,10 +80,10 @@ export default function RoyaltySplitsRevenue() {
             {/* Dynamic Graph Area */}
             <div className="flex-1 min-h-[300px] flex items-end gap-1.5 relative z-10">
               {/* Scanning Line Animation */}
-              <motion.div 
+              <motion.div
                 animate={{ left: ["0%", "100%", "0%"] }}
                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                className="absolute top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-emerald-500/40 to-transparent z-20 pointer-events-none" 
+                className="absolute top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-emerald-500/40 to-transparent z-20 pointer-events-none"
               />
 
               {chartData.map((h, i) => (
@@ -93,7 +93,7 @@ export default function RoyaltySplitsRevenue() {
                   whileInView={{ height: `${h}%`, opacity: 0.6 }}
                   whileHover={{ height: `${h + 5}%`, opacity: 1, scaleX: 1.2 }}
                   viewport={{ once: true }}
-                  transition={{ 
+                  transition={{
                     height: { duration: 0.8, delay: i * 0.015, ease: "easeOut" },
                     opacity: { duration: 0.5, delay: i * 0.015 }
                   }}
@@ -112,13 +112,13 @@ export default function RoyaltySplitsRevenue() {
                 <div key={i} className="w-full h-px bg-white"></div>
               ))}
             </div>
-            
+
             {/* Gradient Overlay for bottom base */}
             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0a0a0c] to-transparent z-20 pointer-events-none" />
           </motion.div>
 
           {/* Revenue Distribution Strategy Card */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -127,7 +127,7 @@ export default function RoyaltySplitsRevenue() {
           >
             {/* Glow inner */}
             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.1)_0%,transparent_70%)]" />
-            
+
             <div className="flex justify-center mb-8 relative z-10">
               <div className="h-20 w-20 rounded-[2rem] bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-2xl">
                 <TrendingUp className="h-10 w-10 text-white" />
@@ -137,7 +137,7 @@ export default function RoyaltySplitsRevenue() {
             <p className="text-white/70 text-lg leading-relaxed relative z-10 font-light">
               Streaming, downloads, syncs, CRBT — all revenue channels tracked with industrial precision and daily parity.
             </p>
-            
+
             <div className="mt-8 pt-8 border-t border-white/10 flex justify-center gap-6 relative z-10">
               <div className="flex flex-col items-center">
                 <span className="text-white font-bold text-xl">150+</span>
