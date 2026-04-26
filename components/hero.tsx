@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Play, Music2, Music, Youtube, Instagram, DollarSign, Copyright, Diamond } from 'lucide-react'
 import Link from 'next/link'
@@ -92,6 +93,20 @@ const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, de
 };
 
 const OrbitalAnimation = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Autoplay was prevented — silently ignore
+      });
+    }
+  }, []);
+
   return (
     <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100">
       {/* Central Logo */}
@@ -103,12 +118,15 @@ const OrbitalAnimation = () => {
         {/* <Music2 className="text-white w-1/2 h-1/2" /> */}
         {/* <img src="/logo.png" alt="" className='w-full h-full object-contain p-4' /> */}
         <video
+          ref={videoRef}
           src="/assets/images/globe-krato-hero.MP4"
           autoPlay
           loop
           muted
           playsInline
-          className="w-full h-full object-cover scale-[1.28]"
+          disablePictureInPicture
+          disableRemotePlayback
+          className="w-full h-full object-cover scale-[1.28] pointer-events-none"
         />
         {/* Subtle glow rings */}
         <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20" />
@@ -199,7 +217,7 @@ export default function Hero() {
           </motion.div>
 
           <motion.div
-            className="relative flex justify-center items-center w-full mt-12 lg:mt-0"
+            className="relative flex justify-center items-center w-full mt-6 lg:mt-0"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}

@@ -52,17 +52,17 @@ export default function VelocitySection() {
           {features.map((item, i) => (
             <div
               key={i}
-              className="group bg-muted/20 p-8 rounded-2xl transition-all duration-300 hover:bg-muted/40 border border-white/10 border-l-[3px] border-transparent hover:border-violet-400 hover:shadow-xl"
+              className="group bg-muted/20 p-8 rounded-2xl transition-all duration-300 hover:bg-muted/40 border border-white/10 border-l-[3px] border-transparent hover:border-violet-400 hover:shadow-xl text-center md:text-left"
             >
               <Image
                 src={item.image}
                 alt={item.title}
                 width={70}
                 height={70}
-                className="mb-6 group-hover:scale-110 transition-transform object-contain"
+                className="mb-6 group-hover:scale-110 transition-transform object-contain mx-auto md:mx-0"
               />
               <h3 className="font-bold font_heading text-lg sm:text-xl mb-3 leading-snug">{item.title}</h3>
-              <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{item.desc}</p>
+              <p className="text-muted-foreground text-base sm:text-sm leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
