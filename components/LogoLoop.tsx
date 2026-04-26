@@ -115,6 +115,8 @@ export const LogoLoop: React.FC<LogoLoopProps> = ({
                 src={logo.src}
                 alt={logo.alt}
                 height={logoHeight}
+                width={120}
+                style={{ width: 'auto', height: logoHeight }}
                 className="w-auto"
                 priority={index < 6}
               />
