@@ -95,14 +95,14 @@ export default function SmartMusicHero() {
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <a
-            href="/auth?tab=signup"
+            href="/contact"
             className="group inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl animated-gradient-bg text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-xl w-full md:w-auto"
           >
             Free Sign Up
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </a>
           <a
-            href="/contact"
+            href="/pricing"
             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl border border-white/10 bg-muted/30 text-foreground font-semibold text-sm hover:bg-muted/60 transition-colors backdrop-blur w-full md:w-auto"
           >
             <Play className="h-4 w-4 fill-current" />

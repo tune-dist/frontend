@@ -268,7 +268,49 @@ export default function FloatingLines({
   parallaxStrength = 0.2,
   mixBlendMode = 'screen'
 }: FloatingLinesProps) {
+  // Skip expensive WebGL shader on touch/mobile devices
+  if (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0) {
+    return null;
+  }
+
+  return <FloatingLinesInner
+    linesGradient={linesGradient}
+    enabledWaves={enabledWaves}
+    lineCount={lineCount}
+    lineDistance={lineDistance}
+    topWavePosition={topWavePosition}
+    middleWavePosition={middleWavePosition}
+    bottomWavePosition={bottomWavePosition}
+    animationSpeed={animationSpeed}
+    interactive={interactive}
+    bendRadius={bendRadius}
+    bendStrength={bendStrength}
+    mouseDamping={mouseDamping}
+    parallax={parallax}
+    parallaxStrength={parallaxStrength}
+    mixBlendMode={mixBlendMode}
+  />;
+}
+
+function FloatingLinesInner({
+  linesGradient,
+  enabledWaves = ['top', 'middle', 'bottom'],
+  lineCount = [6],
+  lineDistance = [5],
+  topWavePosition,
+  middleWavePosition,
+  bottomWavePosition = { x: 2.0, y: -0.7, rotate: -1 },
+  animationSpeed = 1,
+  interactive = true,
+  bendRadius = 5.0,
+  bendStrength = -0.5,
+  mouseDamping = 0.05,
+  parallax = true,
+  parallaxStrength = 0.2,
+  mixBlendMode = 'screen'
+}: FloatingLinesProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+
   const targetMouseRef = useRef<Vector2>(new Vector2(-1000, -1000));
   const currentMouseRef = useRef<Vector2>(new Vector2(-1000, -1000));
   const targetInfluenceRef = useRef<number>(0);

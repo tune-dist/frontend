@@ -15,6 +15,10 @@ export default function SmoothScrollProvider({ children }: { children: ReactNode
     const lenisRef = useRef<Lenis | null>(null)
 
     useEffect(() => {
+        // iOS/touch devices have native momentum scroll — Lenis conflicts with it
+        const isTouchDevice = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
+        if (isTouchDevice) return;
+
         const lenis = new Lenis({
             duration: 1.2,          // scroll animation duration (seconds)
             easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // expo ease-out

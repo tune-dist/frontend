@@ -99,11 +99,11 @@ export default function Navbar() {
                     <AnimatePresence>
                       {isDistributionOpen && (
                         <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
+                          initial={{ opacity: 0, y: 10, x: "-50%" }}
+                          animate={{ opacity: 1, y: 0, x: "-50%" }}
+                          exit={{ opacity: 0, y: 10, x: "-50%" }}
                           transition={{ duration: 0.2 }}
-                          className="absolute left-1/2 -translate-x-1/2 top-full w-64 bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 overflow-hidden"
+                          className="absolute left-1/2 top-[calc(100%-0.5rem)] w-64 bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-2 overflow-hidden"
                         >
                           <div className="grid gap-1">
                             {link.dropdown.map((subItem) => (

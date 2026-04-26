@@ -146,7 +146,7 @@ export default function TestimonialsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 font_heading leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
               Voices of the <br />
               <span className="animated-gradient">Global Community</span>
             </h1>

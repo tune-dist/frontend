@@ -29,12 +29,12 @@ export default function CRBTSection() {
               market others miss.
             </p>
 
-            <div className="pt-4">
+            {/* <div className="pt-4">
               <button className="group inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl animated-gradient-bg text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-xl">
                 Learn About CRBT
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* Right Side Cards */}

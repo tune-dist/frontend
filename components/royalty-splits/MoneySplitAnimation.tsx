@@ -287,11 +287,20 @@ function DesktopLayout({ isInView, particles }: { isInView: boolean; particles: 
 /* ─── Main export ──────────────────────────────────────────────────────────── */
 export default function MoneySplitAnimation() {
   const [particles, setParticles] = useState<number[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef(null);
   const isInView = useInView(containerRef, { once: true, amount: 0.3 });
 
   useEffect(() => {
     setParticles([0, 1.2, 2.4, 3.6]);
+    setMounted(true);
+    
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile(); // Initial check
+    
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   return (
@@ -299,15 +308,27 @@ export default function MoneySplitAnimation() {
       ref={containerRef}
       className="relative w-full mt-10 sm:mt-12 select-none pointer-events-none overflow-visible"
     >
-      {/* Mobile / Tablet (< md) */}
-      <div className="md:hidden px-4">
-        <MobileLayout isInView={isInView} />
-      </div>
-
-      {/* Desktop (≥ md) */}
-      <div className="hidden md:block">
-        <DesktopLayout isInView={isInView} particles={particles} />
-      </div>
+      {!mounted ? (
+        // SSR Fallback: Render both, hide via CSS to prevent layout shift before hydration
+        <>
+          <div className="md:hidden px-4">
+            <MobileLayout isInView={isInView} />
+          </div>
+          <div className="hidden md:block">
+            <DesktopLayout isInView={isInView} particles={particles} />
+          </div>
+        </>
+      ) : isMobile ? (
+        // Client Mobile: Render ONLY the mobile layout
+        <div className="px-4">
+          <MobileLayout isInView={isInView} />
+        </div>
+      ) : (
+        // Client Desktop: Render ONLY the desktop layout
+        <div>
+          <DesktopLayout isInView={isInView} particles={particles} />
+        </div>
+      )}
     </div>
   );
 }

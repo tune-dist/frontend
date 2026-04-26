@@ -21,10 +21,10 @@ export default function Footer() {
 
   const footerLinks = {
     company: [
-      { name: 'Home', href: '#' },
-      { name: 'Features', href: '#features' },
-      // { name: 'Pricing', href: '#pricing' },
-      { name: 'Contact', href: '#contact' },
+      { name: 'Home', href: '/' },
+      { name: 'Features', href: '/features' },
+      { name: 'Pricing', href: '/pricing' },
+      { name: 'Contact', href: '/contact' },
     ],
     legal: [
       { name: 'Terms of Service', href: '/terms' },
@@ -71,11 +71,6 @@ export default function Footer() {
             animation: 'footerOrb2 10s ease-in-out infinite alternate',
           }}
         />
-        {/* subtle centre line glow */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full opacity-10"
-          style={{ background: 'linear-gradient(to bottom, transparent, #be51c5 40%, #7df9ff 60%, transparent)' }}
-        />
       </div>
 
       <style>{`
@@ -99,10 +94,10 @@ export default function Footer() {
       <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 pt-8 md:pt-16 pb-10">
 
         {/* ── Main grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-10 mb-8 md:mb-14">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-x-6 gap-y-10 mb-8 md:mb-14">
 
           {/* Brand + Contact — spans 2 cols */}
-          <div className="sm:col-span-2 lg:col-span-2 space-y-6">
+          <div className="col-span-2 lg:col-span-2 space-y-6">
             <div>
               <img src="/logo.png" alt="KratoLib" className="w-[140px] max-w-full mb-3" />
               <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
@@ -203,7 +198,7 @@ export default function Footer() {
           </div>
 
           {/* Newsletter */}
-          <div className="sm:col-span-2 lg:col-span-1">
+          <div className="col-span-2 lg:col-span-1">
             <h4 className="font-semibold text-sm uppercase tracking-wider mb-5 text-foreground/80">Stay Updated</h4>
             <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
               Get the latest news, tips and artist stories straight to your inbox.

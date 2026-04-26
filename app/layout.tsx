@@ -19,10 +19,33 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
-  title: 'KratoLib - Distribute Your Music Worldwide',
-  description: 'KratoLib empowers independent artists to release their music to Spotify, Apple Music, YouTube, and 150+ platforms — all from one dashboard.',
+  metadataBase: new URL('https://www.kratolib.com'),
+  title: 'Kratolib - Distribute Your Music Worldwide',
+  description: 'Kratolib empowers independent artists to release their music to Spotify, Apple Music, YouTube, JioSaavn, and 150+ platforms — all from one dashboard.',
   icons: {
     icon: '/favicon.png',
+  },
+  openGraph: {
+    title: 'Kratolib - Distribute Your Music Worldwide',
+    description: 'Kratolib empowers independent artists to release their music to Spotify, Apple Music, YouTube, JioSaavn, and 150+ platforms — all from one dashboard.',
+    url: 'https://www.kratolib.com',
+    siteName: 'Kratolib',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Kratolib - Music Distribution Platform',
+      },
+    ],
+    locale: 'en_IN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Kratolib - Distribute Your Music Worldwide',
+    description: 'Kratolib empowers independent artists to release their music to Spotify, Apple Music, YouTube, JioSaavn, and 150+ platforms — all from one dashboard.',
+    images: ['/og-image.png'],
   },
 }
 
