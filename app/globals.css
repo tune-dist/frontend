@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -315,9 +315,6 @@ body {
   background: linear-gradient(to bottom, transparent, #0a0a0a);
   pointer-events: none;
 }
-.header_bar {
-  /* margin: 0 7%; */
-}
 .header_bar_active {
   margin: 0 10%;
   backdrop-filter: blur(24px);
@@ -339,6 +336,9 @@ body {
     left: 50%;
     top: 30%;
     transform: translate(-50%, -50%) !important;
+}
+.hero_section_bg {
+  background: linear-gradient(153deg, rgba(106, 26, 225, 0.34) 0%, rgba(0, 0, 0, 1) 100%);
 }
 
 
@@ -387,4 +387,23 @@ body {
 
 @media (min-width: 768px) {
  
+}
+
+/* Hide native video controls on iOS/Safari */
+video::-webkit-media-controls {
+    display: none !important;
+}
+video::-webkit-media-controls-enclosure {
+    display: none !important;
+}
+video::-webkit-media-controls-panel {
+    display: none !important;
+}
+video::-webkit-media-controls-play-button {
+    display: none !important;
+    -webkit-appearance: none;
+}
+video::-webkit-media-controls-start-playback-button {
+    display: none !important;
+    -webkit-appearance: none;
 }

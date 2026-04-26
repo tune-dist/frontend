@@ -99,7 +99,9 @@ export default function Footer() {
           {/* Brand + Contact — spans 2 cols */}
           <div className="col-span-2 lg:col-span-2 space-y-6">
             <div>
-              <img src="/logo.png" alt="KratoLib" className="w-[140px] max-w-full mb-3" />
+              <Link href="/" className="inline-block">
+                <img src="/logo.png" alt="KratoLib" className="w-[140px] max-w-full mb-3 hover:opacity-80 transition-opacity" />
+              </Link>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
                 Empowering independent artists to distribute their music worldwide and grow their careers without giving up ownership.
               </p>
