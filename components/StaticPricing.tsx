@@ -114,7 +114,7 @@ export default function StaticPricing() {
           </h2>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Choose the plan that fits your needs. All plans include global distribution,
-            automated royalty collection, and 24/7 support.
+            automated royalty collection, and priority support.
           </p>
         </motion.div>
 
