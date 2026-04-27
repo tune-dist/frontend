@@ -124,18 +124,19 @@ const OrbitalAnimation = () => {
         {/* <img src="/logo.png" alt="" className='w-full h-full object-contain p-4' /> */}
         <video
           ref={videoRef}
-          src="/assets/images/globe-krato-hero.MP4"
           autoPlay
           loop
           muted
           playsInline
-          webkit-playsinline="true"
+          poster="/assets/videos/globe-poster.jpg"
           controls={false}
           preload="auto"
           disablePictureInPicture
           disableRemotePlayback
           className="w-full h-full object-cover scale-[1.28] pointer-events-none"
-        />
+        >
+          <source src="/assets/videos/globe-krato-hero.mp4" type="video/mp4" />
+        </video>
         {/* Subtle glow rings */}
         <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20" />
       </motion.div>

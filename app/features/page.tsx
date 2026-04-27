@@ -4,7 +4,7 @@ import Footer from "@/components/footer";
 import SmartMusicFeatures from "@/components/smart-music/SmartMusicFeatures";
 
 export const metadata: Metadata = {
-  title: "Features – Ktarolib",
+  title: "Features – Kratolib",
   description: "Advanced Music Analytics System and Everything You Need in One Platform",
 };
 

@@ -135,7 +135,7 @@ export default function TermsOfService() {
           <p className="text-base leading-relaxed mb-4">In such cases, we will notify you of the withholding and provide a reasonable opportunity to respond.</p>
 
           <h3 className="text-xl font-semibold text-white mt-8 mb-4">5.5 Service Fees</h3>
-          <p className="text-base leading-relaxed mb-4">KratoLib’s pricing plans and associated fees are detailed on our website at <a href="https://www.kratolib.com/pricing" className="text-primary hover:underline">www.kratolib.com/pricing</a>. Fees are subject to change with 30 days’ prior notice. Continued use of the Platform after the effective date of a fee change constitutes acceptance of the new fees.</p>
+          <p className="text-base leading-relaxed mb-4">KratoLib’s pricing plans and associated fees are detailed on our website at <a href="/pricing" className="text-primary hover:underline">www.kratolib.com/pricing</a>. Fees are subject to change with 30 days’ prior notice. Continued use of the Platform after the effective date of a fee change constitutes acceptance of the new fees.</p>
 
           <h2 className="text-2xl font-bold text-white mt-16 mb-6 border-b border-border/50 pb-4">
             6. Prohibited Content & Conduct
@@ -177,7 +177,7 @@ export default function TermsOfService() {
             8. Subscription Plans & Cancellation
           </h2>
           <h3 className="text-xl font-semibold text-white mt-8 mb-4">8.1 Plans</h3>
-          <p className="text-base leading-relaxed mb-4">KratoLib offers various subscription plans with differing features, distribution limits, and fee structures. Details of current plans are available at <a href="https://www.kratolib.com/pricing" className="text-primary hover:underline">www.kratolib.com/pricing</a>.</p>
+          <p className="text-base leading-relaxed mb-4">KratoLib offers various subscription plans with differing features, distribution limits, and fee structures. Details of current plans are available at <a href="/pricing" className="text-primary hover:underline">www.kratolib.com/pricing</a>.</p>
 
           <h3 className="text-xl font-semibold text-white mt-8 mb-4">8.2 Cancellation</h3>
           <p className="text-base leading-relaxed mb-4">You may cancel your subscription at any time through your account settings. Upon cancellation:</p>
@@ -231,7 +231,7 @@ export default function TermsOfService() {
 
           <h3 className="text-xl font-semibold text-white mt-8 mb-4">10.3 Governing Law & Jurisdiction</h3>
           <p className="text-base leading-relaxed mb-4">
-            These Terms are governed by and construed in accordance with the laws of India. Any disputes arising out of or in connection with these Terms shall be subject to the exclusive jurisdiction of the courts located in [City], India. The parties agree to attempt good-faith mediation before initiating formal legal proceedings.
+            These Terms are governed by and construed in accordance with the laws of India. Any disputes arising out of or in connection with these Terms shall be subject to the exclusive jurisdiction of the courts located in Ahmedabad, India. The parties agree to attempt good-faith mediation before initiating formal legal proceedings.
           </p>
 
           <h2 className="text-2xl font-bold text-white mt-16 mb-6 border-b border-border/50 pb-4">
