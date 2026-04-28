@@ -53,6 +53,18 @@ export default function CreditsStep({
   const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false;
   const instrumentalValue = watch("instrumental");
 
+  // Auto-set language to 'Instrumental' when song is instrumental
+  useEffect(() => {
+    if (instrumentalValue === 'yes') {
+      setValue("language", "Instrumental", { shouldValidate: true });
+    } else if (instrumentalValue === 'no') {
+      const currentLang = watch("language");
+      if (currentLang === 'Instrumental') {
+        setValue("language", "", { shouldValidate: true });
+      }
+    }
+  }, [instrumentalValue, setValue, watch]);
+
   // ISRC State
   const [showIsrc, setShowIsrc] = useState(false);
   const { user } = useAuth();
@@ -504,11 +516,12 @@ export default function CreditsStep({
                   </Label>
                   <select
                     id="language"
-                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.language ? "border-red-500" : ""
-                      }`}
+                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.language ? "border-red-500" : ""} ${instrumentalValue === 'yes' ? 'opacity-70 cursor-not-allowed' : ''}`}
                     {...register("language")}
+                    disabled={instrumentalValue === 'yes'}
                   >
                    <option value="">Select a language</option>
+                        <option value="Instrumental">Instrumental</option>
                         <option value="Hindi">Hindi</option>
                         <option value="English">English</option>
                         <option value="Punjabi">Punjabi</option>

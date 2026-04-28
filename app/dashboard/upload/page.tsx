@@ -489,10 +489,11 @@ export default function UploadPage() {
             }
 
             // Conditional validation based on fieldRules
-            // Check songwriters (writers)
+            // Check songwriters (writers) — skip entirely when song is instrumental
+            const isInstrumental = formData.instrumental === 'yes';
             const writersAllowed = fieldRules.songwriters?.allow !== false;
             const writersRequired = fieldRules.songwriters?.required !== false;
-            if (writersAllowed) {
+            if (writersAllowed && !isInstrumental) {
               // If required, we should convert to required array check via zod manually or check length
               if (writersRequired) {
                 const writers = formData.writers || [];
@@ -521,10 +522,10 @@ export default function UploadPage() {
               fieldsToValidate.push("writers");
             }
 
-            // Check composers
+            // Check composers — skip when instrumental
             const composersAllowed = fieldRules.composers?.allow !== false;
             const composersRequired = fieldRules.composers?.required !== false;
-            if (composersAllowed) {
+            if (composersAllowed && !isInstrumental) {
               if (composersRequired) {
                 const composers = formData.composers || [];
                 if (composers.length === 0) {

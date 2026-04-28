@@ -1052,10 +1052,25 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 placeholder={`Artist ${index + 2} name`}
                                                 value={artist.name}
                                                 onChange={(e) => handleArtistChange(index, e.target.value)}
-                                                className="flex-1"
+                                                className={`flex-1 ${(!!artist.spotifyProfile || !!artist.appleMusicProfile || !!artist.youtubeMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-24' : ''}`}
                                                 onFocus={() => setActiveSearchIndex(index)}
+                                                readOnly={!!artist.spotifyProfile || !!artist.appleMusicProfile || !!artist.youtubeMusicProfile}
                                             />
-                                            {isSearching && activeSearchIndex === index && (
+                                            {(!!artist.spotifyProfile || !!artist.appleMusicProfile || !!artist.youtubeMusicProfile) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const currentArtists = [...(artists || [])]
+                                                        currentArtists[index] = { ...currentArtists[index], spotifyProfile: undefined, appleMusicProfile: undefined, youtubeMusicProfile: undefined }
+                                                        setValue('artists', currentArtists, { shouldValidate: true })
+                                                        setActiveSearchIndex(index)
+                                                    }}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary hover:text-primary/80 font-medium"
+                                                >
+                                                    Change Artist
+                                                </button>
+                                            )}
+                                            {isSearching && activeSearchIndex === index && !(!!artist.spotifyProfile || !!artist.appleMusicProfile || !!artist.youtubeMusicProfile) && (
                                                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                                     <motion.div
                                                         animate={{ rotate: 360 }}
