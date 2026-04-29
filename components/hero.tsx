@@ -121,8 +121,8 @@ const OrbitalAnimation = () => {
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         {/* <Music2 className="text-white w-1/2 h-1/2" /> */}
-        {/* <img src="/logo.png" alt="" className='w-full h-full object-contain p-4' /> */}
-        <video
+        <img src="/assets/images/globe-kratolib.gif" alt="" className='w-full h-full object-cover scale-[1.28]' />
+        {/* <video
           ref={videoRef}
           autoPlay
           loop
@@ -133,10 +133,10 @@ const OrbitalAnimation = () => {
           preload="auto"
           disablePictureInPicture
           disableRemotePlayback
-          className="w-full h-full object-cover scale-[1.28] pointer-events-none"
+          className="w-full h-full object-cover scale-[1.28] pointer-events-none hidden"
         >
           <source src="/assets/videos/globe-krato-hero.mp4" type="video/mp4" />
-        </video>
+        </video> */}
         {/* Subtle glow rings */}
         <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20" />
       </motion.div>
