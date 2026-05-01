@@ -1,4 +1,19 @@
+import type { Metadata } from 'next'
 import { Suspense } from 'react'
+
+export const metadata: Metadata = {
+  title: 'KratoLib - Music Distribution Free | Keep 100% | ₹999/Year',
+  description: 'KratoLib - Free music distribution for Indian indie artists. Upload to Spotify, Apple Music, JioSaavn, YouTube. Keep 100% earnings. 24/7 support. Start free today!',
+  openGraph: {
+    title: 'KratoLib - Music Distribution Free | Keep 100% | ₹999/Year',
+    description: 'KratoLib - Free music distribution for Indian indie artists. Upload to Spotify, Apple Music, JioSaavn, YouTube. Keep 100% earnings. 24/7 support. Start free today!',
+  },
+  twitter: {
+    title: 'KratoLib - Music Distribution Free | Keep 100% | ₹999/Year',
+    description: 'KratoLib - Free music distribution for Indian indie artists. Upload to Spotify, Apple Music, JioSaavn, YouTube. Keep 100% earnings. 24/7 support. Start free today!',
+  },
+}
+
 import Navbar from '@/components/navbar'
 import Hero from '@/components/hero'
 import Features from '@/components/features'

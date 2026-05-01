@@ -63,26 +63,11 @@ export default function SmartMusicHero() {
           AI Release Engine & Smart Music Distribution — Ktarolib
         </div>
 
-        {/* Floating icon */}
-        {/* <div className="relative flex justify-center mb-10">
-          <span className="absolute inset-0 m-auto h-28 w-28 rounded-full border border-primary/30"
-            style={{ animation: "pulseRing 2.2s ease-out infinite" }} />
-          <span className="absolute inset-0 m-auto h-28 w-28 rounded-full border border-primary/15"
-            style={{ animation: "pulseRing 2.2s ease-out infinite 0.7s" }} />
-          <div
-            className="relative flex h-28 w-28 items-center justify-center rounded-full border border-border/50 bg-muted/40 backdrop-blur shadow-2xl"
-            style={{ animation: "floatIcon 4s ease-in-out infinite" }}
-          >
-            <Music2 className="h-12 w-12 text-primary" />
-          </div>
-        </div> */}
-
         {/* Headline */}
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
-          Next Generation
-          <br />
-          <span className="animated-gradient">Music Distribution</span>
-          Technology
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight">
+          Smart Music Distribution <br />
+          <span className="animated-gradient">AI-Powered</span><br />
+          Release Recommendations & Analytics
         </h1>
 
         <p className="text-muted-foreground text-base md:text-lg sm:text-xl max-w-2xl mx-auto mb-4 leading-relaxed">

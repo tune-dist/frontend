@@ -89,14 +89,14 @@ export default function SmartMusicFeatures() {
               <Sparkles className="h-3 w-3" />
               Intelligence Core
             </motion.div>
-            <motion.h2
+            <motion.h1
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight"
+              className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight !leading-normal"
             >
-              Advanced Music <span className="animated-gradient">Analytics Engine</span>
-            </motion.h2>
+              Advanced Music Distribution Features <br /> <span className="animated-gradient">Analytics, AI Tools & CRBT Support</span>
+            </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -189,7 +189,7 @@ export default function SmartMusicFeatures() {
               <Zap className="h-3.5 w-3.5" />
               Creative Suite
             </motion.div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
               Empower Your <br />
               <span className="animated-gradient">Creative Workflow</span>
             </h2>

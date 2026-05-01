@@ -22,8 +22,8 @@ export default function SellAndGrowHero() {
             The Digital Maestro
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
-            Distribute, <span className="animated-gradient">Sell</span> &amp; Grow Your <span className="animated-gradient">Music</span> Worldwide.
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
+            <span className="animated-gradient">Grow</span> Your <span className="animated-gradient">Music Audience</span> - Pre-Save Links, Playlist Pitching & <span className="animated-gradient">UGC Monetization</span>
           </h1>
 
           <p className="text-muted-foreground text-base sm:text-xl max-w-lg leading-relaxed">

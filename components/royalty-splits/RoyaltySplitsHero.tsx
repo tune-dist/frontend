@@ -33,10 +33,10 @@ export default function RoyaltySplitsHero() {
         </div>
 
         {/* Headline */}
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
-          Next-Generation <br className="hidden sm:block" />
-          <span className="animated-gradient bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400">Royalty Splitting</span> For The <br className="hidden sm:block" />
-          Modern Music Industry
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight">
+          Royalty Splits Explained - Automatic  <br className="hidden sm:block" />
+          Payments to <span className="animated-gradient bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400">  Collaborators & Band Members</span>
+
         </h1>
 
         <p className="text-muted-foreground text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">

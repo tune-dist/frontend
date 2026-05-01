@@ -10,8 +10,8 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isDistributionOpen, setIsDistributionOpen] = useState(false);
-  const [isMobileDistributionOpen, setIsMobileDistributionOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [activeMobileDropdown, setActiveMobileDropdown] = useState<string | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -41,11 +41,20 @@ export default function Navbar() {
       dropdown: [
         { name: "Smart Music", href: "/smart-music" },
         { name: "Royalty Splits", href: "/royalty-splits" },
-        { name: "Sell & Grow", href: "/sell-and-grow" },
+        { name: "Sell & Grow", href: "/sell-grow" },
+      ],
+    },
+    {
+      name: "Resources",
+      href: "#",
+      dropdown: [
+        { name: "Testimonials", href: "/testimonials" },
+        { name: "Blogs", href: "/blogs" },
+        { name: "Academy", href: "/academy" },
+        { name: "Guides", href: "/guides" },
       ],
     },
     { name: "Pricing", href: "/pricing" },
-    { name: "Testimonials", href: "/testimonials" },
     { name: "Contact", href: "/contact" },
   ];
 
@@ -54,9 +63,8 @@ export default function Navbar() {
   return (
     <>
       <nav
-        className={`fixed top-[10px] left-0 right-0 z-50 transition-all duration-700 delay-500 header_bar ${
-          isScrolled ? "header_bar_active" : "bg-transparent"
-        }`}
+        className={`fixed top-[10px] left-0 right-0 z-50 transition-all duration-700 delay-500 header_bar ${isScrolled ? "header_bar_active" : "bg-transparent"
+          }`}
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
@@ -73,31 +81,29 @@ export default function Navbar() {
                 <div
                   key={link.name}
                   className="relative"
-                  onMouseEnter={() => link.dropdown && setIsDistributionOpen(true)}
-                  onMouseLeave={() => link.dropdown && setIsDistributionOpen(false)}
+                  onMouseEnter={() => link.dropdown && setActiveDropdown(link.name)}
+                  onMouseLeave={() => link.dropdown && setActiveDropdown(null)}
                 >
                   <Link
                     href={link.href}
-                    className={`${
-                      pathname === link.href ||
+                    className={`${pathname === link.href ||
                       (link.dropdown && link.dropdown.some((sub) => sub.href === pathname))
-                        ? "text-violet-500"
-                        : "text-white"
-                    } hover:text-violet-500 transition-colors duration-200 flex items-center gap-1 py-4`}
+                      ? "text-violet-500"
+                      : "text-white"
+                      } hover:text-violet-500 transition-colors duration-200 flex items-center gap-1 py-4`}
                   >
                     {link.name}
                     {link.dropdown && (
                       <ChevronDown
-                        className={`h-4 w-4 transition-transform duration-200 ${
-                          isDistributionOpen ? "rotate-180" : ""
-                        }`}
+                        className={`h-4 w-4 transition-transform duration-200 ${activeDropdown === link.name ? "rotate-180" : ""
+                          }`}
                       />
                     )}
                   </Link>
 
                   {link.dropdown && (
                     <AnimatePresence>
-                      {isDistributionOpen && (
+                      {activeDropdown === link.name && (
                         <motion.div
                           initial={{ opacity: 0, y: 10, x: "-50%" }}
                           animate={{ opacity: 1, y: 0, x: "-50%" }}
@@ -110,16 +116,14 @@ export default function Navbar() {
                               <Link
                                 key={subItem.name}
                                 href={subItem.href}
-                                className={`block p-3 rounded-lg hover:bg-white/5 transition-colors group ${
-                                  pathname === subItem.href ? "bg-white/5" : ""
-                                }`}
+                                className={`block p-3 rounded-lg hover:bg-white/5 transition-colors group ${pathname === subItem.href ? "bg-white/5" : ""
+                                  }`}
                               >
                                 <div
-                                  className={`text-sm font-medium transition-colors ${
-                                    pathname === subItem.href
-                                      ? "text-primary"
-                                      : "text-white group-hover:text-primary"
-                                  }`}
+                                  className={`text-sm font-medium transition-colors ${pathname === subItem.href
+                                    ? "text-primary"
+                                    : "text-white group-hover:text-primary"
+                                    }`}
                                 >
                                   {subItem.name}
                                 </div>
@@ -200,22 +204,20 @@ export default function Navbar() {
                     {link.dropdown ? (
                       <div>
                         <button
-                          onClick={() => setIsMobileDistributionOpen(!isMobileDistributionOpen)}
-                          className={`flex items-center justify-between w-full px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
-                            link.dropdown.some((sub) => sub.href === pathname)
-                              ? "text-violet-400 bg-violet-500/10"
-                              : "text-white/80 hover:text-white hover:bg-white/5"
-                          }`}
+                          onClick={() => setActiveMobileDropdown(activeMobileDropdown === link.name ? null : link.name)}
+                          className={`flex items-center justify-between w-full px-3 py-3 rounded-lg text-sm font-medium transition-colors ${link.dropdown.some((sub) => sub.href === pathname)
+                            ? "text-violet-400 bg-violet-500/10"
+                            : "text-white/80 hover:text-white hover:bg-white/5"
+                            }`}
                         >
                           {link.name}
                           <ChevronDown
-                            className={`h-4 w-4 transition-transform duration-200 ${
-                              isMobileDistributionOpen ? "rotate-180" : ""
-                            }`}
+                            className={`h-4 w-4 transition-transform duration-200 ${activeMobileDropdown === link.name ? "rotate-180" : ""
+                              }`}
                           />
                         </button>
                         <AnimatePresence>
-                          {isMobileDistributionOpen && (
+                          {activeMobileDropdown === link.name && (
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: "auto", opacity: 1 }}
@@ -228,11 +230,10 @@ export default function Navbar() {
                                   key={subItem.name}
                                   href={subItem.href}
                                   onClick={closeMenu}
-                                  className={`block px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                                    pathname === subItem.href
-                                      ? "text-violet-400 font-semibold bg-violet-500/10"
-                                      : "text-white/60 hover:text-white hover:bg-white/5"
-                                  }`}
+                                  className={`block px-3 py-2.5 rounded-lg text-sm transition-colors ${pathname === subItem.href
+                                    ? "text-violet-400 font-semibold bg-violet-500/10"
+                                    : "text-white/60 hover:text-white hover:bg-white/5"
+                                    }`}
                                 >
                                   {subItem.name}
                                 </Link>
@@ -245,11 +246,10 @@ export default function Navbar() {
                       <Link
                         href={link.href}
                         onClick={closeMenu}
-                        className={`block px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
-                          pathname === link.href
-                            ? "text-violet-400 bg-violet-500/10 font-semibold"
-                            : "text-white/80 hover:text-white hover:bg-white/5"
-                        }`}
+                        className={`block px-3 py-3 rounded-lg text-sm font-medium transition-colors ${pathname === link.href
+                          ? "text-violet-400 bg-violet-500/10 font-semibold"
+                          : "text-white/80 hover:text-white hover:bg-white/5"
+                          }`}
                       >
                         {link.name}
                       </Link>

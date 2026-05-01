@@ -25,13 +25,15 @@ export default function Footer() {
       { name: 'Features', href: '/features' },
       { name: 'Pricing', href: '/pricing' },
       { name: 'Contact', href: '/contact' },
+      { name: 'Blogs', href: '/blogs' },
+      { name: 'Academy', href: '/academy' },
+      { name: 'Guides', href: '/guides' },
     ],
     legal: [
       { name: 'Terms of Service', href: '/terms' },
       { name: 'Privacy Policy', href: '/privacy' },
     ],
     support: [
-      // { name: 'Help Center', href: '/help' },
       { name: 'FAQs', href: '/faqs' },
     ],
   }

@@ -1,17 +1,10 @@
 'use client'
 
-import { ReactNode } from "react";
 import { motion } from 'framer-motion'
-import { Card, CardContent } from '@/components/ui/card'
-import { Quote } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { testimonialsApi, Testimonial } from '@/lib/api/testimonials'
-import { S3Image } from '@/components/ui/s3-image'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Autoplay, Navigation, FreeMode } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/navigation'
-import 'swiper/css/free-mode'
+import Navbar from '@/components/navbar'
+import Footer from '@/components/footer'
+import TestiCard from '@/components/TestiCard'
+import { Testimonial } from '@/lib/api/testimonials'
 
 import KirtidanGadhviImg from '@/public/assets/images/testi-img/kirtidan-gadhvi.jpg'
 import GeetaJhalaImg from '@/public/assets/images/testi-img/geeta-jhala.jpg'
@@ -26,9 +19,7 @@ import KishanRavalImg from '@/public/assets/images/testi-img/kishan-raval-pic.jp
 import SunilThakorImg from '@/public/assets/images/testi-img/sunil-thakor-pic.jpg'
 import MeetJainImg from '@/public/assets/images/testi-img/meet-jain-pic.jpg'
 
-import TestiCard from './TestiCard'
-
-export default function Testimonials() {
+export default function TestimonialsContent() {
   const staticTestimonials: Testimonial[] = [
     {
       _id: '1',
@@ -116,102 +107,46 @@ export default function Testimonials() {
     },
   ]
 
-  /*
-  const [dynamicTestimonials, setDynamicTestimonials] = useState<Testimonial[]>([])
-  const [loading, setLoading] = useState(true)
+  return (
+    <main className="min-h-screen bg-background flex flex-col">
+      <Navbar />
 
-  useEffect(() => {
-    const fetchTestimonials = async () => {
-      try {
-        const data = await testimonialsApi.getAll()
-        setDynamicTestimonials(data)
-      } catch (error) {
-        console.error('Failed to fetch testimonials:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchTestimonials()
-  }, [])
+      <section className="py-20 md:py-35 relative overflow-hidden flex-grow">
+        <div className="absolute top-1/4 right-0 w-full h-1/2 bg-primary/5 blur-[120px] rounded-[100%] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-violet-500/5 blur-[120px] rounded-[100%] pointer-events-none" />
 
-  if (loading) {
-    return (
-      <section className="py-20 md:py-32 bg-background relative">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-muted-foreground">Loading testimonials...</p>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div
+            className="text-center mb-10 md:mb-16 pt-2 md:pt-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight">
+              1000+ Artist Testimonials <br />
+              <span className="animated-gradient">Why Indie Musicians Trust KratoLib</span>
+            </h1>
+            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              See what artists and creators around the world are saying about their experience with KratoLib.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto pb-20">
+            {staticTestimonials.map((testimonial, index) => (
+              <motion.div
+                key={testimonial._id || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <TestiCard testimonial={testimonial} />
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
-    )
-  }
 
-  if (dynamicTestimonials.length === 0) {
-    return null
-  }
-  */
-
-  return (
-    <section className="py-14 md:py-24 bg-background relative">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          className="text-center mb-4 md:mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading">
-            Loved by{' '}
-            <span className="animated-gradient">
-              Artists Worldwide
-            </span>
-          </h2>
-          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Trusted by celebrated artists and creators who rely on KratoLib to distribute
-            their music globally.
-          </p>
-        </motion.div>
-      </div>
-
-      <div className="relative w-full py-8 px-0 cursor-grab active:cursor-grabbing">
-        <Swiper
-          modules={[Autoplay, Navigation, FreeMode]}
-          spaceBetween={15}
-          slidesPerView={1}
-          breakpoints={{
-            640: { slidesPerView: 2 },
-            1024: { slidesPerView: 4 },
-          }}
-          loop={true}
-          freeMode={{
-            enabled: true,
-            momentum: false,
-          }}
-          autoplay={{
-            delay: 0,
-            disableOnInteraction: false,
-            pauseOnMouseEnter: true,
-          }}
-          speed={5000}
-          navigation={false}
-          className="px-0 md:px-12 testimonials-swiper"
-        >
-          {staticTestimonials.map((testimonial, idx) => (
-            <SwiperSlide key={testimonial._id || idx} className="h-auto">
-              <TestiCard testimonial={testimonial} />
-            </SwiperSlide>
-          ))}
-        </Swiper>
-      </div>
-      <motion.div
-        className="text-center mt-5"
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-      >
-        <a href="/testimonials" className="animated-gradient-bg px-6 py-3 rounded-lg font-medium">View All Testimonials</a>
-      </motion.div>
-    </section >
+      <Footer />
+    </main>
   )
 }
-

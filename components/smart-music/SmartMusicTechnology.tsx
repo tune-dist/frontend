@@ -67,7 +67,7 @@ export default function SmartMusicTechnology() {
             <Brain className="h-3.5 w-3.5 text-purple-400" />
             Smart Release Technology System
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
             Intelligent Release{" "}
             <span className="animated-gradient">Technology</span>
           </h2>

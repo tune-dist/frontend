@@ -36,7 +36,7 @@ export default function VelocitySection() {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-16 w-full">
           <div className="max-w-2xl">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
               Ultra Fast Release <span className="animated-gradient">Delivery</span>
             </h2>
             <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">

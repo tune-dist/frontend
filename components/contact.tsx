@@ -125,10 +125,10 @@ export default function Contact() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.6 }}
                 >
-                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading">
-                        Get in{' '}
-                        <span className="animated-gradient">Touch</span>
-                    </h2>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading">
+                        Contact KratoLib{' '}<br />
+                        <span className="animated-gradient">24/7 Support for Music Distribution Questions</span>
+                    </h1>
                     <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
                         Have questions about distributing your music? We're here to help you every step of the way.
                     </p>
