@@ -24,7 +24,7 @@ export default function SmartMusicCTA() {
             Start Your Global Music Distribution
           </div>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
             Release Faster.{" "}
             <span className="animated-gradient">Distribute Smarter.</span>
             <br />

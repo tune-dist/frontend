@@ -9,9 +9,16 @@ import RoyaltySplitsTransparency from "@/components/royalty-splits/RoyaltySplits
 import RoyaltySplitsCTA from "@/components/royalty-splits/RoyaltySplitsCTA";
 
 export const metadata: Metadata = {
-  title: "Royalty Splits – Kratolib | Automated Royalty Management",
-  description:
-    "Kratolib delivers a powerful, fully automated royalty split infrastructure for artists, labels, producers, and music businesses operating in today's global streaming ecosystem.",
+  title: "Royalty Splits | Automatic Payments to Collaborators | KratoLib",
+  description: "Learn how royalty splits work. Automatic payments to band members and collaborators. Step-by-step guide, examples, split sheet template. Manage splits easily.",
+  openGraph: {
+    title: "Royalty Splits | Automatic Payments to Collaborators | KratoLib",
+    description: "Learn how royalty splits work. Automatic payments to band members and collaborators. Step-by-step guide, examples, split sheet template. Manage splits easily.",
+  },
+  twitter: {
+    title: "Royalty Splits | Automatic Payments to Collaborators | KratoLib",
+    description: "Learn how royalty splits work. Automatic payments to band members and collaborators. Step-by-step guide, examples, split sheet template. Manage splits easily.",
+  },
 };
 
 export default function RoyaltySplitsPage() {

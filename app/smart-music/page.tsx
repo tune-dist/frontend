@@ -8,9 +8,16 @@ import SmartMusicTechnology from "@/components/smart-music/SmartMusicTechnology"
 import SmartMusicCTA from "@/components/smart-music/SmartMusicCTA";
 
 export const metadata: Metadata = {
-  title: "Smart Music – Ktarolib | AI Release Engine & Global Distribution",
-  description:
-    "Ktarolib delivers global music distribution powered by intelligent AI release technology — making releases faster, safer, and more accurate across 150+ streaming platforms.",
+  title: "Smart Music Distribution | AI Release Recommendations | KratoLib",
+  description: "Smart music distribution with AI-powered release timing, data-driven recommendations, and advanced analytics. Let AI optimize your release strategy for maximum reach.",
+  openGraph: {
+    title: "Smart Music Distribution | AI Release Recommendations | KratoLib",
+    description: "Smart music distribution with AI-powered release timing, data-driven recommendations, and advanced analytics. Let AI optimize your release strategy for maximum reach.",
+  },
+  twitter: {
+    title: "Smart Music Distribution | AI Release Recommendations | KratoLib",
+    description: "Smart music distribution with AI-powered release timing, data-driven recommendations, and advanced analytics. Let AI optimize your release strategy for maximum reach.",
+  },
 };
 
 export default function SmartMusicPage() {

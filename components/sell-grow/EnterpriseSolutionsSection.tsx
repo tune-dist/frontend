@@ -10,7 +10,7 @@ export default function EnterpriseSolutionsSection() {
 
           {/* Left: Content */}
           <div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight">
               Label &amp; Professional Artist <br className="hidden sm:block" />
               <span className="animated-gradient">Solutions</span>
             </h2>

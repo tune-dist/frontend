@@ -32,7 +32,7 @@ export default function PipelineSection() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
 
         <div className="text-center mb-10 lg:mb-20">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">The <span className="animated-gradient">Ktarolib </span>Pipeline</h2>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">The <span className="animated-gradient">Ktarolib </span>Pipeline</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-base sm:text-lg">
             Three steps to global domination. Simple, transparent, and powerful.
           </p>

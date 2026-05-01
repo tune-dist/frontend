@@ -28,7 +28,7 @@ export default function RoyaltySplitsTransparency() {
 
         <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight">
               Enterprise-Grade <span className="animated-gradient">Transparency</span> <br /> &amp; Financial Trust
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">

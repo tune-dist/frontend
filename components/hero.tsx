@@ -182,11 +182,11 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-3xl sm:text-3xl md:text-6xl lg:text-[50px] font-semibold mb-6 leading-tight">
-              <span className="block font_heading">Distribute Your Music.</span>
-              <span className="mt-2 font_heading">Grow Your Audience.</span> {' '}
-              <span className="mt-2 animated-gradient font_heading">
-                Get Paid.
+            <h1 className="text-3xl sm:text-3xl md:text-6xl lg:text-[50px] font-bold mb-6 leading-tight font_heading">
+              <span className="block ">Distribute Your Music to  </span>
+              <span className="mt-2 animated-gradient">150+ Platforms</span> & <span className=" animated-gradient">Keep 100% Earnings</span> {' '}
+              <span className="mt-2">
+                | Free for Indian Artists
               </span>
             </h1>
 

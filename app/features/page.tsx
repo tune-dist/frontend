@@ -4,8 +4,16 @@ import Footer from "@/components/footer";
 import SmartMusicFeatures from "@/components/smart-music/SmartMusicFeatures";
 
 export const metadata: Metadata = {
-  title: "Features – Kratolib",
-  description: "Advanced Music Analytics System and Everything You Need in One Platform",
+  title: "Music Distribution Features | AI, Analytics, CRBT | KratoLib",
+  description: "Discover KratoLib features: real-time analytics, AI cover art generator, AI mastering, CRBT distribution, credit protection, YouTube Content ID. All included in your plan.",
+  openGraph: {
+    title: "Music Distribution Features | AI, Analytics, CRBT | KratoLib",
+    description: "Discover KratoLib features: real-time analytics, AI cover art generator, AI mastering, CRBT distribution, credit protection, YouTube Content ID. All included in your plan.",
+  },
+  twitter: {
+    title: "Music Distribution Features | AI, Analytics, CRBT | KratoLib",
+    description: "Discover KratoLib features: real-time analytics, AI cover art generator, AI mastering, CRBT distribution, credit protection, YouTube Content ID. All included in your plan.",
+  },
 };
 
 export default function FeaturePage() {

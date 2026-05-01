@@ -53,7 +53,7 @@ export default function RoyaltySplitsCollaboration() {
 
           {/* Left Column */}
           <div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight">
               Intelligent <span className="animated-gradient">Royalty <br /> Collaboration</span>
             </h2>
             <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-8 max-w-md">

@@ -1,21 +1,19 @@
-'use client'
+import type { Metadata } from 'next'
+import ContactContent from '@/components/ContactContent'
 
-import { Suspense } from 'react'
-import { motion } from 'framer-motion'
-import Navbar from '@/components/navbar'
-import Footer from '@/components/footer'
-import Contact from '@/components/contact'
+export const metadata: Metadata = {
+  title: 'Contact KratoLib | 24/7 Music Distribution Support | Help',
+  description: 'Get in touch with KratoLib support team. 24/7 help for music distribution, pricing, technical issues. Email: support@kratolib.com | Phone: 02717448117',
+  openGraph: {
+    title: 'Contact KratoLib | 24/7 Music Distribution Support | Help',
+    description: 'Get in touch with KratoLib support team. 24/7 help for music distribution, pricing, technical issues. Email: support@kratolib.com | Phone: 02717448117',
+  },
+  twitter: {
+    title: 'Contact KratoLib | 24/7 Music Distribution Support | Help',
+    description: 'Get in touch with KratoLib support team. 24/7 help for music distribution, pricing, technical issues. Email: support@kratolib.com | Phone: 02717448117',
+  },
+}
 
 export default function ContactPage() {
-  return (
-    <main className="min-h-screen bg-background flex flex-col pt-16">
-      <Navbar />
-      <div className="flex-grow">
-        <Suspense fallback={null}>
-          <Contact />
-        </Suspense>
-      </div>
-      <Footer />
-    </main>
-  )
+  return <ContactContent />
 }
