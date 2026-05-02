@@ -39,9 +39,12 @@ export interface PaymentHistoryItem {
 /**
  * Create a Razorpay order for plan purchase
  */
-export async function createPaymentOrder(planKey: string): Promise<CreateOrderResponse> {
+export async function createPaymentOrder(planKey?: string, isAutoPay: boolean = true, isAddon?: boolean, addonType?: string): Promise<CreateOrderResponse> {
     const response = await apiClient.post<CreateOrderResponse>('/payments/create-order', {
         planKey,
+        isAutoPay,
+        isAddon,
+        addonType,
     });
     return response.data;
 }

@@ -55,6 +55,7 @@ export interface User {
     filename: string;
     uploadedAt: string;
   };
+  extraArtistSlots?: number;
 }
 
 export interface AuthResponse {
