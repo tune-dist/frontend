@@ -1,17 +1,10 @@
 'use client'
 
-import { ReactNode } from "react";
-import { motion } from 'framer-motion'
-import { Card, CardContent } from '@/components/ui/card'
-import { Quote } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { motion, useAnimationFrame, useMotionValue } from 'framer-motion'
 import { testimonialsApi, Testimonial } from '@/lib/api/testimonials'
 import { S3Image } from '@/components/ui/s3-image'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Autoplay, Navigation, FreeMode } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/navigation'
-import 'swiper/css/free-mode'
+import TestiCard from './TestiCard'
 
 import KirtidanGadhviImg from '@/public/assets/images/testi-img/kirtidan-gadhvi.jpg'
 import GeetaJhalaImg from '@/public/assets/images/testi-img/geeta-jhala.jpg'
@@ -25,8 +18,6 @@ import VivekRaoImg from '@/public/assets/images/testi-img/vivek-rao-pic.jpg'
 import KishanRavalImg from '@/public/assets/images/testi-img/kishan-raval-pic.jpg'
 import SunilThakorImg from '@/public/assets/images/testi-img/sunil-thakor-pic.jpg'
 import MeetJainImg from '@/public/assets/images/testi-img/meet-jain-pic.jpg'
-
-import TestiCard from './TestiCard'
 
 export default function Testimonials() {
   const staticTestimonials: Testimonial[] = [
@@ -148,9 +139,53 @@ export default function Testimonials() {
     return null
   }
   */
+  const [isPaused, setIsPaused] = useState(false);
+  const x = useMotionValue(0);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [contentWidth, setContentWidth] = useState(0);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (contentRef.current && contentRef.current.children.length > staticTestimonials.length) {
+        const firstCard = contentRef.current.children[0] as HTMLElement;
+        const middleCard = contentRef.current.children[staticTestimonials.length] as HTMLElement;
+        if (firstCard && middleCard) {
+          setContentWidth(middleCard.offsetLeft - firstCard.offsetLeft);
+        }
+      }
+    };
+    updateWidth();
+    const timer = setTimeout(updateWidth, 500);
+    window.addEventListener('resize', updateWidth);
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+      clearTimeout(timer);
+    };
+  }, []);
+
+  useAnimationFrame((t, delta) => {
+    if (isPaused) return;
+
+    const moveBy = -0.5 * (delta / 16);
+    let newX = x.get() + moveBy;
+
+    if (newX <= -contentWidth) {
+      newX += contentWidth;
+    } else if (newX > 0) {
+      newX -= contentWidth;
+    }
+    x.set(newX);
+  });
+
+  const handleDrag = (event: any, info: any) => {
+    let newX = x.get() + info.delta.x;
+    if (newX <= -contentWidth) newX += contentWidth;
+    if (newX > 0) newX -= contentWidth;
+    x.set(newX);
+  };
 
   return (
-    <section className="py-14 md:py-24 bg-background relative">
+    <section className="py-14 md:py-24 bg-background relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-4 md:mb-12"
@@ -172,35 +207,32 @@ export default function Testimonials() {
         </motion.div>
       </div>
 
-      <div className="relative w-full py-8 px-0 cursor-grab active:cursor-grabbing">
-        <Swiper
-          modules={[Autoplay, Navigation, FreeMode]}
-          spaceBetween={15}
-          slidesPerView={1}
-          breakpoints={{
-            640: { slidesPerView: 2 },
-            1024: { slidesPerView: 4 },
-          }}
-          loop={true}
-          freeMode={{
-            enabled: true,
-            momentum: false,
-          }}
-          autoplay={{
-            delay: 0,
-            disableOnInteraction: false,
-            pauseOnMouseEnter: true,
-          }}
-          speed={5000}
-          navigation={false}
-          className="px-0 md:px-12 testimonials-swiper"
+      <div
+        className="relative w-full py-8 overflow-hidden cursor-grab active:cursor-grabbing"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={() => setIsPaused(true)}
+        onTouchEnd={() => setIsPaused(false)}
+      >
+        <motion.div
+          ref={contentRef}
+          className="flex gap-4 w-max"
+          style={{ x }}
+          drag="x"
+          onDragStart={() => setIsPaused(true)}
+          onDragEnd={() => setIsPaused(false)}
+          onDrag={handleDrag}
         >
-          {staticTestimonials.map((testimonial, idx) => (
-            <SwiperSlide key={testimonial._id || idx} className="h-auto">
+          {/* Render cards twice for a seamless infinite loop */}
+          {[...staticTestimonials].map((testimonial, idx) => (
+            <div
+              key={idx}
+              className="w-[280px] sm:w-[350px] md:w-[400px] shrink-0"
+            >
               <TestiCard testimonial={testimonial} />
-            </SwiperSlide>
+            </div>
           ))}
-        </Swiper>
+        </motion.div>
       </div>
       <motion.div
         className="text-center mt-5"
