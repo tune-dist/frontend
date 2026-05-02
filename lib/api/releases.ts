@@ -407,8 +407,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         spotifyProfile: formData.spotifyProfile,
         appleMusicProfile: formData.appleMusicProfile,
         youtubeMusicProfile: formData.youtubeMusicProfile,
-        instagramProfile: formData.instagramProfile === 'yes' ? formData.instagramProfileUrl : formData.instagramProfile,
-        facebookProfile: formData.facebookProfile === 'yes' ? formData.facebookProfileUrl : formData.facebookProfile,
+        instagramProfile: formData.instagramProfileUrl || formData.instagramProfile || undefined,
+        facebookProfile: formData.facebookProfileUrl || formData.facebookProfile || undefined,
         mood: (formData as any).mood,
       }];
     }
@@ -630,8 +630,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
             spotifyProfile: formData.spotifyProfile,
             appleMusicProfile: formData.appleMusicProfile,
             youtubeMusicProfile: formData.youtubeMusicProfile,
-            instagramProfile: formData.instagramProfile === 'yes' ? formData.instagramProfileUrl : formData.instagramProfile,
-            facebookProfile: formData.facebookProfile === 'yes' ? formData.facebookProfileUrl : formData.facebookProfile,
+            instagramProfile: formData.instagramProfileUrl || formData.instagramProfile || undefined,
+            facebookProfile: formData.facebookProfileUrl || formData.facebookProfile || undefined,
           },
           ...((formData.artists || [])
             .filter((artist) => artist.name?.trim())

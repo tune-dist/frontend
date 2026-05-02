@@ -866,18 +866,21 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 </div>
 
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center justify-between w-full">
-                            <Label htmlFor="artistName">Artist Name <span className="text-red-500">*</span></Label>
-                            {planLimits && totalAllowedArtists < Infinity && (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <AlertCircle className="h-3 w-3" />
-                                    <span>Plan limit: {totalAllowedArtists} artist{totalAllowedArtists > 1 ? 's' : ''} only</span>
-                                </div>
-                            )}
-                        </div>
+                    {/* Artist Name Label + Plan Limit */}
+                    <div className="flex items-center justify-between w-full">
+                        <Label htmlFor="artistName">Artist Name <span className="text-red-500">*</span></Label>
+                        {planLimits && totalAllowedArtists < Infinity && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <AlertCircle className="h-3 w-3" />
+                                <span>Plan limit: {totalAllowedArtists} artist{totalAllowedArtists > 1 ? 's' : ''} only</span>
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {/* ── Artist 1 Card ───────────────────────────────────── */}
+                <div className="rounded-lg border-2 border-border p-4 space-y-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Main Artist</p>
                 <div className="relative space-y-3">
                     {/* Main Artist Field */}
                     <div className="relative flex items-center gap-2">
@@ -1014,18 +1017,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                 </div>
                             )}
                         </div>
-
-                        {/* Add Artist Button (for secondary artists) */}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAddArtist}
-                            className="shrink-0 h-10 w-10 p-0 self-start mt-2" // align with top if multiline
-                            title="Add another artist"
-                        >
-                            <Plus className="h-4 w-4" />
-                        </Button>
                     </div>
                     {errors.artistName && <p className="text-xs text-red-500 mt-1">{errors.artistName.message}</p>}
 
@@ -1046,18 +1037,58 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     {/* Main Artist Search Results */}
                     {renderSearchResults('main')}
 
-                    {/* Additional Artist Fields */}
+                    {/* Main Artist Social Media Profiles */}
+                    <div className="pt-4 border-t border-border/50">
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Instagram */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="instagramUrl" className="text-sm font-medium flex items-center gap-2">
+                                    <span className="text-[#E4405F] font-bold">Instagram</span>
+                                    <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                                </Label>
+                                <Input
+                                    id="instagramUrl"
+                                    placeholder="https://instagram.com/..."
+                                    {...register('instagramProfileUrl')}
+                                    className="text-sm"
+                                />
+                            </div>
+
+                            {/* Facebook */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="facebookUrl" className="text-sm font-medium flex items-center gap-2">
+                                    <span className="text-[#1877F2] font-bold">Facebook</span>
+                                    <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                                </Label>
+                                <Input
+                                    id="facebookUrl"
+                                    placeholder="https://facebook.com/..."
+                                    {...register('facebookProfileUrl')}
+                                    className="text-sm"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div> {/* end Artist 1 Card */}
+                    {/* Secondary Artist Cards */}
                     {artists && artists.length > 0 && (
-                        <div className="space-y-2 pl-0">
+                        <div className="space-y-4">
                             {artists.map((artist, index) => (
-                                <div key={index}>
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="flex items-center gap-2"
-                                    >
-                                        <div className="flex-1 relative space-y-2">
+                                <div key={index} className="rounded-lg border-2 border-border p-4 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Artist {index + 2}</p>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRemoveArtist(index)}
+                                            className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <div className="relative space-y-2">
                                             {usedArtists.length > 0 && !creatingNewSecondary[index] && (!artist.name || usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artist.name)) && (
                                                 <div className="relative">
                                                     <Select
@@ -1152,62 +1183,67 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                     </div>
                                                 </div>
                                             )}
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleRemoveArtist(index)}
-                                            className="shrink-0 h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </motion.div>
-
+                                    </div>
                                     {/* Secondary Artist Search Results */}
                                     {renderSearchResults(index)}
 
-                                    {/* Secondary Artist Social Media Profiles */}
-                                    <div className="mt-4 space-y-4 pl-4 border-l-2 border-border/50">
-                                        {/* Instagram Profile for Secondary Artist */}
-                                        <div className="space-y-2">
-                                            <Label className="text-sm font-medium flex items-center gap-2">
-                                                <span className="text-[#E4405F] font-bold text-base">Instagram</span>
-                                                <span className="text-xs text-muted-foreground">Optional</span>
-                                            </Label>
-                                            <Input
-                                                placeholder="https://instagram.com/username"
-                                                value={artist.instagramProfile || ''}
-                                                onChange={(e) => {
-                                                    const currentArtists = [...(artists || [])]
-                                                    currentArtists[index] = { ...currentArtists[index], instagramProfile: e.target.value }
-                                                    setValue('artists', currentArtists, { shouldValidate: true })
-                                                }}
-                                                className="text-sm"
-                                            />
-                                        </div>
+                                    {/* Secondary Artist Social Media Profiles - only show when artist is selected */}
+                                    {artist.name && <div className="pt-4 border-t border-border/50">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {/* Instagram */}
+                                            <div className="space-y-1.5">
+                                                <Label className="text-sm font-medium flex items-center gap-2">
+                                                    <span className="text-[#E4405F] font-bold">Instagram</span>
+                                                    <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                                                </Label>
+                                                <Input
+                                                    placeholder="https://instagram.com/..."
+                                                    value={(artist.instagramProfile || '').startsWith('http') ? artist.instagramProfile : ''}
+                                                    onChange={(e) => {
+                                                        const currentArtists = [...(artists || [])]
+                                                        currentArtists[index] = { ...currentArtists[index], instagramProfile: e.target.value }
+                                                        setValue('artists', currentArtists, { shouldValidate: true })
+                                                    }}
+                                                    className="text-sm"
+                                                />
+                                            </div>
 
-                                        {/* Facebook Profile for Secondary Artist */}
-                                        <div className="space-y-2">
-                                            <Label className="text-sm font-medium flex items-center gap-2">
-                                                <span className="text-[#1877F2] font-bold text-base">Facebook</span>
-                                                <span className="text-xs text-muted-foreground">Optional</span>
-                                            </Label>
-                                            <Input
-                                                placeholder="https://facebook.com/username"
-                                                value={artist.facebookProfile || ''}
-                                                onChange={(e) => {
-                                                    const currentArtists = [...(artists || [])]
-                                                    currentArtists[index] = { ...currentArtists[index], facebookProfile: e.target.value }
-                                                    setValue('artists', currentArtists, { shouldValidate: true })
-                                                }}
-                                                className="text-sm"
-                                            />
+                                            {/* Facebook */}
+                                            <div className="space-y-1.5">
+                                                <Label className="text-sm font-medium flex items-center gap-2">
+                                                    <span className="text-[#1877F2] font-bold">Facebook</span>
+                                                    <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                                                </Label>
+                                                <Input
+                                                    placeholder="https://facebook.com/..."
+                                                    value={(artist.facebookProfile || '').startsWith('http') ? artist.facebookProfile : ''}
+                                                    onChange={(e) => {
+                                                        const currentArtists = [...(artists || [])]
+                                                        currentArtists[index] = { ...currentArtists[index], facebookProfile: e.target.value }
+                                                        setValue('artists', currentArtists, { shouldValidate: true })
+                                                    }}
+                                                    className="text-sm"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
+                                    }
                                 </div>
                             ))}
                         </div>
+                    )}
+
+                    {/* Add Artist Button */}
+                    {areFeaturedArtistsAllowed && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleAddArtist}
+                            className="w-full border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 gap-2 text-primary hover:text-primary transition-colors py-6"
+                        >
+                            <Plus className="h-5 w-5" />
+                            <span className="font-semibold">Add Another Artist</span>
+                        </Button>
                     )}
 
                     {/* Upgrade Message for Free Users */}
@@ -1224,106 +1260,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                             </div>
                         </motion.div>
                     )}
-                </div>
-
-                {/* Social Media Profiles */}
-                <div className="space-y-6 pt-6 border-t border-border">
-                    {/* Instagram Profile */}
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[#E4405F] font-bold text-lg">Instagram</span>
-                            <h3 className="text-base font-semibold">Artist already on Instagram?</h3>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="instagram-yes"
-                                    value="yes"
-                                    {...register('instagramProfile')}
-                                    className="h-4 w-4 border-primary text-primary focus:ring-primary"
-                                />
-                                <Label htmlFor="instagram-yes" className="font-normal cursor-pointer">
-                                    Yes - Group with other <strong>{artistName || 'artist'}</strong> releases
-                                </Label>
-                            </div>
-                            {instagramProfile === 'yes' && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    className="ml-6 space-y-2"
-                                >
-                                    <Input
-                                        id="instagramUrl"
-                                        placeholder="https://instagram.com/..."
-                                        {...register('instagramProfileUrl')}
-                                        className="text-sm"
-                                    />
-                                </motion.div>
-                            )}
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="instagram-no"
-                                    value="no"
-                                    {...register('instagramProfile')}
-                                    className="h-4 w-4 border-primary text-primary focus:ring-primary"
-                                />
-                                <Label htmlFor="instagram-no" className="font-normal cursor-pointer">
-                                    No - <strong>{artistName || 'Artist'}</strong> is not on Instagram
-                                </Label>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Facebook Profile */}
-                    <div className="space-y-3 pt-4 border-t border-border/50">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[#1877F2] font-bold text-lg">Facebook</span>
-                            <h3 className="text-base font-semibold">Artist already on Facebook?</h3>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="facebook-yes"
-                                    value="yes"
-                                    {...register('facebookProfile')}
-                                    className="h-4 w-4 border-primary text-primary focus:ring-primary"
-                                />
-                                <Label htmlFor="facebook-yes" className="font-normal cursor-pointer">
-                                    Yes - Group with other <strong>{artistName || 'artist'}</strong> releases
-                                </Label>
-                            </div>
-                            {facebookProfile === 'yes' && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    className="ml-6 space-y-2"
-                                >
-                                    <Input
-                                        id="facebookUrl"
-                                        placeholder="https://facebook.com/..."
-                                        {...register('facebookProfileUrl')}
-                                        className="text-sm"
-                                    />
-                                </motion.div>
-                            )}
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="facebook-no"
-                                    value="no"
-                                    {...register('facebookProfile')}
-                                    className="h-4 w-4 border-primary text-primary focus:ring-primary"
-                                />
-                                <Label htmlFor="facebook-no" className="font-normal cursor-pointer">
-                                    No - <strong>{artistName || 'Artist'}</strong> is not on Facebook
-                                </Label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
 
                 <div className="space-y-2">
