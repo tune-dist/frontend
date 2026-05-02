@@ -1,7 +1,6 @@
 'use client'
 
 import { Card, CardContent } from '@/components/ui/card'
-import { S3Image } from '@/components/ui/s3-image'
 import { Quote } from 'lucide-react'
 import { Testimonial } from '@/lib/api/testimonials'
 
@@ -15,16 +14,16 @@ export default function TestiCard({ testimonial }: TestiCardProps) {
     }
 
     return (
-        <Card className="h-full border-white/10 hover:border-white/50 transition-colors duration-300 bg-card/50 backdrop-blur-sm w-full mx-auto rounded-2xl">
+        <Card className="h-full border-white/20 hover:border-white/50 transition-colors duration-300 bg-card/50 backdrop-blur-sm w-full mx-auto rounded-2xl">
             <CardContent className="flex flex-col h-full p-6">
                 <Quote className="h-8 w-8 text-primary/50 mb-4 shrink-0" />
                 <p className="text-muted-foreground mb-6 text-left text-sm font-normal flex-grow">
                     "{testimonial.quote}"
                 </p>
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden shrink-0">
                         {testimonial.image ? (
-                            <S3Image
+                            <img
                                 src={testimonial.image}
                                 alt={testimonial.name}
                                 className="w-full h-full object-cover"

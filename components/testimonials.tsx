@@ -107,38 +107,6 @@ export default function Testimonials() {
     },
   ]
 
-  /*
-  const [dynamicTestimonials, setDynamicTestimonials] = useState<Testimonial[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchTestimonials = async () => {
-      try {
-        const data = await testimonialsApi.getAll()
-        setDynamicTestimonials(data)
-      } catch (error) {
-        console.error('Failed to fetch testimonials:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchTestimonials()
-  }, [])
-
-  if (loading) {
-    return (
-      <section className="py-20 md:py-32 bg-background relative">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-muted-foreground">Loading testimonials...</p>
-        </div>
-      </section>
-    )
-  }
-
-  if (dynamicTestimonials.length === 0) {
-    return null
-  }
-  */
   const [isPaused, setIsPaused] = useState(false);
   const x = useMotionValue(0);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -166,6 +134,7 @@ export default function Testimonials() {
   useAnimationFrame((t, delta) => {
     if (isPaused) return;
 
+    // Adjust speed (lower is slower)
     const moveBy = -0.5 * (delta / 16);
     let newX = x.get() + moveBy;
 
@@ -183,6 +152,19 @@ export default function Testimonials() {
     if (newX > 0) newX -= contentWidth;
     x.set(newX);
   };
+
+  const TestimonialList = () => (
+    <>
+      {staticTestimonials.map((testimonial, idx) => (
+        <div
+          key={idx}
+          className="w-[calc(100vw-48px)] sm:w-[350px] md:w-[400px] shrink-0 px-2"
+        >
+          <TestiCard testimonial={testimonial} />
+        </div>
+      ))}
+    </>
+  );
 
   return (
     <section className="py-14 md:py-24 bg-background relative overflow-hidden">
@@ -216,22 +198,15 @@ export default function Testimonials() {
       >
         <motion.div
           ref={contentRef}
-          className="flex gap-4 w-max"
+          className="flex w-max"
           style={{ x }}
           drag="x"
           onDragStart={() => setIsPaused(true)}
           onDragEnd={() => setIsPaused(false)}
           onDrag={handleDrag}
         >
-          {/* Render cards twice for a seamless infinite loop */}
-          {[...staticTestimonials].map((testimonial, idx) => (
-            <div
-              key={idx}
-              className="w-[280px] sm:w-[350px] md:w-[400px] shrink-0"
-            >
-              <TestiCard testimonial={testimonial} />
-            </div>
-          ))}
+          <TestimonialList />
+          <TestimonialList />
         </motion.div>
       </div>
       <motion.div
@@ -246,4 +221,3 @@ export default function Testimonials() {
     </section >
   )
 }
-
