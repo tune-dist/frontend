@@ -110,7 +110,7 @@ export default function Contact() {
     }
 
     return (
-        <section id="contact" className="py-14 md:py-24 bg-background relative overflow-hidden">
+        <section id="contact" className="py-14 md:py-20 bg-background relative overflow-hidden">
             {/* Background decoration */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-0 right-0 w-96 h-96 animated-gradient-bg rounded-full blur-3xl opacity-10" />
