@@ -72,3 +72,21 @@ export async function getPaymentById(paymentId: string): Promise<PaymentHistoryI
     const response = await apiClient.get<PaymentHistoryItem>(`/payments/${paymentId}`);
     return response.data;
 }
+
+/**
+ * Cancel active subscription
+ */
+export async function cancelSubscription(subscriptionId?: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>('/payments/cancel-subscription', {
+        subscriptionId
+    });
+    return response.data;
+}
+
+/**
+ * Get all active subscriptions for current user
+ */
+export async function getActiveSubscriptions(): Promise<any[]> {
+    const response = await apiClient.get<any[]>('/payments/active-subscriptions');
+    return response.data;
+}

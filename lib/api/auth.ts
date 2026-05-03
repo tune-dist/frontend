@@ -45,17 +45,6 @@ export interface User {
     filename: string;
     uploadedAt: string;
   };
-  passport?: {
-    url: string;
-    filename: string;
-    uploadedAt: string;
-  };
-  selfieWithPassport?: {
-    url: string;
-    filename: string;
-    uploadedAt: string;
-  };
-  extraArtistSlots?: number;
 }
 
 export interface AuthResponse {
