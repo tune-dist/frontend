@@ -116,13 +116,7 @@ export default function TestimonialsContent() {
         <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-violet-500/5 blur-[120px] rounded-[100%] pointer-events-none" />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <motion.div
-            className="text-center mb-10 md:mb-16 pt-2 md:pt-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <div className="text-center mb-10 md:mb-16 pt-2 md:pt-12">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight">
               1000+ Artist Testimonials <br />
               <span className="animated-gradient">Why Indie Musicians Trust KratoLib</span>
@@ -130,19 +124,15 @@ export default function TestimonialsContent() {
             <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto">
               See what artists and creators around the world are saying about their experience with KratoLib.
             </p>
-          </motion.div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto pb-20">
             {staticTestimonials.map((testimonial, index) => (
-              <motion.div
+              <div
                 key={testimonial._id || index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.5, delay: (index % 3) * 0.1 }}
               >
                 <TestiCard testimonial={testimonial} />
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
