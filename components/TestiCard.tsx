@@ -1,8 +1,7 @@
-'use client'
-
 import { Card, CardContent } from '@/components/ui/card'
 import { Quote } from 'lucide-react'
 import { Testimonial } from '@/lib/api/testimonials'
+import Image from 'next/image'
 
 interface TestiCardProps {
     testimonial: Testimonial;
@@ -23,9 +22,11 @@ export default function TestiCard({ testimonial }: TestiCardProps) {
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden shrink-0">
                         {testimonial.image ? (
-                            <img
+                            <Image
                                 src={testimonial.image}
                                 alt={testimonial.name}
+                                width={48}
+                                height={48}
                                 className="w-full h-full object-cover"
                             />
                         ) : (
@@ -44,4 +45,4 @@ export default function TestiCard({ testimonial }: TestiCardProps) {
             </CardContent>
         </Card>
     )
-}
+}
