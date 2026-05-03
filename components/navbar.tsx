@@ -63,7 +63,7 @@ export default function Navbar() {
   return (
     <>
       <nav
-        className={`fixed top-[10px] left-0 right-0 z-50 transition-all duration-700 delay-500 header_bar ${isScrolled ? "header_bar_active" : "bg-transparent"
+        className={`fixed top-[10px] left-0 right-0 z-50 transition-all duration-300 header_bar ${isScrolled ? "header_bar_active" : "bg-transparent"
           }`}
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
