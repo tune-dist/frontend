@@ -84,6 +84,16 @@ export async function cancelSubscription(subscriptionId?: string): Promise<{ suc
 }
 
 /**
+ * Resume active subscription
+ */
+export async function resumeSubscription(subscriptionId?: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>('/payments/resume-subscription', {
+        subscriptionId
+    });
+    return response.data;
+}
+
+/**
  * Get all active subscriptions for current user
  */
 export async function getActiveSubscriptions(): Promise<any[]> {
