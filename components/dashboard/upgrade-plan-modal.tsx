@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check, Loader2, RefreshCw, CreditCard } from 'lucide-react'
+import { X, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAllPlans, Plan } from '@/lib/api/plans'
@@ -25,7 +25,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
     const [loading, setLoading] = useState(true)
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
     const [confirmingPlan, setConfirmingPlan] = useState<Plan | null>(null)
-    const [isAutoPay, setIsAutoPay] = useState(true)
+    const [isAutoPay] = useState(true)
     const { initiatePayment, isLoading: paymentLoading } = useRazorpay()
     const { user, refreshUser } = useAuth()
     const router = useRouter()
@@ -181,7 +181,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                 <span className="text-2xl font-black text-primary">{confirmingPlan.priceDisplay}</span>
                                             </div>
                                             
-                                            <div className="mt-5">
+                                            {/* <div className="mt-5">
                                                 <p className="text-sm font-semibold text-foreground mb-3">Select Billing Frequency</p>
                                                 
                                                 <div className="grid grid-cols-2 gap-3 w-full">
@@ -203,7 +203,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                         <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">1 year access</span>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </div> */}
                                         </div>
                                         
                                         <div className="flex gap-4 w-full">

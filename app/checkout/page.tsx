@@ -20,7 +20,7 @@ function CheckoutContent() {
     const [plan, setPlan] = useState<Plan | null>(null)
     const [loading, setLoading] = useState(true)
     const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending')
-    const [isAutoPay, setIsAutoPay] = useState(true)
+    const [isAutoPay] = useState(true)
 
     const planKey = searchParams.get('plan')
 
@@ -133,7 +133,7 @@ function CheckoutContent() {
                             </div>
                             <p className="text-sm text-muted-foreground">{plan.description}</p>
                             
-                            {paymentStatus === 'pending' && (
+                            {/* {paymentStatus === 'pending' && (
                                 <div className="mt-4 pt-4 border-t border-border/50">
                                     <p className="text-xs font-medium text-muted-foreground mb-2 text-center">Select Billing Type</p>
                                     <div className="flex bg-background border rounded-lg p-1">
@@ -154,7 +154,7 @@ function CheckoutContent() {
                                         {isAutoPay ? 'Billed annually. Cancel anytime.' : '1 year access. Non-renewing.'}
                                     </p>
                                 </div>
-                            )}
+                            )} */}
                         </div>
 
                         {paymentStatus === 'pending' && !isScriptLoaded && (

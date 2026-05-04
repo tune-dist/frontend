@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock, UserCheck, Link as LinkIcon, RefreshCw, CreditCard } from 'lucide-react'
+import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock, UserCheck, Link as LinkIcon } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
@@ -47,7 +47,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     // Plan limits state
     const [planLimits, setPlanLimits] = useState<{ artistLimit: number; allowConcurrent: boolean; allowedFormats: string[] } | null>(null)
     const [fieldRules, setFieldRules] = useState<Record<string, any>>({})
-    const [isAddonAutoPay, setIsAddonAutoPay] = useState(true)
+    const [isAddonAutoPay] = useState(true)
     const [creatingNewMain, setCreatingNewMain] = useState(false)
     const [creatingNewSecondary, setCreatingNewSecondary] = useState<Record<number, boolean>>({})
     const planKey = user?.plan || 'free'
@@ -1393,7 +1393,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                 </div>
                             </div>
 
-                            <div className="mt-5">
+                            {/* <div className="mt-5">
                                 <p className="text-sm font-semibold text-foreground mb-3">Select Billing Frequency</p>
                                 
                                 <div className="grid grid-cols-2 gap-3 w-full">
@@ -1415,7 +1415,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                         <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">Pay for 1 year only</span>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setShowUpgradeModal(false)} disabled={isPaymentLoading}>Cancel</Button>
