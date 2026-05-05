@@ -220,8 +220,8 @@ export default function StaticPricing2() {
           </p>
         </motion.div>
 
-        {/* Legend */}
-        <div className="flex flex-wrap justify-center gap-6 mb-12 text-sm font-semibold text-muted-foreground">
+        {/* Legend - Hidden temporarily */}
+        {/* <div className="flex flex-wrap justify-center gap-6 mb-12 text-sm font-semibold text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Check className="h-4 w-4 text-emerald-500" />
             <span>Included</span>
@@ -238,7 +238,7 @@ export default function StaticPricing2() {
             <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
             <span>Inherited from prev plan</span>
           </div>
-        </div>
+        </div> */}
 
         {/* Scrollable container on mobile/tablet, grid on xl */}
         <div className="flex xl:grid xl:grid-cols-5 gap-6 overflow-x-auto pb-8 pt-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -292,7 +292,8 @@ function PricingCardItem({ plan, index }: { plan: typeof plans[0], index: number
             </div>
           </div>
 
-          <div className="space-y-6">
+          {/* Sections - Hidden temporarily */}
+          {/* <div className="space-y-6">
             {plan.sections.map((section) => (
               <div key={section.title} className="space-y-3">
                 <h4 className="text-[10px] font-black text-muted-foreground tracking-widest uppercase pb-1 border-b border-white/5">
@@ -313,11 +314,11 @@ function PricingCardItem({ plan, index }: { plan: typeof plans[0], index: number
                 </ul>
               </div>
             ))}
-          </div>
+          </div> */}
         </CardContent>
 
         <CardFooter className="pt-6">
-          <Link href="/contact" className="w-full">
+          <Link href="/pricing" className="w-full">
             <Button
               variant={plan.isPopular ? "default" : "outline"}
               className={`w-full rounded-xl text-sm font-bold h-12 transition-all duration-300 ${plan.isPopular ? 'animated-gradient-bg border-0 text-white' : 'bg-white/5 hover:bg-white/10 border-white/5 hover:bg-white hover:text-black'}`}
