@@ -72,7 +72,7 @@ export default function TermsContent() {
           <ul className="text-base leading-relaxed mb-4 space-y-2 list-disc list-inside">
             <li>Use a strong, unique password for your KratoLib account</li>
             <li>Not share your login credentials with any third party</li>
-            <li>Immediately notify us at support@kratolib.com if you suspect any unauthorized access to your account</li>
+            <li>Immediately notify us at info@kratolib.com if you suspect any unauthorized access to your account</li>
             <li>Accept full responsibility for all activities that occur under your account</li>
           </ul>
 
@@ -188,7 +188,7 @@ export default function TermsContent() {
           </ul>
 
           <h3 className="text-xl font-semibold text-white mt-8 mb-4">8.3 Refunds</h3>
-          <p className="text-base leading-relaxed mb-4">Subscription fees are non-refundable except as required by applicable law. If you believe you are entitled to a refund, please contact support@kratolib.com within 7 days of the charge.</p>
+          <p className="text-base leading-relaxed mb-4">Subscription fees are non-refundable except as required by applicable law. If you believe you are entitled to a refund, please contact info@kratolib.com within 7 days of the charge.</p>
 
           <h2 className="text-2xl font-bold text-white mt-16 mb-6 border-b border-border/50 pb-4">
             9. Termination & Suspension
@@ -212,7 +212,7 @@ export default function TermsContent() {
           </ul>
 
           <h3 className="text-xl font-semibold text-white mt-8 mb-4">9.3 Termination by You</h3>
-          <p className="text-base leading-relaxed mb-4">You may terminate your account at any time by contacting support@kratolib.com or using the account closure option in your settings.</p>
+          <p className="text-base leading-relaxed mb-4">You may terminate your account at any time by contacting info@kratolib.com or using the account closure option in your settings.</p>
 
           <h2 className="text-2xl font-bold text-white mt-16 mb-6 border-b border-border/50 pb-4">
             10. Dispute Resolution & Copyright Claims
@@ -297,7 +297,7 @@ export default function TermsContent() {
           <div className="space-y-2">
             <p className="font-bold text-white">KratoLib Music Distribution</p>
             <p className="text-base leading-relaxed mb-4"><strong>Legal:</strong> <a href="mailto:legal@kratolib.com" className="text-primary hover:underline">legal@kratolib.com</a></p>
-            <p className="text-base leading-relaxed mb-4"><strong>Support:</strong> <a href="mailto:support@kratolib.com" className="text-primary hover:underline">support@kratolib.com</a></p>
+            <p className="text-base leading-relaxed mb-4"><strong>Support:</strong> <a href="mailto:info@kratolib.com" className="text-primary hover:underline">info@kratolib.com</a></p>
             <p className="text-base leading-relaxed mb-4"><strong>Website:</strong> <a href="https://www.kratolib.com" className="text-primary hover:underline">www.kratolib.com</a></p>
             <p className="text-base leading-relaxed mb-4"><strong>Address:</strong> 4044, The Retail Park Rajyash City, Bopal, Ahmedabad, Gujarat - 380058</p>
           </div>

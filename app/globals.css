@@ -362,7 +362,9 @@ body {
 .testimonials-swiper .swiper-wrapper {
   transition-timing-function: linear !important;
 }
-
+.scroll_indicator {
+  z-index: 99 !important;
+}
 
 
 @media (max-width: 767px) {
