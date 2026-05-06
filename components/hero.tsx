@@ -267,7 +267,7 @@ export default function Hero() {
 
       {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer scroll_indicator"
+        className="absolute bottom-2 left-1/2 transform -translate-x-1/2 cursor-pointer scroll_indicator"
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
       >

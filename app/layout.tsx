@@ -74,7 +74,7 @@ const organizationJsonLd = {
   name: 'KratoLib',
   url: 'https://www.kratolib.com',
   logo: 'https://www.kratolib.com/logo.png',
-  email: 'support@kratolib.com',
+  email: 'info@kratolib.com',
   telephone: '+91-2717-448117',
   description:
     'KratoLib is a music distribution platform helping independent artists release music to 150+ streaming platforms while keeping 100% earnings.',
@@ -85,7 +85,7 @@ const organizationJsonLd = {
   contactPoint: [
     {
       '@type': 'ContactPoint',
-      email: 'support@kratolib.com',
+      email: 'info@kratolib.com',
       telephone: '+91-2717-448117',
       contactType: 'customer support',
       areaServed: 'IN',
@@ -113,7 +113,7 @@ const localBusinessJsonLd = {
   name: 'KratoLib',
   image: 'https://www.kratolib.com/og-image.png',
   url: 'https://www.kratolib.com',
-  email: 'support@kratolib.com',
+  email: 'info@kratolib.com',
   telephone: '+91-2717-448117',
   priceRange: '₹0 - ₹6,999',
   address: {

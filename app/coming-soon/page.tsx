@@ -79,7 +79,7 @@ export default function ComingSoonPage() {
                                 </div>
                             </div>
                             <a
-                                href="mailto:support@kratolib.com"
+                                href="mailto:info@kratolib.com"
                                 className="flex items-center gap-3 rounded-xl border border-white/10 bg-card/50 backdrop-blur-sm px-5 py-4 text-left hover:border-primary/50 transition-colors group"
                             >
                                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg animated-gradient-bg">
@@ -90,7 +90,7 @@ export default function ComingSoonPage() {
                                         Reach us
                                     </p>
                                     <p className="text-sm font-semibold group-hover:text-primary transition-colors">
-                                        support@kratolib.com
+                                        info@kratolib.com
                                     </p>
                                 </div>
                             </a>

@@ -36,8 +36,8 @@ const contactInfo = [
     {
         icon: Mail,
         label: 'Email',
-        value: 'support@kratolib.com',
-        href: 'mailto:support@kratolib.com',
+        value: 'info@kratolib.com',
+        href: 'mailto:info@kratolib.com',
     },
     {
         icon: Phone,
@@ -48,8 +48,8 @@ const contactInfo = [
     {
         icon: MapPin,
         label: 'Office',
-        value: '4044, The Retail Park Rajyash City, Bopal, Ahmedabad, Gujarat 380058',
-        href: '#',
+        value: '4044, The Retail Park, Rajyash City, Bopal, Ahmedabad, Gujarat - 380058',
+        href: 'https://maps.app.goo.gl/cBdE7266yixTmdHA6',
     },
 ]
 
@@ -95,7 +95,7 @@ export default function Contact() {
         }
 
         if (!WEB3FORMS_ACCESS_KEY) {
-            toast.error('Form is not configured. Please email support@kratolib.com.')
+            toast.error('Form is not configured. Please email info@kratolib.com.')
             return
         }
 
@@ -301,6 +301,7 @@ export default function Contact() {
                                         viewport={{ once: true }}
                                         transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
                                         className="flex items-center gap-4 transition-all duration-300 group"
+                                        target='_blank'
                                     >
                                         <div className="w-12 h-12 rounded-full bg-primary/10 flex flex-shrink-0 items-center justify-center group-hover:bg-primary/20 transition-colors">
                                             <item.icon className="h-5 w-5 text-primary" />

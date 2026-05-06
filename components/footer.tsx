@@ -39,7 +39,7 @@ export default function Footer() {
     }
 
     if (!WEB3FORMS_ACCESS_KEY) {
-      toast.error('Subscription unavailable. Please email support@kratolib.com.')
+      toast.error('Subscription unavailable. Please email info@kratolib.com.')
       return
     }
 
@@ -105,9 +105,9 @@ export default function Footer() {
   ]
 
   const contactDetails = [
-    { icon: Mail, text: 'support@kratolib.com', href: 'mailto:support@kratolib.com' },
+    { icon: Mail, text: 'info@kratolib.com', href: 'mailto:info@kratolib.com' },
     // { icon: Phone, text: '02717448117', href: 'tel:+02717448117' },
-    { icon: MapPin, text: '4044, The Retail Park Rajyash City,<br /> Bopal, Ahmedabad, Gujarat - 380058', href: '#' },
+    { icon: MapPin, text: '4044, The Retail Park, Rajyash City,<br /> Bopal, Ahmedabad, Gujarat - 380058', href: 'https://maps.app.goo.gl/cBdE7266yixTmdHA6' },
   ]
 
   return (
@@ -179,6 +179,7 @@ export default function Footer() {
                 <a
                   key={text}
                   href={href}
+                  target='_blank'
                   className="flex items-center gap-3 group"
                 >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 transition-colors group-hover:border-primary/50 group-hover:bg-primary/10">

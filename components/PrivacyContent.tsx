@@ -200,7 +200,7 @@ export default function PrivacyContent() {
           </p>
           <div className="space-y-2">
             <p className="font-bold text-white">KratoLib Music Distribution</p>
-            <p className="text-base leading-relaxed mb-4"><strong>Email:</strong> <a href="mailto:support@kratolib.com" className="text-primary hover:underline">support@kratolib.com</a></p>
+            <p className="text-base leading-relaxed mb-4"><strong>Email:</strong> <a href="mailto:info@kratolib.com" className="text-primary hover:underline">info@kratolib.com</a></p>
             <p className="text-base leading-relaxed mb-4"><strong>Website:</strong> <a href="https://www.kratolib.com" className="text-primary hover:underline">www.kratolib.com</a></p>
             <p className="text-base leading-relaxed mb-4"><strong>Address:</strong> 4044, The Retail Park Rajyash City, Bopal, Ahmedabad, Gujarat - 380058</p>
           </div>
