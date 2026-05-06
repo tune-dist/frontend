@@ -1,7 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { Mail, Phone, MapPin, Music, Instagram, Twitter, Youtube, Linkedin } from 'lucide-react'
+import Image from 'next/image'
+import toast from 'react-hot-toast'
+import { Mail, Phone, MapPin, Music, Instagram, Twitter, Youtube, Linkedin, Loader2 } from 'lucide-react'
 
 const SpotifyIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -16,8 +19,63 @@ const XIcon = ({ className }: { className?: string }) => (
 )
 
 
+const WEB3FORMS_ENDPOINT = 'https://api.web3forms.com/submit'
+const WEB3FORMS_ACCESS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_KEY || ''
+
 export default function Footer() {
   const currentYear = new Date().getFullYear()
+  const [newsletterEmail, setNewsletterEmail] = useState('')
+  const [newsletterLoading, setNewsletterLoading] = useState(false)
+  const [newsletterBotcheck, setNewsletterBotcheck] = useState('')
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (newsletterBotcheck) return
+
+    if (!newsletterEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newsletterEmail)) {
+      toast.error('Please enter a valid email address.')
+      return
+    }
+
+    if (!WEB3FORMS_ACCESS_KEY) {
+      toast.error('Subscription unavailable. Please email support@kratolib.com.')
+      return
+    }
+
+    setNewsletterLoading(true)
+
+    try {
+      const response = await fetch(WEB3FORMS_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_ACCESS_KEY,
+          from_name: 'KratoLib Site',
+          subject: 'Newsletter signup',
+          email: newsletterEmail,
+          message: `New newsletter subscription: ${newsletterEmail}`,
+          source: 'kratolib.com footer newsletter',
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok || result?.success === false) {
+        throw new Error(result?.message || 'Failed to subscribe')
+      }
+
+      toast.success("You're on the list! Welcome aboard.")
+      setNewsletterEmail('')
+    } catch (error: any) {
+      toast.error(error?.message || 'Subscription failed. Please try again later.')
+    } finally {
+      setNewsletterLoading(false)
+    }
+  }
 
   const footerLinks = {
     company: [
@@ -102,7 +160,13 @@ export default function Footer() {
           <div className="col-span-2 lg:col-span-2 space-y-6">
             <div>
               <Link href="/" className="inline-block">
-                <img src="/logo.png" alt="KratoLib" className="w-[140px] max-w-full mb-3 hover:opacity-80 transition-opacity" />
+                <Image
+                  src="/logo.png"
+                  alt="KratoLib"
+                  width={140}
+                  height={32}
+                  className="w-[140px] h-auto max-w-full mb-3 hover:opacity-80 transition-opacity"
+                />
               </Link>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
                 Empowering independent artists to distribute their music worldwide and grow their careers without giving up ownership.
@@ -208,19 +272,39 @@ export default function Footer() {
               Get the latest news, tips and artist stories straight to your inbox.
             </p>
             <form
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={handleNewsletterSubmit}
               className="flex flex-col gap-2"
             >
               <input
+                type="checkbox"
+                tabIndex={-1}
+                autoComplete="off"
+                checked={!!newsletterBotcheck}
+                onChange={(e) => setNewsletterBotcheck(e.target.checked ? '1' : '')}
+                style={{ display: 'none' }}
+                aria-hidden="true"
+              />
+              <input
                 type="email"
+                required
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder="your@email.com"
                 className="w-full rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary/60 focus:bg-background transition-colors"
               />
               <button
                 type="submit"
-                className="w-full rounded-lg animated-gradient-bg py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                disabled={newsletterLoading}
+                className="w-full rounded-lg animated-gradient-bg py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Subscribe
+                {newsletterLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Subscribing...
+                  </>
+                ) : (
+                  'Subscribe'
+                )}
               </button>
             </form>
           </div>

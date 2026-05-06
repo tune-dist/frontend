@@ -61,7 +61,8 @@ const socialLinks = [
     { icon: XIcon, label: 'X (Twitter)', href: '#', color: 'hover:text-foreground' },
 ]
 
-import { sendContactMessage } from '@/lib/api/contact'
+const WEB3FORMS_ENDPOINT = 'https://api.web3forms.com/submit'
+const WEB3FORMS_ACCESS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_KEY || ''
 
 export default function Contact() {
     const searchParams = useSearchParams()
@@ -75,8 +76,8 @@ export default function Contact() {
         message: '',
         plan: '',
     })
+    const [botcheck, setBotcheck] = useState('')
 
-    // Auto-fill plan from URL
     useEffect(() => {
         if (planFromUrl) {
             setFormData(prev => ({
@@ -88,15 +89,49 @@ export default function Contact() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+
+        if (botcheck) {
+            return
+        }
+
+        if (!WEB3FORMS_ACCESS_KEY) {
+            toast.error('Form is not configured. Please email support@kratolib.com.')
+            return
+        }
+
         setIsLoading(true)
 
         try {
-            await sendContactMessage(formData)
+            const payload = {
+                access_key: WEB3FORMS_ACCESS_KEY,
+                from_name: 'KratoLib Site',
+                subject: formData.subject || `New enquiry from ${formData.name}`,
+                name: formData.name,
+                email: formData.email,
+                message: formData.message,
+                plan: formData.plan || 'Not specified',
+                source: 'kratolib.com /contact',
+            }
+
+            const response = await fetch(WEB3FORMS_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify(payload),
+            })
+
+            const result = await response.json().catch(() => ({}))
+
+            if (!response.ok || result?.success === false) {
+                throw new Error(result?.message || 'Failed to send message')
+            }
+
             toast.success('Message sent successfully! We\'ll get back to you soon.')
             setFormData({ name: '', email: '', subject: '', message: '', plan: '' })
         } catch (error: any) {
-            console.error('Failed to send message:', error)
-            toast.error(error.response?.data?.message || 'Failed to send message. Please try again later.')
+            toast.error(error?.message || 'Failed to send message. Please try again later.')
         } finally {
             setIsLoading(false)
         }
@@ -155,6 +190,16 @@ export default function Contact() {
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="space-y-5">
+                                    <input
+                                        type="checkbox"
+                                        name="botcheck"
+                                        tabIndex={-1}
+                                        autoComplete="off"
+                                        value={botcheck}
+                                        onChange={(e) => setBotcheck(e.target.checked ? '1' : '')}
+                                        style={{ display: 'none' }}
+                                        aria-hidden="true"
+                                    />
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="name">Name</Label>

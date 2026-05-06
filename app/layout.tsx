@@ -22,10 +22,27 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.kratolib.com'),
-  title: 'Kratolib - Distribute Your Music Worldwide',
+  title: {
+    default: 'Kratolib - Distribute Your Music Worldwide',
+    template: '%s | KratoLib',
+  },
   description: 'Kratolib empowers independent artists to release their music to Spotify, Apple Music, YouTube, JioSaavn, and 150+ platforms — all from one dashboard.',
   icons: {
     icon: '/favicon.png',
+  },
+  alternates: {
+    canonical: '/',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
   },
   openGraph: {
     title: 'Kratolib - Distribute Your Music Worldwide',
@@ -51,6 +68,64 @@ export const metadata: Metadata = {
   },
 }
 
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'KratoLib',
+  url: 'https://www.kratolib.com',
+  logo: 'https://www.kratolib.com/logo.png',
+  email: 'support@kratolib.com',
+  telephone: '+91-2717-448117',
+  description:
+    'KratoLib is a music distribution platform helping independent artists release music to 150+ streaming platforms while keeping 100% earnings.',
+  sameAs: [
+    'https://youtube.com/@kratolib',
+    'https://instagram.com/kratolib',
+  ],
+  contactPoint: [
+    {
+      '@type': 'ContactPoint',
+      email: 'support@kratolib.com',
+      telephone: '+91-2717-448117',
+      contactType: 'customer support',
+      areaServed: 'IN',
+      availableLanguage: ['English', 'Hindi', 'Gujarati'],
+    },
+  ],
+}
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'KratoLib',
+  url: 'https://www.kratolib.com',
+  inLanguage: 'en-IN',
+  publisher: {
+    '@type': 'Organization',
+    name: 'KratoLib',
+  },
+}
+
+const localBusinessJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  '@id': 'https://www.kratolib.com/#localbusiness',
+  name: 'KratoLib',
+  image: 'https://www.kratolib.com/og-image.png',
+  url: 'https://www.kratolib.com',
+  email: 'support@kratolib.com',
+  telephone: '+91-2717-448117',
+  priceRange: '₹0 - ₹6,999',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: '4044, The Retail Park, Rajyash City, Bopal',
+    addressLocality: 'Ahmedabad',
+    addressRegion: 'Gujarat',
+    postalCode: '380058',
+    addressCountry: 'IN',
+  },
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -58,6 +133,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <link rel="preconnect" href="https://api.web3forms.com" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+        />
+      </head>
       <body className={`${manrope.variable} ${outfit.variable}`}>
         <AuthProvider>
           <SmoothScrollProvider>

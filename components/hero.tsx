@@ -2,12 +2,16 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useRef, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Play, Music2, Music, Youtube, Instagram, DollarSign, Copyright, Diamond } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
-import LogoLoop from './LogoLoop';
+const LogoLoop = dynamic(() => import('./LogoLoop'), {
+  ssr: false,
+  loading: () => <div className="h-[20px] w-full" />,
+});
 
 import YoutubeCircleIcon from "@/public/assets/images/youtube-circle-logo.png";
 import SpotifyCircleIcon from "@/public/assets/images/spotify-circle-logo.png";
@@ -121,7 +125,15 @@ const OrbitalAnimation = () => {
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         {/* <Music2 className="text-white w-1/2 h-1/2" /> */}
-        <img src="/assets/images/globe-kratolib.gif" alt="" className='w-full h-full object-cover scale-[1.28]' />
+        <Image
+          src="/assets/images/globe-kratolib.gif"
+          alt="KratoLib global music distribution"
+          width={256}
+          height={256}
+          priority
+          unoptimized
+          className="w-full h-full object-cover scale-[1.28]"
+        />
         {/* <video
           ref={videoRef}
           autoPlay

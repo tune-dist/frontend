@@ -1,5 +1,19 @@
 User-agent: *
 Allow: /
 
+# Soft-launch: backend-dependent routes are gated and should not be indexed
+Disallow: /auth
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /upload
+Disallow: /upload/
+Disallow: /p/
+Disallow: /test-connection
+Disallow: /coming-soon
+Disallow: /api/
+
 # Sitemaps
 Sitemap: https://www.kratolib.com/sitemap.xml

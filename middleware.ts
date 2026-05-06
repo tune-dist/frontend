@@ -1,40 +1,39 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { config } from './lib/config';
 
-// Define protected routes
-const protectedRoutes = ['/dashboard'];
+const blockedPrefixes = [
+    '/auth',
+    '/dashboard',
+    '/checkout',
+    '/upload',
+    '/p',
+    '/test-connection',
+];
 
 export function middleware(request: NextRequest) {
-    const token = request.cookies.get(config.tokenKey)?.value;
     const { pathname } = request.nextUrl;
 
-    // Check if the requested path is a protected route
-    const isProtectedRoute = protectedRoutes.some((route) =>
-        pathname.startsWith(route)
+    const isBlocked = blockedPrefixes.some(
+        (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
     );
 
-    // If it's a protected route and no token exists, redirect to login
-    if (isProtectedRoute && !token) {
+    if (isBlocked) {
         const url = request.nextUrl.clone();
-        url.pathname = '/auth';
-        url.searchParams.set('redirect', pathname); // Optional: preserve redirect
+        url.pathname = '/coming-soon';
+        url.search = '';
         return NextResponse.redirect(url);
     }
 
     return NextResponse.next();
 }
 
-export const configMiddleware = {
+export const config = {
     matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - api (API routes)
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * - auth (authentication routes)
-         */
+        '/auth/:path*',
         '/dashboard/:path*',
+        '/checkout/:path*',
+        '/upload/:path*',
+        '/p/:path*',
+        '/test-connection/:path*',
     ],
 };

@@ -48,7 +48,7 @@ yarn dev
 pnpm dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
+3. Open [http://localhost:8080](http://localhost:8080) in your browser to see the result.
 
 ## 📁 Project Structure
 
@@ -114,8 +114,35 @@ Adjust animation timing and effects in component files using Framer Motion props
 
 ```bash
 npm run build
-npm start
+npm run start
 ```
+
+The Next.js server boots on port `8080` (see `package.json`).
+
+## 🚀 Soft Launch Deployment
+
+During the frontend-only soft launch, all backend-dependent routes
+(`/auth`, `/dashboard`, `/checkout`, `/upload`, `/p`, `/test-connection`)
+are redirected to `/coming-soon` via `middleware.ts`. Lead capture runs
+through Web3Forms (see `NEXT_PUBLIC_WEB3FORMS_KEY` in `.env.local`).
+
+Recommended deploy flow with PM2 (uses `ecosystem.config.js`):
+
+```bash
+# 1. Install deps and build
+cd frontend
+npm ci
+npm run build
+
+# 2. Start / reload via PM2 from repo root
+cd ..
+pm2 startOrReload ecosystem.config.js --only tuneflow-frontend
+pm2 save
+```
+
+When the backend ships, simply remove the prefix list from
+`frontend/middleware.ts` (or revert that file) and switch the contact +
+newsletter components back to `sendContactMessage` / your own endpoint.
 
 ## 📝 License
 

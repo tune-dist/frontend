@@ -4,6 +4,7 @@ import TermsContent from '@/components/TermsContent'
 export const metadata: Metadata = {
   title: 'Terms of Service | Artist Rights Protection | KratoLib',
   description: "Read KratoLib's terms of service. Understand copyright protections, royalty terms, artist rights, content policies, and platform usage agreements for music distribution.",
+  alternates: { canonical: '/terms' },
   openGraph: {
     title: 'Terms of Service | Artist Rights Protection | KratoLib',
     description: "Read KratoLib's terms of service. Understand copyright protections, royalty terms, artist rights, content policies, and platform usage agreements for music distribution.",

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -71,7 +72,14 @@ export default function Navbar() {
             {/* Logo */}
             <div className="flex-shrink-0">
               <Link href="/">
-                <img src="/logo.png" alt="KratoLib" className="h-[2rem] max-w-full" />
+                <Image
+                  src="/logo.png"
+                  alt="KratoLib"
+                  width={140}
+                  height={32}
+                  priority
+                  className="h-[2rem] w-auto max-w-full"
+                />
               </Link>
             </div>
 
@@ -186,7 +194,13 @@ export default function Navbar() {
               {/* Drawer Header */}
               <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
                 <Link href="/" onClick={closeMenu}>
-                  <img src="/logo.png" alt="KratoLib" className="h-7" />
+                  <Image
+                    src="/logo.png"
+                    alt="KratoLib"
+                    width={120}
+                    height={28}
+                    className="h-7 w-auto"
+                  />
                 </Link>
                 <button
                   onClick={closeMenu}

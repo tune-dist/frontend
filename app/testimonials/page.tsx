@@ -4,6 +4,7 @@ import TestimonialsContent from '@/components/TestimonialsContent'
 export const metadata: Metadata = {
   title: 'Artist Reviews & Testimonials | Independent Musicians | KratoLib',
   description: 'Read testimonials from 1000+ indie artists who successfully distribute music with KratoLib. Real success stories from Indian musicians and music producers.',
+  alternates: { canonical: '/testimonials' },
   openGraph: {
     title: 'Artist Reviews & Testimonials | Independent Musicians | KratoLib',
     description: 'Read testimonials from 1000+ indie artists who successfully distribute music with KratoLib. Real success stories from Indian musicians and music producers.',

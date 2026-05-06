@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Music Distribution Academy | Learn & Grow | Courses | KratoLib',
   description: 'Free music distribution courses and learning modules. Learn how to release music, promote on streaming platforms, manage royalties, and build your fanbase.',
+  alternates: { canonical: '/academy' },
+  robots: { index: false, follow: true },
   openGraph: {
     title: 'Music Distribution Academy | Learn & Grow | Courses | KratoLib',
     description: 'Free music distribution courses and learning modules. Learn how to release music, promote on streaming platforms, manage royalties, and build your fanbase.',

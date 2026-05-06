@@ -6,6 +6,7 @@ import SmartMusicFeatures from "@/components/smart-music/SmartMusicFeatures";
 export const metadata: Metadata = {
   title: "Music Distribution Features | AI, Analytics, CRBT | KratoLib",
   description: "Discover KratoLib features: real-time analytics, AI cover art generator, AI mastering, CRBT distribution, credit protection, YouTube Content ID. All included in your plan.",
+  alternates: { canonical: '/features' },
   openGraph: {
     title: "Music Distribution Features | AI, Analytics, CRBT | KratoLib",
     description: "Discover KratoLib features: real-time analytics, AI cover art generator, AI mastering, CRBT distribution, credit protection, YouTube Content ID. All included in your plan.",

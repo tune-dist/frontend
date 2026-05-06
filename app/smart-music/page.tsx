@@ -10,6 +10,7 @@ import SmartMusicCTA from "@/components/smart-music/SmartMusicCTA";
 export const metadata: Metadata = {
   title: "Smart Music Distribution | AI Release Recommendations | KratoLib",
   description: "Smart music distribution with AI-powered release timing, data-driven recommendations, and advanced analytics. Let AI optimize your release strategy for maximum reach.",
+  alternates: { canonical: '/smart-music' },
   openGraph: {
     title: "Smart Music Distribution | AI Release Recommendations | KratoLib",
     description: "Smart music distribution with AI-powered release timing, data-driven recommendations, and advanced analytics. Let AI optimize your release strategy for maximum reach.",

@@ -13,6 +13,7 @@ import SellAndGrowCTA from "@/components/sell-grow/SellAndGrowCTA";
 export const metadata: Metadata = {
   title: "Grow Your Audience | Pre-Save, Playlist Pitching, UGC Monetization",
   description: "Grow your music audience with pre-save campaigns, playlist pitching, UGC monetization on Meta & TikTok, and fan link tools. Turn listeners into fans. Start free.",
+  alternates: { canonical: '/sell-grow' },
   openGraph: {
     title: "Grow Your Audience | Pre-Save, Playlist Pitching, UGC Monetization",
     description: "Grow your music audience with pre-save campaigns, playlist pitching, UGC monetization on Meta & TikTok, and fan link tools. Turn listeners into fans. Start free.",

@@ -1,10 +1,12 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Globe, TrendingUp, BarChart3, Upload } from 'lucide-react'
-import SpotlightCard from './SpotlightCard';
 import Image from 'next/image';
+
+const SpotlightCard = dynamic(() => import('./SpotlightCard'), { ssr: false });
 
 const features = [
   {
