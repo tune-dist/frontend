@@ -1198,7 +1198,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 </Label>
                                                 <Input
                                                     placeholder="https://instagram.com/..."
-                                                    value={(artist.instagramProfile || '').startsWith('http') ? artist.instagramProfile : ''}
+                                                    value={((artist.instagramProfile || '').startsWith('http') ? artist.instagramProfile : '') || ''}
                                                     onChange={(e) => {
                                                         const currentArtists = [...(artists || [])]
                                                         currentArtists[index] = { ...currentArtists[index], instagramProfile: e.target.value }
@@ -1216,7 +1216,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 </Label>
                                                 <Input
                                                     placeholder="https://facebook.com/..."
-                                                    value={(artist.facebookProfile || '').startsWith('http') ? artist.facebookProfile : ''}
+                                                    value={((artist.facebookProfile || '').startsWith('http') ? artist.facebookProfile : '') || ''}
                                                     onChange={(e) => {
                                                         const currentArtists = [...(artists || [])]
                                                         currentArtists[index] = { ...currentArtists[index], facebookProfile: e.target.value }
