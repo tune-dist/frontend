@@ -39,9 +39,12 @@ export interface PaymentHistoryItem {
 /**
  * Create a Razorpay order for plan purchase
  */
-export async function createPaymentOrder(planKey: string): Promise<CreateOrderResponse> {
+export async function createPaymentOrder(planKey?: string, isAutoPay: boolean = true, isAddon?: boolean, addonType?: string): Promise<CreateOrderResponse> {
     const response = await apiClient.post<CreateOrderResponse>('/payments/create-order', {
         planKey,
+        isAutoPay,
+        isAddon,
+        addonType,
     });
     return response.data;
 }
@@ -67,5 +70,33 @@ export async function getPaymentHistory(): Promise<PaymentHistoryItem[]> {
  */
 export async function getPaymentById(paymentId: string): Promise<PaymentHistoryItem> {
     const response = await apiClient.get<PaymentHistoryItem>(`/payments/${paymentId}`);
+    return response.data;
+}
+
+/**
+ * Cancel active subscription
+ */
+export async function cancelSubscription(subscriptionId?: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>('/payments/cancel-subscription', {
+        subscriptionId
+    });
+    return response.data;
+}
+
+/**
+ * Resume active subscription
+ */
+export async function resumeSubscription(subscriptionId?: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>('/payments/resume-subscription', {
+        subscriptionId
+    });
+    return response.data;
+}
+
+/**
+ * Get all active subscriptions for current user
+ */
+export async function getActiveSubscriptions(): Promise<any[]> {
+    const response = await apiClient.get<any[]>('/payments/active-subscriptions');
     return response.data;
 }

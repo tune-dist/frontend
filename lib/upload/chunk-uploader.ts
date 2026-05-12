@@ -17,6 +17,7 @@ interface UploadCompleteResponse {
         resolution?: { width: number; height: number };
         hash?: string;
         fingerprint?: string;
+        size?: number;
     }
 }
 
@@ -102,7 +103,8 @@ export const uploadFileInChunks = async (
                 duration: result.metaData?.duration,
                 resolution: result.metaData?.resolution,
                 hash: result.metaData?.hash,
-                fingerprint: result.metaData?.fingerprint
+                fingerprint: result.metaData?.fingerprint,
+                size: result.metaData?.size
             }
         };
     }
@@ -147,7 +149,8 @@ export const uploadFileDirectly = async (
                 duration: response.data.metaData?.duration,
                 resolution: response.data.metaData?.resolution,
                 hash: response.data.metaData?.hash,
-                fingerprint: response.data.metaData?.fingerprint
+                fingerprint: response.data.metaData?.fingerprint,
+                size: response.data.metaData?.size
             }
         };
     }
@@ -182,7 +185,8 @@ export const validateAudioOnBackend = async (
                 duration: response.data.metaData?.duration,
                 resolution: response.data.metaData?.resolution,
                 hash: response.data.metaData?.hash,
-                fingerprint: response.data.metaData?.fingerprint
+                fingerprint: response.data.metaData?.fingerprint,
+                size: response.data.metaData?.size
             }
         };
     }

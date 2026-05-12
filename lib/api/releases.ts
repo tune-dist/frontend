@@ -407,8 +407,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         spotifyProfile: formData.spotifyProfile,
         appleMusicProfile: formData.appleMusicProfile,
         youtubeMusicProfile: formData.youtubeMusicProfile,
-        instagramProfile: formData.instagramProfile === 'yes' ? formData.instagramProfileUrl : formData.instagramProfile,
-        facebookProfile: formData.facebookProfile === 'yes' ? formData.facebookProfileUrl : formData.facebookProfile,
+        instagramProfile: formData.instagramProfileUrl || formData.instagramProfile || undefined,
+        facebookProfile: formData.facebookProfileUrl || formData.facebookProfile || undefined,
         mood: (formData as any).mood,
       }];
     }
@@ -480,6 +480,15 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       const fileToUpload = formData.coverArt instanceof File ? formData.coverArt : coverArtData.file;
       const result = await uploadFileInChunks(fileToUpload, token, undefined, 'coverart', formData.artistName, formData.title, formData.coverArtConsent);
       coverUrl = result.path;
+      
+      // Update local metadata if backend returned optimized values
+      if (result.metaData) {
+        if (result.metaData.size) coverArtData.size = result.metaData.size;
+        if (result.metaData.resolution) {
+          coverArtData.dimensions = result.metaData.resolution;
+          coverArtData.format = 'jpeg'; // Backend always converts to JPEG for optimization
+        }
+      }
     } else {
       toast.dismiss(submissionToastId);
       throw new Error("Invalid cover art data. Please re-upload your cover art.");
@@ -532,7 +541,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           (formData.coverArt as any).name ||
           (formData.coverArt as any).fileName ||
           "cover.jpg",
-        size: formData.coverArt.size || (formData.coverArt as any).file?.size || 0,
+        size: coverArtData.size || formData.coverArt.size || (formData.coverArt as any).file?.size || 0,
         dimensions: {
           width: coverMetadata.width,
           height: coverMetadata.height,
@@ -630,8 +639,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
             spotifyProfile: formData.spotifyProfile,
             appleMusicProfile: formData.appleMusicProfile,
             youtubeMusicProfile: formData.youtubeMusicProfile,
-            instagramProfile: formData.instagramProfile === 'yes' ? formData.instagramProfileUrl : formData.instagramProfile,
-            facebookProfile: formData.facebookProfile === 'yes' ? formData.facebookProfileUrl : formData.facebookProfile,
+            instagramProfile: formData.instagramProfileUrl || formData.instagramProfile || undefined,
+            facebookProfile: formData.facebookProfileUrl || formData.facebookProfile || undefined,
           },
           ...((formData.artists || [])
             .filter((artist) => artist.name?.trim())

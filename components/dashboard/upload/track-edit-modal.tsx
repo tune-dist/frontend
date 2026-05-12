@@ -50,6 +50,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         fetchPlanLimits()
     }, [user?.plan])
 
+    // Calculate total allowed artists
+    const totalAllowedArtists = planLimits.artistLimit + (user?.extraArtistSlots || 0);
+
     // Local state for track metadata fields
     const [trackTitle, setTrackTitle] = useState(track?.title || '')
     const [language, setLanguage] = useState(track?.language || '')
@@ -167,7 +170,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setMood(track.mood || '')
 
             // If restricted plan, force mainArtistName AND profiles
-            if (planLimits.artistLimit === 1 && mainArtistName) {
+            if (totalAllowedArtists === 1 && mainArtistName) {
                 setModalArtistSearch(mainArtistName)
 
                 // Sync Profiles from Main Artist
@@ -230,7 +233,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setHasSearched(false)
         } else if (isOpen) {
             // New track or empty state
-            if (planLimits.artistLimit === 1) {
+            if (totalAllowedArtists === 1) {
                 // Determine the correct name to use:
                 // 1. mainArtistName prop (passed from parent)
                 // 2. user.fullName (fallback if prop missing, though prop should be there)
@@ -267,7 +270,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         }
                     }
                 }
-            } else if (user?.fullName && planLimits.artistLimit === 1) {
+            } else if (user?.fullName && totalAllowedArtists === 1) {
                 // Redundant check given above, but keeping logic structure similar to original intention
                 // if specifically needing user fallback
                 const name = user.fullName
@@ -275,7 +278,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 handleModalArtistSearch(name)
             }
         }
-    }, [track, trackIndex, isOpen, user, planLimits.artistLimit, mainArtistName, mainArtistProfiles])
+    }, [track, trackIndex, isOpen, user, totalAllowedArtists, mainArtistName, mainArtistProfiles])
 
     // Lock body scroll when modal is open
     useEffect(() => {
@@ -437,7 +440,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             }
 
             // Validate Artist Limit
-            if (planLimits.artistLimit < Infinity) {
+            if (totalAllowedArtists < Infinity) {
                 // Collect ALL artists in this release:
                 // 1. Main artist from basic info
                 // 2. Featuring artists from basic info
@@ -478,7 +481,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                 // Count how many NEW artists this would introduce
                 let newArtistsCount = 0;
-                const usedArtistNames = usedArtists.map(a => 
+                const usedArtistNames = usedArtists.map(a =>
                     typeof a === 'string' ? a.toLowerCase().trim() : a.name?.toLowerCase().trim()
                 ).filter(Boolean);
 
@@ -490,10 +493,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                 // Check if total would exceed limit
                 const totalUsedCount = usedArtists.length;
-                if ((totalUsedCount + newArtistsCount) > planLimits.artistLimit) {
+                if ((totalUsedCount + newArtistsCount) > totalAllowedArtists) {
                     const planKey = (user?.plan as string) || 'free';
                     const planName = planKey === 'creator_plus' ? 'Creator+' : planKey.charAt(0).toUpperCase() + planKey.slice(1);
-                    toast.error(`You have reached your artist limit (${planLimits.artistLimit}) for the ${planName} plan.`);
+                    toast.error(`You have reached your artist limit (${totalAllowedArtists}) for the ${planName} plan.`);
                     return;
                 }
             }
