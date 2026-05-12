@@ -37,6 +37,7 @@ import CoverArtStep from "@/components/dashboard/upload/cover-art-step";
 import CreditsStep from "@/components/dashboard/upload/credits-step";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage } from "@/lib/api/releases";
+import { isPlanInactiveError } from "@/lib/plan-inactive";
 import {
   getPlanLimits,
   getPlanByKey,
@@ -783,8 +784,11 @@ export default function UploadPage() {
       router.push("/dashboard/releases");
     } catch (error: any) {
       console.error("Submission error:", error);
-      toast.error(error.message || "Failed to submit release");
-      scrollToError();
+      // The plan-inactive modal already explains the block — skip the toast.
+      if (!isPlanInactiveError(error)) {
+        toast.error(error.message || "Failed to submit release");
+        scrollToError();
+      }
     } finally {
       setIsProcessing(false);
     }

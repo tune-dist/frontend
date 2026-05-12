@@ -1,5 +1,41 @@
 import apiClient from '../api-client';
 import { User } from './auth';
+import { Plan, PlanLimits } from './plans';
+
+export interface UserPlanMapping {
+  _id: string;
+  userId: string;
+  planKey: string;
+  planTitle: string;
+  type: 'subscription' | 'addon';
+  status: 'active' | 'cancelled' | 'expired' | 'pending';
+  isActive: boolean;
+  limits: PlanLimits | null;
+  addonQuantity: number;
+  priceInPaise: number;
+  currency: string;
+  paymentId?: string;
+  razorpayPaymentId?: string;
+  razorpaySubscriptionId?: string;
+  startDate: string;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EffectiveLimits extends PlanLimits {
+  extraArtistSlots: number;
+  planKey: string;
+  planTitle: string;
+  isActive: boolean;
+}
+
+export interface ProfileWithPlan extends User {
+  planDetails: Plan | null;
+  activePlanMapping: UserPlanMapping | null;
+  activeAddons: UserPlanMapping[];
+  effectiveLimits: EffectiveLimits | null;
+}
 
 export interface UsageStats {
   releases: {
@@ -37,9 +73,17 @@ export interface UpdateProfileData {
   };
 }
 
-// Get user profile
+// Get user profile (raw user document — without enriched plan mapping)
 export const getUserProfile = async (): Promise<User> => {
   const response = await apiClient.get<User>('/users/profile');
+  return response.data;
+};
+
+// Get user profile enriched with active plan mapping, addons and effective limits.
+// Backed by GET /users/profile -> getProfileWithPlan(). The enriched fields are
+// the source of truth for the billing UI; user.plan can be stale on legacy rows.
+export const getUserProfileWithPlan = async (): Promise<ProfileWithPlan> => {
+  const response = await apiClient.get<ProfileWithPlan>('/users/profile');
   return response.data;
 };
 

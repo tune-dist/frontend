@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,68 +13,124 @@ import {
     AlertCircle,
     Loader2,
     ArrowUpRight,
-    History
+    ArrowLeft,
+    History,
+    XCircle,
+    Mail,
 } from 'lucide-react'
-import { getPlanByKey, Plan } from '@/lib/api/plans'
-import { getPaymentHistory, PaymentHistoryItem } from '@/lib/api/payments'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import { cancelMainSubscription, getPaymentHistory, PaymentHistoryItem } from '@/lib/api/payments'
+import { getAllPlans, Plan } from '@/lib/api/plans'
+import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users'
 import { useRazorpay } from '@/hooks/useRazorpay'
-import Cookies from 'js-cookie'
+import { useAuth } from '@/contexts/AuthContext'
 import UpgradePlanModal from '@/components/dashboard/upgrade-plan-modal'
+import toast from 'react-hot-toast'
 
-interface UserInfo {
-    plan: string
-    planStartDate?: string
-    planEndDate?: string
-    isSubscriptionActive?: boolean
-}
+const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
+const ARTIST_ADDON_PRICE_INR = 500
+const ENTERPRISE_CONTACT_EMAIL = 'sales@iguru.com' // TODO: replace with the real sales inbox
 
 export default function SubscriptionPage() {
-    const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
-    const [currentPlan, setCurrentPlan] = useState<Plan | null>(null)
+    const { user, refreshUser } = useAuth()
+    const [profile, setProfile] = useState<ProfileWithPlan | null>(null)
     const [payments, setPayments] = useState<PaymentHistoryItem[]>([])
+    const [allPlans, setAllPlans] = useState<Plan[]>([])
     const [loading, setLoading] = useState(true)
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+    const [isPurchasingAddon, setIsPurchasingAddon] = useState(false)
+    const [showCancelDialog, setShowCancelDialog] = useState(false)
+    const [isCancelling, setIsCancelling] = useState(false)
     const { initiatePayment, isLoading: paymentLoading } = useRazorpay()
     const router = useRouter()
 
+    const reloadProfile = useCallback(async () => {
+        const [nextProfile, history] = await Promise.all([
+            getUserProfileWithPlan(),
+            getPaymentHistory().catch((err) => {
+                console.error('Failed to fetch payment history:', err)
+                return [] as PaymentHistoryItem[]
+            }),
+        ])
+        setProfile(nextProfile)
+        setPayments(history)
+    }, [])
+
     useEffect(() => {
+        let cancelled = false
         const fetchData = async () => {
             try {
-                // Get user info from cookie/localStorage
-                const userCookie = Cookies.get('user')
-                if (userCookie) {
-                    const user = JSON.parse(userCookie)
-                    setUserInfo({
-                        plan: user.plan || 'free',
-                        planStartDate: user.planStartDate,
-                        planEndDate: user.planEndDate,
-                        isSubscriptionActive: user.isSubscriptionActive,
-                    })
-
-                    // Fetch current plan details
-                    const plan = await getPlanByKey(user.plan || 'free')
-                    setCurrentPlan(plan)
-                }
-
-                // Fetch payment history
-                const history = await getPaymentHistory()
+                const [nextProfile, history, plans] = await Promise.all([
+                    getUserProfileWithPlan(),
+                    getPaymentHistory(),
+                    getAllPlans(),
+                ])
+                if (cancelled) return
+                setProfile(nextProfile)
                 setPayments(history)
+                setAllPlans(plans)
             } catch (error) {
                 console.error('Failed to fetch subscription data:', error)
             } finally {
-                setLoading(false)
+                if (!cancelled) setLoading(false)
             }
         }
 
         fetchData()
+        return () => {
+            cancelled = true
+        }
     }, [])
 
     const handleUpgrade = () => {
-        // Open upgrade modal
         setShowUpgradeModal(true)
     }
 
-    const formatDate = (dateString?: string) => {
+    const handleConfirmCancel = async () => {
+        setIsCancelling(true)
+        try {
+            const result = await cancelMainSubscription()
+            if (result?.success) {
+                toast.success(result.message || 'Your subscription has been cancelled.')
+                setShowCancelDialog(false)
+                await Promise.all([refreshUser(), reloadProfile()])
+            } else {
+                toast.error(result?.message || 'Cancellation failed.')
+            }
+        } catch (err: any) {
+            console.error('Cancel failed:', err)
+            toast.error(err?.response?.data?.message || 'Could not cancel subscription. Please try again.')
+        } finally {
+            setIsCancelling(false)
+        }
+    }
+
+    const handleBuyArtistAddon = async () => {
+        setIsPurchasingAddon(true)
+        try {
+            const result = await initiatePayment(ARTIST_ADDON_PLAN_KEY, {
+                name: user?.fullName,
+                email: user?.email,
+            })
+            if (result?.success) {
+                toast.success('Extra artist slot added to your plan!')
+                await Promise.all([refreshUser(), reloadProfile()])
+            }
+        } catch (err) {
+            console.error('Addon purchase failed:', err)
+        } finally {
+            setIsPurchasingAddon(false)
+        }
+    }
+
+    const formatDate = (dateString?: string | Date | null) => {
         if (!dateString) return 'N/A'
         return new Date(dateString).toLocaleDateString('en-IN', {
             year: 'numeric',
@@ -114,8 +170,33 @@ export default function SubscriptionPage() {
         )
     }
 
-    const isFreePlan = userInfo?.plan === 'free'
-    const isExpired = userInfo?.planEndDate && new Date(userInfo.planEndDate) < new Date()
+    const activeMapping = profile?.activePlanMapping ?? null
+    const planDetails = profile?.planDetails ?? null
+    const effective = profile?.effectiveLimits ?? null
+    const activeAddons = profile?.activeAddons ?? []
+
+    const planKey = activeMapping?.planKey ?? profile?.plan ?? 'free'
+    const planTitle = activeMapping?.planTitle ?? planDetails?.title ?? planKey
+    const planStartDate = activeMapping?.startDate ?? profile?.planStartDate
+    const planEndDate = activeMapping?.endDate ?? profile?.planEndDate
+    const isFreePlan = !activeMapping && (planKey === 'free' || !planKey)
+    const isExpired = !!planEndDate && new Date(planEndDate) < new Date()
+    const isSubscriptionActive = !!activeMapping && activeMapping.status === 'active' && !isExpired
+
+    const extraArtistSlots = effective?.extraArtistSlots ?? activeAddons.length
+    const baseArtistLimit = planDetails?.limits?.maxArtists ?? 0
+    const effectiveArtistLimit = effective?.maxArtists ?? baseArtistLimit + extraArtistSlots
+    const planPriceInPaise = (planDetails?.pricePerYear ?? 0) * 100
+    const addonsTotalInPaise = extraArtistSlots * ARTIST_ADDON_PRICE_INR * 100
+    const billedTotalInPaise = planPriceInPaise + addonsTotalInPaise
+
+    // Artist add-on is only offered on the tier directly below the top one
+    // (e.g. "Label MX"). Free / mid tiers must upgrade; the top tier doesn't need it.
+    const sortedPlans = [...allPlans].sort((a, b) => a.pricePerYear - b.pricePerYear)
+    const currentPlanIdx = sortedPlans.findIndex((p) => p.key === planKey)
+    const isSecondToLastTier =
+        sortedPlans.length >= 2 && currentPlanIdx === sortedPlans.length - 2
+    const canBuyArtistAddon = !isFreePlan && !isExpired && isSecondToLastTier
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -124,7 +205,17 @@ export default function SubscriptionPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                <h1 className="text-3xl font-bold mb-8">Subscription</h1>
+                <div className="flex items-center gap-3 mb-8">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.back()}
+                        aria-label="Go back"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <h1 className="text-3xl font-bold">Subscription</h1>
+                </div>
 
                 {/* Current Plan Card */}
                 <Card className="mb-8">
@@ -139,13 +230,13 @@ export default function SubscriptionPage() {
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-2xl font-bold">{currentPlan?.title || userInfo?.plan}</h3>
+                                    <h3 className="text-2xl font-bold">{planTitle}</h3>
                                     {isExpired ? (
                                         <Badge variant="destructive" className="flex items-center gap-1">
                                             <AlertCircle className="h-3 w-3" />
                                             Expired
                                         </Badge>
-                                    ) : !isFreePlan && userInfo?.isSubscriptionActive ? (
+                                    ) : isSubscriptionActive ? (
                                         <Badge className="bg-green-500/10 text-green-500 flex items-center gap-1">
                                             <CheckCircle className="h-3 w-3" />
                                             Active
@@ -157,42 +248,111 @@ export default function SubscriptionPage() {
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                         <span className="flex items-center gap-1">
                                             <Calendar className="h-4 w-4" />
-                                            Started: {formatDate(userInfo?.planStartDate)}
+                                            Started: {formatDate(planStartDate)}
                                         </span>
                                         <span className="flex items-center gap-1">
                                             <Calendar className="h-4 w-4" />
-                                            Expires: {formatDate(userInfo?.planEndDate)}
+                                            Expires: {formatDate(planEndDate)}
                                         </span>
                                     </div>
                                 )}
 
-                                {currentPlan && (
+                                {planDetails && planKey !== 'enterprise' && (
                                     <p className="text-muted-foreground mt-2">
-                                        {currentPlan.priceDisplay} {currentPlan.period}
+                                        {planDetails.priceDisplay} {planDetails.period}
                                     </p>
                                 )}
                             </div>
 
-                            {userInfo?.plan !== 'enterprise' && (
-                                <Button onClick={handleUpgrade} className="flex items-center gap-2">
-                                    {isFreePlan ? 'Upgrade Plan' : 'Change Plan'}
-                                    <ArrowUpRight className="h-4 w-4" />
-                                </Button>
-                            )}
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                {planKey === 'enterprise' ? (
+                                    <Button
+                                        onClick={() => {
+                                            window.location.href = `mailto:${ENTERPRISE_CONTACT_EMAIL}?subject=Enterprise%20plan%20enquiry`
+                                        }}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <Mail className="h-4 w-4" />
+                                        Contact Us
+                                    </Button>
+                                ) : (
+                                    <Button onClick={handleUpgrade} className="flex items-center gap-2">
+                                        {isFreePlan ? 'Upgrade Plan' : 'Change Plan'}
+                                        <ArrowUpRight className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                {!isFreePlan && !isExpired && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowCancelDialog(true)}
+                                        className="flex items-center gap-2 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                        Cancel Subscription
+                                    </Button>
+                                )}
+                            </div>
                         </div>
 
                         {/* Plan Features */}
-                        {currentPlan?.features && currentPlan.features.length > 0 && (
+                        {planDetails?.features && planDetails.features.length > 0 && (
                             <div className="mt-6 pt-6 border-t">
                                 <h4 className="font-semibold mb-3">Plan Features</h4>
                                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {currentPlan.features.map((feature, i) => (
+                                    {planDetails.features.map((feature, i) => (
                                         <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                                             <CheckCircle className="h-4 w-4 text-primary" />
                                             {feature}
                                         </li>
                                     ))}
                                 </ul>
+                            </div>
+                        )}
+
+                        {/* Add-ons + bumped artist limit + total billed */}
+                        {!isFreePlan && (
+                            <div className="mt-6 pt-6 border-t space-y-3">
+                                <h4 className="font-semibold">Artist slots & billing</h4>
+                                <div className="text-sm text-muted-foreground">
+                                    Artist limit:{' '}
+                                    <span className="text-foreground font-medium">{effectiveArtistLimit}</span>
+                                    {extraArtistSlots > 0 && (
+                                        <span className="ml-1">
+                                            ({baseArtistLimit} plan + {extraArtistSlots} add-on{extraArtistSlots > 1 ? 's' : ''})
+                                        </span>
+                                    )}
+                                </div>
+                                {planKey !== 'enterprise' && (
+                                    <div className="text-sm text-muted-foreground">
+                                        Plan price:{' '}
+                                        <span className="text-foreground">{formatAmount(planPriceInPaise)}</span>
+                                        {extraArtistSlots > 0 && (
+                                            <>
+                                                {' + Add-ons: '}
+                                                <span className="text-foreground">
+                                                    {formatAmount(addonsTotalInPaise)}
+                                                </span>
+                                                {' = Total: '}
+                                                <span className="text-foreground font-semibold">
+                                                    {formatAmount(billedTotalInPaise)}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                {canBuyArtistAddon && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleBuyArtistAddon}
+                                        disabled={isPurchasingAddon || paymentLoading}
+                                        className="mt-2"
+                                    >
+                                        {isPurchasingAddon
+                                            ? 'Processing…'
+                                            : `Add 1 more artist (₹${ARTIST_ADDON_PRICE_INR})`}
+                                    </Button>
+                                )}
                             </div>
                         )}
                     </CardContent>
@@ -258,8 +418,54 @@ export default function SubscriptionPage() {
             <UpgradePlanModal
                 isOpen={showUpgradeModal}
                 onClose={() => setShowUpgradeModal(false)}
-                currentPlanKey={userInfo?.plan || 'free'}
+                currentPlanKey={planKey}
+                hasActiveSubscription={!isFreePlan && isSubscriptionActive}
             />
+
+            {/* Cancel Subscription confirmation */}
+            <Dialog open={showCancelDialog} onOpenChange={(open) => !isCancelling && setShowCancelDialog(open)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5 text-destructive" />
+                            Cancel subscription?
+                        </DialogTitle>
+                        <DialogDescription>
+                            Your <span className="font-semibold">{planTitle}</span> plan will be cancelled at the end of the current billing cycle on{' '}
+                            <span className="font-semibold">{formatDate(planEndDate)}</span>.
+                            {extraArtistSlots > 0 && (
+                                <>
+                                    {' '}All <span className="font-semibold">{extraArtistSlots} artist add-on{extraArtistSlots > 1 ? 's' : ''}</span> will also be cancelled — add-ons cannot remain active without an underlying plan.
+                                </>
+                            )}{' '}
+                            You will keep access until then. After that date your account will return to the free tier.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowCancelDialog(false)}
+                            disabled={isCancelling}
+                        >
+                            Keep my subscription
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleConfirmCancel}
+                            disabled={isCancelling}
+                        >
+                            {isCancelling ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Cancelling…
+                                </>
+                            ) : (
+                                'Yes, cancel'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

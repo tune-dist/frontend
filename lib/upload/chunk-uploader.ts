@@ -1,5 +1,6 @@
 import axios from 'axios';
 import apiClient from '@/lib/api-client';
+import { isPlanInactiveError } from '@/lib/plan-inactive';
 
 const CHUNK_SIZE = 1024 * 1024; // 1MB
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -56,6 +57,13 @@ export const uploadFileInChunks = async (
             });
             return response.data;
         } catch (error: any) {
+            // PLAN_INACTIVE is a hard stop — the global modal is already shown.
+            // Re-throw the tagged error untouched so the call site can suppress
+            // its own toast via isPlanInactiveError.
+            if (isPlanInactiveError(error)) {
+                throw error;
+            }
+
             const backendMessage = error.response?.data?.message;
             const status = error.response?.status;
 

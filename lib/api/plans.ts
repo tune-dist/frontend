@@ -8,6 +8,8 @@ export interface PlanLimits {
   allowedFormats: string[];
 }
 
+export type BillingPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
 export interface Plan {
   _id: string;
   key: string;
@@ -20,6 +22,11 @@ export interface Plan {
   enforceFrom?: Date;
   isActive: boolean;
 
+  // Razorpay billing cycle (used when creating the matching Razorpay plan)
+  billingPeriod?: BillingPeriod;
+  interval?: number;
+  currency?: string;
+
   // Display fields
   description?: string;
   priceDisplay?: string;
@@ -29,6 +36,60 @@ export interface Plan {
   isPopular?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// Derive the Mongo `key` from a plan title. Mirrors the backend rule:
+// lowercase, spaces -> underscores, strip anything outside [a-z0-9_].
+export function derivePlanKey(title: string): string {
+  return (title || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+};
+
+// Pick a display symbol for a currency code. Unknown codes fall back to the
+// raw 3-letter code with a trailing space ("AUD "). Missing currency defaults
+// to ₹ so legacy plans without the field keep their existing display.
+export function currencySymbol(currency?: string): string {
+  if (!currency) return '₹';
+  return CURRENCY_SYMBOLS[currency.toUpperCase()] ?? `${currency} `;
+}
+
+const PERIOD_SHORT: Record<string, string> = {
+  daily: '/day',
+  weekly: '/wk',
+  monthly: '/mo',
+  yearly: '/yr',
+};
+const PERIOD_PLURAL: Record<string, string> = {
+  daily: 'days',
+  weekly: 'weeks',
+  monthly: 'months',
+  yearly: 'years',
+};
+
+// Compact period label for a plan card. billingPeriod is the source of truth
+// (it's what Razorpay actually charges), so we derive from it first — that
+// avoids a stale stored `period: "/year"` showing on a plan whose billingPeriod
+// was later changed to monthly. Falls back to the legacy display `period`
+// only when billingPeriod is absent (pre-migration plans). Returns null when
+// neither is available so the caller can skip rendering the line.
+export function derivePeriodLabel(plan: Plan): string | null {
+  if (plan.billingPeriod) {
+    const interval = plan.interval ?? 1;
+    if (interval === 1) return PERIOD_SHORT[plan.billingPeriod] ?? `/${plan.billingPeriod}`;
+    return `every ${interval} ${PERIOD_PLURAL[plan.billingPeriod] ?? plan.billingPeriod}`;
+  }
+  if (plan.period?.trim()) return plan.period;
+  return null;
 }
 
 export interface PlanLimitsMap {
@@ -148,6 +209,17 @@ export async function adminUpdatePlan(key: string, updates: Partial<Plan>): Prom
  */
 export async function adminCreatePlan(planData: Partial<Plan>): Promise<Plan> {
   const response = await apiClient.post<Plan>('/admin/plans', planData);
+  clearPlansCache();
+  return response.data;
+}
+
+/**
+ * Admin: Soft-delete a plan. Backend flips isActive to false; the plan is
+ * hidden from public/admin GET /plans and from new subscription/upgrade flows.
+ * Existing subscribers on this plan are not affected automatically.
+ */
+export async function adminDeletePlan(key: string): Promise<{ message: string }> {
+  const response = await apiClient.delete<{ message: string }>(`/admin/plans/${key}`);
   clearPlansCache();
   return response.data;
 }

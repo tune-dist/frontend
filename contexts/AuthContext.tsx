@@ -160,6 +160,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userData = await getMe();
       setUser(userData);
+      // Keep the 'user' cookie in sync so other surfaces (e.g. subscription page
+      // reading from cookie) see the latest data including extraArtistSlots.
+      Cookies.set('user', JSON.stringify(userData), {
+        expires: 7,
+        sameSite: 'lax',
+      });
     } catch (error) {
       // If refresh fails, logout
       logout();

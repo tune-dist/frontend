@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Manrope } from 'next/font/google';
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { PlanInactiveProvider } from '@/contexts/PlanInactiveContext'
 import { Toaster } from 'react-hot-toast'
 import VersionNotifier from '@/components/VersionNotifier'
 import { Outfit } from 'next/font/google'
@@ -60,9 +61,10 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${manrope.variable} ${outfit.variable}`}>
         <AuthProvider>
-          <SmoothScrollProvider>
-            {/* <VersionNotifier /> */}
-            {children}
+          <PlanInactiveProvider>
+            <SmoothScrollProvider>
+              {/* <VersionNotifier /> */}
+              {children}
             <Toaster
               position="top-right"
               toastOptions={{
@@ -86,7 +88,8 @@ export default function RootLayout({
                 },
               }}
             />
-          </SmoothScrollProvider>
+            </SmoothScrollProvider>
+          </PlanInactiveProvider>
         </AuthProvider>
       </body>
     </html>

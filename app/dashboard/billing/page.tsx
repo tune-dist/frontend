@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,45 +14,123 @@ import {
     Zap,
     TrendingUp,
     Loader2,
+    Mail,
 } from 'lucide-react';
+
+const ENTERPRISE_PLAN_KEY = 'enterprise';
+const isEnterprisePlanKey = (key?: string | null) => key === ENTERPRISE_PLAN_KEY;
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAllPlans, Plan } from '@/lib/api/plans';
+import { getAllPlans, Plan, currencySymbol, derivePeriodLabel } from '@/lib/api/plans';
+import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users';
+import { useRazorpay } from '@/hooks/useRazorpay';
 import toast from 'react-hot-toast';
 
 export default function BillingPage() {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
+    const router = useRouter();
+    const { initiatePayment, isLoading: paymentLoading } = useRazorpay();
+    const [purchasingKey, setPurchasingKey] = useState<string | null>(null);
     // const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
     const [plans, setPlans] = useState<Plan[]>([]);
+    const [profile, setProfile] = useState<ProfileWithPlan | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        fetchPlans();
+        let cancelled = false;
+        const load = async () => {
+            try {
+                setIsLoading(true);
+                const [plansData, profileData] = await Promise.all([
+                    getAllPlans(true), // force-refresh: bypass 5-min cache so newly-created/edited plans show up
+                    getUserProfileWithPlan(),
+                ]);
+                if (cancelled) return;
+                setPlans(plansData);
+                setProfile(profileData);
+            } catch (error) {
+                console.error('Failed to load billing data:', error);
+                toast.error('Failed to load plans');
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        };
+        load();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
-    const fetchPlans = async () => {
+    // Active plan mapping is the source of truth; fall back to user.plan only when
+    // no active mapping exists (e.g. legacy or free-tier accounts).
+    const currentPlanKey =
+        profile?.activePlanMapping?.planKey || profile?.plan || user?.plan || 'free';
+    const currentPlan = plans.find(p => p.key === currentPlanKey);
+    // Resolve title/description/price with a robust fallback chain so the header
+    // doesn't say "No Plan" just because:
+    //   - the plan was admin-deactivated (GET /plans only returns active plans), or
+    //   - the local plans-list cache is stale and missing a newly-created plan, or
+    //   - getAllPlans failed and we have an empty array.
+    // Use the mapping (saved at purchase time) and profile.planDetails (server-
+    // enriched) first, then the plans-list lookup, then sensible defaults.
+    const currentPlanTitle =
+        profile?.activePlanMapping?.planTitle ||
+        profile?.planDetails?.title ||
+        currentPlan?.title ||
+        (currentPlanKey === 'free' ? 'Free' : currentPlanKey || 'No Plan');
+    const currentPlanDescription =
+        profile?.planDetails?.description ||
+        currentPlan?.description ||
+        '';
+    const currentPlanFeatures =
+        profile?.planDetails?.features || currentPlan?.features || [];
+    const currentPlanPrice =
+        currentPlan?.pricePerYear ??
+        profile?.planDetails?.pricePerYear ??
+        (profile?.activePlanMapping?.priceInPaise
+            ? profile.activePlanMapping.priceInPaise / 100
+            : 0);
+
+    // ₹500 per active artist add-on, charged alongside the main plan each cycle.
+    const ARTIST_ADDON_PRICE_INR = 500;
+    const activeAddonCount =
+        profile?.effectiveLimits?.extraArtistSlots ??
+        profile?.activeAddons?.length ??
+        0;
+    const addonsTotal = activeAddonCount * ARTIST_ADDON_PRICE_INR;
+    const totalRecurringPrice = currentPlanPrice + addonsTotal;
+
+    // Real subscription state derived from the profile (no more mock data).
+    const activeMapping = profile?.activePlanMapping;
+    const planEndDate = activeMapping?.endDate ?? (profile as any)?.planEndDate ?? null;
+    const subscriptionStatus =
+        activeMapping?.status ?? (profile as any)?.subscriptionStatus ?? 'inactive';
+    const isFreePlan = currentPlanKey === 'free';
+    const hasRazorpaySubscription = !!(profile as any)?.razorpaySubscriptionId;
+    const isSubscriptionActiveBackend =
+        !isFreePlan &&
+        ((profile as any)?.isSubscriptionActive ?? subscriptionStatus === 'active');
+
+    const formatBillingDate = (d: string | null | undefined) => {
+        if (!d) return 'N/A';
         try {
-            setIsLoading(true);
-            const data = await getAllPlans();
-            setPlans(data);
-        } catch (error) {
-            console.error('Failed to fetch plans:', error);
-            toast.error('Failed to load plans');
-        } finally {
-            setIsLoading(false);
+            return new Date(d).toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+            });
+        } catch {
+            return 'N/A';
         }
     };
-
-    // Get current plan details
-    const currentPlan = plans.find(p => p.key === user?.plan);
-    const currentPlanPrice = currentPlan ? currentPlan.pricePerYear : 0;
-
-    // Mock subscription data - will be replaced with API
     const currentSubscription = {
-        status: 'active',
-        cycle: 'monthly',
-        paymentMethod: '****4242',
-        nextBilling: 'Oct 24, 2025',
+        status: subscriptionStatus,
+        cycle: currentPlan?.billingPeriod
+            ? (currentPlan.interval && currentPlan.interval > 1
+                ? `Every ${currentPlan.interval} ${currentPlan.billingPeriod}`
+                : currentPlan.billingPeriod)
+            : 'Yearly',
+        nextBilling: formatBillingDate(planEndDate),
     };
 
     const billingHistory = [
@@ -92,6 +171,48 @@ export default function BillingPage() {
         return ((monthlyTotal - yearlyPrice) / monthlyTotal * 100).toFixed(0);
     };
 
+    const handleManageSubscription = () => {
+        router.push('/dashboard/subscription');
+    };
+
+    const handleUpdatePaymentMethod = () => {
+        // No dedicated UI yet; surface a clear message so the button isn't silently dead.
+        toast('Payment method management is handled by Razorpay during your next checkout.');
+    };
+
+    const handleSelectPlan = async (plan: Plan) => {
+        if (plan.key === currentPlanKey) return;
+        if (plan.pricePerYear === 0) {
+            toast('To downgrade to the free plan, contact support.');
+            return;
+        }
+        setPurchasingKey(plan.key);
+        try {
+            // If the user already has an active Razorpay subscription, route
+            // through /payments/upgrade-plan so the old sub is cancelled and
+            // addons are re-attached/dropped automatically on verify. Otherwise
+            // (free / expired user) fall through to the standard create-order
+            // path inside initiatePayment.
+            const result = await initiatePayment(
+                plan.key,
+                { name: user?.fullName, email: user?.email },
+                { isUpgrade: hasRazorpaySubscription && isSubscriptionActiveBackend },
+            );
+            if (result?.success) {
+                const [, nextProfile] = await Promise.all([
+                    refreshUser(),
+                    getUserProfileWithPlan(),
+                ]);
+                setProfile(nextProfile);
+                router.refresh();
+            }
+        } catch (err) {
+            console.error('Plan change failed:', err);
+        } finally {
+            setPurchasingKey(null);
+        }
+    };
+
     if (isLoading) {
         return (
             <DashboardLayout>
@@ -122,18 +243,34 @@ export default function BillingPage() {
                                 <Badge className="bg-primary/20 text-primary border-0 mb-3 uppercase text-[10px] font-bold">
                                     Active Subscription
                                 </Badge>
-                                <h2 className="text-3xl font-bold mb-2">{currentPlan?.title || 'No Plan'}</h2>
+                                <h2 className="text-3xl font-bold mb-2">{currentPlanTitle}</h2>
                                 <p className="text-muted-foreground">
-                                    {currentPlan?.description || 'Manage your music distribution'}
+                                    {currentPlanDescription || 'Manage your music distribution'}
                                 </p>
                             </div>
                             <div className="text-right">
-                                <div className="text-4xl font-black">
-                                    ₹{currentPlanPrice.toFixed(2)}
-                                    <span className="text-lg text-muted-foreground font-normal">/yr</span>
-                                </div>
-                                {currentPlan?.key !== 'free' && (
-                                    <p className="text-xs text-muted-foreground mt-1">Next billing: {currentSubscription.nextBilling}</p>
+                                {isEnterprisePlanKey(currentPlanKey) ? (
+                                    <div className="text-4xl font-black">
+                                        {currentPlan?.priceDisplay || 'Custom'}
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="text-4xl font-black">
+                                            {currencySymbol(currentPlan?.currency)}{totalRecurringPrice.toFixed(2)}
+                                            <span className="text-lg text-muted-foreground font-normal">
+                                                {currentPlan ? (derivePeriodLabel(currentPlan) ?? '/yr') : '/yr'}
+                                            </span>
+                                        </div>
+                                        {activeAddonCount > 0 && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Plan {currencySymbol(currentPlan?.currency)}{currentPlanPrice.toFixed(2)} + {activeAddonCount} add-on
+                                                {activeAddonCount > 1 ? 's' : ''} {currencySymbol(currentPlan?.currency)}{addonsTotal.toFixed(2)}
+                                            </p>
+                                        )}
+                                        {currentPlan?.key !== 'free' && (
+                                            <p className="text-xs text-muted-foreground mt-1">Next billing: {currentSubscription.nextBilling}</p>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -164,17 +301,24 @@ export default function BillingPage() {
                                     <CreditCard className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Method</p>
-                                    <p className="font-bold">{currentSubscription.paymentMethod}</p>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Next billing</p>
+                                    <p className="font-bold">{currentSubscription.nextBilling}</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex gap-3">
-                            <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold h-12">
+                            <Button
+                                onClick={handleManageSubscription}
+                                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold h-12"
+                            >
                                 Manage Subscription
                             </Button>
-                            <Button variant="outline" className="flex-1 rounded-xl font-bold h-12 border-border/50">
+                            <Button
+                                onClick={handleUpdatePaymentMethod}
+                                variant="outline"
+                                className="flex-1 rounded-xl font-bold h-12 border-border/50"
+                            >
                                 Update Payment Method
                             </Button>
                         </div>
@@ -196,7 +340,10 @@ export default function BillingPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {plans.map((plan) => {
-                            const isCurrent = plan.key === user?.plan;
+                            const isCurrent = plan.key === currentPlanKey;
+                            const isEnterprise = isEnterprisePlanKey(plan.key);
+                            const isDowngrade =
+                                !isCurrent && !isEnterprise && plan.pricePerYear < currentPlanPrice;
                             const planPrice = plan.pricePerYear / 12;
                             return (
                                 <motion.div
@@ -219,10 +366,18 @@ export default function BillingPage() {
                                     </div>
 
                                     <div className="mb-8">
-                                        <div className="text-4xl font-black">
-                                            ₹{getPrice(plan).toFixed(2)}
-                                            <span className="text-lg text-muted-foreground font-normal">/yr</span>
-                                        </div>
+                                        {isEnterprise ? (
+                                            <div className="text-4xl font-black">
+                                                {plan.priceDisplay || 'Custom'}
+                                            </div>
+                                        ) : (
+                                            <div className="text-4xl font-black">
+                                                {currencySymbol(plan.currency)}{getPrice(plan).toFixed(2)}
+                                                <span className="text-lg text-muted-foreground font-normal">
+                                                    {derivePeriodLabel(plan) ?? '/yr'}
+                                                </span>
+                                            </div>
+                                        )}
 
                                     </div>
 
@@ -242,20 +397,33 @@ export default function BillingPage() {
                                         >
                                             Current Plan
                                         </Button>
-                                    ) : (
+                                    ) : isEnterprise ? (
                                         <Button
+                                            onClick={() => router.push('/contact')}
+                                            className="w-full rounded-xl py-6 font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                                        >
+                                            <Mail className="h-4 w-4 mr-2" />
+                                            {plan.ctaLabel || 'Contact Us'}
+                                        </Button>
+                                    ) : isDowngrade ? null : (
+                                        <Button
+                                            onClick={() => handleSelectPlan(plan)}
+                                            disabled={paymentLoading || purchasingKey !== null}
                                             className={`w-full rounded-xl py-6 font-bold ${plan.key.includes('label') || plan.key.includes('premium')
                                                 ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
                                                 : 'bg-primary hover:bg-primary/90'
                                                 }`}
                                         >
-                                            {planPrice > currentPlanPrice ? (
+                                            {purchasingKey === plan.key ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Processing...
+                                                </>
+                                            ) : (
                                                 <>
                                                     <TrendingUp className="h-4 w-4 mr-2" />
                                                     Upgrade
                                                 </>
-                                            ) : (
-                                                'Downgrade'
                                             )}
                                         </Button>
                                     )}
@@ -293,7 +461,7 @@ export default function BillingPage() {
                                         <tr key={transaction.id} className="border-b border-border/30 hover:bg-card/30 transition-colors">
                                             <td className="p-4 font-medium">{transaction.date}</td>
                                             <td className="p-4 text-muted-foreground">{transaction.description}</td>
-                                            <td className="p-4 font-bold">₹{transaction.amount}</td>
+                                            <td className="p-4 font-bold">{currencySymbol(currentPlan?.currency)}{transaction.amount}</td>
                                             <td className="p-4">
                                                 <Badge className="bg-primary/20 text-primary border-0 uppercase text-[10px] font-bold">
                                                     {transaction.status}

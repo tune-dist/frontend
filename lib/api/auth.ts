@@ -31,6 +31,9 @@ export interface User {
     totalStreams: number;
     revenueEarned: number;
   };
+  // Number of additional artist slots the user has purchased via the ₹500 add-on.
+  // Backend is the source of truth; effective limit = plan.maxArtists + extraArtistSlots.
+  extraArtistSlots?: number;
   isEmailVerified: boolean;
   isActive: boolean;
   isSuspended: boolean;

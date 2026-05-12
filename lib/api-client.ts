@@ -1,6 +1,11 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 import { config } from './config';
+import {
+  PLAN_INACTIVE_CODE,
+  PlanInactiveError,
+  triggerPlanInactive,
+} from './plan-inactive';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -28,8 +33,20 @@ apiClient.interceptors.request.use(
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError) => {
+  async (error: AxiosError<{ code?: string; reason?: string; message?: string }>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Handle 403 from ActivePlanGuard (cancelled/halted/expired subscription).
+    // Show the global subscribe-modal and reject with a tagged error so call
+    // sites can skip their own toast.
+    if (error.response?.status === 403 && error.response?.data?.code === PLAN_INACTIVE_CODE) {
+      const payload = {
+        reason: error.response.data.reason,
+        message: error.response.data.message,
+      };
+      triggerPlanInactive(payload);
+      return Promise.reject(new PlanInactiveError(payload));
+    }
 
     // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
