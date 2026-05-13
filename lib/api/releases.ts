@@ -191,6 +191,8 @@ export interface Release {
     facebookProfile?: string;
     facebookProfileUrl?: string;
   };
+  /** Set after POST /releases/:id/submit-to-pdl (PDL phase 1) succeeds */
+  pdlAlbumId?: string;
 }
 
 
@@ -789,13 +791,13 @@ export const rejectRelease = async (
   return response.data;
 };
 
-// PDL Submit (First Step - Verification)
+/** PDL phase 1: add/verify metadata + upload artwork & audio to PDL */
 export const submitToPdl = async (id: string, data: any = {}): Promise<any> => {
   const response = await apiClient.post(`/releases/${id}/submit-to-pdl`, data);
   return response.data;
 };
 
-// PDL Submit (Final Step - Distribution)
+/** PDL phase 2: platform details + final distribute (COSMOS submit) */
 export const pdlSubmit = async (id: string, data: any = {}): Promise<any> => {
   const response = await apiClient.post(`/releases/${id}/pdl-submit`, data);
   return response.data;

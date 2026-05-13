@@ -184,12 +184,12 @@ export default function ReleasesPage() {
   };
 
   const handleApprove = async (id: string) => {
-    if (!confirm("Approve and initialize PDL submission for this release?")) return;
+    if (!confirm("Approve this release? It will move to Approved; use Submit to PDL afterward to upload to PDL."))
+      return;
     try {
       setActionLoading(id);
-      // For approval, we now call submitToPdl (the verification step)
-      await submitToPdl(id);
-      toast.success("Release approved and initialized in PDL");
+      await approveRelease(id);
+      toast.success("Release approved");
       fetchReleases();
     } catch (error: any) {
       toast.error(error.message || "Failed to approve release");
@@ -213,13 +213,38 @@ export default function ReleasesPage() {
     }
   };
 
-  const handleSubmitToPDL = async (id: string) => {
-    if (!confirm("Are you sure you want to finalize and distribute this release to all platforms?")) return;
+  /** PDL phase 1: metadata + files to PDL, then status becomes In Process */
+  const handlePdlPhase1Upload = async (id: string) => {
+    if (
+      !confirm(
+        "Upload this release to PDL? (Metadata, cover art, and audio — verification step.)",
+      )
+    )
+      return;
     try {
       setActionLoading(id);
-      // For the final step, we call pdlSubmit (the distribution step)
+      await submitToPdl(id);
+      toast.success("Release uploaded to PDL (verification complete)");
+      fetchReleases();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit to PDL");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  /** PDL phase 2: final distribution to platforms */
+  const handlePdlPhase2Distribute = async (id: string) => {
+    if (
+      !confirm(
+        "Finalize and distribute this release to all selected platforms?",
+      )
+    )
+      return;
+    try {
+      setActionLoading(id);
       await pdlSubmit(id);
-      toast.success("Release distributed to all platforms successfully");
+      toast.success("Release distributed to platforms successfully");
       fetchReleases();
     } catch (error: any) {
       toast.error(error.message || "Failed to distribute to platforms");
@@ -395,12 +420,30 @@ export default function ReleasesPage() {
                                      <Button variant="ghost" size="sm" onClick={() => handleReject(release._id)} className="text-red-500 hover:bg-red-500/10" title="Reject"><Ban className="h-4 w-4" /></Button>
                                    </>
                                  )}
-                                 {isPrivileged && (release.status === "Approved") && (
-                                   <Button size="sm" onClick={() => handleSubmitToPDL(release._id)} className="gap-1.5 text-[10px] h-7 px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all border-none">
+                                 {isPrivileged && release.status === "Approved" && (
+                                   <Button
+                                     size="sm"
+                                     onClick={() => handlePdlPhase1Upload(release._id)}
+                                     className="gap-1.5 text-[10px] h-7 px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all border-none"
+                                   >
                                      <Send className="h-3 w-3" />
                                      Submit to PDL
                                    </Button>
                                  )}
+                                 {isPrivileged &&
+                                   release.status === "In Process" &&
+                                   release.pdlAlbumId && (
+                                     <Button
+                                       size="sm"
+                                       onClick={() =>
+                                         handlePdlPhase2Distribute(release._id)
+                                       }
+                                       className="gap-1.5 text-[10px] h-7 px-3 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all border-none"
+                                     >
+                                       <UploadCloud className="h-3 w-3" />
+                                       Distribute
+                                     </Button>
+                                   )}
                               </div>
                             </TableCell>
                           </TableRow>
