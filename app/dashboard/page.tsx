@@ -146,7 +146,7 @@ export default function DashboardPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           <motion.div variants={itemVariants}>
-            <Card className="glass-card relative overflow-hidden group">
+            <Card className="glass-card relative overflow-hidden group hover:bg-gradient-to-br hover:from-primary/30 hover:to-primary/10 hover:border-primary/30">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
@@ -160,7 +160,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
-                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center shadow-inner">
+                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center shadow-inner group-hover:border-primary/60">
                       <Music className="h-6 w-6 text-primary" />
                     </div>
                   </div>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card className="glass-card relative overflow-hidden group">
+            <Card className="glass-card relative overflow-hidden group hover:bg-gradient-to-br hover:from-purple-500/30 hover:to-purple-500/10 hover:border-purple-500/30">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
@@ -183,7 +183,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="relative">
                     <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full" />
-                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-purple-500/30 to-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-inner">
+                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-purple-500/30 to-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-inner group-hover:border-purple-500/60">
                       <Users className="h-6 w-6 text-purple-500" />
                     </div>
                   </div>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card className="glass-card relative overflow-hidden group">
+            <Card className="glass-card relative overflow-hidden group hover:bg-gradient-to-br hover:from-blue-500/30 hover:to-blue-500/10 hover:border-blue-500/30">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="relative">
                     <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
-                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-inner">
+                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-inner group-hover:border-blue-500/60">
                       <Activity className="h-6 w-6 text-blue-500" />
                     </div>
                   </div>
@@ -217,7 +217,7 @@ export default function DashboardPage() {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card className="glass-card relative overflow-hidden group">
+            <Card className="glass-card relative overflow-hidden group hover:bg-gradient-to-br hover:from-green-500/30 hover:to-green-500/10 hover:border-green-500/30">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="relative">
                     <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full" />
-                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-inner">
+                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-inner group-hover:border-emerald-500/60">
                       <div className="text-lg font-bold text-emerald-500">₹</div>
                     </div>
                   </div>
