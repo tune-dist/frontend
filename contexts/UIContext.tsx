@@ -9,6 +9,8 @@ interface UIContextType {
     isMobileMenuOpen: boolean
     toggleMobileMenu: () => void
     closeMobileMenu: () => void
+    isSidebarCollapsed: boolean
+    toggleSidebar: () => void
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined)
@@ -16,11 +18,13 @@ const UIContext = createContext<UIContextType | undefined>(undefined)
 export function UIProvider({ children }: { children: React.ReactNode }) {
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
 
     const openUpgradeModal = () => setIsUpgradeModalOpen(true)
     const closeUpgradeModal = () => setIsUpgradeModalOpen(false)
     const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev)
     const closeMobileMenu = () => setIsMobileMenuOpen(false)
+    const toggleSidebar = () => setIsSidebarCollapsed(prev => !prev)
 
     return (
         <UIContext.Provider value={{
@@ -29,7 +33,9 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
             closeUpgradeModal,
             isMobileMenuOpen,
             toggleMobileMenu,
-            closeMobileMenu
+            closeMobileMenu,
+            isSidebarCollapsed,
+            toggleSidebar
         }}>
             {children}
         </UIContext.Provider>

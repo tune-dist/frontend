@@ -140,7 +140,7 @@ export default function PlanManagementPage() {
                             className={`relative cursor-pointer rounded-3xl p-6 border-2 transition-all duration-300 shadow-xl overflow-hidden
                 ${selectedPlan?.key === plan.key
                                     ? 'border-primary/50 bg-primary/5 shadow-primary/10'
-                                    : 'border-border/50 bg-card/50 hover:bg-card hover:border-border'}`}
+                                    : 'glass-card border-border/80'}`}
                             onClick={() => handleSelectPlan(plan)}
                         >
                             {selectedPlan?.key === plan.key && (
@@ -215,7 +215,7 @@ export default function PlanManagementPage() {
                                     </TabsTrigger>
                                 </TabsList>
 
-                                <TabsContent value="general" className="space-y-8 bg-card/30 p-8 rounded-3xl border border-border/50 backdrop-blur-sm">
+                                <TabsContent value="general" className="space-y-8 glass-card p-8 rounded-3xl">
                                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-primary/70 mb-2">Plan Identity</div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
@@ -249,7 +249,7 @@ export default function PlanManagementPage() {
                                     </div>
                                 </TabsContent>
 
-                                <TabsContent value="pricing" className="space-y-8 bg-card/30 p-8 rounded-3xl border border-border/50 backdrop-blur-sm">
+                                <TabsContent value="pricing" className="space-y-8 glass-card p-8 rounded-3xl">
                                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-primary/70 mb-2">Pricing Configuration</div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
@@ -300,7 +300,7 @@ export default function PlanManagementPage() {
                                     </div>
                                 </TabsContent>
 
-                                <TabsContent value="features" className="space-y-8 bg-card/30 p-8 rounded-3xl border border-border/50 backdrop-blur-sm">
+                                <TabsContent value="features" className="space-y-8 glass-card p-8 rounded-3xl">
                                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-primary/70 mb-2">Internal Limits & Entitlements</div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
                                         <div className="space-y-4">
@@ -372,7 +372,7 @@ export default function PlanManagementPage() {
 
                             <div className="space-y-4">
                                 {(editForm.features || []).map((feature: string, idx: number) => (
-                                    <div key={idx} className="p-4 rounded-2xl border border-border/50 bg-card/30 flex items-center justify-between transition-all hover:bg-card/50 group">
+                                    <div key={idx} className="p-4 rounded-2xl border border-border/80 glass-card flex items-center justify-between transition-all hover:bg-card/50 group">
                                         <div className="flex items-center gap-4">
                                             <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
                                                 <CheckCircle2 className="h-5 w-5" />

@@ -305,7 +305,7 @@ export default function PermissionsPage() {
                     </TabsList>
 
                     <TabsContent value="role" className="mt-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle>Role Permissions</CardTitle>
                                 <CardDescription>
@@ -363,7 +363,7 @@ export default function PermissionsPage() {
                     </TabsContent>
 
                     <TabsContent value="user" className="mt-6">
-                        <Card>
+                        <Card className="glass-card">
                             <CardHeader>
                                 <CardTitle>User Permissions</CardTitle>
                                 <CardDescription>

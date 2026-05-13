@@ -78,10 +78,10 @@ export default function FinancePage() {
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search transactions..."
-                                className="pl-10 h-10 bg-card/50 border-border/50"
+                                className="pl-10 h-10 bg-card/50 border-border/80"
                             />
                         </div>
-                        <Button variant="outline" size="icon" className="h-10 w-10 border-border/50">
+                        <Button variant="outline" size="icon" className="h-10 w-10 border-border/80">
                             <div className="relative">
                                 <Badge className="absolute -top-1 -right-1 h-2 w-2 p-0 bg-primary border-0" />
                                 <Navigation className="h-4 w-4" />
@@ -93,7 +93,7 @@ export default function FinancePage() {
                 {/* Main Stats and Payout Methods */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Main Balance Card */}
-                    <Card className="lg:col-span-2 bg-[#0d141e] border-border/50 overflow-hidden relative">
+                    <Card className="lg:col-span-2 bg-[#0d141e] border-border/80 overflow-hidden relative transition-all duration-300 hover:border-primary/30">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-20" />
                         <CardContent className="p-8 relative z-10 flex flex-col justify-between h-full min-h-[250px]">
                             <div>
@@ -118,7 +118,7 @@ export default function FinancePage() {
                     </Card>
 
                     {/* Last Payout */}
-                    <Card className="bg-card/50 border-border/50">
+                    <Card className="glass-card">
                         <CardContent className="p-6 flex flex-col justify-between h-full">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
@@ -145,7 +145,7 @@ export default function FinancePage() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {payoutMethods.map((method) => (
-                            <Card key={method.id} className="bg-card/30 border-primary/20 relative group overflow-hidden">
+                            <Card key={method.id} className="glass-card relative group overflow-hidden">
                                 <div className="absolute top-2 right-2">
                                     <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
                                         <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
@@ -186,7 +186,7 @@ export default function FinancePage() {
                         </div>
                     </div>
 
-                    <Card className="border-border/50 overflow-hidden bg-card/20 backdrop-blur-sm">
+                    <Card className="glass-card overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>

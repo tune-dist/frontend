@@ -114,7 +114,7 @@ export default function BillingPage() {
                 </div>
 
                 {/* Active Subscription */}
-                <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/20 overflow-hidden">
+                <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/30 overflow-hidden shadow-lg shadow-primary/5 transition-all duration-300">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary/60" />
                     <CardContent className="p-8">
                         <div className="flex items-start justify-between mb-6">
@@ -139,7 +139,7 @@ export default function BillingPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div className="flex items-center gap-3 p-4 rounded-2xl bg-card/50 border border-border/50">
+                            <div className="flex items-center gap-3 p-4 rounded-2xl glass-card">
                                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
                                     <CheckCircle2 className="h-5 w-5" />
                                 </div>
@@ -149,7 +149,7 @@ export default function BillingPage() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 p-4 rounded-2xl bg-card/50 border border-border/50">
+                            <div className="flex items-center gap-3 p-4 rounded-2xl glass-card">
                                 <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
                                     <Calendar className="h-5 w-5" />
                                 </div>
@@ -159,7 +159,7 @@ export default function BillingPage() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 p-4 rounded-2xl bg-card/50 border border-border/50">
+                            <div className="flex items-center gap-3 p-4 rounded-2xl glass-card">
                                 <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500">
                                     <CreditCard className="h-5 w-5" />
                                 </div>
@@ -174,7 +174,7 @@ export default function BillingPage() {
                             <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold h-12">
                                 Manage Subscription
                             </Button>
-                            <Button variant="outline" className="flex-1 rounded-xl font-bold h-12 border-border/50">
+                            <Button variant="outline" className="flex-1 rounded-xl font-bold h-12 border-border/80">
                                 Update Payment Method
                             </Button>
                         </div>
@@ -202,9 +202,9 @@ export default function BillingPage() {
                                 <motion.div
                                     key={plan.key}
                                     whileHover={{ scale: 1.02 }}
-                                    className={`relative rounded-3xl p-8 border-2 transition-all ${isCurrent
+                                    className={`relative rounded-3xl p-8 border-2 transition-all duration-300 ${isCurrent
                                         ? 'border-primary/50 bg-primary/5 shadow-xl shadow-primary/10'
-                                        : 'border-border/50 bg-card/50 hover:border-border'
+                                        : 'glass-card border-border/80'
                                         }`}
                                 >
                                     {isCurrent && (

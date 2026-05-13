@@ -105,7 +105,7 @@ export default function PromotionListingPage() {
                     </p>
                 </div>
 
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Music className="h-5 w-5" />

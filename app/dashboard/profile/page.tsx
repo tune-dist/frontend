@@ -245,7 +245,7 @@ export default function ProfilePage() {
 
         {/* Profile Information */}
         <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserIcon className="h-5 w-5" />
@@ -322,7 +322,7 @@ export default function ProfilePage() {
 
         {/* Phone Verification */}
         <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Phone className="h-5 w-5" />
@@ -382,7 +382,7 @@ export default function ProfilePage() {
 
         {/* Address Information */}
         <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
@@ -427,7 +427,7 @@ export default function ProfilePage() {
 
         {/* Profile Verification */}
         <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
@@ -444,7 +444,7 @@ export default function ProfilePage() {
                     <CheckCircle2 className="h-4 w-4" /> Documents Uploaded
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1 p-3 border border-border rounded-md bg-muted/50">
+                    <div className="flex-1 p-3 border border-border/80 rounded-md bg-muted/50">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium">Aadhar or PAN card or Voter ID card or Passport</span>
                         <Button size="sm" variant="outline" onClick={() => handleViewVerifyDoc(user.passport?.url, 'passport')} disabled={openingVerifyDoc === 'passport'}>
@@ -455,7 +455,7 @@ export default function ProfilePage() {
                         {user.passport.filename}
                       </div>
                     </div>
-                    <div className="flex-1 p-3 border border-border rounded-md bg-muted/50">
+                    <div className="flex-1 p-3 border border-border/80 rounded-md bg-muted/50">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium">Selfie with uploaded document</span>
                         <Button size="sm" variant="outline" onClick={() => handleViewVerifyDoc(user.selfieWithPassport?.url, 'selfie')} disabled={openingVerifyDoc === 'selfie'}>
@@ -485,7 +485,7 @@ export default function ProfilePage() {
 
         {/* Subscription Information */}
         <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
@@ -496,7 +496,7 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-border/80 rounded-lg">
                 <div>
                   <p className="text-sm font-medium">Current Plan</p>
                   <p className="text-2xl font-bold capitalize mt-1">{user?.plan || 'Free'}</p>
@@ -507,13 +507,13 @@ export default function ProfilePage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 border border-border rounded-lg">
+                <div className="p-4 border border-border/80 rounded-lg">
                   <p className="text-sm text-muted-foreground">Member Since</p>
                   <p className="text-lg font-semibold mt-1">
                     {formatDate(user?.createdAt)}
                   </p>
                 </div>
-                <div className="p-4 border border-border rounded-lg">
+                <div className="p-4 border border-border/80 rounded-lg">
                   <p className="text-sm text-muted-foreground">Plan Started</p>
                   <p className="text-lg font-semibold mt-1">
                     {formatDate(user?.planStartDate)}
@@ -522,7 +522,7 @@ export default function ProfilePage() {
               </div>
 
               {user?.plan === 'free' && (
-                <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
                   <p className="text-sm font-medium text-primary">
                     Upgrade to Pro or Enterprise for unlimited releases and more storage!
                   </p>
@@ -534,7 +534,7 @@ export default function ProfilePage() {
 
         {/* Account Stats */}
         <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle>Account Statistics</CardTitle>
               <CardDescription>
@@ -543,13 +543,13 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 border border-border rounded-lg">
+                <div className="p-4 border border-border/80 rounded-lg">
                   <p className="text-sm text-muted-foreground">Total Releases</p>
                   <p className="text-2xl font-bold mt-1">
                     {user?.usage.totalReleases || 0}
                   </p>
                 </div>
-                <div className="p-4 border border-border rounded-lg">
+                <div className="p-4 border border-border/80 rounded-lg">
                   <p className="text-sm text-muted-foreground">Total Stream</p>
                   <p className="text-2xl font-bold mt-1">
                     {user?.usage.totalStreams || 0}

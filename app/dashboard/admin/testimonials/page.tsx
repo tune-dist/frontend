@@ -172,7 +172,7 @@ export default function TestimonialsAdminPage() {
                     </Button>
                 </div>
 
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Quote className="h-5 w-5" />
@@ -189,7 +189,7 @@ export default function TestimonialsAdminPage() {
                                 <p className="text-muted-foreground">No testimonials found.</p>
                             </div>
                         ) : (
-                            <div className="rounded-md border border-border overflow-hidden">
+                            <div className="rounded-md border border-border/80 overflow-hidden">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>

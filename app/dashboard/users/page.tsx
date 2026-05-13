@@ -124,7 +124,7 @@ export default function UsersPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Stat 1 */}
                         <div
-                            className="flex flex-col gap-2 rounded-xl p-6 border border-surface-highlight bg-surface-dark hover:border-primary/30 transition-colors group">
+                            className="flex flex-col gap-2 rounded-xl p-6 glass-card">
                             <div className="flex justify-between items-start">
                                 <p className="text-text-secondary text-sm font-medium">Total Users</p>
                                 <Users className="w-5 h-5 text-text-secondary group-hover:text-primary transition-colors" />
@@ -137,7 +137,7 @@ export default function UsersPage() {
                         </div>
                         {/* Stat 2 */}
                         <div
-                            className="flex flex-col gap-2 rounded-xl p-6 border border-surface-highlight bg-surface-dark hover:border-primary/30 transition-colors group">
+                            className="flex flex-col gap-2 rounded-xl p-6 glass-card">
                             <div className="flex justify-between items-start">
                                 <p className="text-text-secondary text-sm font-medium">New Signups (24h)</p>
                                 <UserPlus className="w-5 h-5 text-text-secondary group-hover:text-primary transition-colors" />
@@ -150,7 +150,7 @@ export default function UsersPage() {
                         </div>
                         {/* Stat 3 */}
                         <div
-                            className="flex flex-col gap-2 rounded-xl p-6 border border-surface-highlight bg-surface-dark hover:border-primary/30 transition-colors group">
+                            className="flex flex-col gap-2 rounded-xl p-6 glass-card">
                             <div className="flex justify-between items-start">
                                 <p className="text-text-secondary text-sm font-medium">Pending Approvals</p>
                                 <Clock className="w-5 h-5 text-text-secondary group-hover:text-primary transition-colors" />
@@ -176,7 +176,7 @@ export default function UsersPage() {
                         </div>
                     </div>
                     {/* Command Bar: Search & Filter */}
-                    <div className="bg-surface-dark rounded-2xl border border-surface-highlight p-2">
+                    <div className="glass-card p-2">
                         <div className="flex flex-col md:flex-row gap-2">
                             {/* Search */}
                             <div className="flex-1 relative">
@@ -237,12 +237,12 @@ export default function UsersPage() {
                         </div>
                     </div>
                     {/* Data Table */}
-                    <div className="rounded-2xl border border-surface-highlight bg-surface-dark overflow-hidden">
+                    <div className="rounded-2xl glass-card overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr
-                                        className="border-b border-surface-highlight bg-surface-highlight/20 text-text-secondary text-xs uppercase tracking-wider font-semibold">
+                                        className="border-b border-border/50 bg-surface-highlight/10 text-text-secondary text-xs uppercase tracking-wider font-semibold">
                                         <th className="px-6 py-4">User Details</th>
                                         <th className="px-6 py-4">Role</th>
                                         <th className="px-6 py-4">Status</th>
@@ -325,7 +325,7 @@ export default function UsersPage() {
                         </div>
                         {/* Pagination Footer */}
                         <div
-                            className="flex items-center justify-between px-6 py-4 border-t border-surface-highlight bg-surface-dark">
+                            className="flex items-center justify-between px-6 py-4 border-t border-border/50 bg-card/20 backdrop-blur-sm">
                             <p className="text-sm text-text-secondary">
                                 Showing <span className="font-medium text-white">{(page - 1) * limit + 1}</span> to <span
                                     className="font-medium text-white">{Math.min(page * limit, totalUsers)}</span> of <span

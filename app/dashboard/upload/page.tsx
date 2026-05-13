@@ -986,7 +986,7 @@ export default function UploadPage() {
 
           {/* Progress Steps */}
           <motion.div variants={itemVariants}>
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <Card className="glass-card">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   {steps.map((step, index) => {
@@ -1040,7 +1040,7 @@ export default function UploadPage() {
             >
               {/* Step Content */}
               <motion.div variants={itemVariants}>
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <Card className="glass-card">
                   <CardContent className="pt-6">
                     <motion.div
                       key={currentStep}
@@ -1055,7 +1055,7 @@ export default function UploadPage() {
                 </Card>
 
                 {currentStep === 4 && (
-                  <Card className="mt-4 border-border/50 bg-card/50 backdrop-blur-sm">
+                  <Card className="mt-4 glass-card">
                     <CardContent className="pt-3">
                       {/* Copyright - always show if allowed */}
                       {fieldRules.copyright?.allow !== false && (
