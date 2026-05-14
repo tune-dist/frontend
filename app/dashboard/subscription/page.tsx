@@ -10,13 +10,14 @@ import {
     CreditCard,
     Calendar,
     CheckCircle,
-    AlertCircle,
     Loader2,
     ArrowUpRight,
     ArrowLeft,
     History,
     XCircle,
     Mail,
+    AlertCircle,
+    AlertTriangle,
 } from 'lucide-react'
 import {
     Dialog,
@@ -26,13 +27,36 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { cancelMainSubscription, getPaymentHistory, PaymentHistoryItem } from '@/lib/api/payments'
+import {
+    cancelMainSubscription,
+    getPaymentHistory,
+    PaymentHistoryItem,
+} from '@/lib/api/payments'
 import { getAllPlans, Plan } from '@/lib/api/plans'
 import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users'
+import apiClient from '@/lib/api-client'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import UpgradePlanModal from '@/components/dashboard/upgrade-plan-modal'
 import toast from 'react-hot-toast'
+
+// Inlined API calls — payments.ts is mid-merge and does not currently export these.
+// Kept here to keep this resolution scoped to page.tsx; can be promoted to payments.ts
+// once that file's merge is resolved.
+async function fetchActiveSubscriptions(): Promise<any[]> {
+    const response = await apiClient.get<any[]>('/payments/active-subscriptions')
+    return response.data
+}
+
+async function cancelSubscriptionById(
+    subscriptionId?: string,
+): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+        '/payments/cancel-subscription',
+        { subscriptionId },
+    )
+    return response.data
+}
 
 const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
 const ARTIST_ADDON_PRICE_INR = 500
@@ -43,39 +67,45 @@ export default function SubscriptionPage() {
     const [profile, setProfile] = useState<ProfileWithPlan | null>(null)
     const [payments, setPayments] = useState<PaymentHistoryItem[]>([])
     const [allPlans, setAllPlans] = useState<Plan[]>([])
+    const [activeSubscriptions, setActiveSubscriptions] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-    const [isPurchasingAddon, setIsPurchasingAddon] = useState(false)
     const [showCancelDialog, setShowCancelDialog] = useState(false)
+    const [selectedSubId, setSelectedSubId] = useState<string | undefined>(undefined)
+    const [cancellingType, setCancellingType] = useState<'plan' | 'addon'>('plan')
     const [isCancelling, setIsCancelling] = useState(false)
+    const [isPurchasingAddon, setIsPurchasingAddon] = useState(false)
     const { initiatePayment, isLoading: paymentLoading } = useRazorpay()
     const router = useRouter()
 
     const reloadProfile = useCallback(async () => {
-        const [nextProfile, history] = await Promise.all([
+        const [nextProfile, history, plans] = await Promise.all([
             getUserProfileWithPlan(),
             getPaymentHistory().catch((err) => {
                 console.error('Failed to fetch payment history:', err)
                 return [] as PaymentHistoryItem[]
             }),
+            getAllPlans(),
         ])
         setProfile(nextProfile)
         setPayments(history)
+        setAllPlans(plans)
+    }, [])
+
+    const reloadActiveSubscriptions = useCallback(async () => {
+        try {
+            const subs = await fetchActiveSubscriptions()
+            setActiveSubscriptions(subs)
+        } catch (err) {
+            console.error('Failed to fetch active subscriptions:', err)
+        }
     }, [])
 
     useEffect(() => {
         let cancelled = false
         const fetchData = async () => {
             try {
-                const [nextProfile, history, plans] = await Promise.all([
-                    getUserProfileWithPlan(),
-                    getPaymentHistory(),
-                    getAllPlans(),
-                ])
-                if (cancelled) return
-                setProfile(nextProfile)
-                setPayments(history)
-                setAllPlans(plans)
+                await Promise.all([reloadProfile(), reloadActiveSubscriptions()])
             } catch (error) {
                 console.error('Failed to fetch subscription data:', error)
             } finally {
@@ -87,29 +117,10 @@ export default function SubscriptionPage() {
         return () => {
             cancelled = true
         }
-    }, [])
+    }, [reloadProfile, reloadActiveSubscriptions])
 
     const handleUpgrade = () => {
         setShowUpgradeModal(true)
-    }
-
-    const handleConfirmCancel = async () => {
-        setIsCancelling(true)
-        try {
-            const result = await cancelMainSubscription()
-            if (result?.success) {
-                toast.success(result.message || 'Your subscription has been cancelled.')
-                setShowCancelDialog(false)
-                await Promise.all([refreshUser(), reloadProfile()])
-            } else {
-                toast.error(result?.message || 'Cancellation failed.')
-            }
-        } catch (err: any) {
-            console.error('Cancel failed:', err)
-            toast.error(err?.response?.data?.message || 'Could not cancel subscription. Please try again.')
-        } finally {
-            setIsCancelling(false)
-        }
     }
 
     const handleBuyArtistAddon = async () => {
@@ -121,12 +132,49 @@ export default function SubscriptionPage() {
             })
             if (result?.success) {
                 toast.success('Extra artist slot added to your plan!')
-                await Promise.all([refreshUser(), reloadProfile()])
+                await Promise.all([refreshUser(), reloadProfile(), reloadActiveSubscriptions()])
             }
         } catch (err) {
             console.error('Addon purchase failed:', err)
         } finally {
             setIsPurchasingAddon(false)
+        }
+    }
+
+    const openCancelDialog = (subscriptionId?: string, type: 'plan' | 'addon' = 'plan') => {
+        setSelectedSubId(subscriptionId)
+        setCancellingType(type)
+        setShowCancelDialog(true)
+    }
+
+    const handleConfirmCancel = async () => {
+        setIsCancelling(true)
+        try {
+            const result =
+                cancellingType === 'addon'
+                    ? await cancelSubscriptionById(selectedSubId)
+                    : await cancelMainSubscription()
+            if (result?.success) {
+                toast.success(
+                    result.message ||
+                        (cancellingType === 'addon'
+                            ? 'Add-on cancelled.'
+                            : 'Your subscription has been cancelled.'),
+                )
+                setShowCancelDialog(false)
+                setSelectedSubId(undefined)
+                await Promise.all([refreshUser(), reloadProfile(), reloadActiveSubscriptions()])
+            } else {
+                toast.error(result?.message || 'Cancellation failed.')
+            }
+        } catch (err: any) {
+            console.error('Cancel failed:', err)
+            toast.error(
+                err?.response?.data?.message ||
+                    'Could not cancel. Please try again.',
+            )
+        } finally {
+            setIsCancelling(false)
         }
     }
 
@@ -182,6 +230,7 @@ export default function SubscriptionPage() {
     const isFreePlan = !activeMapping && (planKey === 'free' || !planKey)
     const isExpired = !!planEndDate && new Date(planEndDate) < new Date()
     const isSubscriptionActive = !!activeMapping && activeMapping.status === 'active' && !isExpired
+    const isCancellationPending = !!activeMapping && activeMapping.status === 'cancelled' && !isExpired
 
     const extraArtistSlots = effective?.extraArtistSlots ?? activeAddons.length
     const baseArtistLimit = planDetails?.limits?.maxArtists ?? 0
@@ -236,6 +285,14 @@ export default function SubscriptionPage() {
                                             <AlertCircle className="h-3 w-3" />
                                             Expired
                                         </Badge>
+                                    ) : isCancellationPending ? (
+                                        <Badge
+                                            variant="outline"
+                                            className="bg-orange-500/10 text-orange-500 border-orange-500/20 flex items-center gap-1"
+                                        >
+                                            <AlertTriangle className="h-3 w-3" />
+                                            Cancelling / Expiring
+                                        </Badge>
                                     ) : isSubscriptionActive ? (
                                         <Badge className="bg-green-500/10 text-green-500 flex items-center gap-1">
                                             <CheckCircle className="h-3 w-3" />
@@ -281,10 +338,10 @@ export default function SubscriptionPage() {
                                         <ArrowUpRight className="h-4 w-4" />
                                     </Button>
                                 )}
-                                {!isFreePlan && !isExpired && (
+                                {!isFreePlan && !isExpired && !isCancellationPending && (
                                     <Button
                                         variant="outline"
-                                        onClick={() => setShowCancelDialog(true)}
+                                        onClick={() => openCancelDialog(undefined, 'plan')}
                                         className="flex items-center gap-2 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
                                     >
                                         <XCircle className="h-4 w-4" />
@@ -358,6 +415,69 @@ export default function SubscriptionPage() {
                     </CardContent>
                 </Card>
 
+                {/* Active Addons Section */}
+                {activeSubscriptions.some((s) => s.type === 'addon') && (
+                    <Card className="mb-8">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <CheckCircle className="h-5 w-5 text-primary" />
+                                Active Add-ons
+                            </CardTitle>
+                            <CardDescription>Manage your extra artist slots and other addons</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {activeSubscriptions
+                                    .filter((s) => s.type === 'addon')
+                                    .map((sub) => (
+                                        <div
+                                            key={sub.id}
+                                            className="p-4 border border-border rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4 bg-card/30 backdrop-blur-sm transition-all hover:border-primary/20"
+                                        >
+                                            <div>
+                                                <p className="text-xl font-bold capitalize">
+                                                    {String(sub.planKey ?? '').replace(/_/g, ' ')}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    Expires: {formatDate(sub.endDate)}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                {sub.isRecurring ? (
+                                                    sub.status !== 'cancelled' ? (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
+                                                            onClick={() => openCancelDialog(sub.id, 'addon')}
+                                                            disabled={isCancelling}
+                                                        >
+                                                            Cancel Add-on
+                                                        </Button>
+                                                    ) : (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-orange-500 border-orange-500/20 bg-orange-500/5"
+                                                        >
+                                                            Cancelling / Expiring
+                                                        </Badge>
+                                                    )
+                                                ) : (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="text-blue-500 border-blue-500/20 bg-blue-500/5"
+                                                    >
+                                                        One-time Purchase
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Payment History */}
                 <Card>
                     <CardHeader>
@@ -422,23 +542,41 @@ export default function SubscriptionPage() {
                 hasActiveSubscription={!isFreePlan && isSubscriptionActive}
             />
 
-            {/* Cancel Subscription confirmation */}
+            {/* Cancel Subscription / Add-on confirmation */}
             <Dialog open={showCancelDialog} onOpenChange={(open) => !isCancelling && setShowCancelDialog(open)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertCircle className="h-5 w-5 text-destructive" />
-                            Cancel subscription?
+                            {cancellingType === 'addon' ? 'Cancel add-on?' : 'Cancel subscription?'}
                         </DialogTitle>
                         <DialogDescription>
-                            Your <span className="font-semibold">{planTitle}</span> plan will be cancelled at the end of the current billing cycle on{' '}
-                            <span className="font-semibold">{formatDate(planEndDate)}</span>.
-                            {extraArtistSlots > 0 && (
+                            {cancellingType === 'addon' ? (
                                 <>
-                                    {' '}All <span className="font-semibold">{extraArtistSlots} artist add-on{extraArtistSlots > 1 ? 's' : ''}</span> will also be cancelled — add-ons cannot remain active without an underlying plan.
+                                    Your <span className="font-semibold">extra artist slot</span> will be cancelled
+                                    at the end of the current billing cycle on{' '}
+                                    <span className="font-semibold">{formatDate(planEndDate)}</span>. After that
+                                    date the slot is removed but your main plan continues.
                                 </>
-                            )}{' '}
-                            You will keep access until then. After that date your account will return to the free tier.
+                            ) : (
+                                <>
+                                    Your <span className="font-semibold">{planTitle}</span> plan will be cancelled
+                                    at the end of the current billing cycle on{' '}
+                                    <span className="font-semibold">{formatDate(planEndDate)}</span>.
+                                    {extraArtistSlots > 0 && (
+                                        <>
+                                            {' '}All{' '}
+                                            <span className="font-semibold">
+                                                {extraArtistSlots} artist add-on{extraArtistSlots > 1 ? 's' : ''}
+                                            </span>{' '}
+                                            will also be cancelled — add-ons cannot remain active without an
+                                            underlying plan.
+                                        </>
+                                    )}{' '}
+                                    You will keep access until then. After that date your account will return to
+                                    the free tier.
+                                </>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
