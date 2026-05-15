@@ -70,8 +70,8 @@ const itemVariants = {
 const steps = [
   { id: 1, name: "Release Details", icon: Info },
   { id: 2, name: "Audio File", icon: Music },
-  { id: 3, name: "Cover Art", icon: ImageIcon },
-  { id: 4, name: "Credits", icon: Users },
+  { id: 3, name: "Credits", icon: Users },
+  { id: 4, name: "Cover Art", icon: ImageIcon },
   { id: 5, name: "Review", icon: CheckCircle },
 ];
 
@@ -389,37 +389,7 @@ export default function UploadPage() {
             }
           }
           break;
-        case 3: // Cover Art
-          if (!formData.coverArt) {
-            form.setError("coverArt", {
-              type: "required",
-              message: "Cover art is required",
-            });
-            isValid = false;
-          } else {
-            // Check for OCR validation warnings and consent
-            const status = formData.coverArtValidationStatus;
-            const issues = formData.coverArtValidationIssues || [];
-            const hasIssues = (status && status !== 'approved') || issues.length > 0;
-
-            if (hasIssues && !formData.coverArtConsent) {
-              form.setError("coverArtConsent", {
-                type: "manual",
-                message: "Please provide consent to proceed with current cover art.",
-              });
-              toast.error("Please confirm you want to proceed with the cover art warnings");
-              isValid = false;
-            } else {
-              form.clearErrors("coverArtConsent");
-              isValid = true;
-            }
-          }
-
-          if (!isValid) {
-            scrollToError();
-          }
-          break;
-        case 4: // Credits
+        case 3: // Credits
           isValid = true;
           // Validate required fields in Credits step
           if (formData.format === "single") {
@@ -745,6 +715,36 @@ export default function UploadPage() {
             scrollToError();
           }
           break;
+        case 4: // Cover Art
+          if (!formData.coverArt) {
+            form.setError("coverArt", {
+              type: "required",
+              message: "Cover art is required",
+            });
+            isValid = false;
+          } else {
+            // Check for OCR validation warnings and consent
+            const status = formData.coverArtValidationStatus;
+            const issues = formData.coverArtValidationIssues || [];
+            const hasIssues = (status && status !== 'approved') || issues.length > 0;
+
+            if (hasIssues && !formData.coverArtConsent) {
+              form.setError("coverArtConsent", {
+                type: "manual",
+                message: "Please provide consent to proceed with current cover art.",
+              });
+              toast.error("Please confirm you want to proceed with the cover art warnings");
+              isValid = false;
+            } else {
+              form.clearErrors("coverArtConsent");
+              isValid = true;
+            }
+          }
+
+          if (!isValid) {
+            scrollToError();
+          }
+          break;
         case 5: // Review
           isValid = true;
           break;
@@ -809,8 +809,6 @@ export default function UploadPage() {
       case 2:
         return <AudioFileStep {...commonProps} />;
       case 3:
-        return <CoverArtStep {...commonProps} />;
-      case 4:
         return (
           <CreditsStep
             {...commonProps}
@@ -823,6 +821,8 @@ export default function UploadPage() {
             onEditTrack={openTrackModal}
           />
         );
+      case 4:
+        return <CoverArtStep {...commonProps} />;
       case 5:
         return (
           <ReviewStep
@@ -1054,8 +1054,8 @@ export default function UploadPage() {
                   </CardContent>
                 </Card>
 
-                {currentStep === 4 && (
-                  <Card className="mt-4 glass-card">
+                {currentStep === 3 && (
+                  <Card className="mt-4 border-border/50 bg-card/50 backdrop-blur-sm">
                     <CardContent className="pt-3">
                       {/* Copyright - always show if allowed */}
                       {fieldRules.copyright?.allow !== false && (
@@ -1208,11 +1208,11 @@ export default function UploadPage() {
         mainArtistName={watch("artistName")}
         featuringArtists={watch("artists")}
         mainArtistProfiles={{
-          spotify: watch("spotifyProfile"),
-          apple: watch("appleMusicProfile"),
-          youtube: watch("youtubeMusicProfile"),
-          instagram: watch("instagramProfile") === 'yes' ? watch("instagramProfileUrl") : watch("instagramProfile"),
-          facebook: watch("facebookProfile") === 'yes' ? watch("facebookProfileUrl") : watch("facebookProfile")
+          spotify: watch("spotifyProfile") ?? undefined,
+          apple: watch("appleMusicProfile") ?? undefined,
+          youtube: watch("youtubeMusicProfile") ?? undefined,
+          instagram: (watch("instagramProfile") === 'yes' ? watch("instagramProfileUrl") : watch("instagramProfile")) ?? undefined,
+          facebook: (watch("facebookProfile") === 'yes' ? watch("facebookProfileUrl") : watch("facebookProfile")) ?? undefined
         }}
         fieldRules={fieldRules}
       />

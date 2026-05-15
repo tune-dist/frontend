@@ -143,29 +143,29 @@ export default function ProfilePage() {
       toast.error('Please select both your passport and selfie with passport');
       return;
     }
-    
+
     setIsVerifyingProfile(true);
     try {
       const passportResult = await uploadFileDirectly(passportFile, '', undefined, 'passport');
       const selfieResult = await uploadFileDirectly(selfieFile, '', undefined, 'selfie');
-      
+
       const passportData = {
         url: passportResult.path,
         filename: passportFile.name,
         uploadedAt: new Date()
       };
-      
+
       const selfieData = {
         url: selfieResult.path,
         filename: selfieFile.name,
         uploadedAt: new Date()
       };
-      
+
       await updateUserProfile({
         passport: passportData,
         selfieWithPassport: selfieData
       });
-      
+
       await refreshUser();
       toast.success('Verification documents uploaded successfully');
       setShowVerifyModal(false);
@@ -666,7 +666,7 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label>Selfie with uploaded document</Label>
               <div

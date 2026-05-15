@@ -45,7 +45,7 @@ interface RazorpayResponse {
 }
 
 interface UseRazorpayReturn {
-    initiatePayment: (planKey: string, userInfo?: { name?: string; email?: string }) => Promise<PaymentResult | null>;
+    initiatePayment: (planKey?: string, userInfo?: { name?: string; email?: string }, isAutoPay?: boolean, isAddon?: boolean, addonType?: string) => Promise<PaymentResult | null>;
     isLoading: boolean;
     isScriptLoaded: boolean;
 }
@@ -147,7 +147,7 @@ export function useRazorpay(): UseRazorpayReturn {
      * Initiate payment flow for a plan
      */
     const initiatePayment = useCallback(
-        async (planKey: string, userInfo?: { name?: string; email?: string }): Promise<PaymentResult | null> => {
+        async (planKey?: string, userInfo?: { name?: string; email?: string }, isAutoPay: boolean = true, isAddon?: boolean, addonType?: string): Promise<PaymentResult | null> => {
             if (!isScriptLoaded) {
                 toast.error('Payment system is loading. Please try again.');
                 return null;
@@ -157,7 +157,7 @@ export function useRazorpay(): UseRazorpayReturn {
 
             try {
                 // Step 1: Create order on backend
-                const order = await createPaymentOrder(planKey);
+                const order = await createPaymentOrder(planKey, isAutoPay, isAddon, addonType);
 
                 // Step 2: Open Razorpay checkout
                 const razorpayResponse = await openCheckout(order, userInfo);

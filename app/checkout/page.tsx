@@ -20,7 +20,7 @@ function CheckoutContent() {
     const [plan, setPlan] = useState<Plan | null>(null)
     const [loading, setLoading] = useState(true)
     const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending')
-    const [autoTriggered, setAutoTriggered] = useState(false)
+    const [isAutoPay] = useState(true)
 
     const planKey = searchParams.get('plan')
 
@@ -57,14 +57,6 @@ function CheckoutContent() {
         fetchPlan()
     }, [planKey, router])
 
-    // Auto-trigger payment when script is loaded
-    useEffect(() => {
-        if (!autoTriggered && isScriptLoaded && plan && !loading && paymentStatus === 'pending') {
-            setAutoTriggered(true)
-            handlePayment()
-        }
-    }, [isScriptLoaded, plan, loading, paymentStatus, autoTriggered])
-
     const handlePayment = async () => {
         if (!plan || paymentLoading) return
 
@@ -74,7 +66,7 @@ function CheckoutContent() {
             const result = await initiatePayment(plan.key, {
                 name: user?.fullName,
                 email: user?.email,
-            })
+            }, isAutoPay)
 
             if (result?.success) {
                 setPaymentStatus('success')
@@ -140,9 +132,29 @@ function CheckoutContent() {
                                 <span className="text-xl font-bold">{plan.priceDisplay}</span>
                             </div>
                             <p className="text-sm text-muted-foreground">{plan.description}</p>
-                            {plan.period && (
-                                <p className="text-xs text-muted-foreground mt-1">Billed {plan.period.replace('/', '')}</p>
-                            )}
+                            
+                            {/* {paymentStatus === 'pending' && (
+                                <div className="mt-4 pt-4 border-t border-border/50">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2 text-center">Select Billing Type</p>
+                                    <div className="flex bg-background border rounded-lg p-1">
+                                        <button 
+                                            onClick={() => setIsAutoPay(true)}
+                                            className={`flex-1 text-xs py-2 px-2 rounded-md transition-all ${isAutoPay ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:bg-muted/50'}`}
+                                        >
+                                            Subscription
+                                        </button>
+                                        <button 
+                                            onClick={() => setIsAutoPay(false)}
+                                            className={`flex-1 text-xs py-2 px-2 rounded-md transition-all ${!isAutoPay ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:bg-muted/50'}`}
+                                        >
+                                            One-time Pass
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-3 text-center">
+                                        {isAutoPay ? 'Billed annually. Cancel anytime.' : '1 year access. Non-renewing.'}
+                                    </p>
+                                </div>
+                            )} */}
                         </div>
 
                         {paymentStatus === 'pending' && !isScriptLoaded && (

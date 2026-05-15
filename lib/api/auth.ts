@@ -55,6 +55,9 @@ export interface User {
     filename: string;
     uploadedAt: string;
   };
+  isSubscriptionActive?: boolean;
+  subscriptionStatus?: string;
+  extraArtistSlots?: number;
 }
 
 export interface AuthResponse {

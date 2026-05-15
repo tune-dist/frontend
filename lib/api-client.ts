@@ -48,9 +48,9 @@ apiClient.interceptors.response.use(
 
     // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh') && !originalRequest.url?.includes('/auth/login')) {
-      
+
       if (isRefreshing) {
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
@@ -78,7 +78,7 @@ apiClient.interceptors.response.use(
             expires: 7,
             sameSite: 'lax' as const,
           };
-          
+
           Cookies.set(config.tokenKey, data.access_token, cookieOptions);
           Cookies.set('refresh_token', data.refresh_token, cookieOptions);
 
@@ -86,21 +86,19 @@ apiClient.interceptors.response.use(
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
           }
-          
+
           processQueue(null, data.access_token);
           return apiClient(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, clear tokens and redirect
-          processQueue(refreshError, null);
-          Cookies.remove(config.tokenKey);
-          Cookies.remove('refresh_token');
-          Cookies.remove('user');
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-            window.location.href = '/auth';
+        } catch (refreshError: any) {
+          // Refresh failed, clear tokens and redirect only if it's an auth error
+          if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
+            Cookies.remove(config.tokenKey);
+            Cookies.remove('refresh_token');
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+              window.location.href = '/auth';
+            }
           }
           return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
         }
       } else {
         // No refresh token, clear access token and redirect
@@ -110,7 +108,7 @@ apiClient.interceptors.response.use(
           window.location.href = '/auth';
         }
       }
-    } else if (error.response?.status === 401 && !originalRequest.url?.includes('/auth/login')) {
+    } else if (error.response?.status === 401 || error.response?.status === 403) {
       // If it was already a retry or a refresh request that failed, logout
       Cookies.remove(config.tokenKey);
       Cookies.remove('refresh_token');
@@ -132,6 +130,15 @@ export const getErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
     console.log('Is Axios Error:', true);
     const axiosError = error as AxiosError<{ message?: string; error?: string }>;
+
+    // Handle specific network errors
+    if (!axiosError.response) {
+      if (axiosError.code === 'ERR_NETWORK') {
+        return 'Network connection error. Please check if the backend server is running.';
+      }
+      return axiosError.message || 'Unable to connect to the server. Please try again later.';
+    }
+
     return axiosError.response?.data?.message ||
       axiosError.response?.data?.error ||
       axiosError.message ||

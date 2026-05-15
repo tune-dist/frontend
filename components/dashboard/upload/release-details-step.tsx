@@ -291,7 +291,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                                     <Input
                                         id="instagramUrl"
                                         placeholder="https://instagram.com/..."
-                                        value={formData.instagramProfileUrl}
+                                        value={formData.instagramProfileUrl ?? ''}
                                         onChange={(e) => setFormData({ ...formData, instagramProfileUrl: e.target.value })}
                                         className="text-sm"
                                     />
@@ -344,7 +344,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                                     <Input
                                         id="facebookUrl"
                                         placeholder="https://facebook.com/..."
-                                        value={formData.facebookProfileUrl}
+                                        value={formData.facebookProfileUrl ?? ''}
                                         onChange={(e) => setFormData({ ...formData, facebookProfileUrl: e.target.value })}
                                         className="text-sm"
                                     />
