@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrendingUp, DollarSign, Globe, Music, Loader2, Users, Activity, ChevronRight } from "lucide-react";
+import { TrendingUp, DollarSign, Globe, Music, Loader2, ListMusic, Activity, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getReleases, Release } from "@/lib/api/releases";
 import { getUsageStats, UsageStats } from "@/lib/api/users";
@@ -184,7 +184,7 @@ export default function DashboardPage() {
                   <div className="relative">
                     <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full" />
                     <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-purple-500/30 to-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-inner group-hover:border-purple-500/60">
-                      <Users className="h-6 w-6 text-purple-500" />
+                      <ListMusic className="h-6 w-6 text-purple-500" />
                     </div>
                   </div>
                 </div>
