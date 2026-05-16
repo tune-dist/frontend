@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
+import { S3Image } from '@/components/ui/s3-image'
 
 export default function TopNavbar() {
   const { user, logout } = useAuth()
@@ -79,8 +80,16 @@ export default function TopNavbar() {
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <UserIcon className="h-4 w-4 text-primary" />
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border">
+                {user?.avatar ? (
+                  <S3Image
+                    src={user.avatar}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserIcon className="h-4 w-4 text-primary" />
+                )}
               </div>
               <span className="hidden md:inline text-sm">{user?.fullName || 'User'}</span>
               <ChevronDown className="h-4 w-4" />
