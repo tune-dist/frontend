@@ -396,7 +396,10 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                         <option value="Kannada">Kannada</option>
                         <option value="Malayalam">Malayalam</option>
                         <option value="Urdu">Urdu</option>
-                        <option value="Other">Other</option>
+                        <option value="Bhojpuri">Bhojpuri</option>
+                        <option value="Haryanvi">Haryanvi</option>
+                        <option value="Rajasthani">Rajasthani</option>
+                        <option value="Instrumental">Instrumental</option>
                     </select>
                 </div>
                 {/* <div className="space-y-2">

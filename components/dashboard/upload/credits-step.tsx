@@ -520,7 +520,10 @@ export default function CreditsStep({
                         <option value="Kannada">Kannada</option>
                         <option value="Malayalam">Malayalam</option>
                         <option value="Urdu">Urdu</option>
-                        <option value="Other">Other</option>
+                        <option value="Bhojpuri">Bhojpuri</option>
+                        <option value="Haryanvi">Haryanvi</option>
+                        <option value="Rajasthani">Rajasthani</option>
+                        <option value="Instrumental">Instrumental</option>
                   </select>
                   {errors.language && (
                     <p className="text-xs text-red-500 mt-1">

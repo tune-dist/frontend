@@ -1382,24 +1382,21 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             onChange={(e) => setLanguage(e.target.value)}
                         >
                             <option value="">Select a language</option>
-                            <option value="English">English</option>
-                            <option value="Spanish">Spanish</option>
-                            <option value="French">French</option>
-                            <option value="German">German</option>
-                            <option value="Italian">Italian</option>
-                            <option value="Portuguese">Portuguese</option>
-                            <option value="Japanese">Japanese</option>
-                            <option value="Korean">Korean</option>
-                            <option value="Chinese">Chinese (Mandarin)</option>
                             <option value="Hindi">Hindi</option>
-                            <option value="Arabic">Arabic</option>
-                            <option value="Russian">Russian</option>
-                            <option value="Turkish">Turkish</option>
-                            <option value="Dutch">Dutch</option>
-                            <option value="Swedish">Swedish</option>
-                            <option value="Polish">Polish</option>
+                            <option value="English">English</option>
+                            <option value="Punjabi">Punjabi</option>
+                            <option value="Tamil">Tamil</option>
+                            <option value="Telugu">Telugu</option>
+                            <option value="Bengali">Bengali</option>
+                            <option value="Marathi">Marathi</option>
+                            <option value="Gujarati">Gujarati</option>
+                            <option value="Kannada">Kannada</option>
+                            <option value="Malayalam">Malayalam</option>
                             <option value="Urdu">Urdu</option>
-                            <option value="Other">Other</option>
+                            <option value="Bhojpuri">Bhojpuri</option>
+                            <option value="Haryanvi">Haryanvi</option>
+                            <option value="Rajasthani">Rajasthani</option>
+                            <option value="Instrumental">Instrumental</option>
                         </select>
                     </div>
 
