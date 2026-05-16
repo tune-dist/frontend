@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/dashboard-layout";
 import { getPromotionByReleaseId } from "@/lib/api/promotions";
 import { S3Image } from "@/components/ui/s3-image";
-import { FormatSelectionDialog } from "@/components/promotion/format-selection-dialog";
+import { PromotionWizardDialog } from "@/components/promotion/promotion-wizard-dialog";
 import { useRouter } from "next/navigation";
 import {
     Card,
@@ -87,11 +87,7 @@ export default function PromotionListingPage() {
         setFormatDialogOpen(true);
     };
 
-    const handleFormatSelect = (format: string) => {
-        if (selectedReleaseForPromo) {
-            router.push(`/dashboard/promotion/${selectedReleaseForPromo}?format=${format}`);
-        }
-    };
+
 
     return (
         <DashboardLayout>
@@ -212,10 +208,10 @@ export default function PromotionListingPage() {
                     </CardContent>
                 </Card>
             </div>
-            <FormatSelectionDialog
+            <PromotionWizardDialog
                 open={formatDialogOpen}
                 onClose={() => setFormatDialogOpen(false)}
-                onSelect={handleFormatSelect}
+                releaseId={selectedReleaseForPromo}
             />
         </DashboardLayout>
     );
