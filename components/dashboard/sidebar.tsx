@@ -28,7 +28,7 @@ import { useUI } from '@/contexts/UIContext'
 import { Tooltip } from '@/components/ui/tooltip'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Releases', href: '/dashboard/releases', icon: Music, permission: 'VIEW_RELEASES' },
   { name: 'Upload Music', href: '/dashboard/upload', icon: Upload, permission: 'UPLOAD_RELEASE' },
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard, permission: 'VIEW_BILLING' },
@@ -73,7 +73,7 @@ export default function Sidebar() {
         className={cn(
           'fixed left-0 top-0 z-40 h-screen border-r border-border/50 bg-background/95 backdrop-blur-xl transition-all duration-300 ease-in-out',
           'lg:translate-x-0',
-          isSidebarCollapsed ? 'lg:w-[72px]' : 'lg:w-64',
+          isSidebarCollapsed ? 'lg:w-[72px]' : 'lg:w-[220px]',
           isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'
         )}
         style={{
@@ -125,9 +125,9 @@ export default function Sidebar() {
                 const Icon = item.icon
                 const isActive = pathname === item.href
                 return (
-                  <Tooltip 
-                    key={item.name} 
-                    content={item.name} 
+                  <Tooltip
+                    key={item.name}
+                    content={item.name}
                     enabled={isSidebarCollapsed}
                   >
                     <Link
@@ -137,13 +137,13 @@ export default function Sidebar() {
                         'flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 group w-full',
                         isSidebarCollapsed ? 'justify-center' : 'gap-3',
                         isActive
-                          ? 'bg-primary/10 text-primary shadow-[0_0_15px_rgba(124,58,237,0.1)]'
+                          ? 'bg-primary text-white shadow-[0_0_15px_rgba(124,58,237,0.1)]'
                           : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                       )}
                     >
                       <Icon className={cn(
                         "h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110",
-                        isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                        isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground"
                       )} />
                       {!isSidebarCollapsed && <span className="truncate">{item.name}</span>}
                     </Link>

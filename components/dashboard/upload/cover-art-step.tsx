@@ -8,6 +8,7 @@ import { uploadFileInChunks, uploadFileDirectly } from '@/lib/upload/chunk-uploa
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Tooltip } from '@/components/ui/tooltip'
 
 interface CoverArtStepProps {
     formData?: UploadFormData
@@ -21,7 +22,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
     const [isValidating, setIsValidating] = useState(false);
-    
+
     const validationStatus = watch('coverArtValidationStatus');
     const validationIssues = watch('coverArtValidationIssues') || [];
     const hasValidated = !!validationStatus;
@@ -221,8 +222,15 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
             {/* Main Upload Column */}
             <div className="lg:col-span-2 space-y-6">
                 <div className="space-y-2">
-                    <h2 className="text-4xl font-bold tracking-tight">Upload Cover Art</h2>
-                    <p className="text-muted-foreground text-lg">
+                    <div className="flex items-center gap-3 justify-between">
+                        <h2 className="text-2xl font-bold tracking-tight">Upload Cover Art</h2>
+                        <Tooltip content="Avoid using social media handles, website URLs, or pricing information on your cover art. Stores will reject it.">
+                            <div className="p-1.5 rounded-full bg-primary/10 text-primary cursor-help hover:bg-primary/20 transition-colors mt-1">
+                                <Lightbulb className="h-5 w-5" />
+                            </div>
+                        </Tooltip>
+                    </div>
+                    <p className="text-muted-foreground text-md">
                         Make a great first impression. High quality, 1:1 ratio art is required for distribution.
                     </p>
                 </div>
@@ -242,12 +250,12 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                                     <UploadCloud className="h-12 w-12" />
                                 </div>
                                 <div className="space-y-1">
-                                    <h3 className="text-2xl font-semibold">Drag and drop your art here</h3>
+                                    <h3 className="text-xl font-semibold">Drag and drop your art here</h3>
                                     <p className="text-muted-foreground">or browse from your computer</p>
                                 </div>
                                 <Button
                                     type="button"
-                                    className="rounded-full px-8 py-6 bg-primary/20 hover:bg-primary/30 text-primary border-0 text-lg font-medium"
+                                    className="rounded-full px-8 py-6 bg-primary/20 hover:bg-primary/30 text-primary border-0 text-base font-medium"
                                     onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation();
                                         handleCoverArtClick();
@@ -431,37 +439,37 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
             {/* Sidebar Column */}
             <div className="space-y-6">
                 {/* Requirements Card */}
-                <div className="p-6 rounded-3xl border border-border/50 bg-card/30 backdrop-blur-sm space-y-6">
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/10 backdrop-blur-sm space-y-6">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                            <ClipboardCheck className="h-6 w-6" />
+                        <div className="p-2 rounded-lg bg-primary/20 text-primary">
+                            <ClipboardCheck className="h-4 w-4" />
                         </div>
-                        <h3 className="text-2xl font-bold italic tracking-tight uppercase">Art Requirements</h3>
+                        <h3 className="text-lg font-bold tracking-tight uppercase">Art Requirements</h3>
                     </div>
 
                     <ul className="space-y-5">
                         {requirements.map((req: any, i: number) => {
                             const status = getStatus(req.codes);
                             return (
-                                <li key={i} className="flex items-start gap-4 transition-all duration-300">
+                                <li key={i} className="flex items-start gap-2 transition-all duration-300">
                                     <div className="mt-1 flex-shrink-0">
                                         {status === 'pending' && (
-                                            <div className="h-6 w-6 rounded-full border-2 border-primary/40 flex items-center justify-center">
-                                                <div className="w-2.5 h-2.5 rounded-full bg-primary/30" />
+                                            <div className="h-5 w-5 rounded-full border-2 border-primary/40 flex items-center justify-center">
+                                                <div className="w-2 h-2 rounded-full bg-primary/30" />
                                             </div>
                                         )}
                                         {status === 'success' && (
-                                            <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center text-white scale-110 shadow-lg shadow-green-500/20">
-                                                <CheckCircle2 className="h-4 w-4 stroke-[3px]" />
+                                            <div className="h-5 w-5 rounded-full bg-green-500 flex items-center justify-center text-white scale-110 shadow-lg shadow-green-500/20">
+                                                <CheckCircle2 className="h-3 w-3 stroke-[3px]" />
                                             </div>
                                         )}
                                         {status === 'error' && (
-                                            <div className="h-6 w-6 rounded-full bg-red-500 flex items-center justify-center text-white scale-110 shadow-lg shadow-red-500/20">
-                                                <XCircle className="h-4 w-4 stroke-[3px]" />
+                                            <div className="h-5 w-5 rounded-full bg-red-500 flex items-center justify-center text-white scale-110 shadow-lg shadow-red-500/20">
+                                                <XCircle className="h-3 w-3 stroke-[3px]" />
                                             </div>
                                         )}
                                     </div>
-                                    <span className={`text-base font-medium leading-tight transition-colors duration-300 ${status === 'error' ? 'text-red-400' :
+                                    <span className={`text-xs font-medium leading-tight transition-colors duration-300 ${status === 'error' ? 'text-red-400' :
                                         status === 'success' ? 'text-green-400' :
                                             'text-muted-foreground'
                                         }`}>
@@ -473,17 +481,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     </ul>
                 </div>
 
-                {/* Pro Tip Card */}
-                <div className="p-6 rounded-3xl border-l-4 border-l-primary border border-primary/20 bg-primary/5 space-y-3">
-                    <div className="flex items-center gap-2 text-primary">
-                        <Lightbulb className="h-5 w-5" />
-                        <h3 className="text-lg font-bold">Pro Tip</h3>
-                    </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                        Avoid using social media handles, website URLs, or pricing information on your cover art.
-                        Stores will reject it.
-                    </p>
-                </div>
+
             </div>
         </div>
     )

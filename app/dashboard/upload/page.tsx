@@ -985,44 +985,49 @@ export default function UploadPage() {
           </motion.div>
 
           {/* Progress Steps */}
-          <motion.div variants={itemVariants}>
-            <Card className="glass-card">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  {steps.map((step, index) => {
-                    const Icon = step.icon;
-                    const isActive = step.id === currentStep;
-                    const isCompleted = step.id < currentStep;
+          <motion.div
+            variants={itemVariants}
+            className="z-[30] -mx-4 lg:-mx-6 px-4 lg:px-6 py-4 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm"
+          >
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between gap-2">
+                {steps.map((step, index) => {
+                  const Icon = step.icon;
+                  const isActive = step.id === currentStep;
+                  const isCompleted = step.id < currentStep;
 
-                    return (
-                      <div key={step.id} className="flex items-center">
-                        <div className="flex flex-col items-center">
-                          <div
-                            className={`h-10 w-10 rounded-full flex items-center justify-center ${isActive
-                              ? "bg-primary text-primary-foreground"
-                              : isCompleted
-                                ? "bg-primary/20 text-primary"
-                                : "bg-muted text-muted-foreground"
-                              }`}
-                          >
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <span className="text-xs mt-2 text-center max-w-[80px]">
-                            {step.name}
-                          </span>
+                  return (
+                    <div key={step.id} className="flex-1 flex items-center last:flex-none">
+                      <div className="flex flex-col items-center relative min-w-[60px]">
+                        <div
+                          className={`h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300 ${isActive
+                            ? "bg-primary text-primary-foreground scale-110 shadow-lg shadow-primary/25"
+                            : isCompleted
+                              ? "bg-primary/20 text-primary"
+                              : "bg-muted text-muted-foreground"
+                            }`}
+                        >
+                          <Icon className="h-5 w-5" />
                         </div>
-                        {index < steps.length - 1 && (
-                          <div
-                            className={`h-0.5 w-12 mx-2 ${isCompleted ? "bg-primary" : "bg-muted"
-                              }`}
-                          />
-                        )}
+                        <span className={`text-md mt-2 text-center font-semibold transition-colors duration-300 hidden md:block ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                          {step.name}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                      {index < steps.length - 1 && (
+                        <div className="flex-1 h-0.5 bg-muted self-start mt-5 relative overflow-hidden mx-1 md:mx-2 rounded-full">
+                          <motion.div
+                            initial={false}
+                            animate={{ width: isCompleted ? "100%" : "0%" }}
+                            className="absolute inset-0 bg-primary"
+                            transition={{ duration: 0.5, ease: "easeInOut" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </motion.div>
 
           {/* Form Context & Native Form Wrapper */}
@@ -1040,7 +1045,7 @@ export default function UploadPage() {
             >
               {/* Step Content */}
               <motion.div variants={itemVariants}>
-                <Card className="glass-card">
+                <Card className="glass-card bg-neutral-900 hover:bg-neutral-900">
                   <CardContent className="pt-6">
                     <motion.div
                       key={currentStep}
@@ -1164,29 +1169,32 @@ export default function UploadPage() {
               {/* Navigation Buttons */}
               <motion.div
                 variants={itemVariants}
-                className="flex items-center justify-between"
+                className=" z-[30] -mx-4 lg:-mx-6 px-4 lg:px-6 py-5 bg-background/80 backdrop-blur-xl border-t border-border/50 flex items-center justify-between mt-10 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]"
               >
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 1}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Previous
-                </Button>
+                <div className="max-w-4xl mx-auto w-full flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentStep === 1}
+                    className="rounded-xl px-6"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Previous
+                  </Button>
 
-                <div className="flex gap-2">
-                  {currentStep < 5 ? (
-                    <Button type="submit" disabled={isProcessing}>
-                      {isProcessing ? "Processing..." : "Next"}
-                      {!isProcessing && <ArrowRight className="h-4 w-4 ml-2" />}
-                    </Button>
-                  ) : (
-                    <Button type="submit" disabled={isProcessing}>
-                      {isProcessing ? "Submitting..." : "Submit for Review"}
-                    </Button>
-                  )}
+                  <div className="flex gap-2">
+                    {currentStep < 5 ? (
+                      <Button type="submit" disabled={isProcessing} className="rounded-xl px-8 animated-gradient-bg text-white">
+                        {isProcessing ? "Processing..." : "Next"}
+                        {!isProcessing && <ArrowRight className="h-4 w-4 ml-2" />}
+                      </Button>
+                    ) : (
+                      <Button type="submit" disabled={isProcessing} className="rounded-xl px-8 animated-gradient-bg text-white">
+                        {isProcessing ? "Submitting..." : "Submit for Review"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             </form>
@@ -1215,6 +1223,7 @@ export default function UploadPage() {
           facebook: (watch("facebookProfile") === 'yes' ? watch("facebookProfileUrl") : watch("facebookProfile")) ?? undefined
         }}
         fieldRules={fieldRules}
+        audioFiles={watch("audioFiles")}
       />
     </DashboardLayout>
   );

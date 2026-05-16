@@ -17,7 +17,7 @@ export const Tooltip = ({ children, content, enabled = true, className }: Toolti
   if (!enabled) return <>{children}</>
 
   return (
-    <div 
+    <div
       className="relative flex items-center"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}

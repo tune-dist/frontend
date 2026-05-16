@@ -19,11 +19,40 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrendingUp, DollarSign, Globe, Music, Loader2, ListMusic, Activity, ChevronRight } from "lucide-react";
+import { TrendingUp, DollarSign, Globe, Music, Loader2, ListMusic, Activity, ChevronRight, Shield, MessageSquare } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { getReleases, Release } from "@/lib/api/releases";
 import { getUsageStats, UsageStats } from "@/lib/api/users";
 import Preloader from "@/components/Preloader";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line, Doughnut } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 // Animation variants
 const containerVariants = {
@@ -287,6 +316,82 @@ export default function DashboardPage() {
           </Card>
         </motion.div>
 
+        {/* Streaming Performance Section */}
+        <motion.div variants={itemVariants}>
+          <Card className="glass-card">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-bold flex items-center gap-2 group hover:text-primary transition-colors">
+                  Streaming performance
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[280px] w-full mt-4">
+                <Line
+                  data={{
+                    labels: ['May 04', 'May 05', 'May 06', 'May 07', 'May 08', 'May 09', 'May 10'],
+                    datasets: [
+                      {
+                        label: 'Streams',
+                        data: [85000, 88500, 87000, 85800, 87200, 84800, 85200],
+                        fill: true,
+                        borderColor: '#d901bc',
+                        backgroundColor: (context: any) => {
+                          const ctx = context.chart.ctx;
+                          const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                          gradient.addColorStop(0, 'rgba(244, 114, 182, 0.2)');
+                          gradient.addColorStop(1, 'rgba(244, 114, 182, 0)');
+                          return gradient;
+                        },
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#d901bc',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: '#1f2937',
+                        padding: 12,
+                        cornerRadius: 8,
+                      },
+                    },
+                    scales: {
+                      x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af', font: { size: 10, weight: 600 } },
+                      },
+                      y: {
+                        min: 75000,
+                        max: 95000,
+                        grid: { color: 'rgba(156, 163, 175, 0.05)' },
+                        ticks: {
+                          color: '#9ca3af',
+                          stepSize: 5000,
+                          callback: (value) => `${Number(value) / 1000}K`,
+                          font: { size: 10, weight: 600 },
+                        },
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+
         {/* Top Tracks & Top Stores Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Tracks Card */}
@@ -342,50 +447,33 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="flex items-center justify-center py-6">
                 <div className="flex flex-col md:flex-row items-center gap-12 w-full max-w-md">
-                  {/* Donut Chart SVG */}
+                  {/* Donut Chart */}
                   <div className="relative w-40 h-40">
-                    <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                      {/* Spotify - 61.3% */}
-                      <circle
-                        cx="50" cy="50" r="40"
-                        fill="transparent"
-                        stroke="#f472b6"
-                        strokeWidth="12"
-                        strokeDasharray="154.06 97.26"
-                        className="transition-all duration-1000"
-                      />
-                      {/* Amazon - 23.0% */}
-                      <circle
-                        cx="50" cy="50" r="40"
-                        fill="transparent"
-                        stroke="#fb923c"
-                        strokeWidth="12"
-                        strokeDasharray="57.8 193.52"
-                        strokeDashoffset="-154.06"
-                        className="transition-all duration-1000"
-                      />
-                      {/* Apple Music - 7.3% */}
-                      <circle
-                        cx="50" cy="50" r="40"
-                        fill="transparent"
-                        stroke="#818cf8"
-                        strokeWidth="12"
-                        strokeDasharray="18.35 232.97"
-                        strokeDashoffset="-211.86"
-                        className="transition-all duration-1000"
-                      />
-                      {/* Others - 8.4% */}
-                      <circle
-                        cx="50" cy="50" r="40"
-                        fill="transparent"
-                        stroke="#a3e635"
-                        strokeWidth="12"
-                        strokeDasharray="21.1 230.22"
-                        strokeDashoffset="-230.21"
-                        className="transition-all duration-1000"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    <Doughnut
+                      data={{
+                        labels: ['Spotify', 'Amazon.com', 'Apple Music', 'Others'],
+                        datasets: [{
+                          data: [61.3, 23.0, 7.3, 8.4],
+                          backgroundColor: ['#f472b6', '#fb923c', '#818cf8', '#a3e635'],
+                          borderWidth: 0,
+                        }]
+                      }}
+                      options={{
+                        cutout: '75%',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            enabled: true,
+                            backgroundColor: '#1f2937',
+                            padding: 10,
+                            cornerRadius: 8,
+                          }
+                        }
+                      }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div className="text-center">
                         <p className="text-2xl font-black text-white">100%</p>
                         <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Growth</p>
