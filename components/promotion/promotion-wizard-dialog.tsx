@@ -98,11 +98,12 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
         if (open && releaseId) {
             fetchData();
         } else {
-            // Reset state
             setStep(1);
             setRelease(null);
             setActiveTemplate(null);
             setStreamingLinks([]);
+            setElementOverrides({});
+            setBackgroundOverride({ position: { x: 50, y: 50 }, scale: 1.1 });
         }
     }, [open, releaseId]);
 
@@ -147,10 +148,14 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                     // Default to first template of selected format
                     const defaultTemp = fetchedTemplates.find((t: PromoTemplate) => t.format === selectedFormat) || fetchedTemplates[0];
                     setActiveTemplate(defaultTemp);
+                    setElementOverrides({});
+                    setBackgroundOverride({ position: { x: 50, y: 50 }, scale: 1.1 });
                 }
             } catch (e) {
                 const defaultTemp = fetchedTemplates.find((t: PromoTemplate) => t.format === selectedFormat) || fetchedTemplates[0];
                 setActiveTemplate(defaultTemp);
+                setElementOverrides({});
+                setBackgroundOverride({ position: { x: 50, y: 50 }, scale: 1.1 });
             }
         } catch (error) {
             toast.error("Failed to load release data");
@@ -197,8 +202,15 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
             });
 
             const landingPageUrl = `${window.location.origin}/p/${slug}`;
-            await navigator.clipboard.writeText(landingPageUrl);
-            toast.success("Promotion created! Link copied to clipboard.");
+            
+            try {
+                await navigator.clipboard.writeText(landingPageUrl);
+                toast.success("Promotion created! Link copied to clipboard.");
+            } catch (clipboardError) {
+                console.error("Clipboard failed:", clipboardError);
+                toast.success("Promotion created successfully!");
+            }
+            
             onClose();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to save promotion");
