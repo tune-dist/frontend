@@ -60,7 +60,6 @@ export interface User {
   };
   isSubscriptionActive?: boolean;
   subscriptionStatus?: string;
-  extraArtistSlots?: number;
 }
 
 export interface AuthResponse {
