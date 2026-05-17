@@ -38,10 +38,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const userData = await getMe();
           setUser(userData);
-        } catch (error) {
-          // Token is invalid, remove it
-          Cookies.remove(config.tokenKey);
-          setUser(null);
+        } catch (error: any) {
+          // Only clear session if it's a 401/403 (unauthorized/forbidden)
+          // If it's a network error or server error, don't logout automatically
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            Cookies.remove(config.tokenKey);
+            Cookies.remove('refresh_token');
+            setUser(null);
+          }
         }
       }
 
@@ -160,6 +164,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userData = await getMe();
       setUser(userData);
+      // Keep the 'user' cookie in sync so other surfaces (e.g. subscription page
+      // reading from cookie) see the latest data including extraArtistSlots.
+      Cookies.set('user', JSON.stringify(userData), {
+        expires: 7,
+        sameSite: 'lax',
+      });
     } catch (error) {
       // If refresh fails, logout
       logout();

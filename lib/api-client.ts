@@ -1,6 +1,11 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 import { config } from './config';
+import {
+  PLAN_INACTIVE_CODE,
+  PlanInactiveError,
+  triggerPlanInactive,
+} from './plan-inactive';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -28,8 +33,20 @@ apiClient.interceptors.request.use(
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError) => {
+  async (error: AxiosError<{ code?: string; reason?: string; message?: string }>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Handle 403 from ActivePlanGuard (cancelled/halted/expired subscription).
+    // Show the global subscribe-modal and reject with a tagged error so call
+    // sites can skip their own toast.
+    if (error.response?.status === 403 && error.response?.data?.code === PLAN_INACTIVE_CODE) {
+      const payload = {
+        reason: error.response.data.reason,
+        message: error.response.data.message,
+      };
+      triggerPlanInactive(payload);
+      return Promise.reject(new PlanInactiveError(payload));
+    }
 
     // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
@@ -50,13 +67,16 @@ apiClient.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
           }
           return apiClient(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, clear tokens and redirect
-          Cookies.remove(config.tokenKey);
-          Cookies.remove('refresh_token');
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-            window.location.href = '/auth';
+        } catch (refreshError: any) {
+          // Refresh failed, clear tokens and redirect only if it's an auth error
+          if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
+            Cookies.remove(config.tokenKey);
+            Cookies.remove('refresh_token');
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+              window.location.href = '/auth';
+            }
           }
+          return Promise.reject(refreshError);
         }
       } else {
         // No refresh token, clear access token and redirect
@@ -65,7 +85,7 @@ apiClient.interceptors.response.use(
           window.location.href = '/auth';
         }
       }
-    } else if (error.response?.status === 401) {
+    } else if (error.response?.status === 401 || error.response?.status === 403) {
       // If it was already a retry or a refresh request that failed, logout
       Cookies.remove(config.tokenKey);
       Cookies.remove('refresh_token');
@@ -86,6 +106,15 @@ export const getErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
     console.log('Is Axios Error:', true);
     const axiosError = error as AxiosError<{ message?: string; error?: string }>;
+    
+    // Handle specific network errors
+    if (!axiosError.response) {
+      if (axiosError.code === 'ERR_NETWORK') {
+        return 'Network connection error. Please check if the backend server is running.';
+      }
+      return axiosError.message || 'Unable to connect to the server. Please try again later.';
+    }
+
     return axiosError.response?.data?.message ||
       axiosError.response?.data?.error ||
       axiosError.message ||

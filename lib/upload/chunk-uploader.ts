@@ -1,5 +1,6 @@
 import axios from 'axios';
 import apiClient from '@/lib/api-client';
+import { isPlanInactiveError } from '@/lib/plan-inactive';
 
 const CHUNK_SIZE = 1024 * 1024; // 1MB
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -17,6 +18,7 @@ interface UploadCompleteResponse {
         resolution?: { width: number; height: number };
         hash?: string;
         fingerprint?: string;
+        size?: number;
     }
 }
 
@@ -56,6 +58,13 @@ export const uploadFileInChunks = async (
             });
             return response.data;
         } catch (error: any) {
+            // PLAN_INACTIVE is a hard stop — the global modal is already shown.
+            // Re-throw the tagged error untouched so the call site can suppress
+            // its own toast via isPlanInactiveError.
+            if (isPlanInactiveError(error)) {
+                throw error;
+            }
+
             const backendMessage = error.response?.data?.message;
             const status = error.response?.status;
 
@@ -102,7 +111,8 @@ export const uploadFileInChunks = async (
                 duration: result.metaData?.duration,
                 resolution: result.metaData?.resolution,
                 hash: result.metaData?.hash,
-                fingerprint: result.metaData?.fingerprint
+                fingerprint: result.metaData?.fingerprint,
+                size: result.metaData?.size
             }
         };
     }
@@ -147,7 +157,8 @@ export const uploadFileDirectly = async (
                 duration: response.data.metaData?.duration,
                 resolution: response.data.metaData?.resolution,
                 hash: response.data.metaData?.hash,
-                fingerprint: response.data.metaData?.fingerprint
+                fingerprint: response.data.metaData?.fingerprint,
+                size: response.data.metaData?.size
             }
         };
     }
@@ -182,7 +193,8 @@ export const validateAudioOnBackend = async (
                 duration: response.data.metaData?.duration,
                 resolution: response.data.metaData?.resolution,
                 hash: response.data.metaData?.hash,
-                fingerprint: response.data.metaData?.fingerprint
+                fingerprint: response.data.metaData?.fingerprint,
+                size: response.data.metaData?.size
             }
         };
     }

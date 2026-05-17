@@ -34,16 +34,14 @@ import {
   Sparkles,
   ExternalLink,
   CheckCircle,
-  Send,
   XCircle,
   Music,
-  UploadCloud,
   Ban,
+  UploadCloud,
 } from "lucide-react";
 import {
   getReleases,
   deleteRelease,
-  approveRelease,
   rejectRelease,
   submitToPdl,
   pdlSubmit,
@@ -183,13 +181,24 @@ export default function ReleasesPage() {
     }
   };
 
+  /**
+   * Approve action (Draft only) — calls PDL phase 1 (`/submit-to-pdl`).
+   * The backend uploads metadata + artwork + audio and verifies on COSMOS,
+   * then moves the release to "In Process" with a `pdlAlbumId`.
+   * After this, the row shows the "Submit to PDL" button which triggers
+   * phase 2 (`/pdl-submit`, final distribution).
+   */
   const handleApprove = async (id: string) => {
-    if (!confirm("Approve and initialize PDL submission for this release?")) return;
+    if (
+      !confirm(
+        "Approve and upload this release to PDL? (Metadata, cover art, audio — phase 1.)",
+      )
+    )
+      return;
     try {
       setActionLoading(id);
-      // For approval, we now call submitToPdl (the verification step)
       await submitToPdl(id);
-      toast.success("Release approved and initialized in PDL");
+      toast.success("Release approved and uploaded to PDL");
       fetchReleases();
     } catch (error: any) {
       toast.error(error.message || "Failed to approve release");
@@ -213,13 +222,18 @@ export default function ReleasesPage() {
     }
   };
 
-  const handleSubmitToPDL = async (id: string) => {
-    if (!confirm("Are you sure you want to finalize and distribute this release to all platforms?")) return;
+  /** PDL phase 2: final distribution to platforms (`/pdl-submit`). */
+  const handlePdlPhase2Distribute = async (id: string) => {
+    if (
+      !confirm(
+        "Finalize and distribute this release to all selected platforms?",
+      )
+    )
+      return;
     try {
       setActionLoading(id);
-      // For the final step, we call pdlSubmit (the distribution step)
       await pdlSubmit(id);
-      toast.success("Release distributed to all platforms successfully");
+      toast.success("Release distributed to platforms successfully");
       fetchReleases();
     } catch (error: any) {
       toast.error(error.message || "Failed to distribute to platforms");
@@ -395,12 +409,32 @@ export default function ReleasesPage() {
                                      <Button variant="ghost" size="sm" onClick={() => handleReject(release._id)} className="text-red-500 hover:bg-red-500/10" title="Reject"><Ban className="h-4 w-4" /></Button>
                                    </>
                                  )}
-                                 {isPrivileged && (release.status === "Approved") && (
-                                   <Button size="sm" onClick={() => handleSubmitToPDL(release._id)} className="gap-1.5 text-[10px] h-7 px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all border-none">
-                                     <Send className="h-3 w-3" />
-                                     Submit to PDL
-                                   </Button>
-                                 )}
+                                 {/*
+                                   Phase 2 trigger ("Submit to PDL" → /pdl-submit).
+                                   Shown only after phase 1 has succeeded
+                                   (release.pdlAlbumId is set), and only while the
+                                   release is still in the post-upload pipeline.
+                                   Approve action above already calls phase 1, so
+                                   the legacy "Approved" state usually shouldn't
+                                   appear in the normal flow — we still allow it
+                                   here in case pdlAlbumId is set with that status.
+                                 */}
+                                 {isPrivileged &&
+                                   release.pdlAlbumId &&
+                                   (release.status === "In Process" ||
+                                     release.status === "Approved") && (
+                                     <Button
+                                       size="sm"
+                                       onClick={() =>
+                                         handlePdlPhase2Distribute(release._id)
+                                       }
+                                       title="Distribute to platforms"
+                                       className="gap-1.5 text-xs h-8 px-3.5 font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/20 transition-all border-none"
+                                     >
+                                       <UploadCloud className="h-3.5 w-3.5" />
+                                       Distribute
+                                     </Button>
+                                   )}
                               </div>
                             </TableCell>
                           </TableRow>

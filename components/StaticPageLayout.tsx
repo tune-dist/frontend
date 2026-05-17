@@ -31,7 +31,7 @@ export default function StaticPageLayout({ title, subtitle, children }: StaticPa
               transition={{ duration: 0.6 }}
               className="text-center max-w-3xl mx-auto"
             >
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 font_heading tracking-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
                 {title.split(' ').map((word, i) => (
                   <span key={i} className={i === title.split(' ').length - 1 ? "animated-gradient" : ""}>
                     {word}{' '}
@@ -39,7 +39,7 @@ export default function StaticPageLayout({ title, subtitle, children }: StaticPa
                 ))}
               </h1>
               {subtitle && (
-                <p className="text-xl text-muted-foreground leading-relaxed">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
                   {subtitle}
                 </p>
               )}

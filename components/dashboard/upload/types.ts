@@ -57,11 +57,11 @@ export const trackSchema = z.object({
     }, z.boolean().optional()),
     previewClipStartTime: z.string().optional(),
     // Social media profiles per track
-    spotifyProfile: z.string().optional(),
-    appleMusicProfile: z.string().optional(),
-    youtubeMusicProfile: z.string().optional(),
-    instagramProfile: z.string().optional(),
-    facebookProfile: z.string().optional(),
+    spotifyProfile: z.string().optional().nullable(),
+    appleMusicProfile: z.string().optional().nullable(),
+    youtubeMusicProfile: z.string().optional().nullable(),
+    instagramProfile: z.string().optional().nullable(),
+    facebookProfile: z.string().optional().nullable(),
     version: z.string().optional(),
     featuringArtist: z.string().optional(),
     mood: z.string().min(1, 'Vibe is required'),
@@ -89,11 +89,11 @@ export const uploadFormSchema = z.object({
     artistName: z.string().min(1, 'Artist Name is required'),
     artists: z.array(z.object({
         name: z.string().min(1, 'Artist name is required'),
-        spotifyProfile: z.union([z.string(), artistProfileSchema]).optional(),
-        appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
-        youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
-        instagramProfile: z.string().optional(),
-        facebookProfile: z.string().optional(),
+        spotifyProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
+        appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
+        youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
+        instagramProfile: z.string().optional().nullable(),
+        facebookProfile: z.string().optional().nullable(),
     })).default([]),
     isrc: z.string().optional().refine((val) => {
         if (!val || val.trim() === '') return true;
@@ -125,13 +125,13 @@ export const uploadFormSchema = z.object({
     }),
 
     // Social media & platforms
-    spotifyProfile: z.union([z.string(), artistProfileSchema]).optional(),
-    appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
-    youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional(),
-    instagramProfile: z.string().optional(),
-    instagramProfileUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
-    facebookProfile: z.string().optional(),
-    facebookProfileUrl: z.string().url('Invalid URL').optional().or(z.literal('')),
+    spotifyProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
+    appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
+    youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
+    instagramProfile: z.string().optional().nullable(),
+    instagramProfileUrl: z.string().url('Invalid URL').optional().or(z.literal('')).nullable(),
+    facebookProfile: z.string().optional().nullable(),
+    facebookProfileUrl: z.string().url('Invalid URL').optional().or(z.literal('')).nullable(),
 
     // Files (Legacy for Single / First track)
     audioFile: z.any().optional(), // Refined validation in component
@@ -163,7 +163,7 @@ export const uploadFormSchema = z.object({
     }, {
         message: 'Release date must be at least 2 days from today'
     }),
-    labelName: z.string().optional(),
+    labelName: z.string().min(1, 'Label name is required'),
     distributionTerritories: z.array(z.string()).default(['Worldwide']),
 
     // Credits

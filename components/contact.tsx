@@ -36,8 +36,8 @@ const contactInfo = [
     {
         icon: Mail,
         label: 'Email',
-        value: 'support@kratolib.com',
-        href: 'mailto:support@kratolib.com',
+        value: 'info@kratolib.com',
+        href: 'mailto:info@kratolib.com',
     },
     {
         icon: Phone,
@@ -48,8 +48,8 @@ const contactInfo = [
     {
         icon: MapPin,
         label: 'Office',
-        value: '4044, The Retail Park Rajyash City, Bopal, Ahmedabad, Gujarat 380058',
-        href: '#',
+        value: '4044, The Retail Park, Rajyash City, Bopal, Ahmedabad, Gujarat - 380058',
+        href: 'https://maps.app.goo.gl/cBdE7266yixTmdHA6',
     },
 ]
 
@@ -110,7 +110,7 @@ export default function Contact() {
     }
 
     return (
-        <section id="contact" className="py-14 md:py-24 bg-background relative overflow-hidden">
+        <section id="contact" className="py-14 md:py-20 bg-background relative overflow-hidden">
             {/* Background decoration */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-0 right-0 w-96 h-96 animated-gradient-bg rounded-full blur-3xl opacity-10" />
@@ -125,10 +125,10 @@ export default function Contact() {
                     viewport={{ once: true }}
                     transition={{ duration: 0.6 }}
                 >
-                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading">
-                        Get in{' '}
-                        <span className="animated-gradient">Touch</span>
-                    </h2>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading">
+                        Contact KratoLib{' '}<br />
+                        <span className="animated-gradient">24/7 Support for Music Distribution Questions</span>
+                    </h1>
                     <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
                         Have questions about distributing your music? We're here to help you every step of the way.
                     </p>
@@ -256,6 +256,7 @@ export default function Contact() {
                                         viewport={{ once: true }}
                                         transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
                                         className="flex items-center gap-4 transition-all duration-300 group"
+                                        target='_blank'
                                     >
                                         <div className="w-12 h-12 rounded-full bg-primary/10 flex flex-shrink-0 items-center justify-center group-hover:bg-primary/20 transition-colors">
                                             <item.icon className="h-5 w-5 text-primary" />

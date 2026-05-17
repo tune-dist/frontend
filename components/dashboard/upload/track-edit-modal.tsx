@@ -50,6 +50,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         fetchPlanLimits()
     }, [user?.plan])
 
+    // Calculate total allowed artists
+    const totalAllowedArtists = planLimits.artistLimit + (user?.extraArtistSlots || 0);
+
     // Local state for track metadata fields
     const [trackTitle, setTrackTitle] = useState(track?.title || '')
     const [language, setLanguage] = useState(track?.language || '')
@@ -71,6 +74,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     // Local state for modal editing
     const [modalArtistSearch, setModalArtistSearch] = useState(track?.artistName || '')
     const [isSearching, setIsSearching] = useState(false)
+    const [creatingNewArtist, setCreatingNewArtist] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
     const [searchResults, setSearchResults] = useState<{ spotify: any[]; apple: any[]; youtube: any[] }>({ spotify: [], apple: [], youtube: [] })
     const searchTimeout = useRef<NodeJS.Timeout>()
@@ -167,7 +171,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setMood(track.mood || '')
 
             // If restricted plan, force mainArtistName AND profiles
-            if (planLimits.artistLimit === 1 && mainArtistName) {
+            if (totalAllowedArtists === 1 && mainArtistName) {
                 setModalArtistSearch(mainArtistName)
 
                 // Sync Profiles from Main Artist
@@ -219,6 +223,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 setFacebookStatus(track.facebookProfile ? 'yes' : 'no')
                 setInstagramUrl(track.instagramProfile || '')
                 setFacebookUrl(track.facebookProfile || '')
+
+                // Check if artist name is new (not in usedArtists)
+                const isNew = track.artistName ? !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === track.artistName) : false
+                setCreatingNewArtist(isNew)
             }
 
             setModalWriters(track.writers && track.writers.length > 0 ? track.writers : [''])
@@ -230,7 +238,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setHasSearched(false)
         } else if (isOpen) {
             // New track or empty state
-            if (planLimits.artistLimit === 1) {
+            if (totalAllowedArtists === 1) {
                 // Determine the correct name to use:
                 // 1. mainArtistName prop (passed from parent)
                 // 2. user.fullName (fallback if prop missing, though prop should be there)
@@ -267,7 +275,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         }
                     }
                 }
-            } else if (user?.fullName && planLimits.artistLimit === 1) {
+            } else if (user?.fullName && totalAllowedArtists === 1) {
                 // Redundant check given above, but keeping logic structure similar to original intention
                 // if specifically needing user fallback
                 const name = user.fullName
@@ -275,7 +283,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 handleModalArtistSearch(name)
             }
         }
-    }, [track, trackIndex, isOpen, user, planLimits.artistLimit, mainArtistName, mainArtistProfiles])
+    }, [track, trackIndex, isOpen, user, totalAllowedArtists, mainArtistName, mainArtistProfiles])
 
     // Lock body scroll when modal is open
     useEffect(() => {
@@ -411,17 +419,17 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             // First Name (3+ letters) + Space + Last Name (3+ letters)
             const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
 
+            // Filter out empty entries before validation
+            const filteredWriters = modalWriters.filter(w => w?.trim())
+            const filteredComposers = modalComposers.filter(c => c?.trim())
+
             // Validate Writers (at least one required)
-            if (modalWriters.length === 0) {
+            if (filteredWriters.length === 0) {
                 toast.error("At least one writer is required")
                 return
             }
 
-            for (const sw of modalWriters) {
-                if (!sw?.trim()) {
-                    toast.error("Writer name cannot be empty")
-                    return
-                }
+            for (const sw of filteredWriters) {
                 if (!nameRegex.test(sw.trim())) {
                     toast.error(`Invalid Writer name: "${sw}". Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.`)
                     return
@@ -429,15 +437,15 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             }
 
             // Validate Composers (if provided, must be valid)
-            for (const comp of modalComposers) {
-                if (comp?.trim() && !nameRegex.test(comp.trim())) {
+            for (const comp of filteredComposers) {
+                if (!nameRegex.test(comp.trim())) {
                     toast.error(`Invalid Composer name: "${comp}". Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.`)
                     return
                 }
             }
 
             // Validate Artist Limit
-            if (planLimits.artistLimit < Infinity) {
+            if (totalAllowedArtists < Infinity) {
                 // Collect ALL artists in this release:
                 // 1. Main artist from basic info
                 // 2. Featuring artists from basic info
@@ -478,7 +486,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                 // Count how many NEW artists this would introduce
                 let newArtistsCount = 0;
-                const usedArtistNames = usedArtists.map(a => 
+                const usedArtistNames = usedArtists.map(a =>
                     typeof a === 'string' ? a.toLowerCase().trim() : a.name?.toLowerCase().trim()
                 ).filter(Boolean);
 
@@ -490,10 +498,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                 // Check if total would exceed limit
                 const totalUsedCount = usedArtists.length;
-                if ((totalUsedCount + newArtistsCount) > planLimits.artistLimit) {
+                if ((totalUsedCount + newArtistsCount) > totalAllowedArtists) {
                     const planKey = (user?.plan as string) || 'free';
                     const planName = planKey === 'creator_plus' ? 'Creator+' : planKey.charAt(0).toUpperCase() + planKey.slice(1);
-                    toast.error(`You have reached your artist limit (${planLimits.artistLimit}) for the ${planName} plan.`);
+                    toast.error(`You have reached your artist limit (${totalAllowedArtists}) for the ${planName} plan.`);
                     return;
                 }
             }
@@ -512,14 +520,14 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 spotifyProfile: modalSpotifyProfile,
                 appleMusicProfile: modalAppleMusicProfile,
                 youtubeMusicProfile: modalYoutubeProfile,
-                instagramProfile: instagramStatus === 'yes' ? instagramUrl : '',
-                facebookProfile: facebookStatus === 'yes' ? facebookUrl : '',
+                instagramProfile: instagramUrl,
+                facebookProfile: facebookUrl,
                 isExplicit,
                 isInstrumental: instrumental,
                 featuringArtist: modalFeaturingArtist,
                 mood: mood,
             }
-            onSave(updatedTrack, modalWriters, modalComposers)
+            onSave(updatedTrack, filteredWriters, filteredComposers)
             onClose()
         }
     }
@@ -562,28 +570,49 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     </div>
 
                     {/* Artist Name with Rich Search UI */}
-                    <div className="space-y-2">
-                        <Label htmlFor="track-artist">Artist Name</Label>
-                        <div className="relative flex-1 space-y-2">
-                            {/* Artist Selection Dropdown */}
-                            {usedArtists.length > 0 && (
+                    {/* Artist Selection Section - Styled like BasicInfoStep */}
+                    <div className="space-y-4 rounded-lg border-2 border-border p-4 bg-card/30">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Track Artist</Label>
+                            {/* If an artist is selected and we want to change it */}
+                            {(!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) && planLimits.artistLimit !== 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleModalArtistSearch('')
+                                        setModalSpotifyProfile('')
+                                        setModalAppleMusicProfile('')
+                                        setModalYoutubeProfile('')
+                                        setInstagramStatus('no')
+                                        setFacebookStatus('no')
+                                        setInstagramUrl('')
+                                        setFacebookUrl('')
+                                    }}
+                                    className="text-xs text-primary hover:text-primary/80 font-medium"
+                                >
+                                    Change Artist
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="relative space-y-2">
+                            {/* Select from Roster */}
+                            {usedArtists.length > 0 && !(!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) && (
                                 <Select
-                                    value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch) ? modalArtistSearch : (planLimits.artistLimit === 1 && modalArtistSearch ? '' : 'new')}
+                                    value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch) ? modalArtistSearch : (creatingNewArtist ? 'new' : '')}
                                     onValueChange={(val) => {
                                         if (val === 'new') {
                                             handleModalArtistSearch('')
                                             setModalSpotifyProfile('')
                                             setModalAppleMusicProfile('')
                                             setModalYoutubeProfile('')
-                                            setInstagramStatus('no')
-                                            setFacebookStatus('no')
-                                            setInstagramUrl('')
-                                            setFacebookUrl('')
+                                            setCreatingNewArtist(true)
                                         } else {
                                             const selectedArtist = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === val)
                                             if (selectedArtist) {
                                                 const name = typeof selectedArtist === 'string' ? selectedArtist : selectedArtist.name
                                                 handleModalArtistSearch(name)
+                                                setCreatingNewArtist(false)
 
                                                 if (typeof selectedArtist === 'object') {
                                                     if (selectedArtist.spotifyProfile) setModalSpotifyProfile(selectedArtist.spotifyProfile)
@@ -636,8 +665,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     </SelectContent>
                                 </Select>
                             )}
-                            {/* Manual Input Search */}
-                            {(!usedArtists.length || (!usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch) && planLimits.artistLimit !== 1)) && (
+
+                            {/* Manual Search Input (only if no roster selection or creating new) */}
+                            {(!usedArtists.length || creatingNewArtist || (modalArtistSearch !== '' && !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch)) || (!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile)) && (
                                 <div className="relative">
                                     <Input
                                         id="track-artist"
@@ -647,20 +677,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                         className={`${isSearching ? 'pr-10' : ''} ${(planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
                                         readOnly={planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile}
                                     />
-                                    {(!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) && planLimits.artistLimit !== 1 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                handleModalArtistSearch('')
-                                                setModalSpotifyProfile('')
-                                                setModalAppleMusicProfile('')
-                                                setModalYoutubeProfile('')
-                                            }}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary hover:text-primary/80 font-medium z-10"
-                                        >
-                                            Change Artist
-                                        </button>
-                                    )}
                                     {isSearching && !(!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -676,7 +692,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             searchResults.apple.length === 0 &&
                             searchResults.youtube.length === 0 &&
                             modalArtistSearch.length > 2 && (
-                                <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
                                     <p className="text-sm text-yellow-600 dark:text-yellow-400">
                                         Artist not found. Please upload music via a distributor to create a Spotify profile
                                     </p>
@@ -685,10 +701,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                         {/* Rich Search Results */}
                         {modalArtistSearch && modalArtistSearch.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0 || modalSpotifyProfile || modalAppleMusicProfile || modalYoutubeProfile) && (
-                            <div className="mt-4 space-y-6 border border-border rounded-lg p-4 bg-card/50">
-                                <h4 className="font-semibold text-sm text-foreground">
-                                    We found this artist on other platforms. Is this you?
-                                </h4>
+                            <div className="space-y-6 pt-4 border-t border-border/50">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-semibold text-sm text-foreground">
+                                        We found this artist on other platforms. Is this you?
+                                    </h4>
+                                </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {/* Spotify Results */}
@@ -1260,114 +1278,38 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                 </div>
                             </div>
                         )}
-                    </div>
-                    {/* Instagram */}
-                    <div className="space-y-3 pt-4 border-t">
-                        <div className="flex items-center gap-2">
-                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="url(#instagram-gradient)">
-                                <defs>
-                                    <linearGradient id="instagram-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" style={{ stopColor: '#833AB4' }} />
-                                        <stop offset="50%" style={{ stopColor: '#E1306C' }} />
-                                        <stop offset="100%" style={{ stopColor: '#FD1D1D' }} />
-                                    </linearGradient>
-                                </defs>
-                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                            </svg>
-                            <Label className="text-lg font-semibold">Instagram</Label>
-                        </div>
-                        <p className="text-sm font-medium">Artist already on Instagram?</p>
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="instagram-yes"
-                                    name="instagram-status"
-                                    value="yes"
-                                    checked={instagramStatus === 'yes'}
-                                    onChange={() => setInstagramStatus('yes')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="instagram-yes" className="font-normal cursor-pointer">
-                                    Yes - Group with other <strong>{modalArtistSearch || 'artist'}</strong> releases
-                                </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="instagram-no"
-                                    name="instagram-status"
-                                    value="no"
-                                    checked={instagramStatus === 'no'}
-                                    onChange={() => setInstagramStatus('no')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="instagram-no" className="font-normal cursor-pointer">
-                                    No - <strong>{modalArtistSearch || 'artist'}</strong> is not on Instagram
-                                </Label>
-                            </div>
-                        </div>
-                        {instagramStatus === 'yes' && (
-                            <div className="mt-3">
-                                <Input
-                                    placeholder="https://instagram.com/..."
-                                    value={instagramUrl}
-                                    onChange={(e) => setInstagramUrl(e.target.value)}
-                                    className="border-primary/50"
-                                />
-                            </div>
-                        )}
-                    </div>
+                        {/* Social Profiles Grid - Styled like BasicInfoStep */}
+                        <div className="pt-4 border-t border-border/50">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Instagram */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-medium flex items-center gap-2">
+                                        <span className="text-[#E4405F] font-bold">Instagram</span>
+                                        <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                                    </Label>
+                                    <Input
+                                        placeholder="https://instagram.com/..."
+                                        value={instagramUrl}
+                                        onChange={(e) => setInstagramUrl(e.target.value)}
+                                        className="text-sm"
+                                    />
+                                </div>
 
-                    {/* Facebook */}
-                    <div className="space-y-3 pt-4 border-t">
-                        <div className="flex items-center gap-2">
-                            <svg className="h-5 w-5 text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                            </svg>
-                            <Label className="text-lg font-semibold">Facebook</Label>
-                        </div>
-                        <p className="text-sm font-medium">Artist already on Facebook?</p>
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="facebook-yes"
-                                    name="facebook-status"
-                                    value="yes"
-                                    checked={facebookStatus === 'yes'}
-                                    onChange={() => setFacebookStatus('yes')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="facebook-yes" className="font-normal cursor-pointer">
-                                    Yes - Group with other <strong>{modalArtistSearch || 'artist'}</strong> releases
-                                </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="facebook-no"
-                                    name="facebook-status"
-                                    value="no"
-                                    checked={facebookStatus === 'no'}
-                                    onChange={() => setFacebookStatus('no')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="facebook-no" className="font-normal cursor-pointer">
-                                    No - <strong>{modalArtistSearch || 'artist'}</strong> is not on Facebook
-                                </Label>
+                                {/* Facebook */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-medium flex items-center gap-2">
+                                        <span className="text-[#1877F2] font-bold">Facebook</span>
+                                        <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                                    </Label>
+                                    <Input
+                                        placeholder="https://facebook.com/..."
+                                        value={facebookUrl}
+                                        onChange={(e) => setFacebookUrl(e.target.value)}
+                                        className="text-sm"
+                                    />
+                                </div>
                             </div>
                         </div>
-                        {facebookStatus === 'yes' && (
-                            <div className="mt-3">
-                                <Input
-                                    placeholder="https://facebook.com/..."
-                                    value={facebookUrl}
-                                    onChange={(e) => setFacebookUrl(e.target.value)}
-                                    className="border-primary/50"
-                                />
-                            </div>
-                        )}
                     </div>
                     {/* Language */}
                     <div className="space-y-2">
@@ -1379,24 +1321,21 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             onChange={(e) => setLanguage(e.target.value)}
                         >
                             <option value="">Select a language</option>
-                            <option value="English">English</option>
-                            <option value="Spanish">Spanish</option>
-                            <option value="French">French</option>
-                            <option value="German">German</option>
-                            <option value="Italian">Italian</option>
-                            <option value="Portuguese">Portuguese</option>
-                            <option value="Japanese">Japanese</option>
-                            <option value="Korean">Korean</option>
-                            <option value="Chinese">Chinese (Mandarin)</option>
                             <option value="Hindi">Hindi</option>
-                            <option value="Arabic">Arabic</option>
-                            <option value="Russian">Russian</option>
-                            <option value="Turkish">Turkish</option>
-                            <option value="Dutch">Dutch</option>
-                            <option value="Swedish">Swedish</option>
-                            <option value="Polish">Polish</option>
+                            <option value="English">English</option>
+                            <option value="Punjabi">Punjabi</option>
+                            <option value="Tamil">Tamil</option>
+                            <option value="Telugu">Telugu</option>
+                            <option value="Bengali">Bengali</option>
+                            <option value="Marathi">Marathi</option>
+                            <option value="Gujarati">Gujarati</option>
+                            <option value="Kannada">Kannada</option>
+                            <option value="Malayalam">Malayalam</option>
                             <option value="Urdu">Urdu</option>
-                            <option value="Other">Other</option>
+                            <option value="Bhojpuri">Bhojpuri</option>
+                            <option value="Haryanvi">Haryanvi</option>
+                            <option value="Rajasthani">Rajasthani</option>
+                            <option value="Instrumental">Instrumental</option>
                         </select>
                     </div>
 

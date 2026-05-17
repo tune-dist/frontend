@@ -121,8 +121,8 @@ const OrbitalAnimation = () => {
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         {/* <Music2 className="text-white w-1/2 h-1/2" /> */}
-        {/* <img src="/logo.png" alt="" className='w-full h-full object-contain p-4' /> */}
-        <video
+        <img src="/assets/images/globe-kratolib.gif" alt="" className='w-full h-full object-cover scale-[1.28]' />
+        {/* <video
           ref={videoRef}
           autoPlay
           loop
@@ -133,10 +133,10 @@ const OrbitalAnimation = () => {
           preload="auto"
           disablePictureInPicture
           disableRemotePlayback
-          className="w-full h-full object-cover scale-[1.28] pointer-events-none"
+          className="w-full h-full object-cover scale-[1.28] pointer-events-none hidden"
         >
           <source src="/assets/videos/globe-krato-hero.mp4" type="video/mp4" />
-        </video>
+        </video> */}
         {/* Subtle glow rings */}
         <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20" />
       </motion.div>
@@ -182,11 +182,11 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-3xl sm:text-3xl md:text-6xl lg:text-[50px] font-semibold mb-6 leading-tight">
-              <span className="block font_heading">Distribute Your Music.</span>
-              <span className="mt-2 font_heading">Grow Your Audience.</span> {' '}
-              <span className="mt-2 animated-gradient font_heading">
-                Get Paid.
+            <h1 className="text-3xl sm:text-3xl md:text-6xl lg:text-[50px] font-bold mb-6 leading-tight font_heading">
+              <span className="block ">Distribute Your Music to  </span>
+              <span className="mt-2 animated-gradient">150+ Platforms</span> & <span className=" animated-gradient">Keep 100% Earnings</span> {' '}
+              <span className="mt-2">
+                | Free for Indian Artists
               </span>
             </h1>
 
@@ -255,7 +255,7 @@ export default function Hero() {
 
       {/* Scroll Indicator */}
       <motion.div
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer scroll_indicator"
+        className="absolute bottom-2 left-1/2 transform -translate-x-1/2 cursor-pointer scroll_indicator"
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
       >

@@ -34,7 +34,7 @@ export default function RoyaltySplitsRevenue() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight"
+              className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight"
             >
               Unified Multi-Platform <br />
               <span className="animated-gradient">Revenue Intelligence</span>

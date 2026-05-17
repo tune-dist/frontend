@@ -60,7 +60,7 @@ export default function RoyaltySplitsAutomation() {
               Intelligence Automation
             </div>
 
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-6 font_heading tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight">
               Fully Automated <br />
               <span className="animated-gradient">Global Payouts</span>
             </h2>

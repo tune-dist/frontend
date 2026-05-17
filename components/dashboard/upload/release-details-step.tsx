@@ -291,7 +291,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                                     <Input
                                         id="instagramUrl"
                                         placeholder="https://instagram.com/..."
-                                        value={formData.instagramProfileUrl}
+                                        value={formData.instagramProfileUrl ?? ''}
                                         onChange={(e) => setFormData({ ...formData, instagramProfileUrl: e.target.value })}
                                         className="text-sm"
                                     />
@@ -344,7 +344,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                                     <Input
                                         id="facebookUrl"
                                         placeholder="https://facebook.com/..."
-                                        value={formData.facebookProfileUrl}
+                                        value={formData.facebookProfileUrl ?? ''}
                                         onChange={(e) => setFormData({ ...formData, facebookProfileUrl: e.target.value })}
                                         className="text-sm"
                                     />
@@ -396,7 +396,10 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                         <option value="Kannada">Kannada</option>
                         <option value="Malayalam">Malayalam</option>
                         <option value="Urdu">Urdu</option>
-                        <option value="Other">Other</option>
+                        <option value="Bhojpuri">Bhojpuri</option>
+                        <option value="Haryanvi">Haryanvi</option>
+                        <option value="Rajasthani">Rajasthani</option>
+                        <option value="Instrumental">Instrumental</option>
                     </select>
                 </div>
                 {/* <div className="space-y-2">

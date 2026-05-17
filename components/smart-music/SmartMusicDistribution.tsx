@@ -28,7 +28,7 @@ export default function SmartMusicDistribution() {
               <Globe2 className="h-3.5 w-3.5 text-violet-400" />
               Global Reach
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
               Global Music{" "}
               <span className="animated-gradient">Distribution Network</span>
             </h2>

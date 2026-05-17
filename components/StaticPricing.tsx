@@ -106,12 +106,12 @@ export default function StaticPricing() {
           viewport={{ once: true }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 font_heading tracking-tight">
-            Simple, Transparent{' '}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
+            Music Distribution Pricing {' '}<br />
             <span className="animated-gradient">
-              Pricing
+              ₹999/Year with 100% Earnings | Free Starter Plan
             </span>
-          </h2>
+          </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Choose the plan that fits your needs. All plans include global distribution,
             automated royalty collection, and priority support.
