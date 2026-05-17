@@ -71,6 +71,7 @@ export interface UpdateProfileData {
     filename: string;
     uploadedAt: Date;
   };
+  avatar?: string;
 }
 
 // Get user profile (raw user document — without enriched plan mapping)

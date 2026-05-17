@@ -140,6 +140,7 @@ export default function UploadPage() {
       primaryGenre: "",
       secondaryGenre: "",
       language: "",
+      labelName: "",
       tracks: [],
       spotifyProfile: "",
       appleMusicProfile: "",
@@ -212,18 +213,15 @@ export default function UploadPage() {
       // Fetch field rules
       const planKey = (user.plan as string) || "free";
       getPlanFieldRules(planKey, true)
-        .then((rules) => setFieldRules(rules))
+        .then((rules) => {
+          setFieldRules(rules);
+          if (planKey === "free") {
+            const defaultLabel = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib";
+            form.setValue("labelName", defaultLabel, { shouldValidate: true });
+          }
+        })
         .catch((err) => console.error("Failed to fetch field rules", err));
 
-      // Update copyright default based on plan
-      if (planKey !== "free") {
-        const defaultLabel =
-          process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib";
-        form.setValue(
-          "copyright",
-          `${defaultLabel}`
-        );
-      }
     }
   }, [user]);
 
@@ -277,7 +275,7 @@ export default function UploadPage() {
           ]);
 
           // Build validation fields array based on plan
-          const fieldsToValidate = ["title", "artistName", "format", "releaseDate"];
+          const fieldsToValidate = ["title", "artistName", "format", "releaseDate", "labelName"];
 
           // Add featuredArtist to validation if required by plan
           if (fieldRules.featuredArtists?.required) {
@@ -472,18 +470,13 @@ export default function UploadPage() {
                   isValid = false;
                   break;
                 }
-                // Check individual fields for blankness to show red error text
-                let hasBlankWriters = false;
-                writers.forEach((name, index) => {
-                  if (!name || name.trim() === "") {
-                    form.setError(`writers.${index}`, {
-                      type: "required",
-                      message: "Name is required",
-                    });
-                    hasBlankWriters = true;
-                  }
-                });
-                if (hasBlankWriters) {
+                const filledWriters = writers.filter(w => w?.trim() !== "");
+                if (filledWriters.length === 0) {
+                  toast.error("At least one songwriter is required");
+                  form.setError("writers.0", {
+                    type: "required",
+                    message: "At least one songwriter is required",
+                  });
                   isValid = false;
                   break;
                 }
@@ -503,17 +496,13 @@ export default function UploadPage() {
                   isValid = false;
                   break;
                 }
-                let hasBlankComposers = false;
-                composers.forEach((name, index) => {
-                  if (!name || name.trim() === "") {
-                    form.setError(`composers.${index}`, {
-                      type: "required",
-                      message: "Name is required",
-                    });
-                    hasBlankComposers = true;
-                  }
-                });
-                if (hasBlankComposers) {
+                const filledComposers = composers.filter(c => c?.trim() !== "");
+                if (filledComposers.length === 0) {
+                  toast.error("At least one composer is required");
+                  form.setError("composers.0", {
+                    type: "required",
+                    message: "At least one composer is required",
+                  });
                   isValid = false;
                   break;
                 }
@@ -602,23 +591,17 @@ export default function UploadPage() {
                   break;
                 }
 
-                // Check songwriters (now called writers)
-                if (!track.writers || track.writers.length === 0) {
+                const filledWriters = (track.writers || []).filter(sw => sw?.trim());
+                if (filledWriters.length === 0) {
                   toast.error(`Track ${i + 1}: At least one writer is required`);
                   hasError = true;
                   break;
                 }
 
-                for (const sw of track.writers) {
-                  if (!sw?.trim()) {
-                    toast.error(`Track ${i + 1}: Writer name cannot be empty`);
-                    hasError = true;
-                    break;
-                  }
+                for (const sw of filledWriters) {
                   if (!nameRegex.test(sw.trim())) {
                     toast.error(
-                      `Track ${i + 1
-                      }: Invalid writer name "${sw}". Must be "Firstname Lastname"`
+                      `Track ${i + 1}: Invalid writer name "${sw}". Must be "Firstname Lastname"`
                     );
                     hasError = true;
                     break;
@@ -627,13 +610,12 @@ export default function UploadPage() {
 
                 if (hasError) break;
 
-                // Validate composers if provided
-                if (track.composers) {
-                  for (const comp of track.composers) {
-                    if (comp?.trim() && !nameRegex.test(comp.trim())) {
+                const filledComposers = (track.composers || []).filter(comp => comp?.trim());
+                if (filledComposers.length > 0) {
+                  for (const comp of filledComposers) {
+                    if (!nameRegex.test(comp.trim())) {
                       toast.error(
-                        `Track ${i + 1
-                        }: Invalid composer name "${comp}". Must be "Firstname Lastname"`
+                        `Track ${i + 1}: Invalid composer name "${comp}". Must be "Firstname Lastname"`
                       );
                       hasError = true;
                       break;

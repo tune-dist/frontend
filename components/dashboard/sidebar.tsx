@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
+import { S3Image } from '@/components/ui/s3-image'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -124,8 +125,16 @@ export default function Sidebar() {
               </button>
             )}
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <User className="h-5 w-5 text-primary" />
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-border">
+                {user?.avatar ? (
+                  <S3Image
+                    src={user.avatar}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <User className="h-5 w-5 text-primary" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user?.fullName || 'User'}</p>
