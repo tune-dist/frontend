@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,78 +12,133 @@ import {
     CheckCircle,
     Loader2,
     ArrowUpRight,
-    History
+    ArrowLeft,
+    History,
+    XCircle,
+    Mail,
+    AlertCircle,
+    AlertTriangle,
 } from 'lucide-react'
-import { getPlanByKey, Plan } from '@/lib/api/plans'
-import { getPaymentHistory, PaymentHistoryItem, cancelSubscription, getActiveSubscriptions } from '@/lib/api/payments'
-import { toast } from 'react-hot-toast'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import {
+    cancelMainSubscription,
+    getPaymentHistory,
+    PaymentHistoryItem,
+} from '@/lib/api/payments'
+import { getAllPlans, Plan } from '@/lib/api/plans'
+import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users'
+import apiClient from '@/lib/api-client'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
-import Cookies from 'js-cookie'
 import UpgradePlanModal from '@/components/dashboard/upgrade-plan-modal'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { AlertCircle, AlertTriangle } from 'lucide-react'
+import toast from 'react-hot-toast'
 
-interface UserInfo {
-    plan: string
-    planStartDate?: string
-    planEndDate?: string | null
-    isSubscriptionActive?: boolean
-    subscriptionStatus?: string
+// Inlined API calls — payments.ts is mid-merge and does not currently export these.
+// Kept here to keep this resolution scoped to page.tsx; can be promoted to payments.ts
+// once that file's merge is resolved.
+async function fetchActiveSubscriptions(): Promise<any[]> {
+    const response = await apiClient.get<any[]>('/payments/active-subscriptions')
+    return response.data
 }
 
+async function cancelSubscriptionById(
+    subscriptionId?: string,
+): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+        '/payments/cancel-subscription',
+        { subscriptionId },
+    )
+    return response.data
+}
+
+const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
+const ARTIST_ADDON_PRICE_INR = 500
+const ENTERPRISE_CONTACT_EMAIL = 'sales@iguru.com' // TODO: replace with the real sales inbox
+
 export default function SubscriptionPage() {
-    const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
-    const [currentPlan, setCurrentPlan] = useState<Plan | null>(null)
+    const { user, refreshUser } = useAuth()
+    const [profile, setProfile] = useState<ProfileWithPlan | null>(null)
     const [payments, setPayments] = useState<PaymentHistoryItem[]>([])
+    const [allPlans, setAllPlans] = useState<Plan[]>([])
     const [activeSubscriptions, setActiveSubscriptions] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const [showCancelDialog, setShowCancelDialog] = useState(false)
     const [selectedSubId, setSelectedSubId] = useState<string | undefined>(undefined)
     const [cancellingType, setCancellingType] = useState<'plan' | 'addon'>('plan')
-    const [cancelling, setCancelling] = useState(false)
+    const [isCancelling, setIsCancelling] = useState(false)
+    const [isPurchasingAddon, setIsPurchasingAddon] = useState(false)
     const { initiatePayment, isLoading: paymentLoading } = useRazorpay()
-    const { user: authUser, refreshUser } = useAuth()
     const router = useRouter()
 
+    const reloadProfile = useCallback(async () => {
+        const [nextProfile, history, plans] = await Promise.all([
+            getUserProfileWithPlan(),
+            getPaymentHistory().catch((err) => {
+                console.error('Failed to fetch payment history:', err)
+                return [] as PaymentHistoryItem[]
+            }),
+            getAllPlans(),
+        ])
+        setProfile(nextProfile)
+        setPayments(history)
+        setAllPlans(plans)
+    }, [])
+
+    const reloadActiveSubscriptions = useCallback(async () => {
+        try {
+            const subs = await fetchActiveSubscriptions()
+            setActiveSubscriptions(subs)
+        } catch (err) {
+            console.error('Failed to fetch active subscriptions:', err)
+        }
+    }, [])
+
     useEffect(() => {
+        let cancelled = false
         const fetchData = async () => {
             try {
-                if (authUser) {
-                    setUserInfo({
-                        plan: authUser.plan || 'free',
-                        planStartDate: authUser.planStartDate,
-                        planEndDate: authUser.planEndDate,
-                        isSubscriptionActive: authUser.isSubscriptionActive,
-                        subscriptionStatus: authUser.subscriptionStatus,
-                    })
-
-                    // Fetch current plan details
-                    const plan = await getPlanByKey(authUser.plan || 'free')
-                    setCurrentPlan(plan)
-                }
-
-                // Fetch payment history
-                const history = await getPaymentHistory()
-                setPayments(history)
-
-                // Fetch active subscriptions (including addons)
-                const subs = await getActiveSubscriptions();
-                setActiveSubscriptions(subs);
+                await Promise.all([reloadProfile(), reloadActiveSubscriptions()])
             } catch (error) {
                 console.error('Failed to fetch subscription data:', error)
             } finally {
-                setLoading(false)
+                if (!cancelled) setLoading(false)
             }
         }
 
         fetchData()
-    }, [authUser])
+        return () => {
+            cancelled = true
+        }
+    }, [reloadProfile, reloadActiveSubscriptions])
 
     const handleUpgrade = () => {
-        // Open upgrade modal
         setShowUpgradeModal(true)
+    }
+
+    const handleBuyArtistAddon = async () => {
+        setIsPurchasingAddon(true)
+        try {
+            const result = await initiatePayment(ARTIST_ADDON_PLAN_KEY, {
+                name: user?.fullName,
+                email: user?.email,
+            })
+            if (result?.success) {
+                toast.success('Extra artist slot added to your plan!')
+                await Promise.all([refreshUser(), reloadProfile(), reloadActiveSubscriptions()])
+            }
+        } catch (err) {
+            console.error('Addon purchase failed:', err)
+        } finally {
+            setIsPurchasingAddon(false)
+        }
     }
 
     const openCancelDialog = (subscriptionId?: string, type: 'plan' | 'addon' = 'plan') => {
@@ -92,32 +147,38 @@ export default function SubscriptionPage() {
         setShowCancelDialog(true)
     }
 
-    const handleCancelSubscription = async () => {
-        setCancelling(true)
+    const handleConfirmCancel = async () => {
+        setIsCancelling(true)
         try {
-            const result = await cancelSubscription(selectedSubId)
-            if (result.success) {
-                toast.success(result.message || 'Subscription cancelled successfully')
-                await refreshUser()
-                
-                // Refresh subscriptions list
-                const subs = await getActiveSubscriptions();
-                setActiveSubscriptions(subs);
-                
+            const result =
+                cancellingType === 'addon'
+                    ? await cancelSubscriptionById(selectedSubId)
+                    : await cancelMainSubscription()
+            if (result?.success) {
+                toast.success(
+                    result.message ||
+                        (cancellingType === 'addon'
+                            ? 'Add-on cancelled.'
+                            : 'Your subscription has been cancelled.'),
+                )
                 setShowCancelDialog(false)
                 setSelectedSubId(undefined)
+                await Promise.all([refreshUser(), reloadProfile(), reloadActiveSubscriptions()])
             } else {
-                toast.error(result.message || 'Failed to cancel subscription')
+                toast.error(result?.message || 'Cancellation failed.')
             }
-        } catch (error: any) {
-            console.error('Failed to cancel subscription:', error)
-            toast.error(error.response?.data?.message || 'Failed to cancel subscription')
+        } catch (err: any) {
+            console.error('Cancel failed:', err)
+            toast.error(
+                err?.response?.data?.message ||
+                    'Could not cancel. Please try again.',
+            )
         } finally {
-            setCancelling(false)
+            setIsCancelling(false)
         }
     }
 
-    const formatDate = (dateString?: string | null) => {
+    const formatDate = (dateString?: string | Date | null) => {
         if (!dateString) return 'N/A'
         return new Date(dateString).toLocaleDateString('en-IN', {
             year: 'numeric',
@@ -157,8 +218,34 @@ export default function SubscriptionPage() {
         )
     }
 
-    const isFreePlan = userInfo?.plan === 'free'
-    const isExpired = userInfo?.planEndDate && new Date(userInfo.planEndDate) < new Date()
+    const activeMapping = profile?.activePlanMapping ?? null
+    const planDetails = profile?.planDetails ?? null
+    const effective = profile?.effectiveLimits ?? null
+    const activeAddons = profile?.activeAddons ?? []
+
+    const planKey = activeMapping?.planKey ?? profile?.plan ?? 'free'
+    const planTitle = activeMapping?.planTitle ?? planDetails?.title ?? planKey
+    const planStartDate = activeMapping?.startDate ?? profile?.planStartDate
+    const planEndDate = activeMapping?.endDate ?? profile?.planEndDate
+    const isFreePlan = !activeMapping && (planKey === 'free' || !planKey)
+    const isExpired = !!planEndDate && new Date(planEndDate) < new Date()
+    const isSubscriptionActive = !!activeMapping && activeMapping.status === 'active' && !isExpired
+    const isCancellationPending = !!activeMapping && activeMapping.status === 'cancelled' && !isExpired
+
+    const extraArtistSlots = effective?.extraArtistSlots ?? activeAddons.length
+    const baseArtistLimit = planDetails?.limits?.maxArtists ?? 0
+    const effectiveArtistLimit = effective?.maxArtists ?? baseArtistLimit + extraArtistSlots
+    const planPriceInPaise = (planDetails?.pricePerYear ?? 0) * 100
+    const addonsTotalInPaise = extraArtistSlots * ARTIST_ADDON_PRICE_INR * 100
+    const billedTotalInPaise = planPriceInPaise + addonsTotalInPaise
+
+    // Artist add-on is only offered on the tier directly below the top one
+    // (e.g. "Label MX"). Free / mid tiers must upgrade; the top tier doesn't need it.
+    const sortedPlans = [...allPlans].sort((a, b) => a.pricePerYear - b.pricePerYear)
+    const currentPlanIdx = sortedPlans.findIndex((p) => p.key === planKey)
+    const isSecondToLastTier =
+        sortedPlans.length >= 2 && currentPlanIdx === sortedPlans.length - 2
+    const canBuyArtistAddon = !isFreePlan && !isExpired && isSecondToLastTier
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -167,7 +254,17 @@ export default function SubscriptionPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                <h1 className="text-3xl font-bold mb-8">Subscription</h1>
+                <div className="flex items-center gap-3 mb-8">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.back()}
+                        aria-label="Go back"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <h1 className="text-3xl font-bold">Subscription</h1>
+                </div>
 
                 {/* Current Plan Card */}
                 <Card className="mb-8">
@@ -182,18 +279,21 @@ export default function SubscriptionPage() {
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-2xl font-bold">{currentPlan?.title || userInfo?.plan}</h3>
+                                    <h3 className="text-2xl font-bold">{planTitle}</h3>
                                     {isExpired ? (
                                         <Badge variant="destructive" className="flex items-center gap-1">
                                             <AlertCircle className="h-3 w-3" />
                                             Expired
                                         </Badge>
-                                    ) : !isFreePlan && userInfo?.subscriptionStatus === 'cancelled' ? (
-                                        <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20 flex items-center gap-1">
+                                    ) : isCancellationPending ? (
+                                        <Badge
+                                            variant="outline"
+                                            className="bg-orange-500/10 text-orange-500 border-orange-500/20 flex items-center gap-1"
+                                        >
                                             <AlertTriangle className="h-3 w-3" />
                                             Cancelling / Expiring
                                         </Badge>
-                                    ) : !isFreePlan && userInfo?.isSubscriptionActive ? (
+                                    ) : isSubscriptionActive ? (
                                         <Badge className="bg-green-500/10 text-green-500 flex items-center gap-1">
                                             <CheckCircle className="h-3 w-3" />
                                             Active
@@ -205,47 +305,58 @@ export default function SubscriptionPage() {
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                         <span className="flex items-center gap-1">
                                             <Calendar className="h-4 w-4" />
-                                            Started: {formatDate(userInfo?.planStartDate)}
+                                            Started: {formatDate(planStartDate)}
                                         </span>
                                         <span className="flex items-center gap-1">
                                             <Calendar className="h-4 w-4" />
-                                            Expires: {formatDate(userInfo?.planEndDate)}
+                                            Expires: {formatDate(planEndDate)}
                                         </span>
                                     </div>
                                 )}
 
-                                {currentPlan && (
+                                {planDetails && planKey !== 'enterprise' && (
                                     <p className="text-muted-foreground mt-2">
-                                        {currentPlan.priceDisplay} {currentPlan.period}
+                                        {planDetails.priceDisplay} {planDetails.period}
                                     </p>
                                 )}
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-2">
-                                {userInfo?.plan !== 'free' && userInfo?.isSubscriptionActive && userInfo?.subscriptionStatus !== 'cancelled' && (
-                                    <Button 
-                                        variant="outline" 
-                                        onClick={() => openCancelDialog(undefined, 'plan')}
-                                        className="text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
+                                {planKey === 'enterprise' ? (
+                                    <Button
+                                        onClick={() => {
+                                            window.location.href = `mailto:${ENTERPRISE_CONTACT_EMAIL}?subject=Enterprise%20plan%20enquiry`
+                                        }}
+                                        className="flex items-center gap-2"
                                     >
-                                        Cancel Subscription
+                                        <Mail className="h-4 w-4" />
+                                        Contact Us
                                     </Button>
-                                )}
-                                {userInfo?.plan !== 'enterprise' && (
+                                ) : (
                                     <Button onClick={handleUpgrade} className="flex items-center gap-2">
                                         {isFreePlan ? 'Upgrade Plan' : 'Change Plan'}
                                         <ArrowUpRight className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                {!isFreePlan && !isExpired && !isCancellationPending && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => openCancelDialog(undefined, 'plan')}
+                                        className="flex items-center gap-2 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                        Cancel Subscription
                                     </Button>
                                 )}
                             </div>
                         </div>
 
                         {/* Plan Features */}
-                        {currentPlan?.features && currentPlan.features.length > 0 && (
+                        {planDetails?.features && planDetails.features.length > 0 && (
                             <div className="mt-6 pt-6 border-t">
                                 <h4 className="font-semibold mb-3">Plan Features</h4>
                                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {currentPlan.features.map((feature, i) => (
+                                    {planDetails.features.map((feature, i) => (
                                         <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                                             <CheckCircle className="h-4 w-4 text-primary" />
                                             {feature}
@@ -254,11 +365,58 @@ export default function SubscriptionPage() {
                                 </ul>
                             </div>
                         )}
+
+                        {/* Add-ons + bumped artist limit + total billed */}
+                        {!isFreePlan && (
+                            <div className="mt-6 pt-6 border-t space-y-3">
+                                <h4 className="font-semibold">Artist slots & billing</h4>
+                                <div className="text-sm text-muted-foreground">
+                                    Artist limit:{' '}
+                                    <span className="text-foreground font-medium">{effectiveArtistLimit}</span>
+                                    {extraArtistSlots > 0 && (
+                                        <span className="ml-1">
+                                            ({baseArtistLimit} plan + {extraArtistSlots} add-on{extraArtistSlots > 1 ? 's' : ''})
+                                        </span>
+                                    )}
+                                </div>
+                                {planKey !== 'enterprise' && (
+                                    <div className="text-sm text-muted-foreground">
+                                        Plan price:{' '}
+                                        <span className="text-foreground">{formatAmount(planPriceInPaise)}</span>
+                                        {extraArtistSlots > 0 && (
+                                            <>
+                                                {' + Add-ons: '}
+                                                <span className="text-foreground">
+                                                    {formatAmount(addonsTotalInPaise)}
+                                                </span>
+                                                {' = Total: '}
+                                                <span className="text-foreground font-semibold">
+                                                    {formatAmount(billedTotalInPaise)}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                {canBuyArtistAddon && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleBuyArtistAddon}
+                                        disabled={isPurchasingAddon || paymentLoading}
+                                        className="mt-2"
+                                    >
+                                        {isPurchasingAddon
+                                            ? 'Processing…'
+                                            : `Add 1 more artist (₹${ARTIST_ADDON_PRICE_INR})`}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-                
+
                 {/* Active Addons Section */}
-                {activeSubscriptions.some(s => s.type === 'addon') && (
+                {activeSubscriptions.some((s) => s.type === 'addon') && (
                     <Card className="mb-8">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -269,41 +427,52 @@ export default function SubscriptionPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {activeSubscriptions.filter(s => s.type === 'addon').map((sub) => (
-                                    <div key={sub.id} className="p-4 border border-border rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4 bg-card/30 backdrop-blur-sm transition-all hover:border-primary/20">
-                                        <div>
-                                            <p className="text-xl font-bold capitalize">
-                                                {sub.planKey.replace(/_/g, ' ')}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground mt-1">
-                                                Expires: {formatDate(sub.endDate)}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            {sub.isRecurring ? (
-                                                sub.status !== 'cancelled' ? (
-                                                    <Button 
-                                                    variant="outline" 
-                                                    size="sm"
-                                                    className="text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
-                                                    onClick={() => openCancelDialog(sub.id, 'addon')}
-                                                    disabled={cancelling}
-                                                >
-                                                    Cancel Add-on
-                                                </Button>
+                                {activeSubscriptions
+                                    .filter((s) => s.type === 'addon')
+                                    .map((sub) => (
+                                        <div
+                                            key={sub.id}
+                                            className="p-4 border border-border rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4 bg-card/30 backdrop-blur-sm transition-all hover:border-primary/20"
+                                        >
+                                            <div>
+                                                <p className="text-xl font-bold capitalize">
+                                                    {String(sub.planKey ?? '').replace(/_/g, ' ')}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    Expires: {formatDate(sub.endDate)}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                {sub.isRecurring ? (
+                                                    sub.status !== 'cancelled' ? (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
+                                                            onClick={() => openCancelDialog(sub.id, 'addon')}
+                                                            disabled={isCancelling}
+                                                        >
+                                                            Cancel Add-on
+                                                        </Button>
+                                                    ) : (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-orange-500 border-orange-500/20 bg-orange-500/5"
+                                                        >
+                                                            Cancelling / Expiring
+                                                        </Badge>
+                                                    )
                                                 ) : (
-                                                    <Badge variant="outline" className="text-orange-500 border-orange-500/20 bg-orange-500/5">
-                                                        Cancelling / Expiring
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="text-blue-500 border-blue-500/20 bg-blue-500/5"
+                                                    >
+                                                        One-time Purchase
                                                     </Badge>
-                                                )
-                                            ) : (
-                                                <Badge variant="outline" className="text-blue-500 border-blue-500/20 bg-blue-500/5">
-                                                    One-time Purchase
-                                                </Badge>
-                                            )}
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
                             </div>
                         </CardContent>
                     </Card>
@@ -369,48 +538,67 @@ export default function SubscriptionPage() {
             <UpgradePlanModal
                 isOpen={showUpgradeModal}
                 onClose={() => setShowUpgradeModal(false)}
-                currentPlanKey={userInfo?.plan || 'free'}
+                currentPlanKey={planKey}
+                hasActiveSubscription={!isFreePlan && isSubscriptionActive}
             />
 
-            {/* Cancellation Confirmation Dialog */}
-            <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-                <DialogContent className="sm:max-w-[425px] border-border/50 bg-card/95 backdrop-blur-md">                    
+            {/* Cancel Subscription / Add-on confirmation */}
+            <Dialog open={showCancelDialog} onOpenChange={(open) => !isCancelling && setShowCancelDialog(open)}>
+                <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="text-2xl flex items-center gap-2">
-                            <AlertTriangle className="h-6 w-6 text-red-500" />
-                            Confirm Cancellation
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5 text-destructive" />
+                            {cancellingType === 'addon' ? 'Cancel add-on?' : 'Cancel subscription?'}
                         </DialogTitle>
-                        <DialogDescription className="text-base pt-2">
-                            Are you sure you want to cancel your <span className="text-foreground font-bold">{cancellingType === 'plan' ? currentPlan?.title : 'Extra Artist Slot'}</span>?
-                            <br /><br />
-                            <span className="text-foreground font-medium">You will still have access to all your features until the end of your current billing cycle.</span>
-                            <br /><br />
-                            After that, {cancellingType === 'plan' ? 'your account will revert to the Free plan.' : 'this extra artist slot will be removed.'}
+                        <DialogDescription>
+                            {cancellingType === 'addon' ? (
+                                <>
+                                    Your <span className="font-semibold">extra artist slot</span> will be cancelled
+                                    at the end of the current billing cycle on{' '}
+                                    <span className="font-semibold">{formatDate(planEndDate)}</span>. After that
+                                    date the slot is removed but your main plan continues.
+                                </>
+                            ) : (
+                                <>
+                                    Your <span className="font-semibold">{planTitle}</span> plan will be cancelled
+                                    at the end of the current billing cycle on{' '}
+                                    <span className="font-semibold">{formatDate(planEndDate)}</span>.
+                                    {extraArtistSlots > 0 && (
+                                        <>
+                                            {' '}All{' '}
+                                            <span className="font-semibold">
+                                                {extraArtistSlots} artist add-on{extraArtistSlots > 1 ? 's' : ''}
+                                            </span>{' '}
+                                            will also be cancelled — add-ons cannot remain active without an
+                                            underlying plan.
+                                        </>
+                                    )}{' '}
+                                    You will keep access until then. After that date your account will return to
+                                    the free tier.
+                                </>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
-
-                    <DialogFooter className="mt-6 gap-2 sm:flex-row flex-col">
+                    <DialogFooter>
                         <Button
                             variant="outline"
                             onClick={() => setShowCancelDialog(false)}
-                            disabled={cancelling}
-                            className="w-full sm:w-auto"
+                            disabled={isCancelling}
                         >
-                            Keep Subscription
+                            Keep my subscription
                         </Button>
-                        <Button 
-                            variant="destructive" 
-                            onClick={() => handleCancelSubscription()}
-                            disabled={cancelling}
-                            className="bg-red-500 hover:bg-red-600 w-full sm:w-auto shadow-lg shadow-red-500/20"
+                        <Button
+                            variant="destructive"
+                            onClick={handleConfirmCancel}
+                            disabled={isCancelling}
                         >
-                            {cancelling ? (
+                            {isCancelling ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Cancelling...
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Cancelling…
                                 </>
                             ) : (
-                                'Yes, Cancel Subscription'
+                                'Yes, cancel'
                             )}
                         </Button>
                     </DialogFooter>

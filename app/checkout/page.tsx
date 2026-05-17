@@ -20,7 +20,6 @@ function CheckoutContent() {
     const [plan, setPlan] = useState<Plan | null>(null)
     const [loading, setLoading] = useState(true)
     const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending')
-    const [isAutoPay] = useState(true)
 
     const planKey = searchParams.get('plan')
 
@@ -66,7 +65,7 @@ function CheckoutContent() {
             const result = await initiatePayment(plan.key, {
                 name: user?.fullName,
                 email: user?.email,
-            }, isAutoPay)
+            })
 
             if (result?.success) {
                 setPaymentStatus('success')

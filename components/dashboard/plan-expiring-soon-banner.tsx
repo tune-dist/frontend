@@ -5,9 +5,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { AlertCircle, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
-import { resumeSubscription } from '@/lib/api/payments'
+import apiClient from '@/lib/api-client'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '@/contexts/AuthContext'
+
+// Inlined — payments.ts is mid-merge and does not currently export resumeSubscription.
+async function resumeSubscriptionRequest(
+    subscriptionId?: string,
+): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+        '/payments/resume-subscription',
+        { subscriptionId },
+    )
+    return response.data
+}
 
 interface PlanExpiringSoonBannerProps {
     daysRemaining: number
@@ -22,7 +33,7 @@ export default function PlanExpiringSoonBanner({ daysRemaining, onClose }: PlanE
     const handleRenew = async () => {
         setLoading(true)
         try {
-            const result = await resumeSubscription()
+            const result = await resumeSubscriptionRequest()
             if (result.success) {
                 toast.success(result.message || 'Auto-pay re-enabled successfully!')
                 await refreshUser()
