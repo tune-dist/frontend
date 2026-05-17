@@ -1320,7 +1320,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 {/* Label Name Field - Always show, but disable and show message if not allowed by plan */}
                 <div className="space-y-3 pt-6 border-t border-border">
                     <Label htmlFor="labelName" className="text-lg font-semibold">
-                        Label Name
+                        Label Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
                         id="labelName"

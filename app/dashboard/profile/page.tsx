@@ -19,6 +19,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { updateUserProfile, sendPhoneOTP, verifyPhoneOTP, updateAddress } from '@/lib/api/users'
 import { uploadFileDirectly } from '@/lib/upload/chunk-uploader'
 import { getDisplayUrl } from '@/lib/api/s3'
+import { API_URL } from '@/lib/config'
+import { S3Image } from '@/components/ui/s3-image'
 
 const profileSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -64,6 +66,7 @@ export default function ProfilePage() {
   const [selfieFile, setSelfieFile] = useState<File | null>(null)
   const [isVerifyingProfile, setIsVerifyingProfile] = useState(false)
   const [openingVerifyDoc, setOpeningVerifyDoc] = useState<string | null>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   useEffect(() => {
     if (!loading && user) {
@@ -191,6 +194,39 @@ export default function ProfilePage() {
       setOpeningVerifyDoc(null);
     }
   };
+  
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image size should be less than 2MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const result = await uploadFileDirectly(file, '', undefined, 'avatar');
+      await updateUserProfile({
+        avatar: result.path,
+        avatarUrl: result.path
+      } as any);
+      toast.success('Profile picture updated successfully');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload profile picture');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const {
     register,
@@ -256,66 +292,113 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="John Doe"
-                      disabled
-                      className="flex-1 bg-muted"
-                      {...register('fullName')}
+              <div className="flex flex-col md:flex-row gap-8">
+                <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-4 order-2 md:order-1">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="fullName"
+                        type="text"
+                        placeholder="John Doe"
+                        disabled
+                        className="flex-1 bg-muted"
+                        {...register('fullName')}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => window.location.href = 'mailto:support@yourlabel.com?subject=Request Name Change'}
+                      >
+                        Request Change
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      To change your legal name, please contact support.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        value={user?.email || ''}
+                        disabled
+                        className="pl-10 bg-muted"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Email cannot be changed
+                    </p>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full sm:w-auto"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                <div className="flex flex-col items-center gap-4 order-1 md:order-2">
+                  <div className="relative group">
+                    <div className="h-32 w-32 rounded-lg border-2 border-dashed border-border overflow-hidden bg-muted flex items-center justify-center relative">
+                      {user?.avatar ? (
+                        <S3Image
+                          src={user.avatar}
+                          alt="Profile"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <UserIcon className="h-12 w-12 text-muted-foreground" />
+                      )}
+                      
+                      {isUploadingAvatar && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-white" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <input
+                      id="avatarUpload"
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      disabled={isUploadingAvatar}
                     />
+                    
                     <Button
-                      type="button"
                       variant="outline"
-                      onClick={() => window.location.href = 'mailto:support@yourlabel.com?subject=Request Name Change'}
+                      size="sm"
+                      className="mt-4 w-full"
+                      onClick={() => document.getElementById('avatarUpload')?.click()}
+                      disabled={isUploadingAvatar}
                     >
-                      Request Change
+                      {user?.avatar ? 'Change Photo' : 'Upload Photo'}
                     </Button>
+                    
+                    <p className="text-[10px] text-muted-foreground mt-2 text-center max-w-[128px]">
+                      Recommended: Square image, max 2MB.
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    To change your legal name, please contact support.
-                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      value={user?.email || ''}
-                      disabled
-                      className="pl-10 bg-muted"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Email cannot be changed
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full sm:w-auto"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Changes
-                    </>
-                  )}
-                </Button>
-              </form>
+              </div>
             </CardContent>
           </Card>
         </motion.div>

@@ -163,7 +163,7 @@ export const uploadFormSchema = z.object({
     }, {
         message: 'Release date must be at least 2 days from today'
     }),
-    labelName: z.string().optional(),
+    labelName: z.string().min(1, 'Label name is required'),
     distributionTerritories: z.array(z.string()).default(['Worldwide']),
 
     // Credits

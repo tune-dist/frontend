@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
+import { S3Image } from '@/components/ui/s3-image'
 
 export default function TopNavbar() {
   const { user, logout } = useAuth()
@@ -79,8 +80,20 @@ export default function TopNavbar() {
             className="rounded-full px-1.5 py-1.5 hover:bg-primary/10 transition-all duration-300 group flex items-center gap-1.5"
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
-            <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 border border-primary/20 group-hover:border-primary/40 shadow-inner">
-              <UserIcon className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border">
+                {user?.avatar ? (
+                  <S3Image
+                    src={user.avatar}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserIcon className="h-4 w-4 text-primary" />
+                )}
+              </div>
+              <span className="hidden md:inline text-sm">{user?.fullName || 'User'}</span>
+              <ChevronDown className="h-4 w-4" />
             </div>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
           </Button>
@@ -115,7 +128,7 @@ export default function TopNavbar() {
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="p-2 space-y-1">
                     <Button
                       variant="ghost"
@@ -127,7 +140,7 @@ export default function TopNavbar() {
                       </div>
                       Settings
                     </Button>
-                    
+
                     <Button
                       variant="ghost"
                       className="w-full justify-start gap-3 px-3 py-2.5 h-auto text-sm font-medium text-destructive hover:bg-destructive/10 hover:text-destructive transition-all duration-200 rounded-xl group"

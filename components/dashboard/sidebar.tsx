@@ -26,6 +26,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
 import { Tooltip } from '@/components/ui/tooltip'
+import { S3Image } from '@/components/ui/s3-image'
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -168,13 +169,25 @@ export default function Sidebar() {
                 </button>
               </Tooltip>
             )}
-            <Tooltip content={user?.fullName || 'User'} enabled={isSidebarCollapsed}>
-              <div className={cn(
-                "flex items-center w-full",
-                isSidebarCollapsed ? "justify-center" : "gap-3"
-              )}>
-                <div className="h-10 w-10 shrink-0 rounded-full bg-primary/20 flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-border">
+                {user?.avatar ? (
+                  <S3Image
+                    src={user.avatar}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
                   <User className="h-5 w-5 text-primary" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user?.fullName || 'User'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user?.role === 'super_admin' ? 'Super Admin' :
+                      user?.role === 'release_manager' ? 'Release Manager' : 'Artist'}
+                  </p>
                 </div>
                 {!isSidebarCollapsed && (
                   <div className="flex-1 min-w-0">
@@ -188,7 +201,7 @@ export default function Sidebar() {
                   </div>
                 )}
               </div>
-            </Tooltip>
+            </div>
           </div>
         </div>
       </aside>

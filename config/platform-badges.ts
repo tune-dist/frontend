@@ -24,7 +24,7 @@ export const PLATFORM_BADGES: Badge[] = [
     {
         id: 'youtube-music',
         name: 'YouTube Music',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Youtube_Music_icon.svg/2048px-Youtube_Music_icon.svg.png',
+        logoUrl: 'https://music.youtube.com/img/favicon_144.png',
         fallbackText: 'YT',
         color: '#FF0000'
     },
@@ -59,14 +59,14 @@ export const PLATFORM_BADGES: Badge[] = [
     {
         id: "jiosaavn",
         name: "JioSaavn",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e0/JioSaavn_Logo.png",
+        logoUrl: "https://www.jiosaavn.com/favicon.ico",
         fallbackText: 'JS',
         color: '#2C99C9'
     },
     {
         id: "wynk",
         name: "Wynk Music",
-        logoUrl: "https://upload.wikimedia.org/wikipedia/commons/f/f6/Wynk_Music_Logo.png",
+        logoUrl: "https://wynk.in/assets/images/favicon.ico",
         fallbackText: 'WK',
         color: '#E11B22'
     }
