@@ -170,25 +170,19 @@ export default function Sidebar() {
               </Tooltip>
             )}
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-border">
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-border shrink-0">
                 {user?.avatar ? (
                   <S3Image
                     src={user.avatar}
                     alt="Profile"
                     className="h-full w-full object-cover"
+                    fallback={<User className="h-5 w-5 text-primary" />}
                   />
                 ) : (
                   <User className="h-5 w-5 text-primary" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.fullName || 'User'}</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-muted-foreground truncate">
-                    {user?.role === 'super_admin' ? 'Super Admin' :
-                      user?.role === 'release_manager' ? 'Release Manager' : 'Artist'}
-                  </p>
-                </div>
                 {!isSidebarCollapsed && (
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{user?.fullName || 'User'}</p>

@@ -4,17 +4,17 @@
 import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-    Smartphone, 
-    Square, 
-    ChevronRight, 
-    ChevronLeft, 
-    Check, 
-    Music, 
-    Plus, 
-    Trash2, 
-    Save, 
-    Loader2, 
+import {
+    Smartphone,
+    Square,
+    ChevronRight,
+    ChevronLeft,
+    Check,
+    Music,
+    Plus,
+    Trash2,
+    Save,
+    Loader2,
     Instagram,
     ExternalLink,
     Play
@@ -24,10 +24,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "react-hot-toast";
 import { getRelease, Release } from "@/lib/api/releases";
-import { 
-    getPromoTemplates, 
-    createOrUpdatePromotion, 
-    getPromotionByReleaseId 
+import {
+    getPromoTemplates,
+    createOrUpdatePromotion,
+    getPromotionByReleaseId
 } from "@/lib/api/promotions";
 import { PromoTemplate } from "@/config/promo-templates";
 import { LandingPagePreview } from "@/components/dashboard/promotion/landing-page-preview";
@@ -54,7 +54,7 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    
+
     const [release, setRelease] = useState<Release | null>(null);
     const [templates, setTemplates] = useState<PromoTemplate[]>([]);
     const [selectedFormat, setSelectedFormat] = useState<'story' | 'post'>('story');
@@ -62,7 +62,7 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
     const [streamingLinks, setStreamingLinks] = useState<any[]>([]);
     const [slug, setSlug] = useState("");
     const [coverUrl, setCoverUrl] = useState("");
-    
+
     // Customization state (minimal for wizard, can be edited further in full editor)
     const [elementOverrides, setElementOverrides] = useState<Record<string, any>>({});
     const [backgroundOverride, setBackgroundOverride] = useState<any>({ position: { x: 50, y: 50 }, scale: 1.1 });
@@ -77,13 +77,13 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
             if (previewContainerRef.current) {
                 const parentHeight = previewContainerRef.current.offsetHeight;
                 const parentWidth = previewContainerRef.current.offsetWidth;
-                
+
                 const phoneH = 812;
                 const phoneW = 375;
-                
+
                 const scaleH = (parentHeight - 40) / phoneH;
                 const scaleW = (parentWidth - 40) / phoneW;
-                
+
                 setPreviewScale(Math.min(scaleH, scaleW));
             }
         };
@@ -202,7 +202,7 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
             });
 
             const landingPageUrl = `${window.location.origin}/p/${slug}`;
-            
+
             try {
                 await navigator.clipboard.writeText(landingPageUrl);
                 toast.success("Promotion created! Link copied to clipboard.");
@@ -210,7 +210,7 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                 console.error("Clipboard failed:", clipboardError);
                 toast.success("Promotion created successfully!");
             }
-            
+
             onClose();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to save promotion");
@@ -244,16 +244,14 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                         { num: 4, label: 'Review' }
                     ].map((s) => (
                         <div key={s.num} className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                                step === s.num 
-                                ? 'bg-primary text-black shadow-[0_0_15px_rgba(29,185,84,0.4)]' 
-                                : step > s.num ? 'bg-primary/20 text-primary' : 'bg-white/5 text-white/40'
-                            }`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step === s.num
+                                    ? 'bg-primary text-black shadow-[0_0_15px_rgba(29,185,84,0.4)]'
+                                    : step > s.num ? 'bg-primary/20 text-primary' : 'bg-white/5 text-white/40'
+                                }`}>
                                 {step > s.num ? <Check className="h-4 w-4" /> : s.num}
                             </div>
-                            <span className={`text-sm font-medium transition-colors ${
-                                step === s.num ? 'text-white' : 'text-white/40'
-                            }`}>
+                            <span className={`text-sm font-medium transition-colors ${step === s.num ? 'text-white' : 'text-white/40'
+                                }`}>
                                 {s.label}
                             </span>
                             {s.num < 4 && <div className="w-12 h-[1px] bg-white/5 ml-4" />}
@@ -263,8 +261,12 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
 
                 <div className="flex-1 flex overflow-hidden">
                     {/* Left Side: Steps */}
-                    <div className="w-[50%] flex flex-col overflow-hidden">
-                        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
+                    <div className="w-[50%] relative">
+                        <div
+                            className="absolute inset-0 p-6 overflow-y-auto custom-scrollbar overscroll-contain"
+                            onWheel={(e) => e.stopPropagation()}
+                            onTouchMove={(e) => e.stopPropagation()}
+                        >
                             <AnimatePresence mode="wait">
                                 {step === 1 && (
                                     <motion.div
@@ -291,15 +293,13 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                                                         const match = templates.find(t => t.format === format.id);
                                                         if (match) setActiveTemplate(match);
                                                     }}
-                                                    className={`p-8 rounded-3xl border-2 text-left transition-all relative overflow-hidden group ${
-                                                        selectedFormat === format.id 
-                                                        ? 'border-primary bg-primary/5' 
-                                                        : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04]'
-                                                    }`}
+                                                    className={`p-8 rounded-3xl border-2 text-left transition-all relative overflow-hidden group ${selectedFormat === format.id
+                                                            ? 'border-primary bg-primary/5'
+                                                            : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04]'
+                                                        }`}
                                                 >
-                                                    <div className={`mb-6 w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${
-                                                        selectedFormat === format.id ? 'bg-primary text-black' : 'bg-white/5 text-white/40 group-hover:text-primary'
-                                                    }`}>
+                                                    <div className={`mb-6 w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${selectedFormat === format.id ? 'bg-primary text-black' : 'bg-white/5 text-white/40 group-hover:text-primary'
+                                                        }`}>
                                                         {format.icon}
                                                     </div>
                                                     <h3 className="font-bold text-xl text-white">{format.name}</h3>
@@ -335,19 +335,18 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                                                 <button
                                                     key={temp.id}
                                                     onClick={() => setActiveTemplate(temp)}
-                                                    className={`p-3 rounded-3xl border-2 transition-all group relative ${
-                                                        activeTemplate?.id === temp.id 
-                                                        ? 'border-primary bg-primary/5' 
-                                                        : 'border-white/5 bg-white/[0.02] hover:border-primary/40'
-                                                    }`}
+                                                    className={`p-3 rounded-3xl border-2 transition-all group relative ${activeTemplate?.id === temp.id
+                                                            ? 'border-primary bg-primary/5'
+                                                            : 'border-white/5 bg-white/[0.02] hover:border-primary/40'
+                                                        }`}
                                                 >
-                                                    <div className="aspect-[9/12] rounded-2xl overflow-hidden bg-black mb-4 shadow-2xl group-hover:scale-[1.02] transition-transform origin-bottom">
-                                                        <ThumbnailPreview 
-                                                            template={temp} 
-                                                            release={release} 
-                                                            coverUrl={coverUrl} 
-                                                            backgroundOverride={backgroundOverride} 
-                                                            elementOverrides={elementOverrides} 
+                                                    <div className="aspect-[9/12] rounded-2xl overflow-hidden bg-black mb-4 shadow-2xl group-hover:scale-[1.02] transition-transform origin-bottom pointer-events-none">
+                                                        <ThumbnailPreview
+                                                            template={temp}
+                                                            release={release}
+                                                            coverUrl={coverUrl}
+                                                            backgroundOverride={backgroundOverride}
+                                                            elementOverrides={elementOverrides}
                                                         />
                                                     </div>
                                                     <p className="font-bold text-sm text-white/80 px-2 pb-2 text-center truncate">{temp.name}</p>
@@ -376,9 +375,8 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                                                     key={p.id}
                                                     variant="ghost"
                                                     size="sm"
-                                                    className={`gap-2 h-10 rounded-full border border-white/10 hover:bg-white/10 hover:text-white ${
-                                                        streamingLinks.some(l => l.platform === p.name) ? 'opacity-30 pointer-events-none' : ''
-                                                    }`}
+                                                    className={`gap-2 h-10 rounded-full border border-white/10 hover:bg-white/10 hover:text-white ${streamingLinks.some(l => l.platform === p.name) ? 'opacity-30 pointer-events-none' : ''
+                                                        }`}
                                                     onClick={() => handleAddLink(p.id)}
                                                 >
                                                     <Plus className="h-3 w-3" />
@@ -395,16 +393,16 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                                                     </div>
                                                     <div className="flex-1 space-y-1">
                                                         <Label className="text-[10px] uppercase font-bold text-white/30 tracking-widest">{link.platform} URL</Label>
-                                                        <Input 
+                                                        <Input
                                                             value={link.url}
                                                             onChange={(e) => handleLinkChange(idx, e.target.value)}
                                                             placeholder={`Paste your ${link.platform} link here...`}
                                                             className="h-10 bg-black/40 border-white/10 text-white focus:border-primary/50 transition-all rounded-xl"
                                                         />
                                                     </div>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
                                                         className="text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-xl"
                                                         onClick={() => handleRemoveLink(idx)}
                                                     >
@@ -484,9 +482,8 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                                                         <button
                                                             key={type}
                                                             onClick={() => setInstaType(type as any)}
-                                                            className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-3 transition-all ${
-                                                                instaType === type ? 'border-[#E1306C] bg-[#E1306C]/5 text-white' : 'border-white/5 text-white/40'
-                                                            }`}
+                                                            className={`p-4 rounded-2xl border-2 flex items-center justify-center gap-3 transition-all ${instaType === type ? 'border-[#E1306C] bg-[#E1306C]/5 text-white' : 'border-white/5 text-white/40'
+                                                                }`}
                                                         >
                                                             {type === 'story' ? <Smartphone className="h-4 w-4" /> : <Square className="h-4 w-4" />}
                                                             <span className="font-bold capitalize">{type}</span>
@@ -522,7 +519,7 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                             >
                                 <div className="absolute inset-0">
                                     {activeTemplate && (
-                                        <LandingPagePreview 
+                                        <LandingPagePreview
                                             release={release}
                                             streamingLinks={streamingLinks}
                                             activeTemplate={activeTemplate}
@@ -539,28 +536,28 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
 
                 {/* Footer */}
                 <div className="p-4 border-t border-white/5 bg-black/40 flex items-center justify-between shrink-0">
-                    <Button 
-                        variant="ghost" 
-                        onClick={prevStep} 
+                    <Button
+                        variant="ghost"
+                        onClick={prevStep}
                         disabled={step === 1}
                         className="text-white/40 hover:text-white transition-colors gap-2 px-4 h-9 text-xs"
                     >
                         <ChevronLeft className="h-3 w-3" />
                         Back
                     </Button>
-                    
+
                     <div className="flex gap-3">
                         {step < 4 ? (
-                            <Button 
-                                onClick={nextStep} 
+                            <Button
+                                onClick={nextStep}
                                 className="bg-white text-black hover:bg-white/90 rounded-xl px-8 font-bold h-10 text-sm gap-2 shadow-xl shadow-white/5"
                             >
                                 Next
                                 <ChevronRight className="h-4 w-4" />
                             </Button>
                         ) : (
-                            <Button 
-                                onClick={handleSave} 
+                            <Button
+                                onClick={handleSave}
                                 disabled={saving}
                                 className="bg-primary text-black hover:bg-primary/90 rounded-xl px-10 font-black h-10 text-sm gap-2 shadow-xl shadow-primary/20 transition-all active:scale-95"
                             >

@@ -87,6 +87,7 @@ export default function TopNavbar() {
                     src={user.avatar}
                     alt="Profile"
                     className="h-full w-full object-cover"
+                    fallback={<UserIcon className="h-4 w-4 text-primary" />}
                   />
                 ) : (
                   <UserIcon className="h-4 w-4 text-primary" />
@@ -95,7 +96,6 @@ export default function TopNavbar() {
               <span className="hidden md:inline text-sm">{user?.fullName || 'User'}</span>
               <ChevronDown className="h-4 w-4" />
             </div>
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
           </Button>
 
           <AnimatePresence>

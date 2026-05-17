@@ -52,7 +52,7 @@ export const LandingPagePreview = ({
 
     useEffect(() => {
         if (!containerRef.current) return;
-        
+
         const observer = new ResizeObserver((entries) => {
             for (let entry of entries) {
                 setCardWidth(entry.contentRect.width);
@@ -68,7 +68,11 @@ export const LandingPagePreview = ({
     const finalBgUrl = resolvedOverrideUrl || templateBgUrl || coverUrl;
 
     return (
-        <div className="h-full w-full bg-[#050505] relative flex flex-col items-center overflow-x-hidden overflow-y-auto custom-scrollbar p-2">
+        <div
+            className="h-full w-full bg-[#050505] relative flex flex-col items-center overflow-x-hidden overflow-y-auto custom-scrollbar p-2 overscroll-contain"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+        >
             <style jsx>{`
                 .custom-scrollbar::-webkit-scrollbar {
                     width: 4px;
@@ -249,45 +253,47 @@ export const LandingPagePreview = ({
                     </div>
 
                     {/* Platforms List */}
-                    <div className="w-full mt-2 bg-[#080808]/90 backdrop-blur-3xl border border-white/5 rounded-3xl p-3 space-y-2 shadow-2xl shrink-0">
-                        <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-2 mb-2">Choose your service</p>
+                    <div className="w-full mt-2 bg-[#080808]/90 backdrop-blur-3xl border border-white/5 rounded-3xl p-3 shadow-2xl shrink-0 flex flex-col max-h-[160px]">
+                        <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-2 mb-2 shrink-0">Choose your service</p>
 
-                        {streamingLinks.length === 0 ? (
-                            <div className="p-4 rounded-xl bg-white/5 border border-dashed border-white/10 text-center">
-                                <p className="text-[10px] text-white/40">No platforms added yet</p>
-                            </div>
-                        ) : streamingLinks.map((link: any, idx: number) => (
-                            <div
-                                key={idx}
-                                className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5"
-                            >
-                                <div className="flex items-center gap-3">
-                                    {(() => {
-                                         const badge = PLATFORM_BADGES.find(b =>
-                                            b.name.toLowerCase().replace(/\s+/g, '') === link.platform.toLowerCase().replace(/\s+/g, '') ||
-                                            b.id.toLowerCase() === link.platform.toLowerCase().replace(/\s+/g, '-')
-                                         );
-                                        return badge ? (
-                                            <div className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shadow-lg">
-                                                <img
-                                                    src={badge.logoUrl}
-                                                    alt={badge.name}
-                                                    className="w-full h-full object-contain"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-lg bg-black border border-white/10 flex items-center justify-center font-bold text-[8px] text-primary">
-                                                {link.platform.substring(0, 2).toUpperCase()}
-                                            </div>
-                                        );
-                                    })()}
-                                    <span className="font-bold text-white tracking-tight text-xs">{link.platform}</span>
+                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                            {streamingLinks.length === 0 ? (
+                                <div className="p-4 rounded-xl bg-white/5 border border-dashed border-white/10 text-center">
+                                    <p className="text-[10px] text-white/40">No platforms added yet</p>
                                 </div>
-                                <div className="p-2 rounded-full bg-primary text-black">
-                                    <Play className="h-2 w-2 fill-current ml-0.5" />
+                            ) : streamingLinks.map((link: any, idx: number) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 shrink-0"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        {(() => {
+                                            const badge = PLATFORM_BADGES.find(b =>
+                                                b.name.toLowerCase().replace(/\s+/g, '') === link.platform.toLowerCase().replace(/\s+/g, '') ||
+                                                b.id.toLowerCase() === link.platform.toLowerCase().replace(/\s+/g, '-')
+                                            );
+                                            return badge ? (
+                                                <div className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shadow-lg">
+                                                    <img
+                                                        src={badge.logoUrl}
+                                                        alt={badge.name}
+                                                        className="w-full h-full object-contain"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-lg bg-black border border-white/10 flex items-center justify-center font-bold text-[8px] text-primary">
+                                                    {link.platform.substring(0, 2).toUpperCase()}
+                                                </div>
+                                            );
+                                        })()}
+                                        <span className="font-bold text-white tracking-tight text-xs">{link.platform}</span>
+                                    </div>
+                                    <div className="p-2 rounded-full bg-primary text-black">
+                                        <Play className="h-2 w-2 fill-current ml-0.5" />
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
 
