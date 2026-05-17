@@ -287,54 +287,49 @@ export default function ReleasesPage() {
           <Card className="glass-card overflow-hidden">
             <CardHeader className="border-b border-border/50 bg-primary/5 pb-6">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="space-y-1">
-                  <CardTitle className="flex items-center gap-2 text-2xl font-bold">
-                    <Music className="h-6 w-6 text-primary" />
-                    All Releases
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-2">
-                    <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
-                    {releases.length} total releases found
-                  </CardDescription>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                  {isPrivileged && (
-                    <div className="flex flex-col gap-1.5 min-w-[200px]">
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Filter by User</div>
-                      <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                        <SelectTrigger className="h-10 bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all rounded-xl">
-                          <SelectValue placeholder="All Users" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
-                          <SelectItem value="all">All Users</SelectItem>
-                          {users.map((u) => (
-                            <SelectItem key={u._id} value={u._id}>{u.fullName || u.email}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
+                {isPrivileged && (
+                  <div className="flex flex-col gap-1.5 min-w-[200px]">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Filter by User</div>
+                    <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                      <SelectTrigger className="h-10 bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all rounded-xl">
+                        <SelectValue placeholder="All Users" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
+                        <SelectItem value="all">All Users</SelectItem>
+                        {users.map((u) => (
+                          <SelectItem key={u._id} value={u._id}>{u.fullName || u.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
-              <div className="mt-6">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1 mb-2">Filter by Status</div>
-                <div className="flex flex-wrap gap-2">
-                  {statusFilters.map((filter) => (
-                    <Button
-                      key={filter.value}
-                      variant={statusFilter === filter.value ? "default" : "outline"}
-                      size="sm"
-                      className={`h-9 px-5 rounded-xl text-xs font-semibold transition-all duration-300 ${statusFilter === filter.value
+              <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-4">
+                <CardDescription className="flex items-center gap-2 text-sm font-medium">
+                  <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+                  {releases.length} total releases found
+                </CardDescription>
+
+                <div className="flex flex-col gap-2">
+                  {/* <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground lg:text-right mr-1">Filter by Status</div> */}
+                  <div className="flex flex-wrap lg:justify-end gap-2">
+                    {statusFilters.map((filter) => (
+                      <Button
+                        key={filter.value}
+                        variant={statusFilter === filter.value ? "default" : "outline"}
+                        size="sm"
+                        className={`h-9 px-5 rounded-xl text-xs font-semibold transition-all duration-300 ${statusFilter === filter.value
                           ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105"
                           : "bg-background/40 hover:bg-primary/10 hover:border-primary/30 hover:text-primary"
-                        }`}
-                      onClick={() => setStatusFilter(filter.value)}
-                    >
-                      {filter.label}
-                    </Button>
-                  ))}
+                          }`}
+                        onClick={() => setStatusFilter(filter.value)}
+                      >
+                        {filter.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -358,13 +353,14 @@ export default function ReleasesPage() {
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">UPC/ISRC</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Status</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Approved By</TableHead>
+                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">WorldWide DSP</TableHead>
                         <TableHead className="text-right pr-6 font-bold uppercase tracking-wider text-[10px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {releases.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground py-24">
+                          <TableCell colSpan={8} className="text-center text-muted-foreground py-24">
                             <div className="flex flex-col items-center gap-4">
                               <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-2">
                                 <Music className="h-10 w-10 text-primary/30" />
@@ -422,6 +418,9 @@ export default function ReleasesPage() {
                                 ? release.approvedBy.fullName
                                 : "-"
                               }
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm font-medium">
+                              {release.pdlAlbumId ? "Yes" : "-"}
                             </TableCell>
                             <TableCell className="text-right pr-6">
                               <div className="flex items-center justify-end gap-2">

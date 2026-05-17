@@ -48,7 +48,8 @@ export default function WaveformTrimmer({
       container: containerRef.current,
       waveColor: "rgba(109, 40, 217, 0.8)", // Primary color with opacity
       progressColor: "rgba(109, 40, 217, 0.4)", // Primary color
-      cursorColor: "#fb923c",
+      cursorColor: "transparent",
+      cursorWidth: 0,
       barWidth: 2,
       barGap: 0,
       barRadius: 0,
@@ -62,12 +63,22 @@ export default function WaveformTrimmer({
     waveSurferRef.current = ws;
 
     let url = "";
-    if (typeof audioFile === "string") {
-      ws.load(audioFile);
-    } else {
-      url = URL.createObjectURL(audioFile);
-      ws.load(url);
-    }
+    const loadAudio = async () => {
+      try {
+        if (typeof audioFile === "string") {
+          await ws.load(audioFile);
+        } else {
+          url = URL.createObjectURL(audioFile);
+          await ws.load(url);
+        }
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          console.error("WaveSurfer load error:", err);
+        }
+      }
+    };
+
+    loadAudio();
 
     ws.on("ready", () => {
       const totalDur = ws.getDuration();
@@ -85,7 +96,7 @@ export default function WaveformTrimmer({
         id: "trim-region",
         start: start,
         end: end,
-        color: "rgba(74, 222, 128, 0.2)",
+        color: "rgba(74, 222, 128, 0.9)",
         drag: true,
         resize: true,
       });
@@ -107,8 +118,9 @@ export default function WaveformTrimmer({
     ws.on("pause", () => setIsPlaying(false));
 
     regions.on("region-updated", (region: Region) => {
+      const currentDuration = ws.getDuration() || duration;
       const start = Math.max(0, Math.round(region.start));
-      const end = Math.min(duration, Math.round(region.end));
+      const end = Math.min(currentDuration, Math.round(region.end));
       setSelection({ start, end });
 
       // Convert start to HH:MM:SS for the form
@@ -128,10 +140,15 @@ export default function WaveformTrimmer({
     });
 
     return () => {
-      ws.destroy();
+      try {
+        ws.destroy();
+      } catch (err) {
+        // Ignore destroy errors
+      }
       if (url) URL.revokeObjectURL(url);
     };
-  }, [audioFile, initialStartTime]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioFile]);
 
   const togglePlay = () => {
     if (waveSurferRef.current && regionsRef.current) {
@@ -161,7 +178,6 @@ export default function WaveformTrimmer({
           <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
           <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Clip Selection</span>
         </div>
-        <Info className="h-4 w-4 text-white/20 cursor-help" />
       </div>
 
       {/* Waveform Area */}
@@ -170,19 +186,12 @@ export default function WaveformTrimmer({
           ref={containerRef}
           className="w-full cursor-pointer overflow-hidden bg-gradient-to-b from-transparent to-white/5"
         />
-
-        {/* Playback Progress Overlay */}
-        <div className="absolute top-0 right-0 p-2 pointer-events-none">
-          <span className="text-[9px] font-mono text-white/40 bg-black/40 backdrop-blur-sm px-2 py-1 rounded">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </span>
-        </div>
       </div>
 
       {/* Controls & Metrics */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 justify-between w-full">
             <Button
               type="button"
               className={cn(
@@ -208,41 +217,27 @@ export default function WaveformTrimmer({
                 <span className="text-[12px] font-black uppercase tracking-tight">Preview</span>
               </div>
             </Button>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <div className="h-1 w-3 rounded-full bg-[#6625d0]" />
-              <span className="text-[10px] font-bold text-white/40 uppercase tracking-tighter">Waveform</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="h-1 w-3 rounded-full bg-green-500" />
-              <span className="text-[10px] font-bold text-white/40 uppercase tracking-tighter">Selection</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="h-1 w-3 rounded-full bg-orange-500" />
-              <span className="text-[10px] font-bold text-white/40 uppercase tracking-tighter">Playback</span>
+            {/* Compact Horizontal Metrics Strip */}
+            <div className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl px-4 py-2.5 w-full">
+              <div className="flex flex-col">
+                <span className="text-[8px] font-black text-red-500 uppercase tracking-widest mb-0.5">Start Time</span>
+                <span className="text-sm font-bold text-white">{formatTime(selection.start)}</span>
+              </div>
+              <div className="h-6 w-px bg-white/10" />
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-black text-green-500 uppercase tracking-widest mb-0.5">Duration</span>
+                <span className="text-sm font-bold text-white">{formatTime(selection.end - selection.start)}</span>
+              </div>
+              <div className="h-6 w-px bg-white/10" />
+              <div className="flex flex-col items-end">
+                <span className="text-[8px] font-black text-green-500 uppercase tracking-widest mb-0.5">End Time</span>
+                <span className="text-sm font-bold text-white">{formatTime(selection.end)}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Compact Horizontal Metrics Strip */}
-        <div className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl px-4 py-2.5">
-          <div className="flex flex-col">
-            <span className="text-[8px] font-black text-red-500 uppercase tracking-widest mb-0.5">Start Time</span>
-            <span className="text-sm font-bold text-white">{formatTime(selection.start)}</span>
-          </div>
-          <div className="h-6 w-px bg-white/10" />
-          <div className="flex flex-col items-center">
-            <span className="text-[8px] font-black text-green-500 uppercase tracking-widest mb-0.5">Duration</span>
-            <span className="text-sm font-bold text-white">{formatTime(selection.end - selection.start)}</span>
-          </div>
-          <div className="h-6 w-px bg-white/10" />
-          <div className="flex flex-col items-end">
-            <span className="text-[8px] font-black text-green-500 uppercase tracking-widest mb-0.5">End Time</span>
-            <span className="text-sm font-bold text-white">{formatTime(selection.end)}</span>
-          </div>
-        </div>
+
       </div>
     </div>
   );

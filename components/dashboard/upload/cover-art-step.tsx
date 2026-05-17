@@ -9,6 +9,7 @@ import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Tooltip } from '@/components/ui/tooltip'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface CoverArtStepProps {
     formData?: UploadFormData
@@ -22,6 +23,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
     const [isValidating, setIsValidating] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState<number>(1);
 
     const validationStatus = watch('coverArtValidationStatus');
     const validationIssues = watch('coverArtValidationIssues') || [];
@@ -481,6 +483,99 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     </ul>
                 </div>
 
+
+                {/* Templates Button & Modal */}
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full rounded-xl py-6 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold uppercase tracking-wider transition-all hover:scale-[1.02]">
+                            <ImageIcon className="mr-2 h-5 w-5" />
+                            Cover Art Templates
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-6xl w-[95vw] h-[650px] bg-[#0a0a0a] border-border/50 text-foreground p-0 overflow-hidden flex flex-col">
+                        <div className="flex flex-col lg:flex-row h-full w-full">
+
+                            {/* 30% Left Column - Editor */}
+                            <div className="w-full lg:w-[30%] bg-black/40 border-r border-border/50 p-6 flex flex-col gap-6 overflow-y-auto">
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-bold">Customize Art</h3>
+                                    <p className="text-xs text-muted-foreground">Add your album and artist details to the template.</p>
+                                </div>
+
+                                <div className="relative aspect-square rounded-xl overflow-hidden border border-border/30 shadow-2xl bg-muted">
+                                    <img
+                                        src={`/assets/images/cover-art-thumb/${selectedTemplate}.jpg`}
+                                        alt="Selected Template"
+                                        className="w-full h-full object-cover"
+                                    />
+                                    {/* Overlay Text Preview */}
+                                    <div className="absolute inset-0 flex flex-col items-center justify-between py-10 px-4 text-center">
+                                        <h2 className="text-2xl font-black text-white drop-shadow-md uppercase tracking-widest opacity-90">Album Name</h2>
+                                        <h3 className="text-lg font-bold text-white/80 drop-shadow-md uppercase tracking-wider">Artist Name</h3>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 flex-1">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Release Title *</label>
+                                        <input
+                                            type="text"
+                                            className="w-full h-11 bg-background/50 border border-border rounded-xl px-4 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
+                                            placeholder="Album Name"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Main Artist Name *</label>
+                                        <input
+                                            type="text"
+                                            className="w-full h-11 bg-background/50 border border-border rounded-xl px-4 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all"
+                                            placeholder="Artist Name"
+                                        />
+                                    </div>
+                                </div>
+
+                                <Button className="w-full py-6 rounded-xl font-bold uppercase tracking-widest bg-primary text-white hover:bg-primary/90 mt-auto shadow-lg shadow-primary/20">
+                                    Save and Continue
+                                </Button>
+                            </div>
+
+                            {/* 70% Right Column - Grid */}
+                            <div className="w-full lg:w-[70%] p-6 flex flex-col h-full">
+                                <DialogHeader className="mb-6 shrink-0 text-left">
+                                    <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">Or Customize One of Our Cover Art Templates:</DialogTitle>
+                                </DialogHeader>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pb-6 pr-2 custom-scrollbar">
+                                    {Array.from({ length: 12 }).map((_, i) => (
+                                        <div
+                                            key={i}
+                                            onClick={() => setSelectedTemplate(i + 1)}
+                                            className={`relative aspect-square rounded-xl overflow-hidden group cursor-pointer border-2 transition-all duration-300 ${selectedTemplate === i + 1
+                                                ? 'border-primary ring-4 ring-primary/20 scale-[0.98]'
+                                                : 'border-transparent hover:border-primary/50'
+                                                }`}
+                                        >
+                                            <img
+                                                src={`/assets/images/cover-art-thumb/${i + 1}.jpg`}
+                                                alt={`Cover Art Template ${i + 1}`}
+                                                loading="lazy"
+                                                className={`w-full h-full object-cover transition-transform duration-500 ${selectedTemplate !== i + 1 ? 'group-hover:scale-110' : ''}`}
+                                            />
+                                            {selectedTemplate === i + 1 && (
+                                                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-[1px]">
+                                                    <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">
+                                                        <CheckCircle2 className="h-5 w-5" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
             </div>
         </div>
