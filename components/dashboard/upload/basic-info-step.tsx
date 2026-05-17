@@ -1190,7 +1190,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                         >
                                             <X className="h-4 w-4" />
                                         </Button>
-                                    </div>
+                                    </motion.div>
                                     <div className="relative space-y-2">
                                             {usedArtists.length > 0 && !creatingNewSecondary[index] && (!artist.name || usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artist.name)) && (
                                                 <div className="relative">
@@ -1291,7 +1291,8 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                     {renderSearchResults(index)}
 
                                     {/* Secondary Artist Social Media Profiles - only show when artist is selected */}
-                                    {artist.name && <div className="pt-4 border-t border-border/50">
+                                    {artist.name && (
+                                    <div className="pt-4 border-t border-border/50">
                                         <div className="grid grid-cols-2 gap-4">
                                             {/* Instagram */}
                                             <div className="space-y-1.5">
@@ -1330,7 +1331,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                             </div>
                                         </div>
                                     </div>
-                                    }
+                                    )}
                                 </div>
                             ))}
                         </div>

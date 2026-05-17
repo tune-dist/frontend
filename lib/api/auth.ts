@@ -20,6 +20,7 @@ export interface User {
   _id: string;
   email: string;
   fullName: string;
+  avatar?: string;
   plan: 'free' | 'solo' | 'pro' | 'enterprise';
   planEndDate: string | null;
   role: 'super_admin' | 'admin' | 'release_manager' | 'artist';
