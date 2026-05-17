@@ -27,8 +27,10 @@ import {
     Youtube,
     Music,
 } from "lucide-react";
-import { getYouTubeRequests, YouTubeServiceRequest } from "@/lib/api/youtube-service";
+import { getYouTubeRequests, YouTubeServiceRequest, updateYouTubeRequestStatus, YouTubeRequestStatus } from "@/lib/api/youtube-service";
 import RequestModal from "@/components/dashboard/youtube-service/request-modal";
+import { CheckCircle, XCircle, Ban, MessageSquare, Download, FileSpreadsheet } from "lucide-react";
+import * as XLSX from "xlsx";
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -55,7 +57,19 @@ export default function YouTubeServicePage() {
     const [requests, setRequests] = useState<YouTubeServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
     const { user } = useAuth();
+
+    const isReleaseManager = user?.role === "release_manager";
+
+    const isLimited = (user?.plan === 'free' || user?.plan === 'solo') && user?.role === 'artist';
+    const approvedCount = requests.filter(r => r.status === 'Approved').length;
+    const totalCount = requests.length;
+
+    const hasHitLimit = isLimited && (
+        (approvedCount === 0 && totalCount >= 1) ||
+        (approvedCount >= 1 && totalCount >= 2)
+    );
 
     const fetchRequests = async () => {
         try {
@@ -73,6 +87,68 @@ export default function YouTubeServicePage() {
     useEffect(() => {
         fetchRequests();
     }, []);
+
+    const handleApprove = async (id: string) => {
+        if (!confirm("Are you sure you want to approve this YouTube service request?")) return;
+        try {
+            setActionLoading(id);
+            await updateYouTubeRequestStatus(id, YouTubeRequestStatus.APPROVED);
+            toast.success("Request approved successfully");
+            fetchRequests();
+        } catch (error) {
+            toast.error("Failed to approve request");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleReject = async (id: string) => {
+        const reason = prompt("Enter rejection reason:");
+        if (reason === null) return; // User cancelled
+        if (!reason.trim()) {
+            toast.error("Rejection reason is required");
+            return;
+        }
+
+        try {
+            setActionLoading(id);
+            await updateYouTubeRequestStatus(id, YouTubeRequestStatus.REJECTED, reason);
+            toast.success("Request rejected");
+            fetchRequests();
+        } catch (error) {
+            toast.error("Failed to reject request");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleExportExcel = () => {
+        if (requests.length === 0) {
+            toast.error("No data to export");
+            return;
+        }
+
+        const data = requests.map((req) => ({
+            "User Name": (req.userId as any)?.fullName || "N/A",
+            "User Email": (req.userId as any)?.email || "N/A",
+            "Store": "YouTube",
+            "Category": req.requestType,
+            "Asset Title": req.assetTitle,
+            "Artist/Asset ID": req.artistId,
+            "UPC": req.upc,
+            "Status": req.status,
+            "Rejection Reason": req.rejectionReason || "-",
+            "Approved By": (req.processedBy as any)?.fullName || "-",
+            "Approved At": req.processedAt ? new Date(req.processedAt).toLocaleString() : "-",
+            "Created At": new Date(req.createdAt).toLocaleString(),
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Requests");
+        XLSX.writeFile(workbook, "YouTube_Service_Requests.xlsx");
+        toast.success("Excel exported successfully");
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -105,15 +181,31 @@ export default function YouTubeServicePage() {
                             YouTube <span className="animated-gradient">Service</span>
                         </h1>
                         <p className="text-muted-foreground">
-                            Manage your YouTube content claims and takedowns
+                            {hasHitLimit 
+                                ? "You have reached the maximum number of requests for your plan"
+                                : "Manage your YouTube content claims and takedowns"
+                            }
                         </p>
                     </div>
-                    {!loading && requests.length === 0 && (
-                        <Button size="lg" className="gap-2" onClick={() => setIsModalOpen(true)}>
-                            <Plus className="h-4 w-4" />
-                            Send request form
-                        </Button>
-                    )}
+                    <div className="flex gap-3">
+                        {isReleaseManager && requests.length > 0 && (
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                className="gap-2 border-green-500/50 hover:bg-green-500/10 text-green-500"
+                                onClick={handleExportExcel}
+                            >
+                                <FileSpreadsheet className="h-4 w-4" />
+                                Export Excel
+                            </Button>
+                        )}
+                        {!loading && !hasHitLimit && (
+                            <Button size="lg" className="gap-2" onClick={() => setIsModalOpen(true)}>
+                                <Plus className="h-4 w-4" />
+                                Send request form
+                            </Button>
+                        )}
+                    </div>
                 </motion.div>
 
                 {/* Requests Table */}
@@ -143,20 +235,22 @@ export default function YouTubeServicePage() {
                                     <Table>
                                         <TableHeader className="bg-muted/50">
                                             <TableRow>
+                                                {isReleaseManager && <TableHead>USER</TableHead>}
                                                 <TableHead>STORE</TableHead>
                                                 <TableHead>CATEGORY</TableHead>
                                                 <TableHead>ASSET TITLE</TableHead>
-                                                <TableHead>ALBUM/TRACK TITLE</TableHead>
                                                 <TableHead>ARTIST/ASSET ID</TableHead>
                                                 <TableHead>UPC</TableHead>
                                                 <TableHead>STATUS</TableHead>
+                                                <TableHead>COMMENT</TableHead>
+                                                {isReleaseManager && <TableHead className="text-right">ACTIONS</TableHead>}
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {requests.length === 0 ? (
                                                 <TableRow>
                                                     <TableCell
-                                                        colSpan={7}
+                                                        colSpan={isReleaseManager ? 8 : 7}
                                                         className="text-center text-muted-foreground py-12"
                                                     >
                                                         <div className="flex flex-col items-center gap-2">
@@ -173,6 +267,14 @@ export default function YouTubeServicePage() {
                                             ) : (
                                                 requests.map((request) => (
                                                     <TableRow key={request._id}>
+                                                        {isReleaseManager && (
+                                                            <TableCell>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm font-medium">{(request.userId as any)?.fullName || 'Unknown'}</span>
+                                                                    <span className="text-[10px] text-muted-foreground">{(request.userId as any)?.email}</span>
+                                                                </div>
+                                                            </TableCell>
+                                                        )}
                                                         <TableCell>
                                                             <Youtube className="h-5 w-5 text-red-600" />
                                                         </TableCell>
@@ -181,9 +283,6 @@ export default function YouTubeServicePage() {
                                                         </TableCell>
                                                         <TableCell className="text-sm">
                                                             {request.assetTitle}
-                                                        </TableCell>
-                                                        <TableCell className="text-sm">
-                                                            {request.albumTrackTitle}
                                                         </TableCell>
                                                         <TableCell className="text-sm">
                                                             {request.artistId}
@@ -201,6 +300,54 @@ export default function YouTubeServicePage() {
                                                                 {request.status}
                                                             </span>
                                                         </TableCell>
+                                                        <TableCell className="max-w-[200px]">
+                                                            {request.rejectionReason ? (
+                                                                <div className="flex items-start gap-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded border border-border/50">
+                                                                    <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
+                                                                    <span className="italic">"{request.rejectionReason}"</span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-muted-foreground/30">-</span>
+                                                            )}
+                                                        </TableCell>
+                                                        {isReleaseManager && (
+                                                            <TableCell className="text-right">
+                                                                {request.status === YouTubeRequestStatus.PENDING ? (
+                                                                    <div className="flex items-center justify-end gap-1">
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => handleApprove(request._id)}
+                                                                            disabled={actionLoading === request._id}
+                                                                            className="text-green-500 hover:bg-green-500/10 h-8 w-8 p-0"
+                                                                            title="Approve"
+                                                                        >
+                                                                            {actionLoading === request._id ? (
+                                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                            ) : (
+                                                                                <CheckCircle className="h-4 w-4" />
+                                                                            )}
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => handleReject(request._id)}
+                                                                            disabled={actionLoading === request._id}
+                                                                            className="text-red-500 hover:bg-red-500/10 h-8 w-8 p-0"
+                                                                            title="Reject"
+                                                                        >
+                                                                            {actionLoading === request._id ? (
+                                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                            ) : (
+                                                                                <Ban className="h-4 w-4" />
+                                                                            )}
+                                                                        </Button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-xs text-muted-foreground uppercase font-bold opacity-30">Processed</span>
+                                                                )}
+                                                            </TableCell>
+                                                        )}
                                                     </TableRow>
                                                 ))
                                             )}

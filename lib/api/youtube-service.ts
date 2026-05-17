@@ -28,6 +28,12 @@ export interface YouTubeServiceRequest {
     expiry: string;
     otherParty: string;
     rejectionReason?: string;
+    processedBy?: {
+        _id: string;
+        fullName: string;
+        email: string;
+    } | string;
+    processedAt?: string;
     createdAt: string;
     updatedAt: string;
 }
