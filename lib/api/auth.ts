@@ -58,6 +58,8 @@ export interface User {
     filename: string;
     uploadedAt: string;
   };
+  avatar?: string;
+  avatarUrl?: string;
   isSubscriptionActive?: boolean;
   subscriptionStatus?: string;
 }
