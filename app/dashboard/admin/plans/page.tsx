@@ -27,11 +27,43 @@ import {
     Upload,
     PieChart,
 } from 'lucide-react';
-import { Plan, getAllPlans, adminUpdatePlan } from '@/lib/api/plans';
+import { Plan, getAllPlans, adminUpdatePlan, adminCreatePlan, adminDeletePlan, derivePlanKey, BillingPeriod, currencySymbol, derivePeriodLabel } from '@/lib/api/plans';
 import toast from 'react-hot-toast';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from '@/components/ui/dialog';
+
+const emptyNewPlan: Partial<Plan> = {
+    key: '',
+    title: '',
+    description: '',
+    pricePerYear: 0,
+    royaltyPercent: 10,
+    isActive: true,
+    billingPeriod: 'yearly',
+    interval: 1,
+    currency: 'INR',
+    features: [],
+    limits: {
+        maxPendingReleases: 1,
+        maxArtists: 1,
+        maxStorageGB: 1,
+        allowConcurrent: false,
+        allowedFormats: ['single'],
+    },
+    fieldRules: {},
+};
+
+const BILLING_PERIODS: BillingPeriod[] = ['daily', 'weekly', 'monthly', 'yearly'];
+const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'] as const;
 
 export default function PlanManagementPage() {
     const [plans, setPlans] = useState<Plan[]>([]);
@@ -41,6 +73,11 @@ export default function PlanManagementPage() {
     const [editForm, setEditForm] = useState<Partial<Plan>>({});
     const [activeTab, setActiveTab] = useState('general');
     const [currency, setCurrency] = useState('INR');
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const [newPlan, setNewPlan] = useState<Partial<Plan>>(emptyNewPlan);
+    const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const getCurrencySymbol = (curr: string) => {
         switch (curr) {
@@ -90,6 +127,84 @@ export default function PlanManagementPage() {
         }));
     };
 
+    const handleCreatePlan = async () => {
+        const key = (newPlan.key || '').trim().toLowerCase();
+        const title = (newPlan.title || '').trim();
+
+        if (!key) {
+            toast.error('Plan key is required');
+            return;
+        }
+        if (!/^[a-z0-9_]+$/.test(key)) {
+            toast.error('Plan key must be lowercase letters, numbers, or underscores');
+            return;
+        }
+        if (!title) {
+            toast.error('Plan name is required');
+            return;
+        }
+        if ((newPlan.pricePerYear ?? 0) < 0) {
+            toast.error('Price cannot be negative');
+            return;
+        }
+
+        // Auto-populate priceDisplay/period so the new plan card renders the same
+        // way as the seeded ones ("₹999/year") instead of falling back to raw "999.00".
+        // Period default mirrors the billing cycle the admin picked — picking weekly
+        // must NOT store "/year". Admin can still override these from the edit panel.
+        const priceValue = newPlan.pricePerYear ?? 0;
+        const priceDisplay = (newPlan.priceDisplay || '').trim() ||
+            `${getCurrencySymbol(currency)}${priceValue}`;
+        const PERIOD_FROM_BILLING: Record<string, string> = {
+            daily: '/day',
+            weekly: '/week',
+            monthly: '/month',
+            yearly: '/year',
+        };
+        const periodFallback = PERIOD_FROM_BILLING[newPlan.billingPeriod ?? 'yearly'] ?? '/year';
+        const period = (newPlan.period || '').trim() || periodFallback;
+
+        try {
+            setIsCreating(true);
+            const created = await adminCreatePlan({
+                ...newPlan,
+                key,
+                title,
+                priceDisplay,
+                period,
+            });
+            toast.success(`Plan "${created.title}" created`);
+            setIsCreateOpen(false);
+            setNewPlan(emptyNewPlan);
+            await fetchPlans();
+            handleSelectPlan(created);
+        } catch (error: any) {
+            console.error('Create plan error:', error);
+            toast.error(error.response?.data?.message || 'Failed to create plan');
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    const updateNewPlanField = (field: keyof Plan, value: any) => {
+        setNewPlan((prev) => {
+            const next = { ...prev, [field]: value };
+            // Title drives the key — admin doesn't enter the key manually.
+            if (field === 'title') next.key = derivePlanKey(value);
+            return next;
+        });
+    };
+
+    const updateNewPlanLimit = (field: string, value: any) => {
+        setNewPlan((prev) => ({
+            ...prev,
+            limits: {
+                ...(prev.limits || emptyNewPlan.limits!),
+                [field]: value,
+            } as any,
+        }));
+    };
+
     const handleSave = async () => {
         if (!selectedPlan) return;
         try {
@@ -104,6 +219,28 @@ export default function PlanManagementPage() {
             toast.error(error.response?.data?.message || 'Failed to update plan');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!planToDelete) return;
+        const deletedKey = planToDelete.key;
+        try {
+            setIsDeleting(true);
+            await adminDeletePlan(deletedKey);
+            toast.success(`Plan "${planToDelete.title}" deleted`);
+            // If the selected/editor plan is the one being deleted, clear it
+            if (selectedPlan?.key === deletedKey) {
+                setSelectedPlan(null);
+                setEditForm({});
+            }
+            setPlanToDelete(null);
+            await fetchPlans();
+        } catch (error: any) {
+            console.error('Delete error:', error);
+            toast.error(error.response?.data?.message || 'Failed to delete plan');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -123,7 +260,13 @@ export default function PlanManagementPage() {
                             <Eye className="h-4 w-4" />
                             User View
                         </Button>
-                        <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_rgba(124,58,237,0.3)]">
+                        <Button
+                            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_rgba(124,58,237,0.3)]"
+                            onClick={() => {
+                                setNewPlan(emptyNewPlan);
+                                setIsCreateOpen(true);
+                            }}
+                        >
                             <Plus className="h-4 w-4" />
                             Create New Plan
                         </Button>
@@ -156,13 +299,36 @@ export default function PlanManagementPage() {
                                     <h3 className="text-2xl font-bold">{plan.title}</h3>
                                     <p className="text-sm text-muted-foreground">{plan.description || (plan.key === 'free' ? 'Free Tier' : 'Paid Tier')}</p>
                                 </div>
-                                <Badge className={`${plan.isActive ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'} border-0 uppercase text-[10px] font-bold`}>
-                                    {plan.isActive ? 'Active' : 'Inactive'}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                    <Badge className={`${plan.isActive ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'} border-0 uppercase text-[10px] font-bold`}>
+                                        {plan.isActive ? 'Active' : 'Inactive'}
+                                    </Badge>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPlanToDelete(plan);
+                                        }}
+                                        className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                        aria-label={`Delete plan ${plan.title}`}
+                                        title="Delete plan"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="text-4xl font-black mb-8">
-                                {plan.priceDisplay || (plan.pricePerYear).toFixed(2)}<span className="text-lg text-muted-foreground font-normal">/yr</span>
+                                {plan.priceDisplay?.trim().toLowerCase() === 'custom' ? (
+                                    plan.priceDisplay
+                                ) : (
+                                    <>
+                                        {plan.priceDisplay?.trim() || `${currencySymbol(plan.currency)}${plan.pricePerYear}`}
+                                        <span className="text-lg text-muted-foreground font-normal">
+                                            {derivePeriodLabel(plan) ?? '/yr'}
+                                        </span>
+                                    </>
+                                )}
                             </div>
 
                             <div className="flex items-center justify-between pt-6 border-t border-border/50">
@@ -453,6 +619,212 @@ export default function PlanManagementPage() {
                         <p className="text-muted-foreground text-lg">Select a plan to start editing</p>
                     </div>
                 )}
+
+                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                    <DialogContent className="sm:max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Create New Plan</DialogTitle>
+                            <DialogDescription>
+                                Set the essentials. If price is greater than zero, a matching Razorpay plan is created automatically so users can subscribe with auto-pay.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+                            <div className="space-y-2">
+                                <Label>Plan Name <span className="text-destructive">*</span></Label>
+                                <Input
+                                    placeholder="e.g. Pro Plus"
+                                    value={newPlan.title || ''}
+                                    onChange={(e) => updateNewPlanField('title', e.target.value)}
+                                />
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                    Generated key:{' '}
+                                    <span className="text-foreground font-mono normal-case tracking-normal">
+                                        {newPlan.key || '—'}
+                                    </span>
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Currency</Label>
+                                <select
+                                    value={newPlan.currency || 'INR'}
+                                    onChange={(e) => updateNewPlanField('currency', e.target.value)}
+                                    className="w-full bg-card/50 border border-border/50 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                >
+                                    {CURRENCIES.map((c) => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
+                                <Label>Description</Label>
+                                <textarea
+                                    rows={2}
+                                    placeholder="What this plan is for"
+                                    value={newPlan.description || ''}
+                                    onChange={(e) => updateNewPlanField('description', e.target.value)}
+                                    className="w-full bg-card/50 border border-border/50 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Annual Price ({getCurrencySymbol(currency)})</Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    value={newPlan.pricePerYear ?? 0}
+                                    onChange={(e) => updateNewPlanField('pricePerYear', parseFloat(e.target.value) || 0)}
+                                />
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                    0 = free plan (no Razorpay sync)
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Royalty %</Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={newPlan.royaltyPercent ?? 10}
+                                    onChange={(e) => updateNewPlanField('royaltyPercent', parseFloat(e.target.value) || 0)}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Billing Period</Label>
+                                <select
+                                    value={newPlan.billingPeriod || 'yearly'}
+                                    onChange={(e) => updateNewPlanField('billingPeriod', e.target.value as BillingPeriod)}
+                                    className="w-full bg-card/50 border border-border/50 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary/50 capitalize"
+                                >
+                                    {BILLING_PERIODS.map((p) => (
+                                        <option key={p} value={p}>{p}</option>
+                                    ))}
+                                </select>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                    Razorpay cycle. How often the user is charged.
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Interval</Label>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    value={newPlan.interval ?? 1}
+                                    onChange={(e) => updateNewPlanField('interval', parseInt(e.target.value) || 1)}
+                                />
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                    Every N periods (e.g. 1 yearly = once per year).
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Max Pending Releases</Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    value={newPlan.limits?.maxPendingReleases ?? 1}
+                                    onChange={(e) => updateNewPlanLimit('maxPendingReleases', parseInt(e.target.value) || 0)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Max Artists</Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    value={newPlan.limits?.maxArtists ?? 1}
+                                    onChange={(e) => updateNewPlanLimit('maxArtists', parseInt(e.target.value) || 0)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Max Storage (GB)</Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    value={newPlan.limits?.maxStorageGB ?? 1}
+                                    onChange={(e) => updateNewPlanLimit('maxStorageGB', parseInt(e.target.value) || 0)}
+                                />
+                            </div>
+                            <div className="space-y-2 flex items-end">
+                                <div className="flex items-center justify-between w-full">
+                                    <Label>Allow Concurrent Uploads</Label>
+                                    <Switch
+                                        checked={newPlan.limits?.allowConcurrent ?? false}
+                                        onCheckedChange={(checked: boolean) => updateNewPlanLimit('allowConcurrent', checked)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setIsCreateOpen(false)}
+                                disabled={isCreating}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleCreatePlan}
+                                disabled={isCreating}
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                            >
+                                {isCreating ? (
+                                    <span className="flex items-center gap-2">
+                                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Creating...
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-2">
+                                        <Plus className="h-4 w-4" />
+                                        Create Plan
+                                    </span>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Delete confirmation */}
+                <Dialog open={!!planToDelete} onOpenChange={(open) => !open && setPlanToDelete(null)}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Delete plan?</DialogTitle>
+                            <DialogDescription>
+                                You're about to delete <span className="font-semibold">{planToDelete?.title}</span>.
+                                The plan will be hidden from users and from new subscription / upgrade flows.
+                                Existing subscribers on this plan are not cancelled automatically.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setPlanToDelete(null)}
+                                disabled={isDeleting}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleConfirmDelete}
+                                disabled={isDeleting}
+                                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                            >
+                                {isDeleting ? (
+                                    <span className="flex items-center gap-2">
+                                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Deleting...
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-2">
+                                        <Trash2 className="h-4 w-4" />
+                                        Delete plan
+                                    </span>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </DashboardLayout>
     );

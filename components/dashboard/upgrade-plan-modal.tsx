@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check, Loader2 } from 'lucide-react'
+import { X, Check, Loader2, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { getAllPlans, Plan } from '@/lib/api/plans'
+import { getAllPlans, Plan, currencySymbol, derivePeriodLabel } from '@/lib/api/plans'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
@@ -15,12 +15,23 @@ interface UpgradePlanModalProps {
     isOpen: boolean
     onClose: () => void
     currentPlanKey?: string
+    // When set, show ONLY this single plan as the upgrade target (e.g. immediate next tier)
+    targetPlanKey?: string
+    title?: string
+    subtitle?: string
+    // True when the user already has an active Razorpay subscription. If true,
+    // selecting a different plan goes through /payments/upgrade-plan (cancels old,
+    // creates new). Otherwise we treat it as a fresh subscription via create-order.
+    hasActiveSubscription?: boolean
 }
 
 // Helper to normalize keys for comparison
 const normalizeKey = (key?: string) => key?.toLowerCase().replace(/_/g, '-') || ''
 
-export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'free' }: UpgradePlanModalProps) {
+const ENTERPRISE_PLAN_KEY = 'enterprise'
+const isEnterprisePlan = (plan: Plan) => normalizeKey(plan.key) === ENTERPRISE_PLAN_KEY
+
+export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'free', targetPlanKey, title, subtitle, hasActiveSubscription = false }: UpgradePlanModalProps) {
     const [plans, setPlans] = useState<Plan[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
@@ -31,21 +42,24 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
     const router = useRouter()
 
     useEffect(() => {
-        if (isOpen && plans.length === 0) {
+        if (isOpen) {
             const fetchPlans = async () => {
                 try {
                     const data = await getAllPlans()
 
-                    // Find current plan (normalize both keys to be safe)
-                    const currentPlan = data.find(p => normalizeKey(p.key) === normalizeKey(currentPlanKey))
-                    const currentPrice = currentPlan ? currentPlan.pricePerYear : 0
+                    // If a specific target plan is provided, show only that one (single-target mode)
+                    if (targetPlanKey) {
+                        const target = data.find(p => normalizeKey(p.key) === normalizeKey(targetPlanKey))
+                        setPlans(target ? [target] : [])
+                    } else {
+                        // Default mode: show ALL active plans from the database, sorted by price.
+                        // The current plan is highlighted (and its CTA disabled) inside the card.
+                        const displayPlans = [...data]
+                            .filter(p => p.isActive !== false)
+                            .sort((a, b) => a.pricePerYear - b.pricePerYear)
 
-                    // Filter to show current plan and higher (upgrades)
-                    const displayPlans = data
-                        .filter(p => p.pricePerYear >= currentPrice)
-                        .sort((a, b) => a.pricePerYear - b.pricePerYear)
-
-                    setPlans(displayPlans)
+                        setPlans(displayPlans)
+                    }
                 } catch (error) {
                     console.error('Failed to fetch plans:', error)
                     toast.error('Failed to load plans')
@@ -55,12 +69,38 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
             }
             fetchPlans()
         }
-    }, [isOpen, plans.length])
+    }, [isOpen, currentPlanKey, targetPlanKey])
+
+    const isCurrentPlan = (plan: Plan) => {
+        return normalizeKey(plan.key) === normalizeKey(currentPlanKey)
+    }
+
+    const currentPlanPrice = (() => {
+        const current = plans.find(p => isCurrentPlan(p))
+        return current ? current.pricePerYear : 0
+    })()
+
+    const isPlanUpgrade = (plan: Plan) => plan.pricePerYear > currentPlanPrice
+    const isPlanDowngrade = (plan: Plan) =>
+        !isCurrentPlan(plan) && !isEnterprisePlan(plan) && plan.pricePerYear < currentPlanPrice
 
     const handleSelectPlan = async (plan: Plan) => {
         // Don't allow selecting current plan
         if (isCurrentPlan(plan)) {
             toast('You are already on this plan')
+            return
+        }
+
+        // Enterprise → contact sales, no Razorpay flow
+        if (isEnterprisePlan(plan)) {
+            onClose()
+            router.push('/contact')
+            return
+        }
+
+        // Self-service downgrade is not supported; backend would reject anyway
+        if (isPlanDowngrade(plan)) {
+            toast('Downgrading is not available self-service. Please contact support.')
             return
         }
 
@@ -80,10 +120,14 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
         setSelectedPlan(confirmingPlan.key)
 
         try {
-            const result = await initiatePayment(confirmingPlan.key, {
-                name: user?.fullName,
-                email: user?.email,
-            }, isAutoPay)
+            const result = await initiatePayment(
+                confirmingPlan.key,
+                {
+                    name: user?.fullName,
+                    email: user?.email,
+                },
+                { isUpgrade: hasActiveSubscription },
+            )
 
             if (result?.success) {
                 toast.success('Payment successful! Your plan has been upgraded.')
@@ -104,22 +148,12 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
         }
     }
 
-    const isCurrentPlan = (plan: Plan) => {
-        return normalizeKey(plan.key) === normalizeKey(currentPlanKey)
-    }
-
-    const isPlanUpgrade = (plan: Plan) => {
-        // Simple price comparison is more reliable for upgrade detection
-        const currentPlan = plans.find(p => isCurrentPlan(p))
-        const currentPrice = currentPlan ? currentPlan.pricePerYear : 0
-        return plan.pricePerYear > currentPrice
-    }
-
     const getButtonLabel = (plan: Plan) => {
         if (isCurrentPlan(plan)) return 'Current Plan'
+        if (isEnterprisePlan(plan)) return plan.ctaLabel || 'Contact Us'
+        if (isPlanDowngrade(plan)) return 'Contact support to downgrade'
         if (plan.pricePerYear === 0) return 'Free'
-        if (isPlanUpgrade(plan)) return plan.ctaLabel || 'Upgrade'
-        return 'Switch'
+        return plan.ctaLabel || 'Upgrade'
     }
 
     return (
@@ -152,14 +186,12 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                     <span className="sr-only">Close</span>
                                 </button>
 
-                                {!confirmingPlan && (
-                                    <div className="text-center">
-                                        <h2 className="text-2xl font-bold tracking-tight mb-2">Upgrade Your Plan</h2>
-                                        <p className="text-muted-foreground text-sm">
-                                            Choose the plan that fits your needs.
-                                        </p>
-                                    </div>
-                                )}
+                                <div className="text-center">
+                                    <h2 className="text-2xl font-bold tracking-tight mb-2">{title || 'Upgrade Your Plan'}</h2>
+                                    <p className="text-muted-foreground text-sm">
+                                        {subtitle || 'Choose the plan that fits your needs.'}
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="p-6 pt-4">
@@ -225,15 +257,26 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                     </div>
                                 ) : plans.length > 0 ? (
                                     <div className="flex flex-wrap justify-center gap-4 items-stretch">
-                                        {plans.map((plan) => (
+                                        {plans.map((plan) => {
+                                            const current = isCurrentPlan(plan)
+                                            return (
                                             <Card
                                                 key={plan.key}
-                                                className={`flex flex-col w-full sm:w-[260px] transition-all border-border/50 hover:border-primary/50 ${plan.isPopular
-                                                    ? 'border-primary border-2 shadow-md relative'
-                                                    : ''
+                                                className={`flex flex-col w-full sm:w-[260px] transition-all relative ${current
+                                                    ? 'border-primary border-2 shadow-lg shadow-primary/20 bg-primary/5 ring-2 ring-primary/40'
+                                                    : plan.isPopular
+                                                        ? 'border-primary border-2 shadow-md border-border/50 hover:border-primary/50'
+                                                        : 'border-border/50 hover:border-primary/50'
                                                     }`}
                                             >
-                                                {plan.isPopular && (
+                                                {current && (
+                                                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                                                        <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                                                            Current Plan
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {!current && plan.isPopular && (
                                                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
                                                         <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
                                                             Popular
@@ -243,11 +286,18 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                 <CardHeader className="text-center pb-4 pt-6 p-4">
                                                     <CardTitle className="text-lg mb-1">{plan.title}</CardTitle>
                                                     <div className="flex items-baseline justify-center gap-1">
-                                                        <span className="text-2xl font-bold">{plan.priceDisplay}</span>
+                                                        <span className="text-2xl font-bold">
+                                                            {plan.priceDisplay?.trim() || `${currencySymbol(plan.currency)}${plan.pricePerYear}`}
+                                                        </span>
                                                     </div>
-                                                    {plan.period && (
-                                                        <span className="text-muted-foreground text-xs">{plan.period}</span>
-                                                    )}
+                                                    {(() => {
+                                                        const isCustom = plan.priceDisplay?.trim().toLowerCase() === 'custom'
+                                                        if (isCustom) return null
+                                                        const label = derivePeriodLabel(plan)
+                                                        return label ? (
+                                                            <span className="text-muted-foreground text-xs">{label}</span>
+                                                        ) : null
+                                                    })()}
                                                     <CardDescription className="mt-2 text-xs min-h-[30px]">
                                                         {plan.description}
                                                     </CardDescription>
@@ -263,25 +313,40 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                     </ul>
                                                 </CardContent>
                                                 <CardFooter className="p-4 pt-0 mt-auto">
-                                                    <Button
-                                                        variant={isCurrentPlan(plan) ? 'secondary' : (plan.isPopular ? 'default' : 'outline')}
-                                                        className="w-full h-8 text-sm"
-                                                        size="sm"
-                                                        disabled={paymentLoading || isCurrentPlan(plan)}
-                                                        onClick={() => handleSelectPlan(plan)}
-                                                    >
-                                                        {selectedPlan === plan.key ? (
-                                                            <>
-                                                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                                                Processing...
-                                                            </>
-                                                        ) : (
-                                                            plan.ctaLabel || 'Upgrade'
-                                                        )}
-                                                    </Button>
+                                                    {(() => {
+                                                        const enterprise = isEnterprisePlan(plan)
+                                                        const downgrade = isPlanDowngrade(plan)
+                                                        // Hide the action button for downgrade plans — the card stays
+                                                        // visible for reference, but self-service downgrade is not allowed.
+                                                        if (downgrade) return null
+                                                        return (
+                                                            <Button
+                                                                variant={current ? 'secondary' : (plan.isPopular || enterprise ? 'default' : 'outline')}
+                                                                className="w-full h-8 text-sm"
+                                                                size="sm"
+                                                                disabled={paymentLoading || current}
+                                                                onClick={() => handleSelectPlan(plan)}
+                                                            >
+                                                                {selectedPlan === plan.key ? (
+                                                                    <>
+                                                                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                                                        Processing...
+                                                                    </>
+                                                                ) : enterprise && !current ? (
+                                                                    <>
+                                                                        <Mail className="mr-2 h-3 w-3" />
+                                                                        {getButtonLabel(plan)}
+                                                                    </>
+                                                                ) : (
+                                                                    getButtonLabel(plan)
+                                                                )}
+                                                            </Button>
+                                                        )
+                                                    })()}
                                                 </CardFooter>
                                             </Card>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">

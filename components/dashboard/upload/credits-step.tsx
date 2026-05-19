@@ -508,19 +508,22 @@ export default function CreditsStep({
                       }`}
                     {...register("language")}
                   >
-                    <option value="">Select a language</option>
-                    <option value="Hindi">Hindi</option>
-                    <option value="English">English</option>
-                    <option value="Punjabi">Punjabi</option>
-                    <option value="Tamil">Tamil</option>
-                    <option value="Telugu">Telugu</option>
-                    <option value="Bengali">Bengali</option>
-                    <option value="Marathi">Marathi</option>
-                    <option value="Gujarati">Gujarati</option>
-                    <option value="Kannada">Kannada</option>
-                    <option value="Malayalam">Malayalam</option>
-                    <option value="Urdu">Urdu</option>
-                    <option value="Other">Other</option>
+                   <option value="">Select a language</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="English">English</option>
+                        <option value="Punjabi">Punjabi</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Bengali">Bengali</option>
+                        <option value="Marathi">Marathi</option>
+                        <option value="Gujarati">Gujarati</option>
+                        <option value="Kannada">Kannada</option>
+                        <option value="Malayalam">Malayalam</option>
+                        <option value="Urdu">Urdu</option>
+                        <option value="Bhojpuri">Bhojpuri</option>
+                        <option value="Haryanvi">Haryanvi</option>
+                        <option value="Rajasthani">Rajasthani</option>
+                        <option value="Instrumental">Instrumental</option>
                   </select>
                   {errors.language && (
                     <p className="text-xs text-red-500 mt-1">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { createPaymentOrder, verifyPayment, CreateOrderResponse, PaymentResult } from '@/lib/api/payments';
+import { createPaymentOrder, upgradePlan, verifyPayment, CreateOrderResponse, PaymentResult } from '@/lib/api/payments';
 import toast from 'react-hot-toast';
 
 // Razorpay script URL
@@ -44,8 +44,22 @@ interface RazorpayResponse {
     razorpay_signature: string;
 }
 
+interface InitiatePaymentOptions {
+    /**
+     * When true, the user already has an active Razorpay subscription and this
+     * is a plan change. The hook routes through /payments/upgrade-plan so the
+     * old subscription gets cancelled and addons get re-attached/dropped
+     * automatically on verify.
+     */
+    isUpgrade?: boolean;
+}
+
 interface UseRazorpayReturn {
-    initiatePayment: (planKey?: string, userInfo?: { name?: string; email?: string }, isAutoPay?: boolean, isAddon?: boolean, addonType?: string) => Promise<PaymentResult | null>;
+    initiatePayment: (
+        planKey: string,
+        userInfo?: { name?: string; email?: string },
+        options?: InitiatePaymentOptions,
+    ) => Promise<PaymentResult | null>;
     isLoading: boolean;
     isScriptLoaded: boolean;
 }
@@ -112,7 +126,7 @@ export function useRazorpay(): UseRazorpayReturn {
                     key: order.keyId,
                     amount: order.amount,
                     currency: order.currency,
-                    name: 'TuneFlow',
+                    name: 'Kratolib',
                     description: `${order.planTitle} ${order.subscriptionId ? 'Subscription' : 'Purchase'}`,
                     order_id: order.orderId,
                     subscription_id: order.subscriptionId,
@@ -147,7 +161,11 @@ export function useRazorpay(): UseRazorpayReturn {
      * Initiate payment flow for a plan
      */
     const initiatePayment = useCallback(
-        async (planKey?: string, userInfo?: { name?: string; email?: string }, isAutoPay: boolean = true, isAddon?: boolean, addonType?: string): Promise<PaymentResult | null> => {
+        async (
+            planKey: string,
+            userInfo?: { name?: string; email?: string },
+            options?: InitiatePaymentOptions,
+        ): Promise<PaymentResult | null> => {
             if (!isScriptLoaded) {
                 toast.error('Payment system is loading. Please try again.');
                 return null;
@@ -157,7 +175,20 @@ export function useRazorpay(): UseRazorpayReturn {
 
             try {
                 // Step 1: Create order on backend
-                const order = await createPaymentOrder(planKey, isAutoPay, isAddon, addonType);
+                // Three branches:
+                //   - artist add-on → one-time order, attached to main sub via the
+                //     modern addon flow (isAutoPay=false)
+                //   - plan change for someone with an existing active subscription
+                //     → /payments/upgrade-plan so the old sub is cancelled + addons
+                //     are re-attached/dropped on verify
+                //   - fresh plan purchase (user on free / expired) → standard
+                //     /payments/create-order with isAutoPay=true
+                const isAddon = planKey === 'artist_addon';
+                const order = isAddon
+                    ? await createPaymentOrder(planKey, false)
+                    : options?.isUpgrade
+                        ? await upgradePlan(planKey)
+                        : await createPaymentOrder(planKey, true);
 
                 // Step 2: Open Razorpay checkout
                 const razorpayResponse = await openCheckout(order, userInfo);

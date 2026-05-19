@@ -165,11 +165,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userData = await getMe();
       setUser(userData);
-    } catch (error: any) {
-      // If refresh fails due to auth, logout. Otherwise just keep current state.
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        logout();
-      }
+      // Keep the 'user' cookie in sync so other surfaces (e.g. subscription page
+      // reading from cookie) see the latest data including extraArtistSlots.
+      Cookies.set('user', JSON.stringify(userData), {
+        expires: 7,
+        sameSite: 'lax',
+      });
+    } catch (error) {
+      // If refresh fails, logout
+      logout();
     }
   }, [logout]);
 

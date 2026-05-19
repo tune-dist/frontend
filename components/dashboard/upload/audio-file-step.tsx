@@ -1,6 +1,7 @@
 
 import { useState } from 'react'
 import { validateAudioOnBackend } from '@/lib/upload/chunk-uploader'
+import { isPlanInactiveError } from '@/lib/plan-inactive'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
 
@@ -166,7 +167,10 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
 
             } catch (error: any) {
                 console.error(error)
-                toast.error(`Validation failed for ${file.name}: ${error.message || 'Unknown error'}`)
+                // Plan-inactive shows the global subscribe modal; no extra toast.
+                if (!isPlanInactiveError(error)) {
+                    toast.error(`Validation failed for ${file.name}: ${error.message || 'Unknown error'}`)
+                }
             } finally {
                 setActiveFileId(null)
                 setUploadProgress(prev => {

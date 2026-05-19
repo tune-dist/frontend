@@ -10,7 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
 import { useFormContext } from 'react-hook-form'
-import { getPlanLimits, getPlanFieldRules } from '@/lib/api/plans'
+import { getPlanLimits, getPlanFieldRules, getAllPlans, Plan } from '@/lib/api/plans'
+import { useRazorpay } from '@/hooks/useRazorpay'
+import UpgradePlanModal from '@/components/dashboard/upgrade-plan-modal'
+import toast from 'react-hot-toast'
 import {
     Dialog,
     DialogContent,
@@ -19,7 +22,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { useRazorpay } from '@/hooks/useRazorpay'
+
+// Hardcoded artist add-on price (frontend display only — backend is source of truth)
+const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
+const ARTIST_ADDON_PRICE_INR = 500
 
 interface BasicInfoStepProps {
     // Keeping these optional for compatibility, but we primarily use context
@@ -30,7 +36,7 @@ interface BasicInfoStepProps {
 
 
 export default function BasicInfoStep({ formData: propFormData, setFormData: propSetFormData, usedArtists = [] }: BasicInfoStepProps) {
-    const { user } = useAuth()
+    const { user, refreshUser } = useAuth()
     const { register, formState: { errors }, watch, setValue } = useFormContext<UploadFormData>()
     const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay()
 
@@ -47,6 +53,8 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     // Plan limits state
     const [planLimits, setPlanLimits] = useState<{ artistLimit: number; allowConcurrent: boolean; allowedFormats: string[] } | null>(null)
     const [fieldRules, setFieldRules] = useState<Record<string, any>>({})
+    const [allPlans, setAllPlans] = useState<Plan[]>([])
+    const extraSlots = user?.extraArtistSlots || 0
     const [isAddonAutoPay] = useState(true)
     const [creatingNewMain, setCreatingNewMain] = useState(false)
     const [creatingNewSecondary, setCreatingNewSecondary] = useState<Record<number, boolean>>({})
@@ -57,36 +65,36 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     useEffect(() => {
         const fetchPlanData = async () => {
             try {
-                const [limits, rules] = await Promise.all([
+                const [limits, rules, plans] = await Promise.all([
                     getPlanLimits(planKey, true), // Force refresh
-                    getPlanFieldRules(planKey, true) // Force refresh to get latest from DB
+                    getPlanFieldRules(planKey, true), // Force refresh to get latest from DB
+                    getAllPlans(true),
                 ])
                 setPlanLimits(limits)
                 setFieldRules(rules)
+                setAllPlans(plans)
                 console.log('Loaded fieldRules:', rules) // Debug log
             } catch (error) {
                 console.error('Failed to fetch plan data:', error)
                 // Fallback to default (free plan)
                 setPlanLimits({ artistLimit: 1, allowConcurrent: false, allowedFormats: ['single'] })
                 setFieldRules({})
+                setAllPlans([])
             }
         }
         fetchPlanData()
     }, [planKey])
 
-    // Calculate total allowed artists
-    const totalAllowedArtists = planLimits ? planLimits.artistLimit + (user?.extraArtistSlots || 0) : 0;
-
-    // Check if user can add more artists based on plan
-    const canAddMoreArtists = totalAllowedArtists > 0 ? artists.length < (totalAllowedArtists - 1) : false // -1 because main artist is separate field
+    // Check if user can add more artists based on plan + purchased add-on slots
+    const canAddMoreArtists = planLimits ? artists.length < (planLimits.artistLimit + extraSlots - 1) : false // -1 because main artist is separate field
 
     // Check if featured artists are allowed by plan fieldRules
     const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false
     const isLabelNameAllowed = fieldRules.labelName?.allow !== false
     const isExplicitAllowed = fieldRules.isExplicit?.allow !== false
 
-    // Check if main artist name should be locked (Limit reached)
-    const isArtistLocked = totalAllowedArtists > 0 && usedArtists.length >= totalAllowedArtists;
+    // Check if main artist name should be locked (Limit reached, including any purchased add-on slots)
+    const isArtistLocked = !!planLimits && usedArtists.length >= (planLimits.artistLimit + extraSlots);
 
     // Check if current artist is from the roster
     const isArtistFromRoster = usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artistName);
@@ -124,30 +132,79 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         setSearchResults({ spotify: [], apple: [], youtube: [] })
     }, [activeSearchIndex])
 
-    // State for upgrade modal
+    // Modal/dialog state
+    // - showAddonDialog: ₹500 "buy 1 extra artist" dialog (shown on the second-to-last plan)
+    // - showUpgradeModal: full UpgradePlanModal with a single target plan (shown for tiers below second-to-last)
+    const [showAddonDialog, setShowAddonDialog] = useState(false)
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+    const [upgradeTargetPlanKey, setUpgradeTargetPlanKey] = useState<string | undefined>(undefined)
+    const [isPurchasingAddon, setIsPurchasingAddon] = useState(false)
 
-    // Handle adding a new artist
-    const handleAddArtist = () => {
-        // Safe access to limits and rules
-        const limit = totalAllowedArtists || 1; // Default to 1 (strictest) if not loaded
-        // const allowFeatured = fieldRules.featuredArtists?.allow ?? false; // Default to false (strictest) if not loaded - Unused var
+    // Open the right "limit reached" UI based on the user's tier position.
+    // - Tiers below second-to-last: UpgradePlanModal targeting the immediate next plan
+    // - Second-to-last tier: ₹500 add-artist add-on dialog
+    // - Last tier: contact-support toast
+    const openUpgradeFlowForArtistLimit = useCallback(() => {
+        const sorted = [...allPlans].sort((a, b) => a.pricePerYear - b.pricePerYear)
+        const currentIdx = sorted.findIndex(p => p.key === planKey)
+        const secondToLastIdx = sorted.length - 2
 
-        // 1. Check if featured artists are allowed specifically
-        if (fieldRules.featuredArtists?.allow === false) {
+        if (sorted.length === 0 || currentIdx === -1) {
+            setUpgradeTargetPlanKey(undefined)
             setShowUpgradeModal(true)
             return
         }
 
-        // 2. Check numeric limit
-        // Current count = 1 (main) + N (secondary)
-        if ((1 + (artists?.length || 0)) >= limit) {
+        if (currentIdx === secondToLastIdx) {
+            setShowAddonDialog(true)
+            return
+        }
+
+        if (currentIdx < secondToLastIdx) {
+            setUpgradeTargetPlanKey(sorted[currentIdx + 1].key)
             setShowUpgradeModal(true)
+            return
+        }
+
+        toast('Please contact support to add more artists.')
+    }, [allPlans, planKey])
+
+    // Handle adding a new artist
+    const handleAddArtist = () => {
+        const baseLimit = planLimits?.artistLimit ?? 1 // Default to 1 (strictest) if not loaded
+        const effectiveLimit = baseLimit + extraSlots
+        const blockedByFeatureRule = fieldRules.featuredArtists?.allow === false
+        const blockedByCount = (1 + (artists?.length || 0)) >= effectiveLimit
+
+        if (blockedByFeatureRule || blockedByCount) {
+            openUpgradeFlowForArtistLimit()
             return
         }
 
         const currentArtists = artists || []
         setValue('artists', [...currentArtists, { name: '' }], { shouldValidate: true })
+    }
+
+    // Purchase one extra artist slot via Razorpay (uses generic /payments/create-order with addon key)
+    const handleAddonPurchase = async () => {
+        setIsPurchasingAddon(true)
+        try {
+            const result = await initiatePayment(ARTIST_ADDON_PLAN_KEY, {
+                name: user?.fullName,
+                email: user?.email,
+            })
+            if (result?.success) {
+                toast.success('Extra artist slot added!')
+                await refreshUser()
+                setShowAddonDialog(false)
+                setValue('artists', [...(artists || []), { name: '' }], { shouldValidate: true })
+            }
+        } catch (err) {
+            // useRazorpay already surfaces toasts on errors
+            console.error('Addon purchase failed:', err)
+        } finally {
+            setIsPurchasingAddon(false)
+        }
     }
 
     // Handle removing an artist
@@ -246,7 +303,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
             if (artistName && artistName !== (typeof usedArtists[0] === 'string' ? usedArtists[0] : usedArtists[0]?.name)) return
 
             // ONLY prefill if plan allows exactly 1 artist AND we have a used artist
-            if (totalAllowedArtists === 1 && usedArtists.length > 0) {
+            if (planLimits.artistLimit  === 1 && usedArtists.length > 0) {
                 const previousArtistObj = usedArtists[0];
                 const artistNameStr = typeof previousArtistObj === 'string' ? previousArtistObj : previousArtistObj.name;
 
@@ -866,15 +923,24 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 </div>
 
                 <div className="space-y-4">
-                    {/* Artist Name Label + Plan Limit */}
-                    <div className="flex items-center justify-between w-full">
-                        <Label htmlFor="artistName">Artist Name <span className="text-red-500">*</span></Label>
-                        {planLimits && totalAllowedArtists < Infinity && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <AlertCircle className="h-3 w-3" />
-                                <span>Plan limit: {totalAllowedArtists} artist{totalAllowedArtists > 1 ? 's' : ''} only</span>
-                            </div>
-                        )}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between w-full">
+                            <Label htmlFor="artistName">Artist Name <span className="text-red-500">*</span></Label>
+                            {planLimits && planLimits.artistLimit < Infinity && (() => {
+                                const effectiveLimit = planLimits.artistLimit + extraSlots
+                                return (
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                        <AlertCircle className="h-3 w-3" />
+                                        <span>
+                                            Plan limit: {effectiveLimit} artist{effectiveLimit > 1 ? 's' : ''} only
+                                            {extraSlots > 0 && (
+                                                <span className="text-primary"> ({planLimits.artistLimit} + {extraSlots} add-on)</span>
+                                            )}
+                                        </span>
+                                    </div>
+                                )
+                            })()}
+                        </div>
                     </div>
                 </div>
 
@@ -1372,8 +1438,8 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     )}
                 </div>
 
-                {/* Upgrade Modal */}
-                <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+                {/* Add-on dialog: shown on the second-to-last plan, lets the user buy 1 extra artist slot */}
+                <Dialog open={showAddonDialog} onOpenChange={(open) => !isPurchasingAddon && setShowAddonDialog(open)}>
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Artist Limit Reached</DialogTitle>
@@ -1385,11 +1451,10 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                             <div className="p-4 bg-primary/10 rounded-lg border border-primary flex items-center justify-between">
                                 <div>
                                     <p className="font-semibold text-primary">Add Extra Artist Slot</p>
-                                    <p className="text-sm text-muted-foreground">Add one more artist to your account</p>
+                                    <p className="text-sm text-muted-foreground">Add one more artist to your current plan</p>
                                 </div>
                                 <div className="text-right">
-                                    <span className="font-bold text-lg">₹1,000</span>
-                                    <span className="text-xs text-muted-foreground block">/ year</span>
+                                    <span className="font-bold text-lg">₹{ARTIST_ADDON_PRICE_INR}</span>
                                 </div>
                             </div>
 
@@ -1418,20 +1483,23 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                             </div> */}
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setShowUpgradeModal(false)} disabled={isPaymentLoading}>Cancel</Button>
-                            <Button disabled={isPaymentLoading} onClick={async () => {
-                                const result = await initiatePayment(undefined, { name: user?.fullName, email: user?.email }, isAddonAutoPay, true, 'extra_artist');
-                                if (result?.success) {
-                                    setShowUpgradeModal(false);
-                                    // Optional: reload user data or manually update local state
-                                    window.location.reload();
-                                }
-                            }}>
-                                {isPaymentLoading ? 'Processing...' : 'Upgrade Now'}
+                            <Button variant="outline" onClick={() => setShowAddonDialog(false)} disabled={isPurchasingAddon}>Cancel</Button>
+                            <Button onClick={handleAddonPurchase} disabled={isPurchasingAddon}>
+                                {isPurchasingAddon ? 'Processing…' : 'Pay & Add Artist'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+
+                {/* Upgrade modal: shown for tiers below the second-to-last plan, targets the immediate next tier */}
+                <UpgradePlanModal
+                    isOpen={showUpgradeModal}
+                    onClose={() => setShowUpgradeModal(false)}
+                    currentPlanKey={planKey}
+                    targetPlanKey={upgradeTargetPlanKey}
+                    title="Upgrade to add more artists"
+                    subtitle="Your current plan does not allow more artists. Upgrade to continue."
+                />
             </div>
         </div>
     )
