@@ -107,6 +107,8 @@ apiClient.interceptors.response.use(
           processQueue(null, data.access_token);
           return apiClient(originalRequest);
         } catch (refreshError: any) {
+          processQueue(refreshError, null);
+          isRefreshing = false;
           // Refresh failed, clear tokens and redirect only if it's an auth error
           if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
             Cookies.remove(config.tokenKey);
@@ -119,6 +121,8 @@ apiClient.interceptors.response.use(
         }
       } else {
         // No refresh token, clear access token and redirect
+        processQueue(new Error('No refresh token available'), null);
+        isRefreshing = false;
         Cookies.remove(config.tokenKey);
         Cookies.remove('user');
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {

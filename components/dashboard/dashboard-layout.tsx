@@ -61,11 +61,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className={cn(
         "transition-all duration-300 ease-in-out",
-        isSidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-64"
+        isSidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[220px]"
       )}>
         <TopNavbar />
         {isExpiringSoonBannerOpen && (
-          <div className="fixed top-4 left-0 right-0 z-[100] flex justify-center pointer-events-none lg:pl-64">
+          <div className="fixed top-4 left-0 right-0 z-[100] flex justify-center pointer-events-none lg:pl-[220px]">
             <div className="pointer-events-auto w-[90%] max-w-2xl">
               <PlanExpiringSoonBanner
                 daysRemaining={daysRemaining}

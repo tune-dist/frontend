@@ -77,11 +77,11 @@ export default function TopNavbar() {
           <Button
             variant="ghost"
             size="sm"
-            className="rounded-full px-1.5 py-1.5 hover:bg-primary/10 transition-all duration-300 group flex items-center gap-1.5"
+            className="rounded-full px-1.5 py-1.5 hover:bg-primary/10 transition-all duration-300 group flex items-center gap-1.5 max-w-[200px]"
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border">
+            <div className="flex items-center gap-2 min-w-0 w-full">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border flex-shrink-0">
                 {user?.avatar ? (
                   <S3Image
                     src={user.avatar}
@@ -93,8 +93,8 @@ export default function TopNavbar() {
                   <UserIcon className="h-4 w-4 text-primary" />
                 )}
               </div>
-              <span className="hidden md:inline text-sm">{user?.fullName || 'User'}</span>
-              <ChevronDown className="h-4 w-4" />
+              <span title={user?.fullName || 'User'} className="hidden md:inline-block text-sm max-w-[100px] truncate align-middle">{user?.fullName || 'User'}</span>
+              <ChevronDown className="h-4 w-4 flex-shrink-0" />
             </div>
           </Button>
 
@@ -114,12 +114,21 @@ export default function TopNavbar() {
                 >
                   <div className="p-4 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20 shadow-inner">
-                        <UserIcon className="h-5 w-5 text-primary" />
+                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20 shadow-inner flex-shrink-0 overflow-hidden">
+                        {user?.avatar ? (
+                          <S3Image
+                            src={user.avatar}
+                            alt="Profile"
+                            className="h-full w-full object-cover"
+                            fallback={<UserIcon className="h-5 w-5 text-primary" />}
+                          />
+                        ) : (
+                          <UserIcon className="h-5 w-5 text-primary" />
+                        )}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <p className="text-sm font-bold text-foreground truncate">{user?.fullName}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+                        <p title={user?.fullName || ''} className="text-sm font-bold text-foreground truncate">{user?.fullName}</p>
+                        <p title={user?.email || ''} className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
                       </div>
                     </div>
                     <div className="mt-3">
