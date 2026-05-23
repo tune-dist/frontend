@@ -11,6 +11,7 @@ import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/l
 import { useAuth } from '@/contexts/AuthContext'
 import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
+import WaveformTrimmer from './WaveformTrimmer'
 
 interface TrackEditModalProps {
     isOpen: boolean
@@ -30,9 +31,10 @@ interface TrackEditModalProps {
         facebook?: string
     }
     fieldRules?: Record<string, any>
+    audioFiles?: any[]
 }
 
-export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave, usedArtists = [], allTracks = [], mainArtistName = '', featuringArtists = [], mainArtistProfiles = {}, fieldRules = {} }: TrackEditModalProps) {
+export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave, usedArtists = [], allTracks = [], mainArtistName = '', featuringArtists = [], mainArtistProfiles = {}, fieldRules = {}, audioFiles = [] }: TrackEditModalProps) {
     const { user } = useAuth()
     const [planLimits, setPlanLimits] = useState({ artistLimit: 1, allowConcurrent: false, allowedFormats: ['single'] })
 
@@ -1727,29 +1729,11 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             </span>
                         </Label>
 
-                        <div className="grid grid-cols-1 gap-1">
-                            <Input
-                                placeholder="HH:MM:SS"
-                                type="text"
-                                value={previewClipStartTime}
-                                onChange={(e) => {
-                                    let v = e.target.value.replace(/\D/g, "") // only digits
-
-                                    // limit to HHMMSS (6 digits)
-                                    if (v.length > 6) v = v.slice(0, 6)
-
-                                    let hh = v.substring(0, 2)
-                                    let mm = v.substring(2, 4)
-                                    let ss = v.substring(4, 6)
-
-                                    let formatted = ""
-                                    if (hh) formatted = hh
-                                    if (mm) formatted += ":" + mm
-                                    if (ss) formatted += ":" + ss
-
-                                    setPreviewClipStartTime(formatted)
-                                }}
-                                className="text-sm"
+                        <div className="mt-4">
+                            <WaveformTrimmer
+                                audioFile={audioFiles.find(af => af.id === track?.audioFileId)?.file}
+                                initialStartTime={previewClipStartTime}
+                                onTimeChange={(time) => setPreviewClipStartTime(time)}
                             />
                         </div>
                     </div>

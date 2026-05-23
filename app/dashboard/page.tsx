@@ -19,11 +19,40 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrendingUp, DollarSign, Globe, Music, Loader2 } from "lucide-react";
+import { TrendingUp, DollarSign, Globe, Music, Loader2, ListMusic, Activity, ChevronRight, Shield, MessageSquare } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { getReleases, Release } from "@/lib/api/releases";
 import { getUsageStats, UsageStats } from "@/lib/api/users";
 import Preloader from "@/components/Preloader";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line, Doughnut } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 // Animation variants
 const containerVariants = {
@@ -125,7 +154,18 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants}>
           <h1 className="text-3xl font-bold mb-2">
             Welcome back,{" "}
-            <span className="animated-gradient">{user?.fullName}!</span>
+            <span className="animated-gradient">{user?.fullName}!</span>{" "}
+            <motion.span
+              animate={{ rotate: [0, 20, -10, 20, 0] }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatDelay: 1
+              }}
+              className="inline-block origin-bottom-right"
+            >
+              👋
+            </motion.span>
           </h1>
           <p className="text-muted-foreground">
             Here's what's happening with your music today.
@@ -135,83 +175,330 @@ export default function DashboardPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           <motion.div variants={itemVariants}>
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Releases
-                </CardTitle>
-                <Music className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold">
-                  {totalReleases}
+            <Card className="glass-card relative overflow-hidden group hover:bg-gradient-to-br hover:from-primary/30 hover:to-primary/10 hover:border-primary/30">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">Total Releases</p>
+                    <h3 className="text-2xl font-bold">{totalReleases}</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>+12.5%</span>
+                      <span className="text-muted-foreground/60 font-normal ml-1">vs last 28 days</span>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20 flex items-center justify-center shadow-inner group-hover:border-primary/60">
+                      <Music className="h-6 w-6 text-primary" />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Pending Releases
-                </CardTitle>
-                <Loader2 className="h-4 w-4 text-purple-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold">
-                  {pendingReleases}
+            <Card className="glass-card relative overflow-hidden group hover:bg-gradient-to-br hover:from-purple-500/30 hover:to-purple-500/10 hover:border-purple-500/30">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">Pending Releases</p>
+                    <h3 className="text-2xl font-bold">{pendingReleases}</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-yellow-500 font-medium">
+                      <span>In Process</span>
+                      <span className="text-muted-foreground/60 font-normal ml-1">Current status</span>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full" />
+                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-purple-500/30 to-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-inner group-hover:border-purple-500/60">
+                      <ListMusic className="h-6 w-6 text-purple-500" />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="h-full">
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Stream
-                </CardTitle>
-                <Globe className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {usageStats?.totalStreams || 0}
+          <motion.div variants={itemVariants}>
+            <Card className="glass-card relative overflow-hidden group hover:bg-gradient-to-br hover:from-blue-500/30 hover:to-blue-500/10 hover:border-blue-500/30">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">Total Streams</p>
+                    <h3 className="text-2xl font-bold">{usageStats?.totalStreams || 0}</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>+18.6%</span>
+                      <span className="text-muted-foreground/60 font-normal ml-1">vs last 28 days</span>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full" />
+                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-inner group-hover:border-blue-500/60">
+                      <Activity className="h-6 w-6 text-blue-500" />
+                    </div>
+                  </div>
                 </div>
-                {/* <CardDescription className="mt-1">
-                  {usageStats?.plan && `${usageStats.plan.charAt(0).toUpperCase() + usageStats.plan.slice(1)} Plan`}
-                </CardDescription> */}
               </CardContent>
             </Card>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="h-full">
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Revenue Earned
+          <motion.div variants={itemVariants}>
+            <Card className="glass-card relative overflow-hidden group hover:bg-gradient-to-br hover:from-green-500/30 hover:to-green-500/10 hover:border-green-500/30">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">Total Revenue Earned</p>
+                    <h3 className="text-2xl font-bold">
+                      {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(usageStats?.revenueEarned || 0)}
+                    </h3>
+                    <div className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>+12.6%</span>
+                      <span className="text-muted-foreground/60 font-normal ml-1">vs last 28 days</span>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full" />
+                    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-inner group-hover:border-emerald-500/60">
+                      <div className="text-lg font-bold text-emerald-500">₹</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Latest Releases Section */}
+        <motion.div variants={itemVariants}>
+          <Card className="glass-card">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-bold flex items-center gap-2 group hover:text-primary transition-colors">
+                  Latest releases
                 </CardTitle>
-                <img
-                  src="https://flagcdn.com/w40/in.png"
-                  srcSet="https://flagcdn.com/w80/in.png 2x"
-                  width="20"
-                  alt="India"
-                  className="rounded-sm object-cover"
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { title: "Masoom Dil", artist: "Surabhi Singh", streams: "5", image: "/assets/images/testi-img/geeta-jhala.jpg" },
+                  { title: "Old Player", artist: "Dhaval Telani, Sunil Thakor", streams: "2", image: "/assets/images/testi-img/sunil-thakor-pic.jpg" },
+                  { title: "Alakh Na Otala", artist: "Rajan Kapra", streams: "2,576", image: "/assets/images/testi-img/herry-nakum-pic.jpg" },
+                  { title: "Jagat Mata Khodiyar", artist: "Dhruvin Mevada", streams: "29", image: "/assets/images/testi-img/gaurav-dhola-pic.jpg" },
+                  { title: "Raj Ne Ratan Na Lekh", artist: "Kishan Raval", streams: "352", image: "/assets/images/testi-img/kishan-raval-pic.jpg" },
+                  { title: "Meldi Maa", artist: "Twinkle Patel", streams: "1,240", image: "/assets/images/testi-img/twinkle-patel-pic.jpg" }
+                ].map((release, i) => (
+                  <div key={i} className="bg-secondary/20 rounded-2xl p-3 flex items-center justify-between hover:bg-primary/40 transition-all duration-300 group cursor-pointer border border-transparent hover:border-primary/30">
+                    <div className="flex items-center gap-4">
+                      <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors shadow-lg">
+                        <img
+                          src={release.image}
+                          alt={release.title}
+                          className="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <h4 className="font-bold text-sm text-foreground/80 group-hover:text-white transition-colors line-clamp-1">{release.title}</h4>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{release.artist}</p>
+                      </div>
+                    </div>
+                    <div className="text-right ml-4 shrink-0">
+                      <p className="text-xs font-medium text-foreground/80">{release.streams} streams</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Streaming Performance Section */}
+        <motion.div variants={itemVariants}>
+          <Card className="glass-card">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-bold flex items-center gap-2 group hover:text-primary transition-colors">
+                  Streaming performance
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[280px] w-full mt-4">
+                <Line
+                  data={{
+                    labels: ['May 04', 'May 05', 'May 06', 'May 07', 'May 08', 'May 09', 'May 10'],
+                    datasets: [
+                      {
+                        label: 'Streams',
+                        data: [85000, 88500, 87000, 85800, 87200, 84800, 85200],
+                        fill: true,
+                        borderColor: '#d901bc',
+                        backgroundColor: (context: any) => {
+                          const ctx = context.chart.ctx;
+                          const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                          gradient.addColorStop(0, 'rgba(244, 114, 182, 0.2)');
+                          gradient.addColorStop(1, 'rgba(244, 114, 182, 0)');
+                          return gradient;
+                        },
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#d901bc',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: '#1f2937',
+                        padding: 12,
+                        cornerRadius: 8,
+                      },
+                    },
+                    scales: {
+                      x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af', font: { size: 10, weight: 600 } },
+                      },
+                      y: {
+                        min: 75000,
+                        max: 95000,
+                        grid: { color: 'rgba(156, 163, 175, 0.05)' },
+                        ticks: {
+                          color: '#9ca3af',
+                          stepSize: 5000,
+                          callback: (value) => `${Number(value) / 1000}K`,
+                          font: { size: 10, weight: 600 },
+                        },
+                      },
+                    },
+                  }}
                 />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+
+        {/* Top Tracks & Top Stores Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Tracks Card */}
+          <motion.div variants={itemVariants}>
+            <Card className="glass-card h-full">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl font-bold flex items-center gap-2 group hover:text-primary transition-colors">
+                    Top tracks
+                  </CardTitle>
+                </div>
+                <span className="text-xs text-muted-foreground font-medium">Last 7 days</span>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(usageStats?.revenueEarned || 0)}
+                <div className="space-y-1">
+                  {[
+                    { title: "Gal Goto Me Zanjariya", artist: "Geeta Rabari", streams: "35,872", image: "/assets/images/testi-img/geeta-jhala.jpg" },
+                    { title: "Rasiyo Rupalo Garbo", artist: "Kirtidan Gadhvi", streams: "20,192", image: "/assets/images/testi-img/kirtidan-gadhvi.jpg" },
+                    { title: "Sakalche Shlok", artist: "Vajrang Aphale", streams: "19,685", image: "/assets/images/testi-img/gaurav-dhola-pic.jpg" },
+                    { title: "Sukhkarta Dukhharta", artist: "Vajrang Aphale", streams: "28,706", image: "/assets/images/testi-img/kishan-raval-pic.jpg" }
+                  ].map((track, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-xl hover:bg-primary/40 transition-colors group cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors">
+                          <img src={track.image} alt={track.title} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                        <div className="flex flex-col">
+                          <h4 className="font-bold text-sm text-foreground/90 group-hover:text-white transition-colors line-clamp-1">{track.title}</h4>
+                          <p className="text-xs text-muted-foreground line-clamp-1">{track.artist}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-foreground/90">{track.streams}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">streams</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {/* <div className="text-2xl font-bold">
-                  {usageStats?.releases.canUpload ? "Yes" : "No"}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Top Stores Card */}
+          <motion.div variants={itemVariants}>
+            <Card className="glass-card h-full">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl font-bold flex items-center gap-2 group hover:text-primary transition-colors">
+                    Top stores
+                  </CardTitle>
                 </div>
-                <CardDescription className="mt-1">
-                  {usageStats?.releases?.limit === 0
-                    ? 'Unlimited releases'
-                    : `${usageStats?.releases?.limit ?? 0} release${(usageStats?.releases.limit ?? 0) > 1 ? 's' : ''} limit`
-                  }
-                </CardDescription> */}
+                <span className="text-xs text-muted-foreground font-medium">Last 7 days</span>
+              </CardHeader>
+              <CardContent className="flex items-center justify-center py-6">
+                <div className="flex flex-col md:flex-row items-center gap-12 w-full max-w-md">
+                  {/* Donut Chart */}
+                  <div className="relative w-40 h-40">
+                    <Doughnut
+                      data={{
+                        labels: ['Spotify', 'Amazon.com', 'Apple Music', 'Others'],
+                        datasets: [{
+                          data: [61.3, 23.0, 7.3, 8.4],
+                          backgroundColor: ['#f472b6', '#fb923c', '#818cf8', '#a3e635'],
+                          borderWidth: 0,
+                        }]
+                      }}
+                      options={{
+                        cutout: '75%',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            enabled: true,
+                            backgroundColor: '#1f2937',
+                            padding: 10,
+                            cornerRadius: 8,
+                          }
+                        }
+                      }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center">
+                        <p className="text-2xl font-black text-white">100%</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Growth</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Legend */}
+                  <div className="flex flex-col gap-4 flex-1">
+                    {[
+                      { name: "Spotify", percentage: "61.3%", color: "bg-[#f472b6]" },
+                      { name: "Amazon.com", percentage: "23.0%", color: "bg-[#fb923c]" },
+                      { name: "Apple Music", percentage: "7.3%", color: "bg-[#818cf8]" },
+                      { name: "Others", percentage: "8.4%", color: "bg-[#a3e635]" }
+                    ].map((store, i) => (
+                      <div key={i} className="flex items-center gap-3 group cursor-pointer">
+                        <div className={`h-3 w-3 rounded-full ${store.color} shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-125 transition-transform`} />
+                        <div className="flex flex-col">
+                          <span className="text-sm text-muted-foreground font-medium group-hover:text-white transition-colors">{store.name}</span>
+                          <span className="text-lg font-black text-white leading-tight">{store.percentage}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -219,7 +506,7 @@ export default function DashboardPage() {
 
         {/* Recent Releases Section */}
         <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card className="glass-card hidden">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>

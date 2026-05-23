@@ -15,6 +15,7 @@ import {
 } from "@/lib/api/genres";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
+import WaveformTrimmer from "./WaveformTrimmer";
 
 interface CreditsStepProps {
   formData?: UploadFormData;
@@ -455,7 +456,7 @@ export default function CreditsStep({
                   )}
                 </div>
               </div>
-              
+
               {/* Mood */}
               <div className="space-y-4 mt-6">
                 <div className="space-y-3">
@@ -464,9 +465,8 @@ export default function CreditsStep({
                   </Label>
                   <select
                     id="mood"
-                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                      errors.mood ? "border-red-500" : ""
-                    }`}
+                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.mood ? "border-red-500" : ""
+                      }`}
                     {...register("mood")}
                   >
                     <option value="">Select a mood</option>
@@ -774,33 +774,14 @@ export default function CreditsStep({
                   </span>
                 </Label>
 
-                <div className="grid grid-cols-1 gap-1">
-                  <Input
-                    placeholder="HH:MM:SS"
-                    type="text"
-                    {...register("previewClipStartTime", {
-                      onChange: (e) => {
-                        let v = e.target.value.replace(/\D/g, ""); // only digits
-
-                        // limit to HHMMSS (6 digits)
-                        if (v.length > 6) v = v.slice(0, 6);
-
-                        let hh = v.substring(0, 2);
-                        let mm = v.substring(2, 4);
-                        let ss = v.substring(4, 6);
-
-                        let formatted = "";
-                        if (hh) formatted = hh;
-                        if (mm) formatted += ":" + mm;
-                        if (ss) formatted += ":" + ss;
-
-                        e.target.value = formatted;
-                      },
-                    })}
-                    className="text-sm border-input"
+                <div className="mt-4">
+                  <WaveformTrimmer
+                    audioFile={watch("audioFile")?.file}
+                    initialStartTime={watch("previewClipStartTime")}
+                    onTimeChange={(time) => setValue("previewClipStartTime", time, { shouldValidate: true })}
                   />
                   {errors.previewClipStartTime && (
-                    <p className="text-xs text-red-500 mt-1">
+                    <p className="text-xs text-red-500 mt-2">
                       {errors.previewClipStartTime.message}
                     </p>
                   )}

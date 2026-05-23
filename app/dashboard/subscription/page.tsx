@@ -267,7 +267,7 @@ export default function SubscriptionPage() {
                 </div>
 
                 {/* Current Plan Card */}
-                <Card className="mb-8">
+                <Card className="mb-8 glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <CreditCard className="h-5 w-5" />
@@ -479,7 +479,7 @@ export default function SubscriptionPage() {
                 )}
 
                 {/* Payment History */}
-                <Card>
+                <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <History className="h-5 w-5" />
@@ -502,7 +502,7 @@ export default function SubscriptionPage() {
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b">
+                                        <tr className="border-b border-border/80">
                                             <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Date</th>
                                             <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Plan</th>
                                             <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Amount</th>
@@ -511,7 +511,7 @@ export default function SubscriptionPage() {
                                     </thead>
                                     <tbody>
                                         {payments.map((payment) => (
-                                            <tr key={payment._id} className="border-b last:border-0">
+                                            <tr key={payment._id} className="border-b border-border/80 last:border-0">
                                                 <td className="py-3 px-2 text-sm">
                                                     {formatDate(payment.createdAt)}
                                                 </td>

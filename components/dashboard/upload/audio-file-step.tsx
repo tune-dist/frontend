@@ -7,7 +7,7 @@ import { config } from '@/lib/config'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Upload, Music, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Upload, Music, X, Loader2, AlertCircle, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData, AudioFile, Track } from './types'
 import { useFormContext } from 'react-hook-form'
@@ -290,7 +290,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <div className="p-4 rounded-lg border border-border bg-muted/20">
+                                    <div className="p-4 rounded-lg border border-border bg-black">
                                         <div className="flex items-center gap-3">
                                             <Music className="h-10 w-10 text-primary" />
                                             <div className="flex-1">
@@ -321,7 +321,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                                 size="sm"
                                                 onClick={handleRemoveAudio}
                                                 type="button"
-                                                className="text-destructive hover:text-destructive"
+                                                className="text-red-500 hover:text-red-500 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30"
                                             >
                                                 <X className="h-4 w-4" />
                                             </Button>
@@ -331,7 +331,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                         variant="outline"
                                         onClick={handleAudioFileClick}
                                         type="button"
-                                        className="w-full"
+                                        className="w-full bg-primary text-white hover:bg-primary/80"
                                     >
                                         Change File
                                     </Button>
@@ -426,37 +426,36 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mt-6 p-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-4"
+                        className="mt-4 p-4 rounded-xl border-yellow-500/20 bg-yellow-500/5 space-y-3"
                     >
-                        <div className="flex items-center gap-3 text-amber-500">
-                            <AlertCircle className="h-6 w-6" />
-                            <h3 className="text-xl font-bold">Duplicate Audio Detected</h3>
+                        <div className="flex items-center gap-2 text-yellow-500">
+                            <AlertCircle className="h-5 w-5" />
+                            <h3 className="text-base font-bold">Duplicate Audio Detected</h3>
                         </div>
 
-                        <p className="text-amber-200/80 text-sm">
+                        <p className="text-yellow-200/70 text-xs">
                             {watch('audioWarningMessage') || "This audio file has already been uploaded to our database."}
                         </p>
 
-                        <div className="pt-4 border-t border-amber-500/20">
-                            <label className="flex items-start gap-3 cursor-pointer group">
-                                <div className="relative flex items-center mt-1">
+                        <div className="pt-3 border-t border-yellow-500/10">
+                            <label className="flex items-start gap-2.5 cursor-pointer group">
+                                <div className="relative flex items-center mt-0.5">
                                     <input
                                         type="checkbox"
-                                        className="peer h-5 w-5 rounded border-amber-500/50 bg-transparent text-amber-500 focus:ring-amber-500 cursor-pointer appearance-none border-2 checked:bg-amber-500"
+                                        className="peer h-4 w-4 rounded border-yellow-500/40 bg-transparent text-yellow-500 focus:ring-yellow-500 cursor-pointer appearance-none border-2 checked:bg-yellow-500"
                                         checked={watch('audioConsent')}
                                         onChange={(e) => {
                                             setValue('audioConsent', e.target.checked, { shouldValidate: true });
-                                            // Optional: triggering a re-upload or just allowing state to be valid
                                         }}
                                     />
-                                    <CheckCircle2 className="absolute h-5 w-5 text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none p-0.5" />
+                                    <Check className="absolute h-4 w-4 text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none p-0.5" />
                                 </div>
-                                <span className="text-base font-medium text-amber-200/90 group-hover:text-amber-100 transition-colors">
+                                <span className="text-sm font-medium text-yellow-200/80 group-hover:text-yellow-100 transition-colors">
                                     This audio is already stored in the database and would you like to continue?
                                 </span>
                             </label>
                             {errors.audioConsent && (
-                                <p className="text-xs text-red-500 mt-2 ml-8 font-medium italic">
+                                <p className="text-[10px] text-red-500 mt-1.5 ml-7 font-medium italic">
                                     You must check this box to proceed with a duplicate file.
                                 </p>
                             )}
@@ -465,15 +464,15 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 )}
 
                 {/* Tips */}
-                <div className="mt-6 space-y-3">
-                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                        <p className="text-sm text-blue-600 dark:text-blue-500">
-                            <strong>Tip:</strong> Upload high-quality WAV files. We'll automatically convert to the formats required by each platform.
+                <div className="mt-4 space-y-2">
+                    <div className="p-2.5 px-3 bg-blue-500/5 border border-blue-500/10 rounded-lg">
+                        <p className="text-[12px] text-blue-400/80 leading-snug">
+                            <strong className="text-blue-400">Tip:</strong> Upload high-quality WAV files. We'll automatically convert to the formats required by each platform.
                         </p>
                     </div>
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                        <p className="text-sm text-amber-600 dark:text-amber-500">
-                            <strong>Note:</strong> Audio files may take a few moments to process after upload.
+                    <div className="p-2.5 px-3 bg-yellow-500/5 border border-yellow-500/10 rounded-lg">
+                        <p className="text-[12px] text-yellow-400/80 leading-snug">
+                            <strong className="text-yellow-400">Note:</strong> Audio files may take a few moments to process after upload.
                         </p>
                     </div>
                 </div>

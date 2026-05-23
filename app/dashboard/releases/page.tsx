@@ -273,38 +273,18 @@ export default function ReleasesPage() {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                <CardTitle>Filters</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap items-end gap-6">
-                <div className="flex flex-col gap-2">
-                  <div className="text-sm font-medium text-muted-foreground">Status</div>
-                  <div className="flex flex-wrap gap-2">
-                    {statusFilters.map((filter) => (
-                      <Button
-                        key={filter.value}
-                        variant={statusFilter === filter.value ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setStatusFilter(filter.value)}
-                      >
-                        {filter.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+          <Card className="glass-card overflow-hidden">
+            <CardHeader className="border-b border-border/50 bg-primary/5 pb-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+
                 {isPrivileged && (
-                  <div className="flex flex-col gap-2 min-w-[200px]">
-                    <div className="text-sm font-medium text-muted-foreground">User</div>
+                  <div className="flex flex-col gap-1.5 min-w-[200px]">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Filter by User</div>
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                      <SelectTrigger className="bg-background/50 backdrop-blur-sm h-9">
+                      <SelectTrigger className="h-10 bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all rounded-xl">
                         <SelectValue placeholder="All Users" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
                         <SelectItem value="all">All Users</SelectItem>
                         {users.map((u) => (
                           <SelectItem key={u._id} value={u._id}>{u.fullName || u.email}</SelectItem>
@@ -314,46 +294,76 @@ export default function ReleasesPage() {
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
 
-        <motion.div variants={itemVariants}>
-          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Music className="h-5 w-5" />
-                All Releases
-              </CardTitle>
-              <CardDescription>{releases.length} releases found</CardDescription>
+              <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-4">
+                <CardDescription className="flex items-center gap-2 text-sm font-medium">
+                  <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+                  {releases.length} total releases found
+                </CardDescription>
+
+                <div className="flex flex-col gap-2">
+                  {/* <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground lg:text-right mr-1">Filter by Status</div> */}
+                  <div className="flex flex-wrap lg:justify-end gap-2">
+                    {statusFilters.map((filter) => (
+                      <Button
+                        key={filter.value}
+                        variant={statusFilter === filter.value ? "default" : "outline"}
+                        size="sm"
+                        className={`h-9 px-5 rounded-xl text-xs font-semibold transition-all duration-300 ${statusFilter === filter.value
+                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105"
+                          : "bg-background/40 hover:bg-primary/10 hover:border-primary/30 hover:text-primary"
+                          }`}
+                        onClick={() => setStatusFilter(filter.value)}
+                      >
+                        {filter.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+
+            <CardContent className="p-0">
               {loading ? (
-                <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                <div className="flex items-center justify-center py-20">
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground animate-pulse">Loading releases...</p>
+                  </div>
+                </div>
               ) : (
-                <div className="rounded-md border border-border overflow-hidden">
+                <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[80px]">Poster</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Artist</TableHead>
-                        <TableHead>UPC/ISRC</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Approved By</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow className="hover:bg-transparent border-border/50">
+                        <TableHead className="w-[100px] pl-6 font-bold uppercase tracking-wider text-[10px]">Poster</TableHead>
+                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">Title</TableHead>
+                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">Artist</TableHead>
+                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">UPC/ISRC</TableHead>
+                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">Status</TableHead>
+                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">Approved By</TableHead>
+                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">WorldWide DSP</TableHead>
+                        <TableHead className="text-right pr-6 font-bold uppercase tracking-wider text-[10px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {releases.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
-                            <div className="flex flex-col items-center gap-2 underline-offset-4">
-                              <Music className="h-12 w-12 text-muted-foreground/50 mb-2" />
-                              <p className="text-lg font-medium">No releases found</p>
+                          <TableCell colSpan={8} className="text-center text-muted-foreground py-24">
+                            <div className="flex flex-col items-center gap-4">
+                              <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-2">
+                                <Music className="h-10 w-10 text-primary/30" />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-xl font-bold text-foreground">No releases found</p>
+                                <p className="text-sm">Try adjusting your filters or create a new release.</p>
+                              </div>
                               {user?.role !== "release_manager" && (
                                 <Link href="/dashboard/upload" className="mt-2">
-                                  <Button variant="outline" size="sm"><Plus className="h-4 w-4 mr-2" />Create Release</Button>
+                                  <Button className="rounded-xl px-6 h-11 gap-2 shadow-lg shadow-primary/20">
+                                    <Plus className="h-5 w-5" />
+                                    Create Your First Release
+                                  </Button>
                                 </Link>
                               )}
                             </div>
@@ -361,43 +371,52 @@ export default function ReleasesPage() {
                         </TableRow>
                       ) : (
                         releases.map((release) => (
-                          <TableRow key={release._id}>
-                            <TableCell>
-                              <div className="h-12 w-12 rounded-md overflow-hidden bg-muted relative cursor-zoom-in group" onClick={() => release.coverArt?.url && setPreviewImage(release.coverArt.url)}>
+                          <TableRow key={release._id} className="group hover:bg-primary/5 border-border/30 transition-colors">
+                            <TableCell className="pl-6 py-4">
+                              <div className="h-14 w-14 rounded-xl overflow-hidden bg-muted relative cursor-zoom-in group/img shadow-md border border-border/50" onClick={() => release.coverArt?.url && setPreviewImage(release.coverArt.url)}>
                                 {release.coverArt?.url ? (
                                   <>
-                                    <S3Image src={release.coverArt.url} alt={release.title} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
-                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Eye className="h-4 w-4 text-white" /></div>
+                                    <S3Image src={release.coverArt.url} alt={release.title} className="h-full w-full object-cover transition-transform duration-500 group-hover/img:scale-115" />
+                                    <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                      <Eye className="h-5 w-5 text-white" />
+                                    </div>
                                   </>
                                 ) : (
-                                  <div className="h-full w-full flex items-center justify-center"><Music className="h-6 w-6 text-muted-foreground/50" /></div>
+                                  <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                                    <Music className="h-7 w-7 text-muted-foreground/30" />
+                                  </div>
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="font-medium">{release.title}</TableCell>
-                            <TableCell>{release.artistName}</TableCell>
+                            <TableCell className="font-bold text-foreground/90">{release.title}</TableCell>
+                            <TableCell className="text-muted-foreground">{release.artistName}</TableCell>
                             <TableCell>
-                              <div className="flex flex-col text-[10px] text-muted-foreground font-mono">
-                                <span>UPC: {release.barcode || "-"}</span>
-                                <span>ISRC: {release.isrc || "-"}</span>
+                              <div className="flex flex-col gap-1 text-[10px] text-muted-foreground font-mono">
+                                <span className="px-1.5 py-0.5 rounded bg-muted/50 w-fit">UPC: {release.barcode || "N/A"}</span>
+                                <span className="px-1.5 py-0.5 rounded bg-muted/50 w-fit">ISRC: {release.isrc || "N/A"}</span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusColor(release.status)}`}>
+                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}>
+                                <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
                                 {formatStatus(release.status)}
                               </span>
                             </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {/* Display approver name if available (Populated object or ID) */}
+                            <TableCell className="text-muted-foreground text-sm font-medium">
                               {typeof release.approvedBy === 'object' && release.approvedBy?.fullName
                                 ? release.approvedBy.fullName
                                 : "-"
                               }
                             </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1">
+                            <TableCell className="text-muted-foreground text-sm font-medium">
+                              {release.pdlAlbumId ? "Yes" : "-"}
+                            </TableCell>
+                            <TableCell className="text-right pr-6">
+                              <div className="flex items-center justify-end gap-2">
                                 <Link href={`/dashboard/releases/${release._id}`}>
-                                  <Button variant="ghost" size="sm" title="View details"><Eye className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/20 hover:text-primary transition-all" title="View details">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
                                 </Link>
 
                                  {release.status === "Draft" && (

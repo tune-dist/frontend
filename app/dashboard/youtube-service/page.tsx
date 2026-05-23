@@ -210,7 +210,7 @@ export default function YouTubeServicePage() {
 
                 {/* Requests Table */}
                 <motion.div variants={itemVariants}>
-                    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <Card className="glass-card">
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <div>
@@ -231,7 +231,7 @@ export default function YouTubeServicePage() {
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                 </div>
                             ) : (
-                                <div className="rounded-md border border-border overflow-hidden">
+                                <div className="rounded-md border border-border/80 overflow-hidden">
                                     <Table>
                                         <TableHeader className="bg-muted/50">
                                             <TableRow>

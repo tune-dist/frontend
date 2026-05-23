@@ -62,7 +62,18 @@ export function S3Image({ src, fallback, alt, ...props }: S3ImageProps) {
         );
     }
 
-    return <img src={displayUrl} alt={alt} {...props} />;
+    return (
+        <img
+            src={displayUrl}
+            alt={alt}
+            {...props}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+                setError(true);
+                props.onError?.(e as any);
+            }}
+        />
+    );
 }
 
 /**

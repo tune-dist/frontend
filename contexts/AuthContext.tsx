@@ -156,6 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = React.useCallback(() => {
     Cookies.remove(config.tokenKey);
     Cookies.remove('refresh_token');
+    Cookies.remove('user');
     setUser(null);
     router.push('/auth');
   }, [router]);
