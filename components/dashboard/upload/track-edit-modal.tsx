@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Track, Songwriter } from './types'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Music, X, Loader2, Plus, Info, UserCheck } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/lib/api/genres'
@@ -12,6 +12,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
 import WaveformTrimmer from './WaveformTrimmer'
+import {
+    INSTRUMENTAL_LANGUAGE,
+    isInstrumentalPrimaryGenre,
+    LANGUAGE_OPTIONS,
+    resolveLanguage,
+} from './genre-language'
 
 interface TrackEditModalProps {
     isOpen: boolean
@@ -103,6 +109,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [genresLoading, setGenresLoading] = useState(true)
     const [subGenres, setSubGenres] = useState<SubGenre[]>([])
     const [subGenresLoading, setSubGenresLoading] = useState(false)
+    const subGenreCacheRef = useRef<Map<string, SubGenre[]>>(new Map())
+    const subGenreRequestRef = useRef(0)
 
     // Fetch genres on mount
     useEffect(() => {
@@ -119,41 +127,51 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         fetchGenres()
     }, [])
 
-    // Fetch sub-genres when primary genre changes
-    useEffect(() => {
-        const fetchSubGenres = async () => {
-            if (!primaryGenre) {
+    const loadSubGenres = useCallback(
+        async (genreName: string) => {
+            if (!genreName) {
                 setSubGenres([])
                 return
             }
 
-            // Find the genre _id from the selected name
-            const selectedGenre = genres.find((g) => g.name === primaryGenre)
-            if (!selectedGenre) {
-                setSubGenres([])
+            if (genresLoading) return
+
+            const selectedGenre = genres.find((g) => g.name === genreName)
+            if (!selectedGenre) return
+
+            const cacheKey = selectedGenre._id
+            const cached = subGenreCacheRef.current.get(cacheKey)
+            if (cached) {
+                setSubGenres(cached)
                 return
             }
 
+            const requestId = ++subGenreRequestRef.current
             setSubGenresLoading(true)
             try {
                 const fetchedSubGenres = await getSubGenresByGenreId(selectedGenre._id)
+                if (requestId !== subGenreRequestRef.current) return
+
+                subGenreCacheRef.current.set(cacheKey, fetchedSubGenres)
                 setSubGenres(fetchedSubGenres)
-                // Clear secondary genre if it's not in the new sub-genres list
-                if (
-                    secondaryGenre &&
-                    !fetchedSubGenres.some((sg) => sg.name === secondaryGenre)
-                ) {
-                    setSecondaryGenre('')
-                }
             } catch (error) {
+                if (requestId !== subGenreRequestRef.current) return
                 console.error('Failed to fetch sub-genres:', error)
                 setSubGenres([])
             } finally {
-                setSubGenresLoading(false)
+                if (requestId === subGenreRequestRef.current) {
+                    setSubGenresLoading(false)
+                }
             }
-        }
-        fetchSubGenres()
-    }, [primaryGenre, genres, secondaryGenre])
+        },
+        [genres, genresLoading],
+    )
+
+    useEffect(() => {
+        void loadSubGenres(primaryGenre)
+    }, [primaryGenre, genresLoading, loadSubGenres])
+
+    const isInstrumentalGenre = isInstrumentalPrimaryGenre(primaryGenre)
 
     // Update state when track changes (switching between different tracks)
     useEffect(() => {
@@ -512,7 +530,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 ...track,
                 title: trackTitle,
                 artistName: modalArtistSearch,
-                language: language ? language.charAt(0).toUpperCase() + language.slice(1).toLowerCase() : '',
+                language: (() => {
+                    const lang = resolveLanguage(primaryGenre, language)
+                    return lang
+                        ? lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()
+                        : ''
+                })(),
                 isrc,
                 previouslyReleased,
                 primaryGenre,
@@ -1318,26 +1341,21 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         <Label htmlFor="track-language">Language</Label>
                         <select
                             id="track-language"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={language}
-                            onChange={(e) => setLanguage(e.target.value)}
+                            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${isInstrumentalGenre ? 'opacity-80 cursor-not-allowed' : ''}`}
+                            value={isInstrumentalGenre ? INSTRUMENTAL_LANGUAGE : language}
+                            disabled={isInstrumentalGenre}
+                            onChange={(e) => {
+                                if (!isInstrumentalGenre) {
+                                    setLanguage(e.target.value)
+                                }
+                            }}
                         >
                             <option value="">Select a language</option>
-                            <option value="Hindi">Hindi</option>
-                            <option value="English">English</option>
-                            <option value="Punjabi">Punjabi</option>
-                            <option value="Tamil">Tamil</option>
-                            <option value="Telugu">Telugu</option>
-                            <option value="Bengali">Bengali</option>
-                            <option value="Marathi">Marathi</option>
-                            <option value="Gujarati">Gujarati</option>
-                            <option value="Kannada">Kannada</option>
-                            <option value="Malayalam">Malayalam</option>
-                            <option value="Urdu">Urdu</option>
-                            <option value="Bhojpuri">Bhojpuri</option>
-                            <option value="Haryanvi">Haryanvi</option>
-                            <option value="Rajasthani">Rajasthani</option>
-                            <option value="Instrumental">Instrumental</option>
+                            {LANGUAGE_OPTIONS.map((lang) => (
+                                <option key={lang} value={lang}>
+                                    {lang}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -1436,7 +1454,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             id="track-genre"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             value={primaryGenre}
-                            onChange={(e) => setPrimaryGenre(e.target.value)}
+                            onChange={(e) => {
+                                setPrimaryGenre(e.target.value)
+                                setSecondaryGenre('')
+                            }}
                         >
                             <option value="">Select a genre</option>
                             {genresLoading ? (
@@ -1459,12 +1480,15 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             value={secondaryGenre}
                             onChange={(e) => setSecondaryGenre(e.target.value)}
-                            disabled={!primaryGenre || subGenresLoading}
+                            disabled={
+                                !primaryGenre ||
+                                (subGenresLoading && subGenres.length === 0)
+                            }
                         >
                             <option value="">
                                 {!primaryGenre
                                     ? "Select a genre first"
-                                    : subGenresLoading
+                                    : subGenresLoading && subGenres.length === 0
                                         ? "Loading sub-genres..."
                                         : "Select a sub-genre"}
                             </option>

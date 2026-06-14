@@ -60,6 +60,8 @@ export default function PromotionEditorPage() {
     const [release, setRelease] = useState<Release | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [isSeeding, setIsSeeding] = useState(false);
 
     const [templates, setTemplates] = useState<PromoTemplate[]>([]);
     const [activeTemplate, setActiveTemplate] = useState<PromoTemplate | null>(null);
@@ -280,8 +282,9 @@ export default function PromotionEditorPage() {
     };
 
     const handleDownload = async () => {
-        if (!previewRef.current || !activeTemplate) return;
+        if (!previewRef.current || !activeTemplate || isDownloading) return;
 
+        setIsDownloading(true);
         try {
             const width = activeTemplate.canvas.width;
             const height = activeTemplate.canvas.height;
@@ -304,6 +307,8 @@ export default function PromotionEditorPage() {
         } catch (error) {
             console.error(error);
             toast.error("Failed to generate image");
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -331,9 +336,9 @@ export default function PromotionEditorPage() {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleDownload} className="gap-2">
-                            <Download className="h-4 w-4" />
-                            Download Image
+                        <Button variant="outline" onClick={handleDownload} disabled={isDownloading} className="gap-2">
+                            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                            {isDownloading ? 'Generating…' : 'Download Image'}
                         </Button>
                         <Button onClick={handleSave} disabled={saving} className="gap-2">
                             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -368,9 +373,10 @@ export default function PromotionEditorPage() {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
+                                                        disabled={isSeeding}
                                                         onClick={async () => {
                                                             try {
-                                                                setLoading(true);
+                                                                setIsSeeding(true);
                                                                 await seedPromoTemplates();
                                                                 const fetched = await getPromoTemplates();
                                                                 setTemplates(fetched);
@@ -379,11 +385,18 @@ export default function PromotionEditorPage() {
                                                             } catch (e) {
                                                                 toast.error("Failed to seed templates");
                                                             } finally {
-                                                                setLoading(false);
+                                                                setIsSeeding(false);
                                                             }
                                                         }}
                                                     >
-                                                        Seed Templates
+                                                        {isSeeding ? (
+                                                            <>
+                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                Seeding…
+                                                            </>
+                                                        ) : (
+                                                            'Seed Templates'
+                                                        )}
                                                     </Button>
                                                 )}
                                             </div>

@@ -223,8 +223,14 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
     const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
     return (
-        <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-            <DialogContent className="max-w-[95vw] w-[1100px] h-[92vh] p-0 gap-0 flex flex-col overflow-hidden bg-[#0A0A0B] border-white/5 shadow-2xl rounded-3xl">
+        <Dialog open={open} onOpenChange={(val) => !val && !loading && onClose()}>
+            <DialogContent className="max-w-[95vw] w-[1100px] h-[92vh] p-0 gap-0 flex flex-col overflow-hidden bg-[#0A0A0B] border-white/5 shadow-2xl rounded-3xl relative">
+                {loading && (
+                    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm text-white/60">Loading promotion data…</p>
+                    </div>
+                )}
                 {/* Header */}
                 <DialogHeader className="p-4 border-b border-white/5 shrink-0">
                     <div className="flex items-center justify-between">

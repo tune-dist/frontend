@@ -2,12 +2,14 @@
 
 import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
+import { Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface ImageCropperProps {
     image: string;
-    onCropComplete: (croppedImage: Blob) => void;
+    onCropComplete: (croppedImage: Blob) => void | Promise<void>;
     onCancel: () => void;
 }
 
@@ -15,6 +17,7 @@ export default function ImageCropper({ image, onCropComplete, onCancel }: ImageC
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     const onCropChange = (crop: { x: number; y: number }) => {
         setCrop(crop);
@@ -29,20 +32,22 @@ export default function ImageCropper({ image, onCropComplete, onCancel }: ImageC
     }, []);
 
     const handleCrop = async () => {
+        if (isSaving) return;
+
+        setIsSaving(true);
         try {
-            console.log('Starting crop process...');
             const croppedImage = await getCroppedImg(image, croppedAreaPixels);
-            console.log('Crop successful, blob created:', croppedImage.size);
-            onCropComplete(croppedImage);
+            await onCropComplete(croppedImage);
         } catch (e) {
             console.error('Cropping failed:', e);
-            // Assuming 'toast' is imported or defined elsewhere
-            // toast.error('Failed to crop image');
+            toast.error('Failed to crop image');
+        } finally {
+            setIsSaving(false);
         }
     };
 
     return (
-        <Dialog open={true} onOpenChange={(open) => !open && onCancel()}>
+        <Dialog open={true} onOpenChange={(open) => !open && !isSaving && onCancel()}>
             <DialogContent className="sm:max-w-[500px] bg-[#0a0a0b] border-border/50 text-white p-0 overflow-hidden ring-0 outline-none">
                 <DialogHeader className="p-4 border-b border-white/5">
                     <DialogTitle className="text-xl font-semibold">Crop Your Profile</DialogTitle>
@@ -75,6 +80,7 @@ export default function ImageCropper({ image, onCropComplete, onCancel }: ImageC
                             step={0.1}
                             value={zoom}
                             onChange={(e) => setZoom(Number(e.target.value))}
+                            disabled={isSaving}
                             className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-primary hover:accent-primary/80 transition-all"
                         />
                     </div>
@@ -84,15 +90,24 @@ export default function ImageCropper({ image, onCropComplete, onCancel }: ImageC
                     <Button
                         variant="ghost"
                         onClick={onCancel}
+                        disabled={isSaving}
                         className="text-white/60 hover:text-white hover:bg-white/5"
                     >
                         Cancel
                     </Button>
                     <Button
                         onClick={handleCrop}
+                        disabled={isSaving}
                         className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-8"
                     >
-                        Save
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Saving…
+                            </>
+                        ) : (
+                            'Save'
+                        )}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -144,9 +159,7 @@ function createImage(url: string): Promise<HTMLImageElement> {
             reject(error);
         });
 
-        // CRITICAL: NEVER set crossOrigin for local data or blob URLs
         if (!url.startsWith('data:') && !url.startsWith('blob:')) {
-            console.log('Setting crossOrigin=anonymous for remote URL');
             image.setAttribute('crossOrigin', 'anonymous');
         }
 

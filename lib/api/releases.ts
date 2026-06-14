@@ -4,6 +4,7 @@ import { uploadFileInChunks } from "@/lib/upload/chunk-uploader";
 import Cookies from "js-cookie";
 import { config } from "@/lib/config";
 import { toast } from "react-hot-toast";
+import { resolveLanguage } from "@/components/dashboard/upload/genre-language";
 
 export interface ReleaseFormData {
   title: string;
@@ -83,7 +84,7 @@ export interface ReleaseFormData {
   coverArtConsent?: boolean;
 }
 
-export type ReleaseStatus = "Draft" | "In Process" | "Submitted" | "Approved" | "Rejected" | "Released";
+export type ReleaseStatus = "Draft" | "In Process" | "Submitted" | "Rejected" | "Released";
 export type ReleaseType = "single" | "ep" | "album" | "compilation";
 
 export interface AudioFile {
@@ -191,7 +192,7 @@ export interface Release {
     facebookProfile?: string;
     facebookProfileUrl?: string;
   };
-  /** Set after POST /releases/:id/submit-to-pdl (PDL phase 1) succeeds */
+  /** Set after initial platform processing (metadata + assets upload) succeeds */
   pdlAlbumId?: string;
 }
 
@@ -373,7 +374,15 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           secondaryGenre: track.secondaryGenre,
           featuringArtist: track.featuringArtist,
           isrc: track.isrc || formData.isrc,
-          language: (track.language || formData.language) ? (track.language || formData.language).charAt(0).toUpperCase() + (track.language || formData.language).slice(1).toLowerCase() : undefined,
+          language: (() => {
+            const lang = resolveLanguage(
+              track.primaryGenre || formData.primaryGenre,
+              track.language || formData.language,
+            );
+            return lang
+              ? lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()
+              : undefined;
+          })(),
           spotifyProfile: track.spotifyProfile || formData.spotifyProfile,
           appleMusicProfile: track.appleMusicProfile || formData.appleMusicProfile,
           youtubeMusicProfile: track.youtubeMusicProfile || formData.youtubeMusicProfile,
@@ -405,7 +414,12 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         secondaryGenre: formData.secondaryGenre,
         featuringArtist: formData.featuringArtist,
         isrc: formData.isrc,
-        language: formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1).toLowerCase() : undefined,
+        language: (() => {
+          const lang = resolveLanguage(formData.primaryGenre, formData.language);
+          return lang
+            ? lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()
+            : undefined;
+        })(),
         spotifyProfile: formData.spotifyProfile,
         appleMusicProfile: formData.appleMusicProfile,
         youtubeMusicProfile: formData.youtubeMusicProfile,
@@ -517,7 +531,12 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       title: formData.title,
       artistName: formData.artistName,
       version: formData.version,
-      ...(formData.language && { language: formData.language.charAt(0).toUpperCase() + formData.language.slice(1).toLowerCase() }),
+      ...(resolveLanguage(formData.primaryGenre, formData.language) && {
+        language: (() => {
+          const lang = resolveLanguage(formData.primaryGenre, formData.language);
+          return lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase();
+        })(),
+      }),
       ...(formData.primaryGenre && { primaryGenre: formData.primaryGenre }),
       ...(formData.secondaryGenre && {
         secondaryGenre: formData.secondaryGenre,
@@ -791,13 +810,13 @@ export const rejectRelease = async (
   return response.data;
 };
 
-/** PDL phase 1: add/verify metadata + upload artwork & audio to PDL */
+/** Phase 1: verify metadata + upload artwork & audio to distribution pipeline */
 export const submitToPdl = async (id: string, data: any = {}): Promise<any> => {
   const response = await apiClient.post(`/releases/${id}/submit-to-pdl`, data);
   return response.data;
 };
 
-/** PDL phase 2: platform details + final distribute (COSMOS submit) */
+/** Phase 2: final distribute to selected platforms */
 export const pdlSubmit = async (id: string, data: any = {}): Promise<any> => {
   const response = await apiClient.post(`/releases/${id}/pdl-submit`, data);
   return response.data;

@@ -406,7 +406,12 @@ export default function SubscriptionPage() {
                                         className="mt-2"
                                     >
                                         {isPurchasingAddon
-                                            ? 'Processing…'
+                                            ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Processing…
+                                                </>
+                                            )
                                             : `Add 1 more artist (₹${ARTIST_ADDON_PRICE_INR})`}
                                     </Button>
                                 )}

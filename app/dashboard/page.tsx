@@ -23,6 +23,7 @@ import { TrendingUp, DollarSign, Globe, Music, Loader2, ListMusic, Activity, Che
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { getReleases, Release } from "@/lib/api/releases";
+import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
 import { getUsageStats, UsageStats } from "@/lib/api/users";
 import Preloader from "@/components/Preloader";
 import {
@@ -90,19 +91,19 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         const isSuperAdmin = user.role === 'super_admin';
-        const [releasesData, pendingData, statsData] = await Promise.all([
-          getReleases({
-            limit: 5,
-            ...(isSuperAdmin ? {} : { userId: user._id, status: 'Approved' })
-          }),
+        const userFilter = isSuperAdmin ? {} : { userId: user._id };
+        const [recentReleasesData, totalReleasesData, pendingData, statsData] = await Promise.all([
+          getReleases({ limit: 5, ...userFilter }),
+          getReleases({ limit: 1, ...userFilter }),
           getReleases({
             limit: 1,
-            ...(isSuperAdmin ? { status: 'In Process' as any } : { userId: user._id, status: 'In Process' as any })
+            status: 'In Process' as any,
+            ...userFilter,
           }),
           getUsageStats(),
         ]);
-        setReleases(releasesData.releases);
-        setTotalReleases(releasesData.pagination.total);
+        setReleases(recentReleasesData.releases);
+        setTotalReleases(totalReleasesData.pagination.total);
         setPendingReleases(pendingData.pagination.total);
         setUsageStats(statsData);
       } catch (error) {
@@ -116,27 +117,8 @@ export default function DashboardPage() {
     fetchData();
   }, [user]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "distributed":
-        return "bg-green-500/10 text-green-500";
-      case "processing":
-        return "bg-blue-500/10 text-blue-500";
-      case "pending_review":
-        return "bg-yellow-500/10 text-yellow-500";
-      case "rejected":
-        return "bg-red-500/10 text-red-500";
-      default:
-        return "bg-gray-500/10 text-gray-500";
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
+  const getStatusColor = getReleaseStatusColor;
+  const formatStatus = formatReleaseStatus;
 
   if (loading) {
     return <Preloader />;

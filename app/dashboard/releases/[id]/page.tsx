@@ -28,6 +28,12 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { S3Image } from "@/components/ui/s3-image";
+import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
+import {
+  formatUpcDisplay,
+  formatIsrcListDisplay,
+  getTrackIsrcDisplay,
+} from "@/lib/release-codes";
 
 export default function ReleaseDetailsPage() {
   const params = useParams();
@@ -53,31 +59,8 @@ export default function ReleaseDetailsPage() {
     fetchRelease();
   }, [params.id]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Released":
-        return "bg-green-500/10 text-green-500";
-      case "Approved":
-        return "bg-purple-500/10 text-purple-500";
-      case "In Process":
-        return "bg-blue-500/10 text-blue-500";
-      case "Submitted":
-        return "bg-cyan-500/10 text-cyan-500";
-      case "Rejected":
-        return "bg-red-500/10 text-red-500";
-      case "Draft":
-        return "bg-yellow-500/10 text-yellow-500";
-      default:
-        return "bg-gray-500/10 text-gray-500";
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
+  const getStatusColor = getReleaseStatusColor;
+  const formatStatus = formatReleaseStatus;
 
   if (loading) {
     return <Preloader />;
@@ -144,7 +127,8 @@ export default function ReleaseDetailsPage() {
             { icon: <Globe />, label: "Language", value: release.language },
             { icon: <Calendar />, label: "Date", value: release.releaseDate ? new Date(release.releaseDate).toLocaleDateString() : null },
             { icon: <Disc3 />, label: "Label", value: release.labelName },
-            { icon: <QrCode />, label: "UPC / ISRC", value: `UPC: ${release.barcode || "-"}\nISRC: ${release.isrc || "-"}`, isMultiline: true },
+            { icon: <QrCode />, label: "UPC", value: formatUpcDisplay(release) },
+            { icon: <QrCode />, label: "ISRC", value: formatIsrcListDisplay(release) },
             { icon: <BookOpenText />, label: "Catalog #", value: release.catalogNumber || "-" },
             { icon: <User />, label: "Authors", value: release?.writers?.join(", ") }
           ].filter(item => item.value && item.value !== "").map((item, idx) => (
@@ -154,15 +138,7 @@ export default function ReleaseDetailsPage() {
                 {item.icon}
               </div>
               <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1.5">{item.label}</span>
-              {item.isMultiline ? (
-                <div className="flex flex-col items-center gap-1">
-                  {item.value.split('\n').map((line, i) => (
-                    <span key={i} className="text-xs font-semibold text-white/90">{line}</span>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-sm font-bold text-white/90 truncate w-full px-2">{item.value}</span>
-              )}
+              <span className="text-sm font-bold text-white/90 truncate w-full px-2">{item.value}</span>
             </div>
           ))}
         </div>
@@ -275,6 +251,9 @@ export default function ReleaseDetailsPage() {
                       <div>
                         <p className="font-bold text-white text-base">{release.title}</p>
                         <p className="text-sm text-white/40">{release.artistName}</p>
+                        <p className="text-[10px] font-mono text-white/30 mt-1">
+                          ISRC: {getTrackIsrcDisplay({}, release)}
+                        </p>
                       </div>
                     </div>
                     <a
@@ -311,6 +290,9 @@ export default function ReleaseDetailsPage() {
                               )}
                             </p>
                             <p className="text-sm text-white/40">{track.artistName}</p>
+                            <p className="text-[10px] font-mono text-white/30 mt-1">
+                              ISRC: {getTrackIsrcDisplay(track, release)}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 opacity-50 group-hover:opacity-100 transition-opacity">

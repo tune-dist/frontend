@@ -70,6 +70,9 @@ export default function PermissionsPage() {
         description: "",
     });
     const [creating, setCreating] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [usersLoading, setUsersLoading] = useState(false);
+    const [pendingToggles, setPendingToggles] = useState<Record<string, boolean>>({});
 
     // User permissions state
     const [activeTab, setActiveTab] = useState("role");
@@ -93,7 +96,26 @@ export default function PermissionsPage() {
         }
     };
 
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            const [permsData, rolesData] = await Promise.all([
+                getPermissions(),
+                getRoles(),
+            ]);
+            setPermissions(permsData);
+            setRoles(rolesData);
+            toast.success("Permissions refreshed");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to refresh data");
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
     const fetchUsers = async () => {
+        setUsersLoading(true);
         try {
             const usersData = await getUsers({
                 search: userSearch || undefined,
@@ -104,6 +126,8 @@ export default function PermissionsPage() {
         } catch (error) {
             console.error(error);
             toast.error("Failed to fetch users");
+        } finally {
+            setUsersLoading(false);
         }
     };
 
@@ -127,26 +151,30 @@ export default function PermissionsPage() {
     }, [activeTab, userSearch, userRoleFilter]);
 
     const handleToggle = async (role: Role, permissionSlug: string) => {
+        const toggleKey = `role-${role._id}-${permissionSlug}`;
+        if (pendingToggles[toggleKey]) return;
+
         const hasPermission = role.permissions.includes(permissionSlug);
         const newPermissions = hasPermission
             ? role.permissions.filter((p) => p !== permissionSlug)
             : [...role.permissions, permissionSlug];
 
-        // Optimistic update
         setRoles((prevRoles) =>
             prevRoles.map((r) =>
                 r._id === role._id ? { ...r, permissions: newPermissions } : r
             )
         );
 
+        setPendingToggles((prev) => ({ ...prev, [toggleKey]: true }));
         try {
             await updateRole(role._id, { permissions: newPermissions });
             toast.success("Permissions updated");
         } catch (error) {
             console.error(error);
             toast.error("Failed to update permissions");
-            // Revert on error
             fetchData();
+        } finally {
+            setPendingToggles((prev) => ({ ...prev, [toggleKey]: false }));
         }
     };
 
@@ -171,27 +199,31 @@ export default function PermissionsPage() {
     };
 
     const handleUserPermissionToggle = async (user: User, permissionSlug: string) => {
+        const toggleKey = `user-${user._id}-${permissionSlug}`;
+        if (pendingToggles[toggleKey]) return;
+
         const userPermissions = (user as any).permissions || [];
         const hasPermission = userPermissions.includes(permissionSlug);
         const newPermissions = hasPermission
             ? userPermissions.filter((p: string) => p !== permissionSlug)
             : [...userPermissions, permissionSlug];
 
-        // Optimistic update
         setUsers((prevUsers) =>
             prevUsers.map((u) =>
                 u._id === user._id ? { ...u, permissions: newPermissions } as any : u
             )
         );
 
+        setPendingToggles((prev) => ({ ...prev, [toggleKey]: true }));
         try {
             await updateUserPermissions(user._id, newPermissions);
             toast.success("User permissions updated");
         } catch (error) {
             console.error(error);
             toast.error("Failed to update user permissions");
-            // Revert on error
             fetchUsers();
+        } finally {
+            setPendingToggles((prev) => ({ ...prev, [toggleKey]: false }));
         }
     };
 
@@ -216,8 +248,12 @@ export default function PermissionsPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={fetchData}>
-                            <RefreshCcw className="h-4 w-4 mr-2" />
+                        <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+                            {isRefreshing ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <RefreshCcw className="h-4 w-4 mr-2" />
+                            )}
                             Refresh
                         </Button>
                         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -334,18 +370,25 @@ export default function PermissionsPage() {
                                                             {permission.slug}
                                                         </div>
                                                     </TableCell>
-                                                    {roles.map((role) => (
+                                                    {roles.map((role) => {
+                                                        const toggleKey = `role-${role._id}-${permission.slug}`;
+                                                        return (
                                                         <TableCell key={`${role._id}-${permission._id}`} className="text-center">
                                                             <div className="flex justify-center">
+                                                                {pendingToggles[toggleKey] ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                                ) : (
                                                                 <Switch
                                                                     checked={role.permissions.includes(permission.slug)}
                                                                     onCheckedChange={() =>
                                                                         handleToggle(role, permission.slug)
                                                                     }
                                                                 />
+                                                                )}
                                                             </div>
                                                         </TableCell>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </TableRow>
                                             ))}
                                             {permissions.length === 0 && (
@@ -397,7 +440,12 @@ export default function PermissionsPage() {
                                         </Select>
                                     </div>
 
-                                    <div className="overflow-x-auto">
+                                    <div className="overflow-x-auto relative">
+                                        {usersLoading && (
+                                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
+                                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                            </div>
+                                        )}
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
@@ -426,15 +474,20 @@ export default function PermissionsPage() {
                                                         </TableCell>
                                                         {permissions.map((permission) => {
                                                             const userPermissions = (user as any).permissions || [];
+                                                            const toggleKey = `user-${user._id}-${permission.slug}`;
                                                             return (
                                                                 <TableCell key={`${user._id}-${permission._id}`} className="text-center">
                                                                     <div className="flex justify-center">
+                                                                        {pendingToggles[toggleKey] ? (
+                                                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                                        ) : (
                                                                         <Switch
                                                                             checked={userPermissions.includes(permission.slug)}
                                                                             onCheckedChange={() =>
                                                                                 handleUserPermissionToggle(user, permission.slug)
                                                                             }
                                                                         />
+                                                                        )}
                                                                     </div>
                                                                 </TableCell>
                                                             );

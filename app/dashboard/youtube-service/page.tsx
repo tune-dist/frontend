@@ -22,6 +22,15 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
     Loader2,
     Plus,
     Youtube,
@@ -58,6 +67,9 @@ export default function YouTubeServicePage() {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [approveDialogId, setApproveDialogId] = useState<string | null>(null);
+    const [rejectDialog, setRejectDialog] = useState<{ id: string } | null>(null);
+    const [rejectReason, setRejectReason] = useState("");
     const { user } = useAuth();
 
     const isReleaseManager = user?.role === "release_manager";
@@ -88,12 +100,25 @@ export default function YouTubeServicePage() {
         fetchRequests();
     }, []);
 
-    const handleApprove = async (id: string) => {
-        if (!confirm("Are you sure you want to approve this YouTube service request?")) return;
+    const openApproveDialog = (id: string) => {
+        setApproveDialogId(id);
+    };
+
+    const openRejectDialog = (id: string) => {
+        setRejectReason("");
+        setRejectDialog({ id });
+    };
+
+    const handleConfirmApprove = async () => {
+        if (!approveDialogId || actionLoading) return;
+
+        const id = approveDialogId;
+
         try {
             setActionLoading(id);
             await updateYouTubeRequestStatus(id, YouTubeRequestStatus.APPROVED);
             toast.success("Request approved successfully");
+            setApproveDialogId(null);
             fetchRequests();
         } catch (error) {
             toast.error("Failed to approve request");
@@ -102,18 +127,21 @@ export default function YouTubeServicePage() {
         }
     };
 
-    const handleReject = async (id: string) => {
-        const reason = prompt("Enter rejection reason:");
-        if (reason === null) return; // User cancelled
-        if (!reason.trim()) {
+    const handleConfirmReject = async () => {
+        if (!rejectDialog || actionLoading) return;
+        if (!rejectReason.trim()) {
             toast.error("Rejection reason is required");
             return;
         }
 
+        const { id } = rejectDialog;
+
         try {
             setActionLoading(id);
-            await updateYouTubeRequestStatus(id, YouTubeRequestStatus.REJECTED, reason);
+            await updateYouTubeRequestStatus(id, YouTubeRequestStatus.REJECTED, rejectReason.trim());
             toast.success("Request rejected");
+            setRejectDialog(null);
+            setRejectReason("");
             fetchRequests();
         } catch (error) {
             toast.error("Failed to reject request");
@@ -317,7 +345,7 @@ export default function YouTubeServicePage() {
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="sm"
-                                                                            onClick={() => handleApprove(request._id)}
+                                                                            onClick={() => openApproveDialog(request._id)}
                                                                             disabled={actionLoading === request._id}
                                                                             className="text-green-500 hover:bg-green-500/10 h-8 w-8 p-0"
                                                                             title="Approve"
@@ -331,7 +359,7 @@ export default function YouTubeServicePage() {
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="sm"
-                                                                            onClick={() => handleReject(request._id)}
+                                                                            onClick={() => openRejectDialog(request._id)}
                                                                             disabled={actionLoading === request._id}
                                                                             className="text-red-500 hover:bg-red-500/10 h-8 w-8 p-0"
                                                                             title="Reject"
@@ -368,6 +396,96 @@ export default function YouTubeServicePage() {
                     fetchRequests();
                 }}
             />
+
+            <Dialog
+                open={approveDialogId !== null}
+                onOpenChange={(open) => {
+                    if (!open && !actionLoading) setApproveDialogId(null);
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Approve request?</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to approve this YouTube service request?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setApproveDialogId(null)}
+                            disabled={!!approveDialogId && actionLoading === approveDialogId}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleConfirmApprove}
+                            disabled={!!approveDialogId && actionLoading === approveDialogId}
+                        >
+                            {approveDialogId && actionLoading === approveDialogId ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Approving…
+                                </>
+                            ) : (
+                                "Approve"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={rejectDialog !== null}
+                onOpenChange={(open) => {
+                    if (!open && !actionLoading) {
+                        setRejectDialog(null);
+                        setRejectReason("");
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Reject request</DialogTitle>
+                        <DialogDescription>
+                            Enter a reason for rejecting this YouTube service request.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Textarea
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        placeholder="Rejection reason"
+                        rows={4}
+                        disabled={!!rejectDialog && actionLoading === rejectDialog.id}
+                    />
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setRejectDialog(null);
+                                setRejectReason("");
+                            }}
+                            disabled={!!rejectDialog && actionLoading === rejectDialog.id}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleConfirmReject}
+                            disabled={!!rejectDialog && actionLoading === rejectDialog.id}
+                        >
+                            {rejectDialog && actionLoading === rejectDialog.id ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Rejecting…
+                                </>
+                            ) : (
+                                "Reject"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }
