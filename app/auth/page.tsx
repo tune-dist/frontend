@@ -341,7 +341,7 @@ function AuthContent() {
                       <Input
                         id="otp"
                         type="text"
-                        placeholder="123456"
+                        placeholder="- - - - - -"
                         maxLength={6}
                         className={`text-center tracking-widest text-lg ${otpErrors.otp ? 'border-red-500' : ''}`}
                         {...registerOtp('otp')}
@@ -585,7 +585,7 @@ function AuthContent() {
                             id="email-otp"
                             value={emailOtp}
                             onChange={(e) => setEmailOtp(e.target.value)}
-                            placeholder="Enter 6-digit code"
+                            placeholder="- - - - - -"
                             maxLength={6}
                             className="tracking-widest"
                           />
