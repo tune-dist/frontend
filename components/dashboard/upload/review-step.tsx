@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'react-hot-toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { isReleaseNoLyrics, isTrackNoLyrics } from './genre-language'
 
 interface ReviewStepProps {
     formData: UploadFormData
@@ -21,6 +22,14 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
     const coverArtPreview = watch('coverArtPreview')
     const rootWriters = watch('writers') || []
     const rootComposers = watch('composers') || []
+    const primaryGenre = watch('primaryGenre')
+    const instrumental = watch('instrumental')
+    const language = watch('language')
+    const releaseNoLyrics = isReleaseNoLyrics({
+        primaryGenre,
+        language,
+        instrumental,
+    })
 
     const [selectedTrackId, setSelectedTrackId] = useState<string | null>(tracks.length > 0 ? tracks[0].id : null)
     const [showCoverArt, setShowCoverArt] = useState(false)
@@ -74,6 +83,11 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
                             {tracks.map((track, idx) => {
                                 const assignedIds = getAssignedAudioIds(track.id);
                                 const availableFiles = audioFiles.filter(af => !assignedIds.includes(af.id));
+                                const trackNoLyrics = isTrackNoLyrics(track, {
+                                    primaryGenre,
+                                    language,
+                                    instrumental,
+                                });
 
                                 return (
                                     <div
@@ -95,17 +109,19 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
                                                 </div>
                                             </div>
 
-                                            {/* Writer */}
+                                            {/* Writer / Lyricist */}
+                                            {!trackNoLyrics && (
                                             <div className="w-36 shrink-0">
                                                 {track.writers?.filter(w => w?.trim()).length ? (
                                                     <p className="text-sm font-semibold text-primary truncate">
                                                         {track.writers.filter(w => w?.trim()).join(', ')}
                                                     </p>
                                                 ) : (
-                                                    <p className="text-xs text-white/20 italic">No writer</p>
+                                                    <p className="text-xs text-white/20 italic">No lyricist</p>
                                                 )}
-                                                <p className="text-[10px] text-white uppercase tracking-wider mt-0.5">Author</p>
+                                                <p className="text-[10px] text-white uppercase tracking-wider mt-0.5">Lyricist</p>
                                             </div>
+                                            )}
 
                                             {/* Composer */}
                                             <div className="w-36 shrink-0">
@@ -214,21 +230,24 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
                                 )}
                             </div>
 
-                            {/* Writers & Composers - Bottom Row (Only for singles) */}
+                            {/* Lyricist — singles with lyrics only */}
+                            {format === 'single' && !releaseNoLyrics && (
+                                <div className="space-y-1 sm:col-span-2">
+                                    <span className="text-xs text-muted-foreground uppercase tracking-tight">Lyricist</span>
+                                    {rootWriters.filter((w) => w?.trim()).length > 0 ? (
+                                        <p className="font-medium text-sm text-primary">{rootWriters.filter((w) => w?.trim()).join(', ')}</p>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">—</p>
+                                    )}
+                                </div>
+                            )}
+                            {/* Composers — always for singles */}
                             {format === 'single' && (
                                 <>
                                     <div className="space-y-1 sm:col-span-2">
-                                        <span className="text-xs text-muted-foreground uppercase tracking-tight">Writers</span>
-                                        {rootWriters.length > 0 ? (
-                                            <p className="font-medium text-sm text-primary">{rootWriters.join(', ')}</p>
-                                        ) : (
-                                            <p className="text-sm text-muted-foreground">—</p>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1 sm:col-span-2">
                                         <span className="text-xs text-muted-foreground uppercase tracking-tight">Composers</span>
-                                        {rootComposers.length > 0 ? (
-                                            <p className="font-medium text-sm text-primary">{rootComposers.join(', ')}</p>
+                                        {rootComposers.filter((c) => c?.trim()).length > 0 ? (
+                                            <p className="font-medium text-sm text-primary">{rootComposers.filter((c) => c?.trim()).join(', ')}</p>
                                         ) : (
                                             <p className="text-sm text-muted-foreground">—</p>
                                         )}

@@ -34,6 +34,7 @@ import {
   formatIsrcListDisplay,
   getTrackIsrcDisplay,
 } from "@/lib/release-codes";
+import { isReleaseNoLyrics } from "@/components/dashboard/upload/genre-language";
 
 export default function ReleaseDetailsPage() {
   const params = useParams();
@@ -87,6 +88,16 @@ export default function ReleaseDetailsPage() {
 
   // Cast to any to access potential extra fields not in interface
   const releaseAny = release as any;
+  const releaseNoLyrics = isReleaseNoLyrics({
+    primaryGenre: releaseAny.primaryGenre,
+    language: release.language,
+    instrumental: releaseAny.instrumental,
+    isInstrumentalFlag: releaseAny.isInstrumentalFlag,
+  });
+  const writersDisplay =
+    !releaseNoLyrics && release.writers?.filter((w) => w?.trim()).length
+      ? release.writers.filter((w) => w?.trim()).join(", ")
+      : null;
 
   return (
     <DashboardLayout>
@@ -130,7 +141,9 @@ export default function ReleaseDetailsPage() {
             { icon: <QrCode />, label: "UPC", value: formatUpcDisplay(release) },
             { icon: <QrCode />, label: "ISRC", value: formatIsrcListDisplay(release) },
             { icon: <BookOpenText />, label: "Catalog #", value: release.catalogNumber || "-" },
-            { icon: <User />, label: "Authors", value: release?.writers?.join(", ") }
+            ...(writersDisplay
+              ? [{ icon: <User />, label: "Lyricist", value: writersDisplay }]
+              : []),
           ].filter(item => item.value && item.value !== "").map((item, idx) => (
             <div key={idx} className="flex-1 min-w-[140px] bg-[#0A0A0B] border border-white/5 rounded-3xl p-5 flex flex-col items-center justify-center text-center group hover:bg-white/[0.02] transition-colors relative overflow-hidden shadow-xl shadow-black/20">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

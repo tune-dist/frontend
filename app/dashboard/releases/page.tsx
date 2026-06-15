@@ -98,9 +98,14 @@ const itemVariants = {
 
 type StatusFilter = "all" | ReleaseStatus;
 
+const PAGE_SIZE = 10;
+
 export default function ReleasesPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalReleases, setTotalReleases] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -120,18 +125,36 @@ export default function ReleasesPage() {
   const fetchReleases = async () => {
     try {
       setLoading(true);
-      const params: any =
-        statusFilter !== "all" ? { status: statusFilter } : {};
+      const params: any = {
+        page,
+        limit: PAGE_SIZE,
+      };
+
+      if (statusFilter !== "all") {
+        params.status = statusFilter;
+      }
 
       if (selectedUserId !== "all") {
         params.userId = selectedUserId;
       } else if (user?._id && !canManage) {
         params.userId = user._id;
       }
+
       const response = await getReleases(params);
+      const pagination = response.pagination;
+
+      if (
+        response.releases.length === 0 &&
+        page > 1 &&
+        (pagination?.totalPages ?? 1) < page
+      ) {
+        setPage((pagination?.totalPages ?? 1) || 1);
+        return;
+      }
+
       setReleases(response.releases);
-
-
+      setTotalReleases(pagination?.total ?? response.releases.length);
+      setTotalPages(pagination?.totalPages ?? 1);
     } catch (error) {
       toast.error("Failed to fetch releases");
       console.error(error);
@@ -141,8 +164,12 @@ export default function ReleasesPage() {
   };
 
   useEffect(() => {
-    fetchReleases();
+    setPage(1);
   }, [statusFilter, selectedUserId]);
+
+  useEffect(() => {
+    fetchReleases();
+  }, [statusFilter, selectedUserId, page]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -311,7 +338,7 @@ export default function ReleasesPage() {
               <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-4">
                 <CardDescription className="flex items-center gap-2 text-sm font-medium">
                   <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
-                  {releases.length} total releases found
+                  {totalReleases} total releases found
                 </CardDescription>
 
                 <div className="flex flex-col gap-2">
@@ -345,6 +372,7 @@ export default function ReleasesPage() {
                   </div>
                 </div>
               ) : (
+                <>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-muted/30">
@@ -480,6 +508,43 @@ export default function ReleasesPage() {
                     </TableBody>
                   </Table>
                 </div>
+
+                {totalReleases > 0 && (
+                  <div className="flex items-center justify-between px-6 py-4 border-t border-border/50 bg-card/20 backdrop-blur-sm">
+                    <p className="text-sm text-text-secondary">
+                      Showing{" "}
+                      <span className="font-medium text-white">
+                        {(page - 1) * PAGE_SIZE + 1}
+                      </span>{" "}
+                      to{" "}
+                      <span className="font-medium text-white">
+                        {Math.min(page * PAGE_SIZE, totalReleases)}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-medium text-white">{totalReleases}</span>{" "}
+                      results
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="px-4 py-2 text-sm font-medium text-white bg-surface-highlight rounded-lg hover:bg-surface-highlight/80 disabled:opacity-50 transition-colors"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPage((p) => p + 1)}
+                        disabled={page >= totalPages}
+                        className="px-4 py-2 text-sm font-medium text-background-dark bg-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+                </>
               )}
             </CardContent>
           </Card>

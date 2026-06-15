@@ -47,3 +47,10 @@ export const getLatestReleases = async (limit = 6): Promise<DashboardLatestRelea
   });
   return response.data;
 };
+
+export const getTopTracks = async (limit = 4): Promise<DashboardLatestReleasesResponse> => {
+  const response = await apiClient.get<DashboardLatestReleasesResponse>('/dashboard/top-tracks', {
+    params: { limit },
+  });
+  return response.data;
+};

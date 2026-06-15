@@ -19,6 +19,7 @@ import WaveformTrimmer from "./WaveformTrimmer";
 import {
   INSTRUMENTAL_LANGUAGE,
   isInstrumentalPrimaryGenre,
+  isInstrumentalRelease,
   LANGUAGE_OPTIONS,
 } from "./genre-language";
 
@@ -141,6 +142,7 @@ export default function CreditsStep({
   const subGenreCacheRef = useRef<Map<string, SubGenre[]>>(new Map());
   const subGenreRequestRef = useRef(0);
   const primaryGenre = watch("primaryGenre");
+  const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumentalValue);
 
   const loadSubGenres = useCallback(
     async (genreName: string) => {
@@ -204,12 +206,30 @@ export default function CreditsStep({
     name: "composers",
   });
 
-  // Ensure at least one writer for singles if none exist
+  // Instrumental genre → auto-mark as no-lyrics track
   useEffect(() => {
-    if (isSingle && writerFields.length === 0) {
+    if (!isInstrumentalPrimaryGenre(primaryGenre)) {
+      return;
+    }
+    setValue("instrumental", "yes");
+    setValue("language", INSTRUMENTAL_LANGUAGE);
+  }, [primaryGenre, setValue]);
+
+  // No-lyrics track → clear lyric-related fields
+  useEffect(() => {
+    if (!isNoLyricsTrack) {
+      return;
+    }
+    setValue("writers", []);
+    setValue("isExplicit", false);
+  }, [isNoLyricsTrack, setValue]);
+
+  // Ensure at least one writer for singles (lyric tracks only)
+  useEffect(() => {
+    if (isSingle && !isNoLyricsTrack && writerFields.length === 0) {
       appendWriter("");
     }
-  }, [isSingle, writerFields.length, appendWriter]);
+  }, [isSingle, isNoLyricsTrack, writerFields.length, appendWriter]);
 
   // Ensure at least one composer for singles if none exist
   useEffect(() => {
@@ -614,12 +634,17 @@ export default function CreditsStep({
                       type="radio"
                       id="instrumentalNo"
                       value="no"
+                      disabled={isNoLyricsTrack}
                       {...register("instrumental")}
-                      className="h-4 w-4"
+                      className="h-4 w-4 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <Label
                       htmlFor="instrumentalNo"
-                      className="font-normal cursor-pointer"
+                      className={`font-normal ${
+                        isNoLyricsTrack
+                          ? "opacity-50 cursor-not-allowed"
+                          : "cursor-pointer"
+                      }`}
                     >
                       This song contains lyrics
                     </Label>
@@ -644,7 +669,7 @@ export default function CreditsStep({
               </div>
 
               {/* Writers - Hidden when instrumental is yes */}
-              {fieldRules.songwriters?.allow !== false && instrumentalValue !== 'yes' && (
+              {fieldRules.songwriters?.allow !== false && !isNoLyricsTrack && (
                 <div className="space-y-4 pt-6 border-t border-border">
                   <div>
                     <Label className="text-lg font-semibold">
@@ -761,7 +786,8 @@ export default function CreditsStep({
                 </div>
               )}
 
-              {/* Explicit Content */}
+              {/* Explicit Content — not applicable for instrumental / no-lyrics tracks */}
+              {!isNoLyricsTrack && (
               <div className="space-y-3 pt-6 border-t border-border">
                 <Label className="text-lg font-semibold flex items-center gap-2">
                   Explicit Content
@@ -808,6 +834,7 @@ export default function CreditsStep({
                   </div>
                 </div>
               </div>
+              )}
 
 
 

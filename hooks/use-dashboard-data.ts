@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -8,6 +8,7 @@ import {
   DashboardStats,
   getDashboardStats,
   getLatestReleases,
+  getTopTracks,
 } from "@/lib/api/dashboard";
 
 interface UseDashboardDataResult {
@@ -20,7 +21,8 @@ interface UseDashboardDataResult {
 export function useDashboardData(latestLimit = 6, topTracksLimit = 4): UseDashboardDataResult {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [releases, setReleases] = useState<DashboardLatestRelease[]>([]);
+  const [latestReleases, setLatestReleases] = useState<DashboardLatestRelease[]>([]);
+  const [topTracks, setTopTracks] = useState<DashboardLatestRelease[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,15 +32,17 @@ export function useDashboardData(latestLimit = 6, topTracksLimit = 4): UseDashbo
 
     const fetchData = async () => {
       try {
-        const [statsData, releasesData] = await Promise.all([
+        const [statsData, latestData, topTracksData] = await Promise.all([
           getDashboardStats(),
-          getLatestReleases(Math.max(latestLimit, topTracksLimit, 20)),
+          getLatestReleases(latestLimit),
+          getTopTracks(topTracksLimit),
         ]);
 
         if (cancelled) return;
 
         setStats(statsData);
-        setReleases(releasesData.releases);
+        setLatestReleases(latestData.releases);
+        setTopTracks(topTracksData.releases);
       } catch (error) {
         if (!cancelled) {
           toast.error("Failed to fetch dashboard data");
@@ -57,19 +61,6 @@ export function useDashboardData(latestLimit = 6, topTracksLimit = 4): UseDashbo
       cancelled = true;
     };
   }, [user, latestLimit, topTracksLimit]);
-
-  const latestReleases = useMemo(
-    () => releases.slice(0, latestLimit),
-    [releases, latestLimit],
-  );
-
-  const topTracks = useMemo(
-    () =>
-      [...releases]
-        .sort((a, b) => b.totalStreams - a.totalStreams)
-        .slice(0, topTracksLimit),
-    [releases, topTracksLimit],
-  );
 
   return {
     stats,

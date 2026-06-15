@@ -15,6 +15,7 @@ import WaveformTrimmer from './WaveformTrimmer'
 import {
     INSTRUMENTAL_LANGUAGE,
     isInstrumentalPrimaryGenre,
+    isInstrumentalRelease,
     LANGUAGE_OPTIONS,
     resolveLanguage,
 } from './genre-language'
@@ -172,6 +173,22 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     }, [primaryGenre, genresLoading, loadSubGenres])
 
     const isInstrumentalGenre = isInstrumentalPrimaryGenre(primaryGenre)
+    const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumental)
+
+    useEffect(() => {
+        if (isInstrumentalGenre) {
+            setInstrumental('yes')
+            setLanguage(INSTRUMENTAL_LANGUAGE)
+        }
+    }, [isInstrumentalGenre])
+
+    useEffect(() => {
+        if (isNoLyricsTrack) {
+            setModalWriters([])
+            setWriterErrors([])
+            setIsExplicit(false)
+        }
+    }, [isNoLyricsTrack])
 
     // Update state when track changes (switching between different tracks)
     useEffect(() => {
@@ -442,8 +459,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             // Filter out empty entries before validation
             const filteredWriters = modalWriters.filter(w => w?.trim())
             const filteredComposers = modalComposers.filter(c => c?.trim())
+            const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumental)
 
-            // Validate Writers (at least one required)
+            // Validate Writers (lyric tracks only)
+            if (!isNoLyricsTrack) {
             if (filteredWriters.length === 0) {
                 toast.error("At least one writer is required")
                 return
@@ -454,6 +473,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     toast.error(`Invalid Writer name: "${sw}". Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.`)
                     return
                 }
+            }
             }
 
             // Validate Composers (if provided, must be valid)
@@ -547,12 +567,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 youtubeMusicProfile: modalYoutubeProfile,
                 instagramProfile: instagramUrl,
                 facebookProfile: facebookUrl,
-                isExplicit,
-                isInstrumental: instrumental,
+                isExplicit: isNoLyricsTrack ? false : isExplicit,
+                isInstrumental: isNoLyricsTrack ? 'yes' : instrumental,
                 featuringArtist: modalFeaturingArtist,
                 mood: mood,
             }
-            onSave(updatedTrack, filteredWriters, filteredComposers)
+            onSave(updatedTrack, isNoLyricsTrack ? [] : filteredWriters, filteredComposers)
             onClose()
         }
     }
@@ -1542,10 +1562,18 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     name="track-instrumental"
                                     value="no"
                                     checked={instrumental === 'no'}
+                                    disabled={isNoLyricsTrack}
                                     onChange={() => setInstrumental('no')}
-                                    className="h-4 w-4"
+                                    className="h-4 w-4 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
-                                <Label htmlFor="track-instrumental-no" className="font-normal cursor-pointer">
+                                <Label
+                                    htmlFor="track-instrumental-no"
+                                    className={`font-normal ${
+                                        isNoLyricsTrack
+                                            ? "opacity-50 cursor-not-allowed"
+                                            : "cursor-pointer"
+                                    }`}
+                                >
                                     This song contains lyrics
                                 </Label>
                             </div>
@@ -1568,7 +1596,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     </div>
 
                     {/* Writers - Hidden when instrumental is yes */}
-                    {instrumental !== 'yes' && (
+                    {!isNoLyricsTrack && (
                         <div className="space-y-3 pt-4 border-t">
                             <div>
                                 <Label className="text-lg font-semibold">Writer/Author <span className="text-red-500">*</span></Label>
@@ -1702,7 +1730,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         )}
                     </div>
 
-                    {/* Explicit Content */}
+                    {!isNoLyricsTrack && (
                     <div className="space-y-3 pt-4 border-t">
                         <Label className="text-lg font-semibold flex items-center gap-2">
                             Explicit Content
@@ -1741,6 +1769,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             </div>
                         </div>
                     </div>
+                    )}
 
 
 

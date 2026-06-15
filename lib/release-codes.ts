@@ -3,6 +3,7 @@
 export interface ReleaseCodeSource {
   status?: string;
   barcode?: string;
+  upc?: string;
   isrc?: string;
   tracks?: Array<{ isrc?: string }>;
 }
@@ -27,8 +28,9 @@ export function getTrackIsrcs(release: ReleaseCodeSource): string[] {
 export function formatUpcDisplay(
   release: ReleaseCodeSource,
 ): string {
-  if (release.barcode?.trim()) {
-    return release.barcode.trim();
+  const upc = release.barcode?.trim() || release.upc?.trim();
+  if (upc) {
+    return upc;
   }
   if (release.status === 'Draft') {
     return 'Pending';

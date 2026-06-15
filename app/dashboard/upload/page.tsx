@@ -36,7 +36,7 @@ import BasicInfoStep from "@/components/dashboard/upload/basic-info-step";
 import AudioFileStep from "@/components/dashboard/upload/audio-file-step";
 import CoverArtStep from "@/components/dashboard/upload/cover-art-step";
 import CreditsStep from "@/components/dashboard/upload/credits-step";
-import { resolveLanguage } from "@/components/dashboard/upload/genre-language";
+import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/upload/genre-language";
 import { validateCoverArtSize } from "@/components/dashboard/upload/cover-art-file-validation";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage } from "@/lib/api/releases";
@@ -469,7 +469,11 @@ export default function UploadPage() {
             // Check songwriters (writers)
             const writersAllowed = fieldRules.songwriters?.allow !== false;
             const writersRequired = fieldRules.songwriters?.required !== false;
-            if (writersAllowed) {
+            const isNoLyricsSingle = isInstrumentalRelease(
+              formData.primaryGenre,
+              formData.instrumental,
+            );
+            if (writersAllowed && !isNoLyricsSingle) {
               // If required, we should convert to required array check via zod manually or check length
               if (writersRequired) {
                 const writers = formData.writers || [];
@@ -600,12 +604,17 @@ export default function UploadPage() {
                 }
 
                 const filledWriters = (track.writers || []).filter(sw => sw?.trim());
-                if (filledWriters.length === 0) {
+                const isNoLyricsTrack = isInstrumentalRelease(
+                  track.primaryGenre || formData.primaryGenre,
+                  track.isInstrumental,
+                );
+                if (!isNoLyricsTrack && filledWriters.length === 0) {
                   toast.error(`Track ${i + 1}: At least one writer is required`);
                   hasError = true;
                   break;
                 }
 
+                if (!isNoLyricsTrack) {
                 for (const sw of filledWriters) {
                   if (!nameRegex.test(sw.trim())) {
                     toast.error(
@@ -614,6 +623,7 @@ export default function UploadPage() {
                     hasError = true;
                     break;
                   }
+                }
                 }
 
                 if (hasError) break;

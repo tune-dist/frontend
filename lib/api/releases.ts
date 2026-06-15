@@ -4,7 +4,7 @@ import { uploadFileInChunks } from "@/lib/upload/chunk-uploader";
 import Cookies from "js-cookie";
 import { config } from "@/lib/config";
 import { toast } from "react-hot-toast";
-import { resolveLanguage } from "@/components/dashboard/upload/genre-language";
+import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/upload/genre-language";
 
 export interface ReleaseFormData {
   title: string;
@@ -60,6 +60,7 @@ export interface ReleaseFormData {
   trackNumber?: number;
   catalogNumber?: string;
   barcode?: string;
+  upc?: string;
   isrc?: string;
   writers?: string[];
   composers?: string[];
@@ -158,6 +159,7 @@ export interface Release {
   distributionTerritories?: string[];
   catalogNumber?: string;
   barcode?: string;
+  upc?: string;
   isrc?: string;
   writers?: string[];
   composers?: string[];
@@ -214,6 +216,7 @@ export interface CreateReleaseData {
   distributionTerritories?: string[];
   catalogNumber?: string;
   barcode?: string;
+  upc?: string;
   isrc?: string;
   writers?: string[];
   producers?: string[];
@@ -357,16 +360,22 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           }
         }
 
+        const trackNoLyrics = isInstrumentalRelease(
+          track.primaryGenre || formData.primaryGenre,
+          track.isInstrumental,
+        );
+
         return {
           title: track.title,
           artistName: track.artistName || formData.artistName,
           audioFile: trackAudioData,
-          isExplicit:
-            track.explicitLyrics === "yes" || track.isExplicit === true,
-          isInstrumental: track.isInstrumental === "yes",
+          isExplicit: trackNoLyrics
+            ? false
+            : track.explicitLyrics === "yes" || track.isExplicit === true,
+          isInstrumental: trackNoLyrics || track.isInstrumental === "yes",
           previewStartTime: track.previewClipStartTime,
           price: track.price,
-          writers: track.writers,
+          writers: trackNoLyrics ? [] : track.writers,
           composers: track.composers,
           previouslyReleased: track.previouslyReleased,
           originalReleaseDate: track.originalReleaseDate,
@@ -393,6 +402,11 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       });
     }
 
+    const releaseNoLyrics = isInstrumentalRelease(
+      formData.primaryGenre,
+      formData.instrumental,
+    );
+
     // For single releases, ensure we have track metadata even if tracks array is empty
     if ((formData.format === 'single' || formData.releaseType === 'single') && tracksPayload.length === 0) {
       console.log('Single release detected with empty tracks array. Creating track from root metadata...');
@@ -402,11 +416,13 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         title: formData.title,
         artistName: formData.artistName,
         audioFile: null, // Will be populated below from audioData
-        isExplicit: formData.explicitLyrics === 'yes' || formData.isExplicit === true,
-        isInstrumental: formData.instrumental === 'yes',
+        isExplicit: releaseNoLyrics
+          ? false
+          : formData.explicitLyrics === 'yes' || formData.isExplicit === true,
+        isInstrumental: releaseNoLyrics || formData.instrumental === 'yes',
         previewStartTime: formData.previewClipStartTime,
         price: undefined, // Not available in single release root form data
-        writers: formData.writers || [],
+        writers: releaseNoLyrics ? [] : (formData.writers || []),
         composers: formData.composers || [],
         previouslyReleased: formData.previouslyReleased,
         originalReleaseDate: formData.originalReleaseDate,
@@ -543,7 +559,9 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       }),
       ...(formData.subGenre && { subGenre: formData.subGenre }),
       releaseType: (formData.format as any) || formData.releaseType || "single",
-      isExplicit: formData.explicitLyrics === "yes" || formData.isExplicit === true,
+      isExplicit: releaseNoLyrics
+        ? false
+        : formData.explicitLyrics === "yes" || formData.isExplicit === true,
       releaseDate: formData.releaseDate || new Date().toISOString(),
       genres: ([formData.primaryGenre, formData.secondaryGenre].filter(Boolean)
         .length > 0
@@ -592,9 +610,13 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         distributionTerritories: formData.distributionTerritories,
       }),
       ...(formData.catalogNumber && { catalogNumber: formData.catalogNumber }),
-      ...(formData.barcode && { barcode: formData.barcode }),
+      ...((formData.barcode || (formData as { upc?: string }).upc) && {
+        upc: (formData as { upc?: string }).upc || formData.barcode,
+        barcode: formData.barcode || (formData as { upc?: string }).upc,
+      }),
       ...(formData.isrc && { isrc: formData.isrc }),
-      ...(formData.writers && { writers: formData.writers }),
+      ...(!releaseNoLyrics && formData.writers?.length && { writers: formData.writers }),
+      ...(releaseNoLyrics && { writers: [] }),
       ...(formData.producers && { producers: formData.producers }),
       ...((formData as any).composers && { composers: (formData as any).composers }),
       ...(formData.publisher && { publisher: formData.publisher }),
@@ -651,7 +673,9 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         previewClipStartTime: formData.previewClipStartTime,
       }),
       ...(formData.radioEdit && { radioEdit: formData.radioEdit }),
-      ...(formData.instrumental && { instrumental: formData.instrumental }),
+      ...(releaseNoLyrics
+        ? { instrumental: 'yes' }
+        : formData.instrumental && { instrumental: formData.instrumental }),
 
       ...(formData.artistName || (formData.artists && formData.artists.length > 0) ? {
         primaryArtists: [
@@ -717,6 +741,11 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
 // Helper to normalize release data from backend
 export const normalizeRelease = (release: any): Release => {
   if (!release) return release;
+
+  // Backend may return UPC as `upc` (PDL) or `barcode` (manual entry)
+  if (!release.barcode?.trim() && release.upc?.trim()) {
+    release.barcode = release.upc.trim();
+  }
 
   // Hydrate root fields from socialPlatforms for UI compatibility
   if (release.socialPlatforms) {
