@@ -10,16 +10,21 @@ import { config } from '@/lib/config'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+    getCoverArtMaxSizeMB,
+    validateCoverArtFile,
+} from './cover-art-file-validation'
 
 interface CoverArtStepProps {
     formData?: UploadFormData
     setFormData?: (data: UploadFormData) => void
+    fieldRules?: Record<string, any>
 }
 
 type RequirementStatus = 'pending' | 'success' | 'error';
 
-export default function CoverArtStep({ formData: propFormData, setFormData: propSetFormData }: CoverArtStepProps) {
-    const { setValue, watch, formState: { errors }, getValues } = useFormContext<UploadFormData>()
+export default function CoverArtStep({ formData: propFormData, setFormData: propSetFormData, fieldRules = {} }: CoverArtStepProps) {
+    const { setValue, watch, formState: { errors }, getValues, setError, clearErrors } = useFormContext<UploadFormData>()
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
     const [isValidating, setIsValidating] = useState(false);
@@ -81,6 +86,12 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         return hasError ? 'error' : 'success';
     };
 
+    const coverArtRules = fieldRules.coverArt;
+    const maxCoverArtSizeMB = getCoverArtMaxSizeMB(coverArtRules);
+    const allowedCoverArtTypes =
+        coverArtRules?.allowedFileTypes?.map((t: string) => t.toUpperCase()).join(", ") ??
+        "JPG, PNG";
+
     const handleCoverArtChange = async (file: File) => {
         if (isUploading) {
             toast.error('An upload is already in progress');
@@ -90,15 +101,16 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         setValue('coverArtValidationStatus', undefined);
         setValue('coverArtValidationIssues', []);
 
-        if (!file.type.startsWith('image/')) {
-            toast.error('Please upload an image file (JPG, PNG, etc.)')
-            return
+        const fileValidation = validateCoverArtFile(file, coverArtRules);
+        if (!fileValidation.valid) {
+            toast.error(fileValidation.message);
+            setError('coverArt', { type: 'manual', message: fileValidation.message });
+            setValue('coverArt', null, { shouldValidate: true });
+            setValue('coverArtPreview', '', { shouldValidate: true });
+            return;
         }
 
-        if (file.size > 20 * 1024 * 1024) {
-            toast.error('File size must be less than 20MB')
-            return
-        }
+        clearErrors('coverArt');
 
         const reader = new FileReader()
         reader.onloadend = async () => {
@@ -434,7 +446,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 )}
 
                 <p className="text-sm text-muted-foreground text-center pt-4">
-                    Supported formats: JPG, PNG. Max size: 20MB.
+                    Supported formats: {allowedCoverArtTypes}. Max size: {maxCoverArtSizeMB}MB.
                 </p>
             </div>
 

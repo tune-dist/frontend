@@ -60,6 +60,14 @@ function AuthContent() {
   const [showEmailOtpInput, setShowEmailOtpInput] = useState(false)
   const [verificationToken, setVerificationToken] = useState<string | undefined>(undefined)
   const [emailOtp, setEmailOtp] = useState('')
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'spotify' | null>(null)
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+
+  const handleOAuthRedirect = (provider: 'google' | 'spotify') => {
+    setOauthLoading(provider)
+    window.location.href = `${apiUrl}/auth/${provider}`
+  }
 
   const { login, register: registerUser, verifyOtp, resendOtp } = useAuth()
 
@@ -471,22 +479,32 @@ function AuthContent() {
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/google`}
+                        disabled={oauthLoading !== null}
+                        onClick={() => handleOAuthRedirect('google')}
                       >
+                        {oauthLoading === 'google' ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
                         <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
                           <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
                         </svg>
+                        )}
                         Google
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/spotify`}
+                        disabled={oauthLoading !== null}
+                        onClick={() => handleOAuthRedirect('spotify')}
                       >
+                        {oauthLoading === 'spotify' ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
                         <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm5.11 17.182c-.172.283-.55.373-.833.202-2.313-1.413-5.225-1.73-8.655-.947-.323.074-.648-.133-.722-.456-.073-.323.133-.648.456-.722 3.75-.858 6.974-.486 9.55 1.09.284.172.373.55.204.833zm1.36-3.235c-.216.353-.674.464-1.027.247-2.647-1.627-6.68-2.1-9.808-1.15-.4-.122-.824.1-.947.5-.123.4.1.824.5.947 3.58-1.085 8.04-.563 11.08 1.307.353.217.464.675.247 1.028zm.13-3.327C15.147 8.544 9.17 8.347 5.71 9.397c-.507.153-1.04-.136-1.194-.643-.153-.507.136-1.04.643-1.194 3.986-1.21 10.584-.98 14.653 1.438.455.27.604.856.333 1.31-.27.455-.856.605-1.31.334z" />
                         </svg>
+                        )}
                         Spotify
                       </Button>
                     </div>
@@ -647,22 +665,32 @@ function AuthContent() {
                       type="button"
                       variant="outline"
                       className="w-full"
-                      onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/google`}
+                      disabled={oauthLoading !== null}
+                      onClick={() => handleOAuthRedirect('google')}
                     >
+                      {oauthLoading === 'google' ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
                       <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
                         <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
                       </svg>
+                      )}
                       Google
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       className="w-full"
-                      onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/spotify`}
+                      disabled={oauthLoading !== null}
+                      onClick={() => handleOAuthRedirect('spotify')}
                     >
+                      {oauthLoading === 'spotify' ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
                       <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm5.11 17.182c-.172.283-.55.373-.833.202-2.313-1.413-5.225-1.73-8.655-.947-.323.074-.648-.133-.722-.456-.073-.323.133-.648.456-.722 3.75-.858 6.974-.486 9.55 1.09.284.172.373.55.204.833zm1.36-3.235c-.216.353-.674.464-1.027.247-2.647-1.627-6.68-2.1-9.808-1.15-.4-.122-.824.1-.947.5-.123.4.1.824.5.947 3.58-1.085 8.04-.563 11.08 1.307.353.217.464.675.247 1.028zm.13-3.327C15.147 8.544 9.17 8.347 5.71 9.397c-.507.153-1.04-.136-1.194-.643-.153-.507.136-1.04.643-1.194 3.986-1.21 10.584-.98 14.653 1.438.455.27.604.856.333 1.31-.27.455-.856.605-1.31.334z" />
                       </svg>
+                      )}
                       Spotify
                     </Button>
                   </div>

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock, UserCheck, Link as LinkIcon } from 'lucide-react'
+import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock, UserCheck, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
@@ -1485,7 +1485,14 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setShowAddonDialog(false)} disabled={isPurchasingAddon}>Cancel</Button>
                             <Button onClick={handleAddonPurchase} disabled={isPurchasingAddon}>
-                                {isPurchasingAddon ? 'Processing…' : 'Pay & Add Artist'}
+                                {isPurchasingAddon ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Processing…
+                                    </>
+                                ) : (
+                                    'Pay & Add Artist'
+                                )}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

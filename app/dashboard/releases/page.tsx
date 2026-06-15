@@ -23,6 +23,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 import {
   Loader2,
@@ -57,6 +66,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { S3Image } from "@/components/ui/s3-image";
+import {
+  canManageReleases,
+  formatReleaseStatus,
+  getReleaseStatusColor,
+  sanitizeReleaseError,
+} from "@/lib/release-status";
+import { formatUpcDisplay, formatIsrcListDisplay } from "@/lib/release-codes";
 
 // Animation variants
 const containerVariants = {
@@ -82,39 +98,63 @@ const itemVariants = {
 
 type StatusFilter = "all" | ReleaseStatus;
 
+const PAGE_SIZE = 10;
+
 export default function ReleasesPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalReleases, setTotalReleases] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<
+    { type: "delete" | "approve" | "distribute"; id: string } | null
+  >(null);
+  const [rejectDialog, setRejectDialog] = useState<{ id: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   const { user } = useAuth();
   const router = useRouter();
 
-  const isPrivileged =
-    user?.role === "super_admin" ||
-    user?.role === "admin" ||
-    user?.role === "release_manager" ||
-    user?.plan === "enterprise";
+  const canManage = canManageReleases(user);
 
   const fetchReleases = async () => {
     try {
       setLoading(true);
-      const params: any =
-        statusFilter !== "all" ? { status: statusFilter } : {};
+      const params: any = {
+        page,
+        limit: PAGE_SIZE,
+      };
+
+      if (statusFilter !== "all") {
+        params.status = statusFilter;
+      }
 
       if (selectedUserId !== "all") {
         params.userId = selectedUserId;
-      } else if (user?._id && !isPrivileged) {
+      } else if (user?._id && !canManage) {
         params.userId = user._id;
       }
+
       const response = await getReleases(params);
+      const pagination = response.pagination;
+
+      if (
+        response.releases.length === 0 &&
+        page > 1 &&
+        (pagination?.totalPages ?? 1) < page
+      ) {
+        setPage((pagination?.totalPages ?? 1) || 1);
+        return;
+      }
+
       setReleases(response.releases);
-
-
+      setTotalReleases(pagination?.total ?? response.releases.length);
+      setTotalPages(pagination?.totalPages ?? 1);
     } catch (error) {
       toast.error("Failed to fetch releases");
       console.error(error);
@@ -124,12 +164,16 @@ export default function ReleasesPage() {
   };
 
   useEffect(() => {
-    fetchReleases();
+    setPage(1);
   }, [statusFilter, selectedUserId]);
 
   useEffect(() => {
+    fetchReleases();
+  }, [statusFilter, selectedUserId, page]);
+
+  useEffect(() => {
     const fetchUsers = async () => {
-      if (isPrivileged) {
+      if (canManage) {
         try {
           const response = await getUsers({ limit: 100 });
           setUsers(response.users || []);
@@ -139,81 +183,74 @@ export default function ReleasesPage() {
       }
     };
     fetchUsers();
-  }, [isPrivileged]);
+  }, [canManage]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Released":
-        return "bg-green-500/10 text-green-500";
-      case "Approved":
-        return "bg-purple-500/10 text-purple-500";
-      case "In Process":
-        return "bg-blue-500/10 text-blue-500";
-      case "Submitted":
-        return "bg-cyan-500/10 text-cyan-500";
-      case "Rejected":
-        return "bg-red-500/10 text-red-500";
-      case "Draft":
-        return "bg-yellow-500/10 text-yellow-500";
-      default:
-        return "bg-gray-500/10 text-gray-500";
-    }
+  const getStatusColor = getReleaseStatusColor;
+  const formatStatus = formatReleaseStatus;
+
+  const openDeleteDialog = (id: string) => {
+    setConfirmDialog({ type: "delete", id });
   };
 
-  const formatStatus = (status: string) => {
-    return status
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+  const openApproveDialog = (id: string) => {
+    setConfirmDialog({ type: "approve", id });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this release? This action cannot be undone.")) return;
+  const openRejectDialog = (id: string) => {
+    setRejectReason("");
+    setRejectDialog({ id });
+  };
+
+  const openDistributeDialog = (id: string) => {
+    setConfirmDialog({ type: "distribute", id });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmDialog || actionLoading) return;
+
+    const { type, id } = confirmDialog;
+
     try {
       setActionLoading(id);
-      await deleteRelease(id);
-      toast.success("Release deleted successfully");
-      fetchReleases();
-    } catch (error) {
-      toast.error("Failed to delete release");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  /**
-   * Approve action (Draft only) — calls PDL phase 1 (`/submit-to-pdl`).
-   * The backend uploads metadata + artwork + audio and verifies on COSMOS,
-   * then moves the release to "In Process" with a `pdlAlbumId`.
-   * After this, the row shows the "Submit to PDL" button which triggers
-   * phase 2 (`/pdl-submit`, final distribution).
-   */
-  const handleApprove = async (id: string) => {
-    if (
-      !confirm(
-        "Approve and upload this release to PDL? (Metadata, cover art, audio — phase 1.)",
-      )
-    )
-      return;
-    try {
-      setActionLoading(id);
-      await submitToPdl(id);
-      toast.success("Release approved and uploaded to PDL");
+      if (type === "delete") {
+        await deleteRelease(id);
+        toast.success("Release deleted successfully");
+      } else if (type === "approve") {
+        await submitToPdl(id);
+        toast.success("Release submitted for processing successfully");
+      } else {
+        await pdlSubmit(id);
+        toast.success("Release distributed to platforms successfully");
+      }
+      setConfirmDialog(null);
       fetchReleases();
     } catch (error: any) {
-      toast.error(error.message || "Failed to approve release");
+      const messages = {
+        delete: "Failed to delete release",
+        approve: sanitizeReleaseError(error.message, "Failed to submit release for processing"),
+        distribute: sanitizeReleaseError(error.message, "Failed to distribute to platforms"),
+      };
+      toast.error(messages[type]);
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleReject = async (id: string) => {
-    const reason = prompt("Enter rejection reason:");
-    if (!reason) return;
+  const handleConfirmReject = async () => {
+    if (!rejectDialog || actionLoading) return;
+    if (!rejectReason.trim()) {
+      toast.error("Rejection reason is required");
+      return;
+    }
+
+    const { id } = rejectDialog;
+
     try {
       setActionLoading(id);
-      await rejectRelease(id, reason);
+      await rejectRelease(id, rejectReason.trim());
       toast.success("Release rejected");
+      setRejectDialog(null);
+      setRejectReason("");
       fetchReleases();
     } catch (error) {
       toast.error("Failed to reject release");
@@ -222,24 +259,28 @@ export default function ReleasesPage() {
     }
   };
 
-  /** PDL phase 2: final distribution to platforms (`/pdl-submit`). */
-  const handlePdlPhase2Distribute = async (id: string) => {
-    if (
-      !confirm(
+  const confirmDialogCopy = {
+    delete: {
+      title: "Delete release?",
+      description:
+        "Are you sure you want to delete this release? This action cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "destructive" as const,
+    },
+    approve: {
+      title: "Submit release for processing?",
+      description:
+        "Submit this release for processing? Metadata, cover art, and audio will be verified.",
+      confirmLabel: "Submit",
+      variant: "default" as const,
+    },
+    distribute: {
+      title: "Distribute to platforms?",
+      description:
         "Finalize and distribute this release to all selected platforms?",
-      )
-    )
-      return;
-    try {
-      setActionLoading(id);
-      await pdlSubmit(id);
-      toast.success("Release distributed to platforms successfully");
-      fetchReleases();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to distribute to platforms");
-    } finally {
-      setActionLoading(null);
-    }
+      confirmLabel: "Distribute",
+      variant: "default" as const,
+    },
   };
 
 
@@ -249,7 +290,6 @@ export default function ReleasesPage() {
     { value: "Draft", label: "Draft" },
     { value: "In Process", label: "In Process" },
     { value: "Submitted", label: "Submitted" },
-    { value: "Approved", label: "Approved" },
     { value: "Rejected", label: "Rejected" },
     { value: "Released", label: "Released" },
   ];
@@ -277,7 +317,7 @@ export default function ReleasesPage() {
             <CardHeader className="border-b border-border/50 bg-primary/5 pb-6">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
 
-                {isPrivileged && (
+                {canManage && (
                   <div className="flex flex-col gap-1.5 min-w-[200px]">
                     <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Filter by User</div>
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
@@ -298,7 +338,7 @@ export default function ReleasesPage() {
               <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-4">
                 <CardDescription className="flex items-center gap-2 text-sm font-medium">
                   <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
-                  {releases.length} total releases found
+                  {totalReleases} total releases found
                 </CardDescription>
 
                 <div className="flex flex-col gap-2">
@@ -332,6 +372,7 @@ export default function ReleasesPage() {
                   </div>
                 </div>
               ) : (
+                <>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-muted/30">
@@ -341,7 +382,7 @@ export default function ReleasesPage() {
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Artist</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">UPC/ISRC</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Status</TableHead>
-                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">Approved By</TableHead>
+                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">Reviewed By</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">WorldWide DSP</TableHead>
                         <TableHead className="text-right pr-6 font-bold uppercase tracking-wider text-[10px]">Actions</TableHead>
                       </TableRow>
@@ -392,8 +433,8 @@ export default function ReleasesPage() {
                             <TableCell className="text-muted-foreground">{release.artistName}</TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1 text-[10px] text-muted-foreground font-mono">
-                                <span className="px-1.5 py-0.5 rounded bg-muted/50 w-fit">UPC: {release.barcode || "N/A"}</span>
-                                <span className="px-1.5 py-0.5 rounded bg-muted/50 w-fit">ISRC: {release.isrc || "N/A"}</span>
+                                <span className="px-1.5 py-0.5 rounded bg-muted/50 w-fit">UPC: {formatUpcDisplay(release)}</span>
+                                <span className="px-1.5 py-0.5 rounded bg-muted/50 w-fit">ISRC: {formatIsrcListDisplay(release)}</span>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -420,37 +461,42 @@ export default function ReleasesPage() {
                                 </Link>
 
                                  {release.status === "Draft" && (
-                                   <Button variant="ghost" size="sm" onClick={() => handleDelete(release._id)} className="text-red-500 hover:bg-red-500/10" title="Delete"><Trash2 className="h-4 w-4" /></Button>
+                                   <Button variant="ghost" size="sm" onClick={() => openDeleteDialog(release._id)} disabled={actionLoading === release._id} className="text-red-500 hover:bg-red-500/10" title="Delete">
+                                     {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                   </Button>
                                  )}
-                                 {isPrivileged && release.status === "Draft" && (
+                                 {canManage && release.status === "Draft" && (
                                    <>
-                                     <Button variant="ghost" size="sm" onClick={() => handleApprove(release._id)} className="text-purple-500 hover:bg-purple-500/10" title="Approve"><CheckCircle className="h-4 w-4" /></Button>
-                                     <Button variant="ghost" size="sm" onClick={() => handleReject(release._id)} className="text-red-500 hover:bg-red-500/10" title="Reject"><Ban className="h-4 w-4" /></Button>
+                                     <Button variant="ghost" size="sm" onClick={() => openApproveDialog(release._id)} disabled={actionLoading === release._id} className="text-purple-500 hover:bg-purple-500/10" title="Submit for processing">
+                                       {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                                     </Button>
+                                     <Button variant="ghost" size="sm" onClick={() => openRejectDialog(release._id)} disabled={actionLoading === release._id} className="text-red-500 hover:bg-red-500/10" title="Reject">
+                                       {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                                     </Button>
                                    </>
                                  )}
                                  {/*
-                                   Phase 2 trigger ("Submit to PDL" → /pdl-submit).
-                                   Shown only after phase 1 has succeeded
-                                   (release.pdlAlbumId is set), and only while the
-                                   release is still in the post-upload pipeline.
-                                   Approve action above already calls phase 1, so
-                                   the legacy "Approved" state usually shouldn't
-                                   appear in the normal flow — we still allow it
-                                   here in case pdlAlbumId is set with that status.
+                                   Distribute: shown after processing step 1 succeeds
+                                   (platform link exists), while release is still
+                                   in the post-upload pipeline.
                                  */}
-                                 {isPrivileged &&
+                                 {canManage &&
                                    release.pdlAlbumId &&
-                                   (release.status === "In Process" ||
-                                     release.status === "Approved") && (
+                                   release.status === "In Process" && (
                                      <Button
                                        size="sm"
                                        onClick={() =>
-                                         handlePdlPhase2Distribute(release._id)
+                                         openDistributeDialog(release._id)
                                        }
+                                       disabled={actionLoading === release._id}
                                        title="Distribute to platforms"
                                        className="gap-1.5 text-xs h-8 px-3.5 font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/20 transition-all border-none"
                                      >
-                                       <UploadCloud className="h-3.5 w-3.5" />
+                                       {actionLoading === release._id ? (
+                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                       ) : (
+                                         <UploadCloud className="h-3.5 w-3.5" />
+                                       )}
                                        Distribute
                                      </Button>
                                    )}
@@ -462,6 +508,43 @@ export default function ReleasesPage() {
                     </TableBody>
                   </Table>
                 </div>
+
+                {totalReleases > 0 && (
+                  <div className="flex items-center justify-between px-6 py-4 border-t border-border/50 bg-card/20 backdrop-blur-sm">
+                    <p className="text-sm text-text-secondary">
+                      Showing{" "}
+                      <span className="font-medium text-white">
+                        {(page - 1) * PAGE_SIZE + 1}
+                      </span>{" "}
+                      to{" "}
+                      <span className="font-medium text-white">
+                        {Math.min(page * PAGE_SIZE, totalReleases)}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-medium text-white">{totalReleases}</span>{" "}
+                      results
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="px-4 py-2 text-sm font-medium text-white bg-surface-highlight rounded-lg hover:bg-surface-highlight/80 disabled:opacity-50 transition-colors"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPage((p) => p + 1)}
+                        disabled={page >= totalPages}
+                        className="px-4 py-2 text-sm font-medium text-background-dark bg-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -477,6 +560,109 @@ export default function ReleasesPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <Dialog
+          open={confirmDialog !== null}
+          onOpenChange={(open) => {
+            if (!open && !actionLoading) setConfirmDialog(null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {confirmDialog ? confirmDialogCopy[confirmDialog.type].title : ""}
+              </DialogTitle>
+              <DialogDescription>
+                {confirmDialog
+                  ? confirmDialogCopy[confirmDialog.type].description
+                  : ""}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setConfirmDialog(null)}
+                disabled={!!confirmDialog && actionLoading === confirmDialog.id}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant={
+                  confirmDialog
+                    ? confirmDialogCopy[confirmDialog.type].variant
+                    : "default"
+                }
+                onClick={handleConfirmAction}
+                disabled={!!confirmDialog && actionLoading === confirmDialog.id}
+              >
+                {confirmDialog && actionLoading === confirmDialog.id ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing…
+                  </>
+                ) : confirmDialog ? (
+                  confirmDialogCopy[confirmDialog.type].confirmLabel
+                ) : (
+                  "Confirm"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={rejectDialog !== null}
+          onOpenChange={(open) => {
+            if (!open && !actionLoading) {
+              setRejectDialog(null);
+              setRejectReason("");
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reject release</DialogTitle>
+              <DialogDescription>
+                Enter a reason for rejecting this release.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Rejection reason"
+              rows={4}
+              disabled={!!rejectDialog && actionLoading === rejectDialog.id}
+            />
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRejectDialog(null);
+                  setRejectReason("");
+                }}
+                disabled={!!rejectDialog && actionLoading === rejectDialog.id}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmReject}
+                disabled={
+                  !!rejectDialog && actionLoading === rejectDialog.id
+                }
+              >
+                {rejectDialog && actionLoading === rejectDialog.id ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Rejecting…
+                  </>
+                ) : (
+                  "Reject"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </motion.div>
 
 

@@ -16,6 +16,7 @@ import {
   CheckCircle,
   ArrowLeft,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 
 // React Hook Form & Zod
@@ -35,6 +36,8 @@ import BasicInfoStep from "@/components/dashboard/upload/basic-info-step";
 import AudioFileStep from "@/components/dashboard/upload/audio-file-step";
 import CoverArtStep from "@/components/dashboard/upload/cover-art-step";
 import CreditsStep from "@/components/dashboard/upload/credits-step";
+import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/upload/genre-language";
+import { validateCoverArtSize } from "@/components/dashboard/upload/cover-art-file-validation";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage } from "@/lib/api/releases";
 import { isPlanInactiveError } from "@/lib/plan-inactive";
@@ -81,6 +84,7 @@ export default function UploadPage() {
   const { user, loading } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -424,7 +428,11 @@ export default function UploadPage() {
             }
 
             // Manual validation for language
-            if (!formData.language || formData.language.trim() === "") {
+            const resolvedLanguage = resolveLanguage(
+              formData.primaryGenre,
+              formData.language,
+            );
+            if (!resolvedLanguage) {
               form.setError("language", {
                 type: "required",
                 message: "Language is required for single releases",
@@ -461,7 +469,11 @@ export default function UploadPage() {
             // Check songwriters (writers)
             const writersAllowed = fieldRules.songwriters?.allow !== false;
             const writersRequired = fieldRules.songwriters?.required !== false;
-            if (writersAllowed) {
+            const isNoLyricsSingle = isInstrumentalRelease(
+              formData.primaryGenre,
+              formData.instrumental,
+            );
+            if (writersAllowed && !isNoLyricsSingle) {
               // If required, we should convert to required array check via zod manually or check length
               if (writersRequired) {
                 const writers = formData.writers || [];
@@ -592,12 +604,17 @@ export default function UploadPage() {
                 }
 
                 const filledWriters = (track.writers || []).filter(sw => sw?.trim());
-                if (filledWriters.length === 0) {
+                const isNoLyricsTrack = isInstrumentalRelease(
+                  track.primaryGenre || formData.primaryGenre,
+                  track.isInstrumental,
+                );
+                if (!isNoLyricsTrack && filledWriters.length === 0) {
                   toast.error(`Track ${i + 1}: At least one writer is required`);
                   hasError = true;
                   break;
                 }
 
+                if (!isNoLyricsTrack) {
                 for (const sw of filledWriters) {
                   if (!nameRegex.test(sw.trim())) {
                     toast.error(
@@ -606,6 +623,7 @@ export default function UploadPage() {
                     hasError = true;
                     break;
                   }
+                }
                 }
 
                 if (hasError) break;
@@ -706,21 +724,43 @@ export default function UploadPage() {
             });
             isValid = false;
           } else {
-            // Check for OCR validation warnings and consent
-            const status = formData.coverArtValidationStatus;
-            const issues = formData.coverArtValidationIssues || [];
-            const hasIssues = (status && status !== 'approved') || issues.length > 0;
+            const coverArtData = formData.coverArt as any;
+            const coverSize =
+              coverArtData?.size ??
+              coverArtData?.file?.size ??
+              (formData.coverArt instanceof File ? formData.coverArt.size : 0);
 
-            if (hasIssues && !formData.coverArtConsent) {
-              form.setError("coverArtConsent", {
+            const sizeValidation = validateCoverArtSize(
+              coverSize,
+              fieldRules.coverArt,
+            );
+            if (!sizeValidation.valid) {
+              form.setError("coverArt", {
                 type: "manual",
-                message: "Please provide consent to proceed with current cover art.",
+                message: sizeValidation.message,
               });
-              toast.error("Please confirm you want to proceed with the cover art warnings");
+              toast.error(sizeValidation.message);
               isValid = false;
             } else {
-              form.clearErrors("coverArtConsent");
-              isValid = true;
+              const status = formData.coverArtValidationStatus;
+              const issues = formData.coverArtValidationIssues || [];
+              const hasIssues =
+                (status && status !== "approved") || issues.length > 0;
+
+              if (hasIssues && !formData.coverArtConsent) {
+                form.setError("coverArtConsent", {
+                  type: "manual",
+                  message:
+                    "Please provide consent to proceed with current cover art.",
+                });
+                toast.error(
+                  "Please confirm you want to proceed with the cover art warnings",
+                );
+                isValid = false;
+              } else {
+                form.clearErrors("coverArtConsent");
+                isValid = true;
+              }
             }
           }
 
@@ -754,8 +794,8 @@ export default function UploadPage() {
   };
 
   const onSubmit = async (data: UploadFormData) => {
-    if (isProcessing) return;
-    setIsProcessing(true);
+    if (isProcessing || isSubmitting) return;
+    setIsSubmitting(true);
     console.log(data, "datatat");
     try {
       const response = await submitNewRelease({
@@ -766,13 +806,12 @@ export default function UploadPage() {
       router.push("/dashboard/releases");
     } catch (error: any) {
       console.error("Submission error:", error);
+      setIsSubmitting(false);
       // The plan-inactive modal already explains the block — skip the toast.
       if (!isPlanInactiveError(error)) {
         toast.error(error.message || "Failed to submit release");
         scrollToError();
       }
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -808,7 +847,7 @@ export default function UploadPage() {
           />
         );
       case 4:
-        return <CoverArtStep {...commonProps} />;
+        return <CoverArtStep {...commonProps} fieldRules={fieldRules} />;
       case 5:
         return (
           <ReviewStep
@@ -1027,7 +1066,8 @@ export default function UploadPage() {
                   form.handleSubmit(onSubmit, onInvalid)(e);
                 }
               }}
-              className="space-y-6"
+              className={`space-y-6 ${isSubmitting ? "pointer-events-none select-none" : ""}`}
+              aria-busy={isSubmitting}
             >
               {/* Step Content */}
               <motion.div variants={itemVariants}>
@@ -1162,7 +1202,7 @@ export default function UploadPage() {
                     type="button"
                     variant="outline"
                     onClick={handlePrevious}
-                    disabled={currentStep === 1}
+                    disabled={currentStep === 1 || isSubmitting}
                     className="rounded-xl px-6"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -1171,13 +1211,29 @@ export default function UploadPage() {
 
                   <div className="flex gap-2">
                     {currentStep < 5 ? (
-                      <Button type="submit" disabled={isProcessing} className="rounded-xl px-8 animated-gradient-bg text-white">
-                        {isProcessing ? "Processing..." : "Next"}
-                        {!isProcessing && <ArrowRight className="h-4 w-4 ml-2" />}
+                      <Button type="submit" disabled={isProcessing || isSubmitting} className="rounded-xl px-8 animated-gradient-bg text-white">
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing…
+                          </>
+                        ) : (
+                          <>
+                            Next
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </>
+                        )}
                       </Button>
                     ) : (
-                      <Button type="submit" disabled={isProcessing} className="rounded-xl px-8 animated-gradient-bg text-white">
-                        {isProcessing ? "Submitting..." : "Submit for Review"}
+                      <Button type="submit" disabled={isProcessing || isSubmitting} className="rounded-xl px-8 animated-gradient-bg text-white">
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Submitting…
+                          </>
+                        ) : (
+                          'Submit for Review'
+                        )}
                       </Button>
                     )}
                   </div>
@@ -1211,6 +1267,24 @@ export default function UploadPage() {
         fieldRules={fieldRules}
         audioFiles={watch("audioFiles")}
       />
+
+      {isSubmitting && (
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="submit-loading-title"
+          aria-describedby="submit-loading-desc"
+        >
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p id="submit-loading-title" className="mt-5 text-lg font-semibold">
+            Submitting your release…
+          </p>
+          <p id="submit-loading-desc" className="mt-2 text-sm text-muted-foreground">
+            Uploading assets and sending to stores. Please do not close this page.
+          </p>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import toast from "react-hot-toast";
 import DashboardLayout from "@/components/dashboard/dashboard-layout";
 import {
   Card,
@@ -19,12 +18,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrendingUp, DollarSign, Globe, Music, Loader2, ListMusic, Activity, ChevronRight, Shield, MessageSquare } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { TrendingUp, Music, ListMusic, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getReleases, Release } from "@/lib/api/releases";
-import { getUsageStats, UsageStats } from "@/lib/api/users";
+import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
 import Preloader from "@/components/Preloader";
+import { S3Image } from "@/components/ui/s3-image";
+import { useDashboardData } from "@/hooks/use-dashboard-data";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -36,11 +35,10 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
-} from 'chart.js';
-import { Line, Doughnut } from 'react-chartjs-2';
+  Filler,
+} from "chart.js";
+import { Line, Doughnut } from "react-chartjs-2";
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -51,17 +49,14 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 );
 
-// Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
+    transition: { staggerChildren: 0.1 },
   },
 };
 
@@ -70,73 +65,58 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.5,
-    },
+    transition: { duration: 0.5 },
   },
 };
 
+function formatTrend(value: number) {
+  return `${value >= 0 ? "+" : ""}${value}%`;
+}
+
+const PLATFORM_COLORS: Record<string, string> = {
+  spotify: "#f472b6",
+  amazon: "#fb923c",
+  applemusic: "#818cf8",
+  gaana: "#a3e635",
+  jiosaavn: "#38bdf8",
+  facebook: "#c084fc",
+};
+
+function ReleaseCover({
+  coverArtUrl,
+  title,
+  className,
+}: {
+  coverArtUrl?: string;
+  title: string;
+  className?: string;
+}) {
+  const fallback = (
+    <div className={`${className} bg-secondary/40 flex items-center justify-center`}>
+      <Music className="h-5 w-5 text-muted-foreground" />
+    </div>
+  );
+
+  if (!coverArtUrl) {
+    return fallback;
+  }
+
+  return (
+    <S3Image
+      src={coverArtUrl}
+      alt={title}
+      className={className}
+      fallback={fallback}
+    />
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [releases, setReleases] = useState<Release[]>([]);
-  const [totalReleases, setTotalReleases] = useState(0);
-  const [pendingReleases, setPendingReleases] = useState(0);
-  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { stats, latestReleases, topTracks, loading } = useDashboardData(6, 4);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchData = async () => {
-      try {
-        const isSuperAdmin = user.role === 'super_admin';
-        const [releasesData, pendingData, statsData] = await Promise.all([
-          getReleases({
-            limit: 5,
-            ...(isSuperAdmin ? {} : { userId: user._id, status: 'Approved' })
-          }),
-          getReleases({
-            limit: 1,
-            ...(isSuperAdmin ? { status: 'In Process' as any } : { userId: user._id, status: 'In Process' as any })
-          }),
-          getUsageStats(),
-        ]);
-        setReleases(releasesData.releases);
-        setTotalReleases(releasesData.pagination.total);
-        setPendingReleases(pendingData.pagination.total);
-        setUsageStats(statsData);
-      } catch (error) {
-        toast.error("Failed to fetch dashboard data");
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "distributed":
-        return "bg-green-500/10 text-green-500";
-      case "processing":
-        return "bg-blue-500/10 text-blue-500";
-      case "pending_review":
-        return "bg-yellow-500/10 text-yellow-500";
-      case "rejected":
-        return "bg-red-500/10 text-red-500";
-      default:
-        return "bg-gray-500/10 text-gray-500";
-    }
-  };
-
-  const formatStatus = (status: string) => {
-    return status
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
+  const getStatusColor = getReleaseStatusColor;
+  const formatStatus = formatReleaseStatus;
 
   if (loading) {
     return <Preloader />;
@@ -150,29 +130,23 @@ export default function DashboardPage() {
         animate="visible"
         className="space-y-6"
       >
-        {/* Welcome Section */}
         <motion.div variants={itemVariants}>
           <h1 className="text-3xl font-bold mb-2">
             Welcome back,{" "}
             <span className="animated-gradient">{user?.fullName}!</span>{" "}
             <motion.span
               animate={{ rotate: [0, 20, -10, 20, 0] }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatDelay: 1
-              }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
               className="inline-block origin-bottom-right"
             >
               👋
             </motion.span>
           </h1>
           <p className="text-muted-foreground">
-            Here's what's happening with your music today.
+            Here&apos;s what&apos;s happening with your music today.
           </p>
         </motion.div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           <motion.div variants={itemVariants}>
             <Card className="glass-card relative overflow-hidden group hover:bg-gradient-to-br hover:from-primary/30 hover:to-primary/10 hover:border-primary/30">
@@ -180,10 +154,10 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">Total Releases</p>
-                    <h3 className="text-2xl font-bold">{totalReleases}</h3>
+                    <h3 className="text-2xl font-bold">{stats?.totalReleases ?? 0}</h3>
                     <div className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
                       <TrendingUp className="h-3 w-3" />
-                      <span>+12.5%</span>
+                      <span>{formatTrend(stats?.trends.releasesChangePercent ?? 0)}</span>
                       <span className="text-muted-foreground/60 font-normal ml-1">vs last 28 days</span>
                     </div>
                   </div>
@@ -204,7 +178,7 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">Pending Releases</p>
-                    <h3 className="text-2xl font-bold">{pendingReleases}</h3>
+                    <h3 className="text-2xl font-bold">{stats?.pendingReleases ?? 0}</h3>
                     <div className="flex items-center gap-1.5 text-xs text-yellow-500 font-medium">
                       <span>In Process</span>
                       <span className="text-muted-foreground/60 font-normal ml-1">Current status</span>
@@ -227,10 +201,10 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">Total Streams</p>
-                    <h3 className="text-2xl font-bold">{usageStats?.totalStreams || 0}</h3>
+                    <h3 className="text-2xl font-bold">{stats?.totalStreams?.toLocaleString() ?? 0}</h3>
                     <div className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
                       <TrendingUp className="h-3 w-3" />
-                      <span>+18.6%</span>
+                      <span>{formatTrend(stats?.trends.streamsChangePercent ?? 0)}</span>
                       <span className="text-muted-foreground/60 font-normal ml-1">vs last 28 days</span>
                     </div>
                   </div>
@@ -252,12 +226,14 @@ export default function DashboardPage() {
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">Total Revenue Earned</p>
                     <h3 className="text-2xl font-bold">
-                      {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(usageStats?.revenueEarned || 0)}
+                      {new Intl.NumberFormat("en-IN", {
+                        style: "currency",
+                        currency: "INR",
+                        maximumFractionDigits: 0,
+                      }).format(stats?.revenueEarned || 0)}
                     </h3>
-                    <div className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
-                      <TrendingUp className="h-3 w-3" />
-                      <span>+12.6%</span>
-                      <span className="text-muted-foreground/60 font-normal ml-1">vs last 28 days</span>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                      <span>From your catalog</span>
                     </div>
                   </div>
                   <div className="relative">
@@ -272,253 +248,273 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
-        {/* Latest Releases Section */}
         <motion.div variants={itemVariants}>
           <Card className="glass-card">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-bold flex items-center gap-2 group hover:text-primary transition-colors">
-                  Latest releases
-                </CardTitle>
-              </div>
+              <CardTitle className="text-xl font-bold">Latest releases</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { title: "Masoom Dil", artist: "Surabhi Singh", streams: "5", image: "/assets/images/testi-img/geeta-jhala.jpg" },
-                  { title: "Old Player", artist: "Dhaval Telani, Sunil Thakor", streams: "2", image: "/assets/images/testi-img/sunil-thakor-pic.jpg" },
-                  { title: "Alakh Na Otala", artist: "Rajan Kapra", streams: "2,576", image: "/assets/images/testi-img/herry-nakum-pic.jpg" },
-                  { title: "Jagat Mata Khodiyar", artist: "Dhruvin Mevada", streams: "29", image: "/assets/images/testi-img/gaurav-dhola-pic.jpg" },
-                  { title: "Raj Ne Ratan Na Lekh", artist: "Kishan Raval", streams: "352", image: "/assets/images/testi-img/kishan-raval-pic.jpg" },
-                  { title: "Meldi Maa", artist: "Twinkle Patel", streams: "1,240", image: "/assets/images/testi-img/twinkle-patel-pic.jpg" }
-                ].map((release, i) => (
-                  <div key={i} className="bg-secondary/20 rounded-2xl p-3 flex items-center justify-between hover:bg-primary/40 transition-all duration-300 group cursor-pointer border border-transparent hover:border-primary/30">
-                    <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors shadow-lg">
-                        <img
-                          src={release.image}
-                          alt={release.title}
-                          className="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500"
-                        />
+                {latestReleases.length === 0 ? (
+                  <p className="text-sm text-muted-foreground col-span-full py-6 text-center">
+                    No releases yet. Start by uploading your first track!
+                  </p>
+                ) : (
+                  latestReleases.map((release) => (
+                    <Link
+                      key={release.id}
+                      href={`/dashboard/releases/${release.id}`}
+                      className="bg-secondary/20 rounded-2xl p-3 flex items-center justify-between hover:bg-primary/40 transition-all duration-300 group border border-transparent hover:border-primary/30"
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors shadow-lg shrink-0">
+                          <ReleaseCover
+                            coverArtUrl={release.coverArtUrl}
+                            title={release.title}
+                            className="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                          />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <h4 className="font-bold text-sm text-foreground/80 group-hover:text-white transition-colors line-clamp-1">
+                            {release.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground line-clamp-1">{release.artistName}</p>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <h4 className="font-bold text-sm text-foreground/80 group-hover:text-white transition-colors line-clamp-1">{release.title}</h4>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{release.artist}</p>
+                      <div className="text-right ml-4 shrink-0">
+                        <p className="text-xs font-medium text-foreground/80">
+                          {release.totalStreams.toLocaleString()} streams
+                        </p>
                       </div>
-                    </div>
-                    <div className="text-right ml-4 shrink-0">
-                      <p className="text-xs font-medium text-foreground/80">{release.streams} streams</p>
-                    </div>
-                  </div>
-                ))}
+                    </Link>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Streaming Performance Section */}
         <motion.div variants={itemVariants}>
           <Card className="glass-card">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-bold flex items-center gap-2 group hover:text-primary transition-colors">
-                  Streaming performance
-                </CardTitle>
-              </div>
+              <CardTitle className="text-xl font-bold">Streaming performance</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[280px] w-full mt-4">
-                <Line
-                  data={{
-                    labels: ['May 04', 'May 05', 'May 06', 'May 07', 'May 08', 'May 09', 'May 10'],
-                    datasets: [
-                      {
-                        label: 'Streams',
-                        data: [85000, 88500, 87000, 85800, 87200, 84800, 85200],
-                        fill: true,
-                        borderColor: '#d901bc',
-                        backgroundColor: (context: any) => {
-                          const ctx = context.chart.ctx;
-                          const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-                          gradient.addColorStop(0, 'rgba(244, 114, 182, 0.2)');
-                          gradient.addColorStop(1, 'rgba(244, 114, 182, 0)');
-                          return gradient;
+              {(stats?.totalStreams ?? 0) === 0 ? (
+                <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">
+                  Stream data will appear here once daily DSP reports are received.
+                </div>
+              ) : (
+                <div className="h-[280px] w-full mt-4">
+                  <Line
+                    data={{
+                      labels: ["May 04", "May 05", "May 06", "May 07", "May 08", "May 09", "May 10"],
+                      datasets: [
+                        {
+                          label: "Streams",
+                          data: [85000, 88500, 87000, 85800, 87200, 84800, 85200],
+                          fill: true,
+                          borderColor: "#d901bc",
+                          backgroundColor: (context: { chart: { ctx: CanvasRenderingContext2D } }) => {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                            gradient.addColorStop(0, "rgba(244, 114, 182, 0.2)");
+                            gradient.addColorStop(1, "rgba(244, 114, 182, 0)");
+                            return gradient;
+                          },
+                          tension: 0.4,
+                          borderWidth: 3,
+                          pointRadius: 0,
+                          pointHoverRadius: 6,
+                          pointHoverBackgroundColor: "#d901bc",
+                          pointHoverBorderColor: "#fff",
+                          pointHoverBorderWidth: 2,
                         },
-                        tension: 0.4,
-                        borderWidth: 3,
-                        pointRadius: 0,
-                        pointHoverRadius: 6,
-                        pointHoverBackgroundColor: '#d901bc',
-                        pointHoverBorderColor: '#fff',
-                        pointHoverBorderWidth: 2,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { display: false },
-                      tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        backgroundColor: '#1f2937',
-                        padding: 12,
-                        cornerRadius: 8,
-                      },
-                    },
-                    scales: {
-                      x: {
-                        grid: { display: false },
-                        ticks: { color: '#9ca3af', font: { size: 10, weight: 600 } },
-                      },
-                      y: {
-                        min: 75000,
-                        max: 95000,
-                        grid: { color: 'rgba(156, 163, 175, 0.05)' },
-                        ticks: {
-                          color: '#9ca3af',
-                          stepSize: 5000,
-                          callback: (value) => `${Number(value) / 1000}K`,
-                          font: { size: 10, weight: 600 },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                          mode: "index",
+                          intersect: false,
+                          backgroundColor: "#1f2937",
+                          padding: 12,
+                          cornerRadius: 8,
                         },
                       },
-                    },
-                  }}
-                />
-              </div>
+                      scales: {
+                        x: {
+                          grid: { display: false },
+                          ticks: { color: "#9ca3af", font: { size: 10, weight: 600 } },
+                        },
+                        y: {
+                          min: 75000,
+                          max: 95000,
+                          grid: { color: "rgba(156, 163, 175, 0.05)" },
+                          ticks: {
+                            color: "#9ca3af",
+                            stepSize: 5000,
+                            callback: (value) => `${Number(value) / 1000}K`,
+                            font: { size: 10, weight: 600 },
+                          },
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
 
-
-        {/* Top Tracks & Top Stores Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Tracks Card */}
           <motion.div variants={itemVariants}>
             <Card className="glass-card h-full">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl font-bold flex items-center gap-2 group hover:text-primary transition-colors">
-                    Top tracks
-                  </CardTitle>
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">Last 7 days</span>
+                <CardTitle className="text-xl font-bold">Top tracks</CardTitle>
+                <span className="text-xs text-muted-foreground font-medium">By total streams</span>
               </CardHeader>
               <CardContent>
                 <div className="space-y-1">
-                  {[
-                    { title: "Gal Goto Me Zanjariya", artist: "Geeta Rabari", streams: "35,872", image: "/assets/images/testi-img/geeta-jhala.jpg" },
-                    { title: "Rasiyo Rupalo Garbo", artist: "Kirtidan Gadhvi", streams: "20,192", image: "/assets/images/testi-img/kirtidan-gadhvi.jpg" },
-                    { title: "Sakalche Shlok", artist: "Vajrang Aphale", streams: "19,685", image: "/assets/images/testi-img/gaurav-dhola-pic.jpg" },
-                    { title: "Sukhkarta Dukhharta", artist: "Vajrang Aphale", streams: "28,706", image: "/assets/images/testi-img/kishan-raval-pic.jpg" }
-                  ].map((track, i) => (
-                    <div key={i} className="flex items-center justify-between p-2 rounded-xl hover:bg-primary/40 transition-colors group cursor-pointer">
-                      <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors">
-                          <img src={track.image} alt={track.title} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  {topTracks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-6 text-center">
+                      No stream data for your releases yet.
+                    </p>
+                  ) : (
+                    topTracks.map((track) => (
+                      <Link
+                        key={track.id}
+                        href={`/dashboard/releases/${track.id}`}
+                        className="flex items-center justify-between p-2 rounded-xl hover:bg-primary/40 transition-colors group"
+                      >
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors shrink-0">
+                            <ReleaseCover
+                              coverArtUrl={track.coverArtUrl}
+                              title={track.title}
+                              className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <h4 className="font-bold text-sm text-foreground/90 group-hover:text-white transition-colors line-clamp-1">
+                              {track.title}
+                            </h4>
+                            <p className="text-xs text-muted-foreground line-clamp-1">{track.artistName}</p>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <h4 className="font-bold text-sm text-foreground/90 group-hover:text-white transition-colors line-clamp-1">{track.title}</h4>
-                          <p className="text-xs text-muted-foreground line-clamp-1">{track.artist}</p>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-foreground/90">
+                            {track.totalStreams.toLocaleString()}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+                            streams
+                          </p>
                         </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-foreground/90">{track.streams}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">streams</p>
-                      </div>
-                    </div>
-                  ))}
+                      </Link>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Top Stores Card */}
           <motion.div variants={itemVariants}>
             <Card className="glass-card h-full">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl font-bold flex items-center gap-2 group hover:text-primary transition-colors">
-                    Top stores
-                  </CardTitle>
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">Last 7 days</span>
+                <CardTitle className="text-xl font-bold">Top stores</CardTitle>
+                <span className="text-xs text-muted-foreground font-medium">All platforms</span>
               </CardHeader>
               <CardContent className="flex items-center justify-center py-6">
-                <div className="flex flex-col md:flex-row items-center gap-12 w-full max-w-md">
-                  {/* Donut Chart */}
-                  <div className="relative w-40 h-40">
-                    <Doughnut
-                      data={{
-                        labels: ['Spotify', 'Amazon.com', 'Apple Music', 'Others'],
-                        datasets: [{
-                          data: [61.3, 23.0, 7.3, 8.4],
-                          backgroundColor: ['#f472b6', '#fb923c', '#818cf8', '#a3e635'],
-                          borderWidth: 0,
-                        }]
-                      }}
-                      options={{
-                        cutout: '75%',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { display: false },
-                          tooltip: {
-                            enabled: true,
-                            backgroundColor: '#1f2937',
-                            padding: 10,
-                            cornerRadius: 8,
-                          }
-                        }
-                      }}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="text-center">
-                        <p className="text-2xl font-black text-white">100%</p>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Growth</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Legend */}
-                  <div className="flex flex-col gap-4 flex-1">
-                    {[
-                      { name: "Spotify", percentage: "61.3%", color: "bg-[#f472b6]" },
-                      { name: "Amazon.com", percentage: "23.0%", color: "bg-[#fb923c]" },
-                      { name: "Apple Music", percentage: "7.3%", color: "bg-[#818cf8]" },
-                      { name: "Others", percentage: "8.4%", color: "bg-[#a3e635]" }
-                    ].map((store, i) => (
-                      <div key={i} className="flex items-center gap-3 group cursor-pointer">
-                        <div className={`h-3 w-3 rounded-full ${store.color} shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-125 transition-transform`} />
-                        <div className="flex flex-col">
-                          <span className="text-sm text-muted-foreground font-medium group-hover:text-white transition-colors">{store.name}</span>
-                          <span className="text-lg font-black text-white leading-tight">{store.percentage}</span>
+                {(stats?.platformStreams?.length ?? 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center px-4">
+                    Store breakdown will appear here after DSP daily reports are ingested.
+                  </p>
+                ) : (
+                  <div className="flex flex-col md:flex-row items-center gap-12 w-full max-w-md">
+                    <div className="relative w-40 h-40">
+                      <Doughnut
+                        data={{
+                          labels: stats!.platformStreams.map((p) => p.label),
+                          datasets: [{
+                            data: stats!.platformStreams.map((p) => p.streams),
+                            backgroundColor: stats!.platformStreams.map(
+                              (p) => PLATFORM_COLORS[p.dsp] ?? "#94a3b8",
+                            ),
+                            borderWidth: 0,
+                          }],
+                        }}
+                        options={{
+                          cutout: "75%",
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                              enabled: true,
+                              backgroundColor: "#1f2937",
+                              padding: 10,
+                              cornerRadius: 8,
+                              callbacks: {
+                                label: (ctx) => {
+                                  const item = stats!.platformStreams[ctx.dataIndex];
+                                  return `${item.label}: ${item.streams.toLocaleString()} (${item.percentage}%)`;
+                                },
+                              },
+                            },
+                          },
+                        }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="text-center">
+                          <p className="text-2xl font-black text-white">
+                            {(stats?.totalStreams ?? 0).toLocaleString()}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+                            Total
+                          </p>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="flex flex-col gap-4 flex-1">
+                      {stats!.platformStreams.map((store) => (
+                        <div key={store.dsp} className="flex items-center gap-3 group cursor-pointer">
+                          <div
+                            className="h-3 w-3 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-125 transition-transform"
+                            style={{ backgroundColor: PLATFORM_COLORS[store.dsp] ?? "#94a3b8" }}
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm text-muted-foreground font-medium group-hover:text-white transition-colors">
+                              {store.label}
+                            </span>
+                            <span className="text-lg font-black text-white leading-tight">
+                              {store.percentage}%
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {store.streams.toLocaleString()} streams
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
         </div>
 
-        {/* Recent Releases Section */}
         <motion.div variants={itemVariants}>
           <Card className="glass-card hidden">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Music className="h-5 w-5" />
-                    Recent Releases
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    Your latest music releases and their status
-                  </CardDescription>
-                </div>
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <Music className="h-5 w-5" />
+                Recent Releases
+              </CardTitle>
+              <CardDescription>Your latest music releases and their status</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border border-border overflow-hidden">
@@ -527,44 +523,27 @@ export default function DashboardPage() {
                     <TableRow>
                       <TableHead>Title</TableHead>
                       <TableHead>Artist</TableHead>
-                      {/* <TableHead>Release Date</TableHead> */}
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {releases?.length === 0 ? (
+                    {latestReleases.length === 0 ? (
                       <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="text-center text-muted-foreground py-8"
-                        >
+                        <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                           No releases yet. Start by uploading your first track!
                         </TableCell>
                       </TableRow>
                     ) : (
-                      releases?.map((release) => (
-                        <TableRow key={release._id}>
-                          <TableCell className="font-medium">
-                            {release.title}
-                          </TableCell>
+                      latestReleases.map((release) => (
+                        <TableRow key={release.id}>
+                          <TableCell className="font-medium">{release.title}</TableCell>
                           <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {release.artistName}
-                            </span>
+                            <span className="text-sm text-muted-foreground">{release.artistName}</span>
                           </TableCell>
-                          {/* <TableCell className="text-muted-foreground">
-                            {release.releaseDate
-                              ? new Date(release.releaseDate).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })
-                              : 'Not set'}
-                          </TableCell> */}
                           <TableCell>
                             <span
                               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
-                                release.status
+                                release.status,
                               )}`}
                             >
                               {formatStatus(release.status)}

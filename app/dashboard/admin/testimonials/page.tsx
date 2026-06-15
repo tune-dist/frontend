@@ -19,6 +19,8 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -37,6 +39,8 @@ export default function TestimonialsAdminPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [currentTestimonial, setCurrentTestimonial] = useState<Partial<Testimonial>>({});
+    const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchTestimonials = async () => {
         try {
@@ -55,14 +59,21 @@ export default function TestimonialsAdminPage() {
         fetchTestimonials();
     }, []);
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this testimonial?')) return;
+    const handleConfirmDelete = async () => {
+        if (!deleteDialogId || isDeleting) return;
+
+        const id = deleteDialogId;
+
         try {
+            setIsDeleting(true);
             await testimonialsApi.remove(id);
             toast.success('Testimonial deleted successfully');
+            setDeleteDialogId(null);
             fetchTestimonials();
         } catch (error) {
             toast.error('Failed to delete testimonial');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -229,7 +240,7 @@ export default function TestimonialsAdminPage() {
                                                             variant="ghost"
                                                             size="sm"
                                                             className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                                                            onClick={() => handleDelete(testimonial._id)}
+                                                            onClick={() => setDeleteDialogId(testimonial._id)}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
@@ -318,6 +329,43 @@ export default function TestimonialsAdminPage() {
                                 Save Changes
                             </Button>
                         </div>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog
+                    open={deleteDialogId !== null}
+                    onOpenChange={(open) => !open && !isDeleting && setDeleteDialogId(null)}
+                >
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Delete testimonial?</DialogTitle>
+                            <DialogDescription>
+                                Are you sure you want to delete this testimonial? This action cannot be undone.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => setDeleteDialogId(null)}
+                                disabled={isDeleting}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={handleConfirmDelete}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Deleting…
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
+                            </Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
 

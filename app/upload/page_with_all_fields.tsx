@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import axios from 'axios'
+import toast from 'react-hot-toast'
 
 export default function UploadPage() {
     const [formData, setFormData] = useState({
@@ -75,12 +76,12 @@ export default function UploadPage() {
     // Album Cover Upload Handlers
     const handleCoverArtChange = (file: File) => {
         if (!file.type.startsWith('image/')) {
-            alert('Please upload an image file (JPG, PNG, etc.)')
+            toast.error('Please upload an image file (JPG, PNG, etc.)')
             return
         }
 
         if (file.size > 10 * 1024 * 1024) {
-            alert('File size must be less than 10MB')
+            toast.error('File size must be less than 10MB')
             return
         }
 
@@ -89,7 +90,7 @@ export default function UploadPage() {
             const img = new Image()
             img.onload = () => {
                 if (img.width < 1000 || img.height < 1000) {
-                    alert('Image dimensions must be at least 1000x1000 pixels. Recommended: 3000x3000 pixels')
+                    toast.error('Image dimensions must be at least 1000x1000 pixels. Recommended: 3000x3000 pixels')
                     return
                 }
 
@@ -134,12 +135,12 @@ export default function UploadPage() {
         const validFormats = ['audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/flac', 'audio/aiff', 'audio/x-ms-wma', 'audio/x-m4a']
 
         if (!validFormats.some(format => file.type.includes(format.split('/')[1]))) {
-            alert('Please upload a valid audio file (WAV, MP3, M4A, FLAC, AIFF, WMA)')
+            toast.error('Please upload a valid audio file (WAV, MP3, M4A, FLAC, AIFF, WMA)')
             return
         }
 
         if (file.size > 500 * 1024 * 1024) {
-            alert('File size must be less than 500MB')
+            toast.error('File size must be less than 500MB')
             return
         }
 

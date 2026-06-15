@@ -4,6 +4,7 @@ import { uploadFileInChunks } from "@/lib/upload/chunk-uploader";
 import Cookies from "js-cookie";
 import { config } from "@/lib/config";
 import { toast } from "react-hot-toast";
+import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/upload/genre-language";
 
 export interface ReleaseFormData {
   title: string;
@@ -59,6 +60,7 @@ export interface ReleaseFormData {
   trackNumber?: number;
   catalogNumber?: string;
   barcode?: string;
+  upc?: string;
   isrc?: string;
   writers?: string[];
   composers?: string[];
@@ -83,7 +85,7 @@ export interface ReleaseFormData {
   coverArtConsent?: boolean;
 }
 
-export type ReleaseStatus = "Draft" | "In Process" | "Submitted" | "Approved" | "Rejected" | "Released";
+export type ReleaseStatus = "Draft" | "In Process" | "Submitted" | "Rejected" | "Released";
 export type ReleaseType = "single" | "ep" | "album" | "compilation";
 
 export interface AudioFile {
@@ -157,6 +159,7 @@ export interface Release {
   distributionTerritories?: string[];
   catalogNumber?: string;
   barcode?: string;
+  upc?: string;
   isrc?: string;
   writers?: string[];
   composers?: string[];
@@ -191,7 +194,7 @@ export interface Release {
     facebookProfile?: string;
     facebookProfileUrl?: string;
   };
-  /** Set after POST /releases/:id/submit-to-pdl (PDL phase 1) succeeds */
+  /** Set after initial platform processing (metadata + assets upload) succeeds */
   pdlAlbumId?: string;
 }
 
@@ -213,6 +216,7 @@ export interface CreateReleaseData {
   distributionTerritories?: string[];
   catalogNumber?: string;
   barcode?: string;
+  upc?: string;
   isrc?: string;
   writers?: string[];
   producers?: string[];
@@ -356,16 +360,22 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           }
         }
 
+        const trackNoLyrics = isInstrumentalRelease(
+          track.primaryGenre || formData.primaryGenre,
+          track.isInstrumental,
+        );
+
         return {
           title: track.title,
           artistName: track.artistName || formData.artistName,
           audioFile: trackAudioData,
-          isExplicit:
-            track.explicitLyrics === "yes" || track.isExplicit === true,
-          isInstrumental: track.isInstrumental === "yes",
+          isExplicit: trackNoLyrics
+            ? false
+            : track.explicitLyrics === "yes" || track.isExplicit === true,
+          isInstrumental: trackNoLyrics || track.isInstrumental === "yes",
           previewStartTime: track.previewClipStartTime,
           price: track.price,
-          writers: track.writers,
+          writers: trackNoLyrics ? [] : track.writers,
           composers: track.composers,
           previouslyReleased: track.previouslyReleased,
           originalReleaseDate: track.originalReleaseDate,
@@ -373,7 +383,15 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           secondaryGenre: track.secondaryGenre,
           featuringArtist: track.featuringArtist,
           isrc: track.isrc || formData.isrc,
-          language: (track.language || formData.language) ? (track.language || formData.language).charAt(0).toUpperCase() + (track.language || formData.language).slice(1).toLowerCase() : undefined,
+          language: (() => {
+            const lang = resolveLanguage(
+              track.primaryGenre || formData.primaryGenre,
+              track.language || formData.language,
+            );
+            return lang
+              ? lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()
+              : undefined;
+          })(),
           spotifyProfile: track.spotifyProfile || formData.spotifyProfile,
           appleMusicProfile: track.appleMusicProfile || formData.appleMusicProfile,
           youtubeMusicProfile: track.youtubeMusicProfile || formData.youtubeMusicProfile,
@@ -384,6 +402,11 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       });
     }
 
+    const releaseNoLyrics = isInstrumentalRelease(
+      formData.primaryGenre,
+      formData.instrumental,
+    );
+
     // For single releases, ensure we have track metadata even if tracks array is empty
     if ((formData.format === 'single' || formData.releaseType === 'single') && tracksPayload.length === 0) {
       console.log('Single release detected with empty tracks array. Creating track from root metadata...');
@@ -393,11 +416,13 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         title: formData.title,
         artistName: formData.artistName,
         audioFile: null, // Will be populated below from audioData
-        isExplicit: formData.explicitLyrics === 'yes' || formData.isExplicit === true,
-        isInstrumental: formData.instrumental === 'yes',
+        isExplicit: releaseNoLyrics
+          ? false
+          : formData.explicitLyrics === 'yes' || formData.isExplicit === true,
+        isInstrumental: releaseNoLyrics || formData.instrumental === 'yes',
         previewStartTime: formData.previewClipStartTime,
         price: undefined, // Not available in single release root form data
-        writers: formData.writers || [],
+        writers: releaseNoLyrics ? [] : (formData.writers || []),
         composers: formData.composers || [],
         previouslyReleased: formData.previouslyReleased,
         originalReleaseDate: formData.originalReleaseDate,
@@ -405,7 +430,12 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         secondaryGenre: formData.secondaryGenre,
         featuringArtist: formData.featuringArtist,
         isrc: formData.isrc,
-        language: formData.language ? formData.language.charAt(0).toUpperCase() + formData.language.slice(1).toLowerCase() : undefined,
+        language: (() => {
+          const lang = resolveLanguage(formData.primaryGenre, formData.language);
+          return lang
+            ? lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()
+            : undefined;
+        })(),
         spotifyProfile: formData.spotifyProfile,
         appleMusicProfile: formData.appleMusicProfile,
         youtubeMusicProfile: formData.youtubeMusicProfile,
@@ -517,14 +547,21 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       title: formData.title,
       artistName: formData.artistName,
       version: formData.version,
-      ...(formData.language && { language: formData.language.charAt(0).toUpperCase() + formData.language.slice(1).toLowerCase() }),
+      ...(resolveLanguage(formData.primaryGenre, formData.language) && {
+        language: (() => {
+          const lang = resolveLanguage(formData.primaryGenre, formData.language);
+          return lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase();
+        })(),
+      }),
       ...(formData.primaryGenre && { primaryGenre: formData.primaryGenre }),
       ...(formData.secondaryGenre && {
         secondaryGenre: formData.secondaryGenre,
       }),
       ...(formData.subGenre && { subGenre: formData.subGenre }),
       releaseType: (formData.format as any) || formData.releaseType || "single",
-      isExplicit: formData.explicitLyrics === "yes" || formData.isExplicit === true,
+      isExplicit: releaseNoLyrics
+        ? false
+        : formData.explicitLyrics === "yes" || formData.isExplicit === true,
       releaseDate: formData.releaseDate || new Date().toISOString(),
       genres: ([formData.primaryGenre, formData.secondaryGenre].filter(Boolean)
         .length > 0
@@ -573,9 +610,13 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         distributionTerritories: formData.distributionTerritories,
       }),
       ...(formData.catalogNumber && { catalogNumber: formData.catalogNumber }),
-      ...(formData.barcode && { barcode: formData.barcode }),
+      ...((formData.barcode || (formData as { upc?: string }).upc) && {
+        upc: (formData as { upc?: string }).upc || formData.barcode,
+        barcode: formData.barcode || (formData as { upc?: string }).upc,
+      }),
       ...(formData.isrc && { isrc: formData.isrc }),
-      ...(formData.writers && { writers: formData.writers }),
+      ...(!releaseNoLyrics && formData.writers?.length && { writers: formData.writers }),
+      ...(releaseNoLyrics && { writers: [] }),
       ...(formData.producers && { producers: formData.producers }),
       ...((formData as any).composers && { composers: (formData as any).composers }),
       ...(formData.publisher && { publisher: formData.publisher }),
@@ -632,7 +673,9 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         previewClipStartTime: formData.previewClipStartTime,
       }),
       ...(formData.radioEdit && { radioEdit: formData.radioEdit }),
-      ...(formData.instrumental && { instrumental: formData.instrumental }),
+      ...(releaseNoLyrics
+        ? { instrumental: 'yes' }
+        : formData.instrumental && { instrumental: formData.instrumental }),
 
       ...(formData.artistName || (formData.artists && formData.artists.length > 0) ? {
         primaryArtists: [
@@ -698,6 +741,11 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
 // Helper to normalize release data from backend
 export const normalizeRelease = (release: any): Release => {
   if (!release) return release;
+
+  // Backend may return UPC as `upc` (PDL) or `barcode` (manual entry)
+  if (!release.barcode?.trim() && release.upc?.trim()) {
+    release.barcode = release.upc.trim();
+  }
 
   // Hydrate root fields from socialPlatforms for UI compatibility
   if (release.socialPlatforms) {
@@ -791,13 +839,13 @@ export const rejectRelease = async (
   return response.data;
 };
 
-/** PDL phase 1: add/verify metadata + upload artwork & audio to PDL */
+/** Phase 1: verify metadata + upload artwork & audio to distribution pipeline */
 export const submitToPdl = async (id: string, data: any = {}): Promise<any> => {
   const response = await apiClient.post(`/releases/${id}/submit-to-pdl`, data);
   return response.data;
 };
 
-/** PDL phase 2: platform details + final distribute (COSMOS submit) */
+/** Phase 2: final distribute to selected platforms */
 export const pdlSubmit = async (id: string, data: any = {}): Promise<any> => {
   const response = await apiClient.post(`/releases/${id}/pdl-submit`, data);
   return response.data;

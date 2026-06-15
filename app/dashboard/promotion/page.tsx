@@ -27,6 +27,11 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Loader2, Music, Sparkles, ExternalLink } from "lucide-react";
+import {
+  formatReleaseStatus,
+  getReleaseStatusColor,
+  isPromotableRelease,
+} from '@/lib/release-status';
 import { getReleases, Release } from "@/lib/api/releases";
 
 export default function PromotionListingPage() {
@@ -46,10 +51,8 @@ export default function PromotionListingPage() {
                 userId: user?._id,
                 // status: 'Released' // Maybe also Approved?
             });
-            // Filter only Released ones for actual promotion link generation, 
-            // but maybe let them design even if just Approved.
             const promoteable = response.releases.filter((r: Release) =>
-                r.status === 'Released' || r.status === 'Approved'
+                isPromotableRelease(r.status)
             );
             setReleases(promoteable);
 
@@ -121,7 +124,7 @@ export default function PromotionListingPage() {
                                 <Music className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                                 <p className="text-lg font-medium">No releases available for promotion</p>
                                 <p className="text-sm text-muted-foreground">
-                                    Your releases must be Approved or Released before you can promote them.
+                                    Your releases must be In Process, Submitted, or Released before you can promote them.
                                 </p>
                             </div>
                         ) : (
