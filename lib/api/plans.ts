@@ -100,7 +100,8 @@ export interface PlanLimitsMap {
 
 // Cache for plans
 let plansCache: Plan[] | null = null;
-let plansCacheTimestamp: number = 0;
+let plansCacheTimestamp = 0;
+let plansFetchPromise: Promise<Plan[]> | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Cache for plan limits map
@@ -113,24 +114,33 @@ let planLimitsMapCache: Record<string, PlanLimitsMap> | null = null;
 export async function getAllPlans(forceRefresh = false): Promise<Plan[]> {
   const now = Date.now();
 
-  // Return cached data if available and not expired
-  if (!forceRefresh && plansCache && (now - plansCacheTimestamp) < CACHE_DURATION) {
+  if (!forceRefresh && plansCache && now - plansCacheTimestamp < CACHE_DURATION) {
     return plansCache;
   }
 
-  try {
-    const response = await apiClient.get<Plan[]>('/plans');
-    plansCache = response.data;
-    plansCacheTimestamp = now;
-    return plansCache;
-  } catch (error) {
-    // If we have cached data, return it even if expired
-    if (plansCache) {
-      console.warn('Failed to fetch plans, using cached data:', error);
-      return plansCache;
-    }
-    throw error;
+  if (plansFetchPromise) {
+    return plansFetchPromise;
   }
+
+  plansFetchPromise = (async () => {
+    try {
+      const response = await apiClient.get<Plan[]>('/plans');
+      plansCache = response.data;
+      plansCacheTimestamp = Date.now();
+      planLimitsMapCache = null;
+      return plansCache;
+    } catch (error) {
+      if (plansCache) {
+        console.warn('Failed to fetch plans, using cached data:', error);
+        return plansCache;
+      }
+      throw error;
+    } finally {
+      plansFetchPromise = null;
+    }
+  })();
+
+  return plansFetchPromise;
 }
 
 /**
@@ -233,5 +243,6 @@ export function clearPlansCache(): void {
   plansCache = null;
   planLimitsMapCache = null;
   plansCacheTimestamp = 0;
+  plansFetchPromise = null;
 }
 

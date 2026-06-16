@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { config } from './lib/config';
+import { tokenKey } from './lib/config';
 
 // Define protected routes
 const protectedRoutes = ['/dashboard'];
 
 export function middleware(request: NextRequest) {
-    const token = request.cookies.get(config.tokenKey)?.value;
+    const token = request.cookies.get(tokenKey)?.value;
     const { pathname } = request.nextUrl;
 
     // Check if the requested path is a protected route
@@ -25,7 +25,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
 }
 
-export const configMiddleware = {
+export const config = {
     matcher: [
         /*
          * Match all request paths except for the ones starting with:

@@ -216,7 +216,7 @@ export default function UploadPage() {
 
       // Fetch field rules
       const planKey = (user.plan as string) || "free";
-      getPlanFieldRules(planKey, true)
+      getPlanFieldRules(planKey)
         .then((rules) => {
           setFieldRules(rules);
           if (planKey === "free") {
@@ -274,8 +274,8 @@ export default function UploadPage() {
           // Fetch plan data first to know what fields are required
           const planKey = (user?.plan as string) || "free";
           const [limits, fieldRules] = await Promise.all([
-            getPlanLimits(planKey, true),
-            getPlanFieldRules(planKey, true),
+            getPlanLimits(planKey),
+            getPlanFieldRules(planKey),
           ]);
 
           // Build validation fields array based on plan

@@ -1,4 +1,6 @@
 import apiClient from '../api-client';
+import axios from 'axios';
+import { config } from '../config';
 
 export interface RegisterData {
   email: string;
@@ -126,7 +128,11 @@ export const resendOtp = async (data: ResendOtpData): Promise<{ message: string 
 
 // Refresh token
 export const refreshToken = async (token: string): Promise<RefreshResponse> => {
-  const response = await apiClient.post<RefreshResponse>('/auth/refresh', { refresh_token: token });
+  const response = await axios.post<RefreshResponse>(
+    `${config.apiUrl}/auth/refresh`,
+    { refresh_token: token },
+    { headers: { 'Content-Type': 'application/json' } },
+  );
   return response.data;
 };
 

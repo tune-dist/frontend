@@ -133,7 +133,7 @@ export default function TopNavbar() {
                     </div>
                     <div className="mt-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/20 text-[10px] font-bold text-primary uppercase tracking-widest border border-primary/10">
-                        {user?.plan} Plan
+                        {(user?.plan ?? '').replace(/_/g, ' ')} Plan
                       </span>
                     </div>
                   </div>
