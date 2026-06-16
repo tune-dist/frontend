@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
 import { Tooltip } from '@/components/ui/tooltip'
 import { S3Image } from '@/components/ui/s3-image'
+import { canAccessYouTubeService } from '@/lib/youtube-access'
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -117,6 +118,9 @@ export default function Sidebar() {
           <nav className="flex-1 space-y-1 px-3 py-4">
             {navigation
               .filter(item => {
+                if (item.href === '/dashboard/youtube-service') {
+                  return canAccessYouTubeService(user);
+                }
                 if ((item as any).permission) {
                   return user?.permissions?.includes((item as any).permission);
                 }

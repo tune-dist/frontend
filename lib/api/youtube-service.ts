@@ -15,13 +15,20 @@ export enum YouTubeRequestStatus {
 
 export interface YouTubeServiceRequest {
     _id: string;
-    userId: string;
+    userId: {
+        _id: string;
+        fullName: string;
+        email: string;
+    } | string;
     requestType: YouTubeRequestType;
     releaseId: any;
+    trackIndex: number;
     assetTitle: string;
     albumTrackTitle: string;
+    songName: string;
     artistId: string;
     upc: string;
+    isrc: string;
     infringingLinks: string[];
     status: YouTubeRequestStatus;
     dailyViews: number;
@@ -32,16 +39,17 @@ export interface YouTubeServiceRequest {
         _id: string;
         fullName: string;
         email: string;
-    } | string;
+    };
     processedAt?: string;
     createdAt: string;
     updatedAt: string;
 }
 
 export interface CreateYouTubeRequestDto {
-    requestType: YouTubeRequestType;
     releaseId: string;
+    trackIndex: number;
     infringingLinks: string[];
+    requestType?: YouTubeRequestType;
 }
 
 export const getYouTubeRequests = async (): Promise<YouTubeServiceRequest[]> => {
@@ -65,3 +73,41 @@ export const updateYouTubeRequestStatus = async (
     });
     return response.data;
 };
+
+export function getStatusLabel(status: YouTubeRequestStatus | string): string {
+    if (status === YouTubeRequestStatus.APPROVED) return 'Accepted';
+    return status;
+}
+
+export function buildYouTubeExportRows(requests: YouTubeServiceRequest[]) {
+    const rows: Array<{
+        UPC: string;
+        ISRC: string;
+        'Song Name': string;
+        'YouTube URL': string;
+        Username: string;
+    }> = [];
+
+    for (const request of requests) {
+        if (request.status !== YouTubeRequestStatus.APPROVED) continue;
+
+        const username =
+            typeof request.userId === 'object' && request.userId
+                ? request.userId.fullName
+                : 'N/A';
+        const songName = request.songName || request.albumTrackTitle;
+        const links = request.infringingLinks?.length ? request.infringingLinks : [''];
+
+        for (const link of links) {
+            rows.push({
+                UPC: request.upc,
+                ISRC: request.isrc || 'N/A',
+                'Song Name': songName,
+                'YouTube URL': link,
+                Username: username || 'N/A',
+            });
+        }
+    }
+
+    return rows;
+}

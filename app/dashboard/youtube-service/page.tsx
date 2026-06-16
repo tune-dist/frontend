@@ -36,7 +36,7 @@ import {
     Youtube,
     Music,
 } from "lucide-react";
-import { getYouTubeRequests, YouTubeServiceRequest, updateYouTubeRequestStatus, YouTubeRequestStatus } from "@/lib/api/youtube-service";
+import { getYouTubeRequests, YouTubeServiceRequest, updateYouTubeRequestStatus, YouTubeRequestStatus, buildYouTubeExportRows, getStatusLabel } from "@/lib/api/youtube-service";
 import RequestModal from "@/components/dashboard/youtube-service/request-modal";
 import { CheckCircle, XCircle, Ban, MessageSquare, Download, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -72,7 +72,8 @@ export default function YouTubeServicePage() {
     const [rejectReason, setRejectReason] = useState("");
     const { user } = useAuth();
 
-    const isReleaseManager = user?.role === "release_manager";
+    const isStaff = ["release_manager", "admin", "super_admin"].includes(user?.role ?? "");
+    const isArtist = user?.role === "artist";
 
     const isLimited = (user?.plan === 'free' || user?.plan === 'solo') && user?.role === 'artist';
     const approvedCount = requests.filter(r => r.status === 'Approved').length;
@@ -151,30 +152,17 @@ export default function YouTubeServicePage() {
     };
 
     const handleExportExcel = () => {
-        if (requests.length === 0) {
-            toast.error("No data to export");
+        const data = buildYouTubeExportRows(requests);
+
+        if (data.length === 0) {
+            toast.error("No accepted claims to export");
             return;
         }
 
-        const data = requests.map((req) => ({
-            "User Name": (req.userId as any)?.fullName || "N/A",
-            "User Email": (req.userId as any)?.email || "N/A",
-            "Store": "YouTube",
-            "Category": req.requestType,
-            "Asset Title": req.assetTitle,
-            "Artist/Asset ID": req.artistId,
-            "UPC": req.upc,
-            "Status": req.status,
-            "Rejection Reason": req.rejectionReason || "-",
-            "Approved By": (req.processedBy as any)?.fullName || "-",
-            "Approved At": req.processedAt ? new Date(req.processedAt).toLocaleString() : "-",
-            "Created At": new Date(req.createdAt).toLocaleString(),
-        }));
-
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Requests");
-        XLSX.writeFile(workbook, "YouTube_Service_Requests.xlsx");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Accepted Claims");
+        XLSX.writeFile(workbook, "YouTube_Accepted_Claims.xlsx");
         toast.success("Excel exported successfully");
     };
 
@@ -216,7 +204,7 @@ export default function YouTubeServicePage() {
                         </p>
                     </div>
                     <div className="flex gap-3">
-                        {isReleaseManager && requests.length > 0 && (
+                        {isStaff && requests.some((r) => r.status === YouTubeRequestStatus.APPROVED) && (
                             <Button
                                 variant="outline"
                                 size="lg"
@@ -227,7 +215,7 @@ export default function YouTubeServicePage() {
                                 Export Excel
                             </Button>
                         )}
-                        {!loading && !hasHitLimit && (
+                        {isArtist && !loading && !hasHitLimit && (
                             <Button size="lg" className="gap-2" onClick={() => setIsModalOpen(true)}>
                                 <Plus className="h-4 w-4" />
                                 Send request form
@@ -263,22 +251,21 @@ export default function YouTubeServicePage() {
                                     <Table>
                                         <TableHeader className="bg-muted/50">
                                             <TableRow>
-                                                {isReleaseManager && <TableHead>USER</TableHead>}
-                                                <TableHead>STORE</TableHead>
-                                                <TableHead>CATEGORY</TableHead>
-                                                <TableHead>ASSET TITLE</TableHead>
-                                                <TableHead>ARTIST/ASSET ID</TableHead>
+                                                {isStaff && <TableHead>USER</TableHead>}
+                                                <TableHead>SONG</TableHead>
+                                                <TableHead>ISRC</TableHead>
                                                 <TableHead>UPC</TableHead>
+                                                <TableHead>YOUTUBE URL</TableHead>
                                                 <TableHead>STATUS</TableHead>
                                                 <TableHead>COMMENT</TableHead>
-                                                {isReleaseManager && <TableHead className="text-right">ACTIONS</TableHead>}
+                                                {isStaff && <TableHead className="text-right">ACTIONS</TableHead>}
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {requests.length === 0 ? (
                                                 <TableRow>
                                                     <TableCell
-                                                        colSpan={isReleaseManager ? 8 : 7}
+                                                        colSpan={isStaff ? 8 : 6}
                                                         className="text-center text-muted-foreground py-12"
                                                     >
                                                         <div className="flex flex-col items-center gap-2">
@@ -295,28 +282,41 @@ export default function YouTubeServicePage() {
                                             ) : (
                                                 requests.map((request) => (
                                                     <TableRow key={request._id}>
-                                                        {isReleaseManager && (
+                                                        {isStaff && (
                                                             <TableCell>
                                                                 <div className="flex flex-col">
-                                                                    <span className="text-sm font-medium">{(request.userId as any)?.fullName || 'Unknown'}</span>
-                                                                    <span className="text-[10px] text-muted-foreground">{(request.userId as any)?.email}</span>
+                                                                    <span className="text-sm font-medium">
+                                                                        {typeof request.userId === "object" ? request.userId.fullName : "Unknown"}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-muted-foreground">
+                                                                        {typeof request.userId === "object" ? request.userId.email : ""}
+                                                                    </span>
                                                                 </div>
                                                             </TableCell>
                                                         )}
-                                                        <TableCell>
-                                                            <Youtube className="h-5 w-5 text-red-600" />
-                                                        </TableCell>
                                                         <TableCell className="text-sm font-medium">
-                                                            {request.requestType}
+                                                            {request.songName || request.albumTrackTitle}
                                                         </TableCell>
-                                                        <TableCell className="text-sm">
-                                                            {request.assetTitle}
-                                                        </TableCell>
-                                                        <TableCell className="text-sm">
-                                                            {request.artistId}
+                                                        <TableCell className="text-sm font-mono">
+                                                            {request.isrc || "-"}
                                                         </TableCell>
                                                         <TableCell className="text-sm font-mono">
                                                             {request.upc}
+                                                        </TableCell>
+                                                        <TableCell className="text-sm max-w-[220px]">
+                                                            <div className="space-y-1">
+                                                                {request.infringingLinks.map((link) => (
+                                                                    <a
+                                                                        key={link}
+                                                                        href={link}
+                                                                        target="_blank"
+                                                                        rel="noreferrer"
+                                                                        className="block truncate text-primary hover:underline"
+                                                                    >
+                                                                        {link}
+                                                                    </a>
+                                                                ))}
+                                                            </div>
                                                         </TableCell>
                                                         <TableCell>
                                                             <span
@@ -325,7 +325,7 @@ export default function YouTubeServicePage() {
                                                                 )}`}
                                                                 style={{ border: '1px solid currentColor' }}
                                                             >
-                                                                {request.status}
+                                                                {getStatusLabel(request.status)}
                                                             </span>
                                                         </TableCell>
                                                         <TableCell className="max-w-[200px]">
@@ -338,7 +338,7 @@ export default function YouTubeServicePage() {
                                                                 <span className="text-muted-foreground/30">-</span>
                                                             )}
                                                         </TableCell>
-                                                        {isReleaseManager && (
+                                                        {isStaff && (
                                                             <TableCell className="text-right">
                                                                 {request.status === YouTubeRequestStatus.PENDING ? (
                                                                     <div className="flex items-center justify-end gap-1">
