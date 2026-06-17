@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
 import { S3Image } from '@/components/ui/s3-image'
+import { formatPlanDisplayName } from '@/lib/utils'
 
 export default function TopNavbar() {
   const { user, logout } = useAuth()
@@ -132,8 +133,8 @@ export default function TopNavbar() {
                       </div>
                     </div>
                     <div className="mt-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/20 text-[10px] font-bold text-primary uppercase tracking-widest border border-primary/10">
-                        {(user?.plan ?? '').replace(/_/g, ' ')} Plan
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/20 text-[10px] font-bold text-primary tracking-wide border border-primary/10">
+                        {formatPlanDisplayName(user?.plan)} Plan
                       </span>
                     </div>
                   </div>

@@ -1,5 +1,7 @@
 import { ReleaseStatus } from '@/lib/api/releases';
 
+export { canManageReleases, isStaffUser, hasPermission } from '@/lib/permissions';
+
 /** Legacy DB value — display only, not a filter option */
 const LEGACY_APPROVED = 'Approved';
 
@@ -40,17 +42,6 @@ export function isPromotableRelease(status: string): boolean {
     PROMOTABLE_RELEASE_STATUSES.includes(status as ReleaseStatus) ||
     status === LEGACY_APPROVED
   );
-}
-
-export function canManageReleases(user: {
-  role?: string;
-  permissions?: string[];
-} | null): boolean {
-  if (!user) return false;
-  if (user.role === 'super_admin' || user.role === 'admin' || user.role === 'release_manager') {
-    return true;
-  }
-  return user.permissions?.includes('APPROVE_RELEASE') ?? false;
 }
 
 export function sanitizeReleaseError(message: string | undefined, fallback: string): string {

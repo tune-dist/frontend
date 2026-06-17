@@ -37,6 +37,7 @@ import {
     Music,
 } from "lucide-react";
 import { getYouTubeRequests, YouTubeServiceRequest, updateYouTubeRequestStatus, YouTubeRequestStatus, buildYouTubeExportRows, getStatusLabel } from "@/lib/api/youtube-service";
+import { isStaffUser } from "@/lib/permissions";
 import RequestModal from "@/components/dashboard/youtube-service/request-modal";
 import { CheckCircle, XCircle, Ban, MessageSquare, Download, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -72,7 +73,7 @@ export default function YouTubeServicePage() {
     const [rejectReason, setRejectReason] = useState("");
     const { user } = useAuth();
 
-    const isStaff = ["release_manager", "admin", "super_admin"].includes(user?.role ?? "");
+    const isStaff = isStaffUser(user);
     const isArtist = user?.role === "artist";
 
     const isLimited = (user?.plan === 'free' || user?.plan === 'solo') && user?.role === 'artist';

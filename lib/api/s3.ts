@@ -48,7 +48,7 @@ export const getSignedUrl = async (s3Key: string): Promise<string> => {
       return signedUrl;
     } catch (error) {
       console.error('Failed to get signed URL for:', key, error);
-      return s3Key;
+      throw error;
     } finally {
       inFlight.delete(key);
     }

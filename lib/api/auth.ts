@@ -43,6 +43,10 @@ export interface User {
   updatedAt: string;
   phoneNumber?: string;
   isPhoneVerified?: boolean;
+  isPhoneNumberVerified?: boolean;
+  isPanVerified?: boolean;
+  isAadharVerified?: boolean;
+  isProfileVerified?: boolean;
   phoneOtpExpiresAt?: string;
   address?: string;
   addressProof?: {
@@ -56,6 +60,16 @@ export interface User {
     uploadedAt: string;
   };
   selfieWithPassport?: {
+    url: string;
+    filename: string;
+    uploadedAt: string;
+  };
+  pan?: {
+    url: string;
+    filename: string;
+    uploadedAt: string;
+  };
+  aadhar?: {
     url: string;
     filename: string;
     uploadedAt: string;

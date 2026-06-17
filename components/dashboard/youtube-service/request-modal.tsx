@@ -9,6 +9,7 @@ import { getReleases, Release } from "@/lib/api/releases";
 import { createYouTubeRequest } from "@/lib/api/youtube-service";
 import { S3Image } from "@/components/ui/s3-image";
 import toast from "react-hot-toast";
+import { getInvalidYouTubeLinks, parseYouTubeLinks } from "@/lib/youtube-url";
 
 interface RequestModalProps {
     isOpen: boolean;
@@ -68,6 +69,7 @@ export default function RequestModal({ isOpen, onClose, onSuccess }: RequestModa
         trackIndex: 0,
         infringingLinks: "",
     });
+    const [linkError, setLinkError] = useState<string | null>(null);
 
     const selectedRelease = useMemo(
         () => releases.find((release) => release._id === formData.releaseId),
@@ -98,6 +100,21 @@ export default function RequestModal({ isOpen, onClose, onSuccess }: RequestModa
         }
     };
 
+    const validateYouTubeLinks = (input: string): string[] | null => {
+        const links = parseYouTubeLinks(input);
+
+        if (links.length === 0) {
+            return ["Please provide at least one YouTube link"];
+        }
+
+        const invalidLinks = getInvalidYouTubeLinks(links);
+        if (invalidLinks.length > 0) {
+            return invalidLinks;
+        }
+
+        return null;
+    };
+
     const handleNext = () => {
         if (currentStep === 0 && !formData.releaseId) {
             toast.error("Please select a release");
@@ -106,6 +123,20 @@ export default function RequestModal({ isOpen, onClose, onSuccess }: RequestModa
         if (currentStep === 1 && trackOptions.length === 0) {
             toast.error("Please select a song");
             return;
+        }
+        if (currentStep === 2) {
+            const invalid = validateYouTubeLinks(formData.infringingLinks);
+            if (invalid) {
+                if (invalid.length === 1 && invalid[0].startsWith("Please")) {
+                    setLinkError(invalid[0]);
+                    toast.error(invalid[0]);
+                } else {
+                    setLinkError(`Invalid YouTube URL(s): ${invalid.join(", ")}`);
+                    toast.error("One or more links are not valid YouTube URLs");
+                }
+                return;
+            }
+            setLinkError(null);
         }
         if (currentStep < steps.length - 1) {
             setCurrentStep(currentStep + 1);
@@ -121,17 +152,23 @@ export default function RequestModal({ isOpen, onClose, onSuccess }: RequestModa
     };
 
     const handleSubmit = async () => {
-        if (!formData.infringingLinks.trim()) {
-            toast.error("Please provide at least one YouTube link");
+        const invalid = validateYouTubeLinks(formData.infringingLinks);
+        if (invalid) {
+            if (invalid.length === 1 && invalid[0].startsWith("Please")) {
+                setLinkError(invalid[0]);
+                toast.error(invalid[0]);
+            } else {
+                setLinkError(`Invalid YouTube URL(s): ${invalid.join(", ")}`);
+                toast.error("One or more links are not valid YouTube URLs");
+            }
             return;
         }
 
+        setLinkError(null);
+
         try {
             setLoading(true);
-            const links = formData.infringingLinks
-                .split("\n")
-                .map((link) => link.trim())
-                .filter(Boolean);
+            const links = parseYouTubeLinks(formData.infringingLinks);
 
             await createYouTubeRequest({
                 releaseId: formData.releaseId,
@@ -157,6 +194,7 @@ export default function RequestModal({ isOpen, onClose, onSuccess }: RequestModa
 
     const resetForm = () => {
         setCurrentStep(0);
+        setLinkError(null);
         setFormData({
             releaseId: "",
             trackIndex: 0,
@@ -326,12 +364,23 @@ export default function RequestModal({ isOpen, onClose, onSuccess }: RequestModa
                                             <div className="space-y-2">
                                                 <Label className="text-sm font-semibold">YouTube URL(s)</Label>
                                                 <textarea
-                                                    className="w-full min-h-[150px] p-3 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground placeholder:text-muted-foreground"
-                                                    placeholder="https://youtube.com/watch?v=..."
+                                                    className={`w-full min-h-[150px] p-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground placeholder:text-muted-foreground ${
+                                                        linkError ? "border-destructive" : "border-border"
+                                                    }`}
+                                                    placeholder="https://youtube.com/watch?v=...&#10;https://youtu.be/..."
                                                     value={formData.infringingLinks}
-                                                    onChange={(e) => setFormData({ ...formData, infringingLinks: e.target.value })}
+                                                    onChange={(e) => {
+                                                        setFormData({ ...formData, infringingLinks: e.target.value });
+                                                        if (linkError) setLinkError(null);
+                                                    }}
                                                 />
-                                                <p className="text-xs text-muted-foreground">One link per line</p>
+                                                {linkError ? (
+                                                    <p className="text-xs text-destructive">{linkError}</p>
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        One link per line. Accepted: youtube.com, youtu.be, m.youtube.com
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

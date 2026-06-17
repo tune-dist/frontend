@@ -40,6 +40,7 @@ import {
 import { getRoles, updateRole, Role } from "@/lib/api/roles";
 import { getUsers, updateUserPermissions } from "@/lib/api/users";
 import { User } from "@/lib/api/auth";
+import { canManagePermissions } from "@/lib/permissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import {
@@ -134,7 +135,7 @@ export default function PermissionsPage() {
     // Redirect if unauthorized
     useEffect(() => {
         if (!authLoading && user) {
-            if (user.role !== "super_admin" && !user.permissions?.includes("MANAGE_PERMISSIONS")) {
+            if (!canManagePermissions(user)) {
                 router.push("/dashboard");
             }
         }

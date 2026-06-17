@@ -46,6 +46,7 @@ import {
   getPlanByKey,
   getPlanFieldRules,
 } from "@/lib/api/plans";
+import { hasPermission } from "@/lib/permissions";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
@@ -90,7 +91,7 @@ export default function UploadPage() {
     if (!loading && !user) {
       // Redirect to auth if not logged in
       router.push("/auth");
-    } else if (!loading && user && !user.permissions?.includes("UPLOAD_RELEASE")) {
+    } else if (!loading && user && !hasPermission(user, "UPLOAD_RELEASE")) {
       router.push("/dashboard");
     }
   }, [user, loading, router]);

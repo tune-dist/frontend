@@ -27,7 +27,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
 import { Tooltip } from '@/components/ui/tooltip'
 import { S3Image } from '@/components/ui/s3-image'
-import { canAccessYouTubeService } from '@/lib/youtube-access'
+import { canAccessNavItem, canAccessYouTubeService } from '@/lib/permissions'
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -40,6 +40,7 @@ const navigation = [
   { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote, permission: 'MANAGE_TESTIMONIALS' },
   { name: 'Profile', href: '/dashboard/profile', icon: User, permission: 'PROFILE' },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube, permission: 'USE_YOUTUBE_SERVICE' },
+  { name: 'Verifications', href: '/dashboard/verifications', icon: Shield, permission: 'APPROVE_RELEASE' },
   { name: 'Users', href: '/dashboard/users', icon: User, permission: 'MANAGE_USERS' },
   { name: 'Plan Management', href: '/dashboard/admin/plans', icon: Settings, permission: 'MANAGE_PLANS' },
   { name: 'Permissions', href: '/dashboard/admin/permissions', icon: Shield, permission: 'MANAGE_PERMISSIONS' },
@@ -117,14 +118,11 @@ export default function Sidebar() {
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-3 py-4">
             {navigation
-              .filter(item => {
+              .filter((item) => {
                 if (item.href === '/dashboard/youtube-service') {
                   return canAccessYouTubeService(user);
                 }
-                if ((item as any).permission) {
-                  return user?.permissions?.includes((item as any).permission);
-                }
-                return true;
+                return canAccessNavItem(user, (item as { permission?: string }).permission);
               })
               .map((item) => {
                 const Icon = item.icon

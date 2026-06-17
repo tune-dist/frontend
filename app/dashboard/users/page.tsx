@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, Ban, MoreVertical, Search, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, TrendingDown } from 'lucide-react';
+import { canManageUsers } from '@/lib/permissions';
 import { getUsers } from '@/lib/api/users';
 import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import {
@@ -47,7 +48,7 @@ export default function UsersPage() {
     // Redirect if unauthorized
     useEffect(() => {
         if (!authLoading && isMounted) {
-            if (!user || (user.role !== 'super_admin' && !user.permissions?.includes('MANAGE_USERS'))) {
+            if (!user || !canManageUsers(user)) {
                 router.push('/dashboard');
             }
         }
