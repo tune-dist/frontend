@@ -313,19 +313,14 @@ export default function ProfilePage() {
         </div>
 
         {document ? (
-          <div className="space-y-2">
-            <div className="text-xs text-muted-foreground truncate" title={document.filename}>
-              {document.filename}
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleViewVerifyDoc(document.url, type)}
-              disabled={openingVerifyDoc === type}
-            >
-              {openingVerifyDoc === type ? <Loader2 className="h-3 w-3 animate-spin mx-4" /> : 'View'}
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleViewVerifyDoc(document.url, type)}
+            disabled={openingVerifyDoc === type}
+          >
+            {openingVerifyDoc === type ? <Loader2 className="h-3 w-3 animate-spin mx-4" /> : 'View'}
+          </Button>
         ) : null}
 
         {isRejected && latestRequest?.rejectionReason ? (

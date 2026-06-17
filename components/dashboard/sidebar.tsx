@@ -84,33 +84,42 @@ export default function Sidebar() {
         }}
       >
 
-        <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className={cn(
-            "flex h-16 items-center border-b border-border transition-all duration-300 shrink-0",
-            isSidebarCollapsed ? "justify-center px-0" : "justify-between px-6"
-          )}>
-            {!isSidebarCollapsed && (
-              <Link href="/dashboard" className="flex items-center">
-                <img src="/logo.png" alt="KratoLib" className="w-[120px] max-w-[100%]" />
-              </Link>
+        <div className="flex h-full flex-col overflow-hidden">
+          {/* Logo + collapse */}
+          <div
+            className={cn(
+              'flex shrink-0 items-center border-b border-border',
+              isSidebarCollapsed
+                ? 'h-[4.5rem] flex-col justify-center gap-1.5 px-1'
+                : 'h-16 justify-between gap-2 px-3',
             )}
-            {isSidebarCollapsed && (
-              <Link href="/dashboard" className="flex items-center">
-                <img src="/favicon.png" alt="KratoLib" className="w-8 h-8 object-contain" />
-              </Link>
-            )}
+          >
+            <Link
+              href="/dashboard"
+              className={cn(
+                'flex items-center min-w-0',
+                isSidebarCollapsed ? 'justify-center' : 'flex-1',
+              )}
+            >
+              {isSidebarCollapsed ? (
+                <img src="/favicon.png" alt="KratoLib" className="h-7 w-7 object-contain" />
+              ) : (
+                <img src="/logo.png" alt="KratoLib" className="h-8 w-auto max-w-[120px] object-contain" />
+              )}
+            </Link>
+
             <button
               onClick={toggleSidebar}
               className={cn(
-                "hidden lg:flex items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground transition-all duration-200 fixed right-[-12px] top-6 z-50 h-6 w-6 shadow-md hover:scale-110",
+                'hidden lg:flex shrink-0 items-center justify-center rounded-lg border border-border/80 bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors',
+                isSidebarCollapsed ? 'h-6 w-6' : 'h-8 w-8',
               )}
-              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
             >
               {isSidebarCollapsed ? (
                 <PanelLeftOpen className="h-3.5 w-3.5" />
               ) : (
-                <PanelLeftClose className="h-3.5 w-3.5" />
+                <PanelLeftClose className="h-4 w-4" />
               )}
             </button>
           </div>
