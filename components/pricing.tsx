@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Check, Loader2 } from 'lucide-react'
 import { getAllPlans, Plan } from '@/lib/api/plans'
+import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import Cookies from 'js-cookie'
 import ElectricBorder from '@/components/ElectricBorder'
@@ -131,6 +132,7 @@ export default function Pricing() {
                           <span className="text-muted-foreground text-sm">{plan.period}</span>
                         )}
                       </div>
+                      <PlanGstNote plan={plan} className="text-center mt-1" />
                       <CardDescription className="mt-2 text-sm min-h-[40px]">
                         {plan.description}
                       </CardDescription>
@@ -167,6 +169,7 @@ export default function Pricing() {
                           <span className="text-muted-foreground text-sm">{plan.period}</span>
                         )}
                       </div>
+                      <PlanGstNote plan={plan} className="text-center mt-1" />
                       <CardDescription className="mt-2 text-sm min-h-[40px]">
                         {plan.description}
                       </CardDescription>

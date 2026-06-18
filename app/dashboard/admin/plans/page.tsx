@@ -47,6 +47,7 @@ const emptyNewPlan: Partial<Plan> = {
     description: '',
     pricePerYear: 0,
     royaltyPercent: 10,
+    gstPercent: 18,
     isActive: true,
     billingPeriod: 'yearly',
     interval: 1,
@@ -443,6 +444,20 @@ export default function PlanManagementPage() {
                                             </div>
                                         </div>
                                         <div className="space-y-2">
+                                            <Label className="text-muted-foreground font-semibold">GST %</Label>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                value={editForm.gstPercent ?? 0}
+                                                onChange={(e) => handleInputChange('gstPercent', parseFloat(e.target.value) || 0)}
+                                                className="bg-card/50 border-border/50 rounded-xl h-12"
+                                            />
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                                Added on top at checkout (e.g. 18 → +18% GST)
+                                            </p>
+                                        </div>
+                                        <div className="space-y-2">
                                             <Label className="text-muted-foreground font-semibold">Trial Period (Days)</Label>
                                             <Input
                                                 type="number"
@@ -689,6 +704,19 @@ export default function PlanManagementPage() {
                                     value={newPlan.royaltyPercent ?? 10}
                                     onChange={(e) => updateNewPlanField('royaltyPercent', parseFloat(e.target.value) || 0)}
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>GST %</Label>
+                                <Input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={newPlan.gstPercent ?? 18}
+                                    onChange={(e) => updateNewPlanField('gstPercent', parseFloat(e.target.value) || 0)}
+                                />
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                    Shown to users as +GST at checkout (0 = no GST)
+                                </p>
                             </div>
 
                             <div className="space-y-2">

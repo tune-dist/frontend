@@ -16,6 +16,8 @@ export interface Plan {
   title: string;
   pricePerYear: number;
   royaltyPercent: number;
+  /** GST % added on top of pricePerYear at checkout (e.g. 18). */
+  gstPercent?: number;
   limits: PlanLimits;
   fieldRules: Record<string, any>;
   version: number;
@@ -48,6 +50,33 @@ export function derivePlanKey(title: string): string {
     .replace(/[^a-z0-9_]/g, '');
 }
 
+/** Normalize plan keys for comparison (solo, solo_pro, creator-plus → consistent). */
+export function normalizePlanKey(key?: string | null): string {
+  return (key || '').toLowerCase().trim().replace(/_/g, '-');
+}
+
+export function findPlanByKey(plans: Plan[], planKey?: string | null): Plan | undefined {
+  if (!planKey) return undefined;
+  const target = normalizePlanKey(planKey);
+  return plans.find((p) => normalizePlanKey(p.key) === target || p.key === planKey);
+}
+
+/** Human-readable title: API plan title → formatted key fallback. */
+export function resolvePlanTitle(
+  planKey: string | undefined | null,
+  plans: Plan[],
+  options?: { mappingTitle?: string | null; detailsTitle?: string | null },
+): string {
+  if (options?.mappingTitle?.trim()) return options.mappingTitle.trim();
+  if (options?.detailsTitle?.trim()) return options.detailsTitle.trim();
+  const matched = findPlanByKey(plans, planKey);
+  if (matched?.title?.trim()) return matched.title.trim();
+  if (!planKey || planKey === 'free') return 'Free';
+  return planKey
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: '₹',
   USD: '$',
@@ -58,6 +87,25 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 // Pick a display symbol for a currency code. Unknown codes fall back to the
 // raw 3-letter code with a trailing space ("AUD "). Missing currency defaults
 // to ₹ so legacy plans without the field keep their existing display.
+export function getGstPercent(plan: Pick<Plan, 'gstPercent'>): number {
+  return plan.gstPercent ?? 0;
+}
+
+export function calculateGstAmount(basePrice: number, gstPercent: number): number {
+  if (!gstPercent || basePrice <= 0) return 0;
+  return basePrice * (gstPercent / 100);
+}
+
+export function calculateTotalWithGst(basePrice: number, gstPercent: number): number {
+  return basePrice + calculateGstAmount(basePrice, gstPercent);
+}
+
+/** e.g. "+18% GST" */
+export function formatGstLabel(gstPercent: number): string {
+  if (!gstPercent || gstPercent <= 0) return '';
+  return `+${gstPercent}% GST`;
+}
+
 export function currencySymbol(currency?: string): string {
   if (!currency) return '₹';
   return CURRENCY_SYMBOLS[currency.toUpperCase()] ?? `${currency} `;
@@ -149,7 +197,7 @@ export async function getAllPlans(forceRefresh = false): Promise<Plan[]> {
  */
 export async function getPlanByKey(key: string, forceRefresh = false): Promise<Plan | null> {
   const plans = await getAllPlans(forceRefresh);
-  return plans.find(p => p.key === key) || null;
+  return findPlanByKey(plans, key) ?? null;
 }
 
 /**
@@ -224,9 +272,9 @@ export async function adminCreatePlan(planData: Partial<Plan>): Promise<Plan> {
 }
 
 /**
- * Admin: Soft-delete a plan. Backend flips isActive to false; the plan is
- * hidden from public/admin GET /plans and from new subscription/upgrade flows.
- * Existing subscribers on this plan are not affected automatically.
+ * Admin: Soft-delete a plan. Backend flips isActive to false, schedules
+ * Razorpay subscription cancel-at-cycle-end for affected users, and keeps
+ * their access until planEndDate. After expiry, PLAN_INACTIVE popup is shown.
  */
 export async function adminDeletePlan(key: string): Promise<{ message: string }> {
   const response = await apiClient.delete<{ message: string }>(`/admin/plans/${key}`);

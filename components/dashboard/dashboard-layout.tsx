@@ -81,6 +81,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         isOpen={isUpgradeModalOpen}
         onClose={closeUpgradeModal}
         currentPlanKey={user?.plan}
+        hasActiveSubscription={
+          !!user?.plan &&
+          user.plan !== 'free' &&
+          user.subscriptionStatus !== 'cancelled' &&
+          user.isSubscriptionActive !== false
+        }
+        subscriptionStatus={user?.subscriptionStatus === 'cancelled' ? 'cancelled' : user?.subscriptionStatus === 'active' ? 'active' : undefined}
       />
       <PlanExpiredModal
         isOpen={isPlanExpiredModalOpen}

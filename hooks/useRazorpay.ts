@@ -201,9 +201,7 @@ export function useRazorpay(): UseRazorpayReturn {
                     razorpay_signature: razorpayResponse.razorpay_signature,
                 });
 
-                if (result.success) {
-                    toast.success('Payment successful! Your plan has been upgraded.');
-                } else {
+                if (!result.success) {
                     toast.error(result.message || 'Payment verification failed');
                 }
 

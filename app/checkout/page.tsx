@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Loader2, CreditCard, CheckCircle, XCircle } from 'lucide-react'
 import { getPlanByKey, Plan } from '@/lib/api/plans'
+import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
@@ -130,6 +131,7 @@ function CheckoutContent() {
                                 <span className="font-semibold">{plan.title}</span>
                                 <span className="text-xl font-bold">{plan.priceDisplay}</span>
                             </div>
+                            <PlanGstNote plan={plan} showTotal className="mb-2" />
                             <p className="text-sm text-muted-foreground">{plan.description}</p>
                             
                             {/* {paymentStatus === 'pending' && (

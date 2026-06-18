@@ -104,6 +104,9 @@ export async function getPaymentById(paymentId: string): Promise<PaymentHistoryI
 export interface CancelSubscriptionResponse {
     success: boolean;
     message: string;
+    planEndDate?: string;
+    subscriptionStatus?: 'active' | 'cancelled';
+    isSubscriptionActive?: boolean;
 }
 
 /**
