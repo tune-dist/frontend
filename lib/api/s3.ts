@@ -1,4 +1,5 @@
 import apiClient from '../api-client';
+import { isPlanInactiveError } from '../plan-inactive';
 
 const urlCache = new Map<string, { url: string; expiresAt: number }>();
 const inFlight = new Map<string, Promise<string>>();
@@ -47,8 +48,11 @@ export const getSignedUrl = async (s3Key: string): Promise<string> => {
 
       return signedUrl;
     } catch (error) {
-      console.error('Failed to get signed URL for:', key, error);
-      throw error;
+      if (isPlanInactiveError(error)) {
+        throw error;
+      }
+      console.warn('Failed to get signed URL for:', key, error);
+      return '';
     } finally {
       inFlight.delete(key);
     }

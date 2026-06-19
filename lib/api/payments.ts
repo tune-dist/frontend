@@ -4,6 +4,7 @@ import apiClient from '../api-client';
 export interface CreateOrderResponse {
     orderId?: string;
     subscriptionId?: string;
+    checkoutType: 'order' | 'subscription';
     amount: number;
     currency: string;
     keyId: string;

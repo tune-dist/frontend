@@ -36,6 +36,9 @@ export interface Plan {
   features?: string[];
   ctaLabel?: string;
   isPopular?: boolean;
+  /** Linked Razorpay billing plan for auto-renew (amount incl. GST). */
+  razorpayPlanId?: string;
+  razorpayPlanSyncedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -272,7 +275,16 @@ export async function adminCreatePlan(planData: Partial<Plan>): Promise<Plan> {
 }
 
 /**
- * Admin: Soft-delete a plan. Backend flips isActive to false, schedules
+ * Admin: Create/link Razorpay billing plan (GST-inclusive yearly amount).
+ */
+export async function adminSyncRazorpayPlan(key: string): Promise<{ plan: Plan; created: boolean }> {
+  const response = await apiClient.post<{ plan: Plan; created: boolean }>(`/admin/plans/${key}/sync-razorpay`);
+  clearPlansCache();
+  return response.data;
+}
+
+/**
+ * Admin: Soft-delete a plan.
  * Razorpay subscription cancel-at-cycle-end for affected users, and keeps
  * their access until planEndDate. After expiry, PLAN_INACTIVE popup is shown.
  */

@@ -27,7 +27,7 @@ import {
     Upload,
     PieChart,
 } from 'lucide-react';
-import { Plan, getAllPlans, adminUpdatePlan, adminCreatePlan, adminDeletePlan, derivePlanKey, BillingPeriod, currencySymbol, derivePeriodLabel } from '@/lib/api/plans';
+import { Plan, getAllPlans, adminUpdatePlan, adminCreatePlan, adminDeletePlan, adminSyncRazorpayPlan, derivePlanKey, BillingPeriod, currencySymbol, derivePeriodLabel } from '@/lib/api/plans';
 import toast from 'react-hot-toast';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +79,43 @@ export default function PlanManagementPage() {
     const [newPlan, setNewPlan] = useState<Partial<Plan>>(emptyNewPlan);
     const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isSyncingRazorpay, setIsSyncingRazorpay] = useState(false);
+
+    const promptRazorpaySync = async (plan: Plan) => {
+        if (plan.pricePerYear <= 0 || plan.razorpayPlanId) {
+            return;
+        }
+        const ok = window.confirm(
+            `Plan "${plan.title}" is not linked to Razorpay yet.\n\n` +
+            'Users cannot subscribe with auto-renew until you sync it.\n\n' +
+            'Create Razorpay billing plan now? (GST-inclusive amount)',
+        );
+        if (!ok) {
+            toast('Save plan first, then use "Sync Razorpay" when ready.', { icon: 'ℹ️' });
+            return;
+        }
+        await handleSyncRazorpay(plan.key);
+    };
+
+    const handleSyncRazorpay = async (planKey: string) => {
+        try {
+            setIsSyncingRazorpay(true);
+            const result = await adminSyncRazorpayPlan(planKey);
+            toast.success(
+                result.created
+                    ? `Razorpay plan created for "${result.plan.title}"`
+                    : `Razorpay plan linked for "${result.plan.title}"`,
+            );
+            await fetchPlans();
+            if (selectedPlan?.key === planKey) {
+                handleSelectPlan(result.plan);
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to sync Razorpay plan');
+        } finally {
+            setIsSyncingRazorpay(false);
+        }
+    };
 
     const getCurrencySymbol = (curr: string) => {
         switch (curr) {
@@ -94,7 +131,7 @@ export default function PlanManagementPage() {
         fetchPlans();
     }, []);
 
-    const fetchPlans = async () => {
+    const fetchPlans = async (): Promise<Plan[]> => {
         try {
             setIsLoading(true);
             const data = await getAllPlans(true);
@@ -102,8 +139,10 @@ export default function PlanManagementPage() {
             if (data.length > 0 && !selectedPlan) {
                 handleSelectPlan(data[0]);
             }
+            return data;
         } catch (error) {
             toast.error('Failed to load plans');
+            return [];
         } finally {
             setIsLoading(false);
         }
@@ -179,6 +218,7 @@ export default function PlanManagementPage() {
             setNewPlan(emptyNewPlan);
             await fetchPlans();
             handleSelectPlan(created);
+            await promptRazorpaySync(created);
         } catch (error: any) {
             console.error('Create plan error:', error);
             toast.error(error.response?.data?.message || 'Failed to create plan');
@@ -213,7 +253,9 @@ export default function PlanManagementPage() {
             console.log('Sending update:', editForm);
             await adminUpdatePlan(selectedPlan.key, editForm);
             toast.success('Plan updated successfully');
-            fetchPlans();
+            const refreshed = await fetchPlans();
+            const updated = refreshed.find((p) => p.key === selectedPlan.key) ?? selectedPlan;
+            await promptRazorpaySync(updated);
         } catch (error: any) {
             console.error('Update error:', error);
             console.error('Error response:', error.response?.data);
@@ -597,6 +639,28 @@ export default function PlanManagementPage() {
 
                             {/* Sticky Save Footer-ish */}
                             <div className="p-6 rounded-3xl bg-primary/5 border border-primary/20 mt-8 space-y-4">
+                                {selectedPlan && selectedPlan.pricePerYear > 0 && (
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-primary/10">
+                                        <div className="text-xs text-muted-foreground">
+                                            Razorpay:{' '}
+                                            {selectedPlan.razorpayPlanId ? (
+                                                <span className="text-emerald-400 font-mono">{selectedPlan.razorpayPlanId}</span>
+                                            ) : (
+                                                <span className="text-amber-400 font-semibold">Not linked — auto-renew disabled</span>
+                                            )}
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-lg"
+                                            disabled={isSyncingRazorpay}
+                                            onClick={() => handleSyncRazorpay(selectedPlan.key)}
+                                        >
+                                            {isSyncingRazorpay ? 'Syncing…' : 'Sync Razorpay Plan'}
+                                        </Button>
+                                    </div>
+                                )}
                                 <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">
                                     Last updated: {selectedPlan?.updatedAt ? new Date(selectedPlan.updatedAt).toLocaleDateString() : 'Never'}
                                 </div>
@@ -640,7 +704,7 @@ export default function PlanManagementPage() {
                         <DialogHeader>
                             <DialogTitle>Create New Plan</DialogTitle>
                             <DialogDescription>
-                                Set the essentials. If price is greater than zero, a matching Razorpay plan is created automatically so users can subscribe with auto-pay.
+                                Set the essentials. Paid plans need a Razorpay sync before users can subscribe with auto-renew (GST included in billing amount).
                             </DialogDescription>
                         </DialogHeader>
 

@@ -23,6 +23,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAllPlans, Plan, currencySymbol, derivePeriodLabel, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans';
 import { PlanGstNote } from '@/components/plans/plan-gst-note';
+import { BillingTypeToggle } from '@/components/plans/billing-type-toggle';
 import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import toast from 'react-hot-toast';
@@ -37,6 +38,7 @@ export default function BillingPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     const [selectedPlanKey, setSelectedPlanKey] = useState<string | null>(null);
+    const [isAutoPay, setIsAutoPay] = useState(true);
 
     useEffect(() => {
         if (authLoading) return;
@@ -154,7 +156,10 @@ export default function BillingPage() {
             const result = await initiatePayment(
                 plan.key,
                 { name: user?.fullName, email: user?.email },
-                { isUpgrade: isSubscriptionActiveBackend && plan.pricePerYear > currentPlanPrice },
+                {
+                    isUpgrade: isSubscriptionActiveBackend && plan.pricePerYear > currentPlanPrice,
+                    isAutoPay,
+                },
             );
             if (result?.success) {
                 toast.success('Payment successful! Your plan has been updated.');
@@ -470,7 +475,13 @@ export default function BillingPage() {
                                                 </div>
 
                                                 {/* Action Buttons */}
-                                                <div className="pt-4 border-t border-border/30">
+                                                <div className="pt-4 border-t border-border/30 space-y-4">
+                                                    {!isLocked && !isEnterprise && plan.pricePerYear > 0 && (
+                                                        <BillingTypeToggle
+                                                            isAutoPay={isAutoPay}
+                                                            onChange={setIsAutoPay}
+                                                        />
+                                                    )}
                                                     {isLocked ? (
                                                         <Button
                                                             disabled

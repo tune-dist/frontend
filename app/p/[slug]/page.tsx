@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Music, ExternalLink, Play, Disc, Share2 } from "lucide-react";
+import { Music, ExternalLink, Play, Share2 } from "lucide-react";
 import { getPublicPromotionBySlug, getPromoTemplates } from "@/lib/api/promotions";
 import { PLATFORM_BADGES } from "@/config/platform-badges";
 import { PROMO_TEMPLATES } from "@/config/promo-templates";
@@ -139,9 +139,8 @@ export default function PublicPromotionPage() {
             <main className="relative z-10 w-full max-w-lg mx-auto px-4 flex flex-col items-center">
 
                 {/* Header/Brand */}
-                <div className="mb-10 flex items-center gap-2">
-                    <Disc className="h-5 w-5 text-primary animate-spin-slow" />
-                    <span className="font-black text-lg tracking-widest text-white/90">KRATOLIB</span>
+                <div className="mb-10 flex items-center justify-center">
+                    <img src="/logo.png" alt="KratoLib" className="h-8 w-auto object-contain" />
                 </div>
 
                 {/* Release Card */}
@@ -392,13 +391,6 @@ export default function PublicPromotionPage() {
             </main>
 
             <style jsx global>{`
-                @keyframes spin-slow {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-                .animate-spin-slow {
-                    animation: spin-slow 12s linear infinite;
-                }
                 body {
                     background-color: #050505;
                 }

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAllPlans, Plan, currencySymbol, derivePeriodLabel } from '@/lib/api/plans'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
+import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
@@ -41,7 +42,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
     const [loading, setLoading] = useState(true)
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
     const [confirmingPlan, setConfirmingPlan] = useState<Plan | null>(null)
-    const [isAutoPay] = useState(true)
+    const [isAutoPay, setIsAutoPay] = useState(true)
     const { initiatePayment, isLoading: paymentLoading } = useRazorpay()
     const { user, refreshUser } = useAuth()
     const router = useRouter()
@@ -137,7 +138,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                     name: user?.fullName,
                     email: user?.email,
                 },
-                { isUpgrade: hasActiveSubscription },
+                { isUpgrade: hasActiveSubscription, isAutoPay },
             )
 
             if (result?.success) {
@@ -222,30 +223,13 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                 <span className="text-2xl font-black text-primary">{confirmingPlan.priceDisplay}</span>
                                             </div>
                                             <PlanGstNote plan={confirmingPlan} showTotal className="mt-3" />
-                                            
-                                            {/* <div className="mt-5">
-                                                <p className="text-sm font-semibold text-foreground mb-3">Select Billing Frequency</p>
-                                                
-                                                <div className="grid grid-cols-2 gap-3 w-full">
-                                                    <div 
-                                                        onClick={() => setIsAutoPay(true)} 
-                                                        className={`cursor-pointer rounded-lg border-2 p-2.5 flex flex-col items-center justify-center transition-all ${isAutoPay ? 'border-primary bg-primary/5' : 'border-border bg-transparent hover:bg-muted/50'}`}
-                                                    >
-                                                        <RefreshCw className={`h-4 w-4 mb-1.5 ${isAutoPay ? 'text-primary' : 'text-muted-foreground'}`} />
-                                                        <span className={`font-semibold text-xs ${isAutoPay ? 'text-foreground' : 'text-muted-foreground'}`}>Subscription</span>
-                                                        <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">Billed annually</span>
-                                                    </div>
-                                                    
-                                                    <div 
-                                                        onClick={() => setIsAutoPay(false)} 
-                                                        className={`cursor-pointer rounded-lg border-2 p-2.5 flex flex-col items-center justify-center transition-all ${!isAutoPay ? 'border-primary bg-primary/5' : 'border-border bg-transparent hover:bg-muted/50'}`}
-                                                    >
-                                                        <CreditCard className={`h-4 w-4 mb-1.5 ${!isAutoPay ? 'text-primary' : 'text-muted-foreground'}`} />
-                                                        <span className={`font-semibold text-xs ${!isAutoPay ? 'text-foreground' : 'text-muted-foreground'}`}>One-time Pass</span>
-                                                        <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">1 year access</span>
-                                                    </div>
-                                                </div>
-                                            </div> */}
+
+                                            <div className="mt-5">
+                                                <BillingTypeToggle
+                                                    isAutoPay={isAutoPay}
+                                                    onChange={setIsAutoPay}
+                                                />
+                                            </div>
                                         </div>
                                         
                                         <div className="flex gap-4 w-full">

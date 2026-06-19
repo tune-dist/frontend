@@ -52,6 +52,8 @@ interface InitiatePaymentOptions {
      * automatically on verify.
      */
     isUpgrade?: boolean;
+    /** true = Razorpay subscription (auto-renew). false = one-time order. Default true. */
+    isAutoPay?: boolean;
 }
 
 interface UseRazorpayReturn {
@@ -127,9 +129,7 @@ export function useRazorpay(): UseRazorpayReturn {
                     amount: order.amount,
                     currency: order.currency,
                     name: 'Kratolib',
-                    description: `${order.planTitle} ${order.subscriptionId ? 'Subscription' : 'Purchase'}`,
-                    order_id: order.orderId,
-                    subscription_id: order.subscriptionId,
+                    description: `${order.planTitle} ${order.checkoutType === 'subscription' ? 'Subscription' : 'Purchase'}`,
                     handler: (response: RazorpayResponse) => {
                         resolve(response);
                     },
@@ -141,7 +141,7 @@ export function useRazorpay(): UseRazorpayReturn {
                         receipt: order.receipt,
                     },
                     theme: {
-                        color: '#6366f1', // Indigo-500 matching TuneFlow theme
+                        color: '#6366f1',
                     },
                     modal: {
                         ondismiss: () => {
@@ -149,6 +149,15 @@ export function useRazorpay(): UseRazorpayReturn {
                         },
                     },
                 };
+
+                if (order.checkoutType === 'subscription' && order.subscriptionId) {
+                    options.subscription_id = order.subscriptionId;
+                } else if (order.orderId) {
+                    options.order_id = order.orderId;
+                } else {
+                    reject(new Error('Invalid checkout session from server'));
+                    return;
+                }
 
                 const razorpay = new window.Razorpay(options);
                 razorpay.open();
@@ -184,11 +193,12 @@ export function useRazorpay(): UseRazorpayReturn {
                 //   - fresh plan purchase (user on free / expired) → standard
                 //     /payments/create-order with isAutoPay=true
                 const isAddon = planKey === 'artist_addon';
+                const isAutoPay = options?.isAutoPay !== false;
                 const order = isAddon
                     ? await createPaymentOrder(planKey, false)
-                    : options?.isUpgrade
+                    : options?.isUpgrade && isAutoPay
                         ? await upgradePlan(planKey)
-                        : await createPaymentOrder(planKey, true);
+                        : await createPaymentOrder(planKey, isAutoPay);
 
                 // Step 2: Open Razorpay checkout
                 const razorpayResponse = await openCheckout(order, userInfo);
@@ -209,6 +219,12 @@ export function useRazorpay(): UseRazorpayReturn {
             } catch (error: any) {
                 if (error.message === 'Payment cancelled by user') {
                     toast('Payment cancelled', { icon: '❌' });
+                } else if (error.response?.data?.code === 'RAZORPAY_PLAN_NOT_CONFIGURED') {
+                    toast.error(
+                        error.response?.data?.message ||
+                            'This plan is not ready for subscription yet. Please contact support.',
+                        { duration: 6000 },
+                    );
                 } else {
                     console.error('Payment error:', error);
                     toast.error(error.response?.data?.message || error.message || 'Payment failed');
