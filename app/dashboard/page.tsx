@@ -24,6 +24,8 @@ import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status
 import Preloader from "@/components/Preloader";
 import { S3Image } from "@/components/ui/s3-image";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
+import { PLATFORM_COLORS } from "@/lib/platform-logos";
+import { PlatformLegendItem } from "@/components/analytics/platform-icon";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -72,15 +74,6 @@ const itemVariants = {
 function formatTrend(value: number) {
   return `${value >= 0 ? "+" : ""}${value}%`;
 }
-
-const PLATFORM_COLORS: Record<string, string> = {
-  spotify: "#f472b6",
-  amazon: "#fb923c",
-  applemusic: "#818cf8",
-  gaana: "#a3e635",
-  jiosaavn: "#38bdf8",
-  facebook: "#c084fc",
-};
 
 function ReleaseCover({
   coverArtUrl,
@@ -482,10 +475,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col gap-4 flex-1">
                       {stats!.platformStreams.map((store) => (
                         <div key={store.dsp} className="flex items-center gap-3 group cursor-pointer">
-                          <div
-                            className="h-3 w-3 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-125 transition-transform"
-                            style={{ backgroundColor: PLATFORM_COLORS[store.dsp] ?? "#94a3b8" }}
-                          />
+                          <PlatformLegendItem dsp={store.dsp} label={store.label} />
                           <div className="flex flex-col">
                             <span className="text-sm text-muted-foreground font-medium group-hover:text-white transition-colors">
                               {store.label}
