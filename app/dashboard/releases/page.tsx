@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -306,9 +306,8 @@ export default function ReleasesPage() {
     { value: "Released", label: "Released" },
   ];
 
-  return (
-    <DashboardLayout>
-      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+    return (
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
         <motion.div variants={itemVariants} className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">My <span className="animated-gradient">Releases</span></h1>
@@ -689,8 +688,5 @@ export default function ReleasesPage() {
           </DialogContent>
         </Dialog>
       </motion.div>
-
-
-    </DashboardLayout>
   );
 }

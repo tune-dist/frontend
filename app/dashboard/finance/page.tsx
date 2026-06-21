@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/dashboard/dashboard-layout';
+import PageLoading from '@/components/dashboard/page-loading';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,13 +38,7 @@ export default function FinancePage() {
     }, [authLoading, user, router]);
 
     if (authLoading || !user || !canViewBilling(user)) {
-        return (
-            <DashboardLayout>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            </DashboardLayout>
-        );
+        return <PageLoading />;
     }
 
     const transactions = [
@@ -90,7 +84,6 @@ export default function FinancePage() {
     ];
 
     return (
-        <DashboardLayout>
             <div className="space-y-8 p-4 lg:p-6 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -267,6 +260,5 @@ export default function FinancePage() {
                     </Card>
                 </div>
             </div>
-        </DashboardLayout>
     );
 }

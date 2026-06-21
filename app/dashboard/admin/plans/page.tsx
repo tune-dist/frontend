@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -334,7 +333,6 @@ export default function PlanManagementPage() {
     };
 
     return (
-        <DashboardLayout>
             <div className="space-y-8 p-6 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -986,6 +984,5 @@ export default function PlanManagementPage() {
                     </DialogContent>
                 </Dialog>
             </div>
-        </DashboardLayout>
     );
 }

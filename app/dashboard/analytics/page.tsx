@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
-import Preloader from "@/components/Preloader";
+import PageLoading from "@/components/dashboard/page-loading";
 import {
   createDefaultTrendFilters,
   TrendFilters,
@@ -82,7 +81,7 @@ export default function AnalyticsPage() {
   };
 
   if (loading) {
-    return <Preloader />;
+    return <PageLoading />;
   }
 
   const trendDateKeys = trends?.dataPoints.map((point) => point.date) ?? [];
@@ -91,7 +90,6 @@ export default function AnalyticsPage() {
   const chartLabel = trends?.label ?? "Total";
 
   return (
-    <DashboardLayout>
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -141,6 +139,5 @@ export default function AnalyticsPage() {
           </motion.div>
         </div>
       </motion.div>
-    </DashboardLayout>
   );
 }

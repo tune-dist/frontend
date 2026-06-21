@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import {
   Card,
   CardContent,
@@ -203,17 +203,11 @@ export default function VerificationsPage() {
   };
 
   if (authLoading || !isStaff) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
+    return <PageLoading />;
   }
 
   return (
-    <DashboardLayout>
+    <>
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -439,6 +433,6 @@ export default function VerificationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </>
   );
 }

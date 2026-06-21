@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Eye, Ban, MoreVertical, Search, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, TrendingDown } from 'lucide-react';
 import { canViewUsers } from '@/lib/permissions';
 import { getUsers } from '@/lib/api/users';
-import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import { PageSearchBar, PageSearchSection } from '@/components/dashboard/page-search-bar';
 import {
     Select,
@@ -99,7 +98,6 @@ export default function UsersPage() {
 
 
     return (
-        <DashboardLayout>
             <div className="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
                 <div className="max-w-[1400px] mx-auto flex flex-col gap-8">
                     {/* ... content ... */}
@@ -344,6 +342,5 @@ export default function UsersPage() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
     );
 }

@@ -25,7 +25,7 @@ import {
     ExternalLink,
     Badge as BadgeIcon
 } from "lucide-react";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import { ThumbnailPreview } from "@/components/dashboard/promotion/thumbnail-preview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -313,17 +313,10 @@ export default function PromotionEditorPage() {
     };
 
     if (loading) {
-        return (
-            <DashboardLayout>
-                <div className="flex items-center justify-center h-[60vh]">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            </DashboardLayout>
-        );
+        return <PageLoading />;
     }
 
     return (
-        <DashboardLayout>
             <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -1094,6 +1087,5 @@ export default function PromotionEditorPage() {
                     </div>
                 </div>
             </div >
-        </DashboardLayout >
     );
 }

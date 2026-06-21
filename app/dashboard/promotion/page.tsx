@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
 import { getPromotionByReleaseId } from "@/lib/api/promotions";
 import { S3Image } from "@/components/ui/s3-image";
 import { PromotionWizardDialog } from "@/components/promotion/promotion-wizard-dialog";
@@ -115,7 +114,7 @@ export default function PromotionListingPage() {
 
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-6">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">
@@ -257,6 +256,6 @@ export default function PromotionListingPage() {
                 onSuccess={fetchReleases}
                 releaseId={selectedReleaseForPromo}
             />
-        </DashboardLayout>
+        </>
     );
 }

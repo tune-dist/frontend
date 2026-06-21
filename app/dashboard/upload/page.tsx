@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -938,28 +938,15 @@ export default function UploadPage() {
   }, [user]);
 
   if (loading || !user) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    );
+    return <PageLoading />;
   }
 
   if (isCheckingEligibility) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    );
+    return <PageLoading />;
   }
 
   if (!canUpload) {
     return (
-      <DashboardLayout>
         <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
           <div className="bg-yellow-500/10 p-6 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
             <Info className="h-10 w-10 text-yellow-500" />
@@ -987,12 +974,11 @@ export default function UploadPage() {
             </Button>
           </div>
         </div>
-      </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="min-h-screen bg-background p-4 lg:p-6">
         <motion.div
           variants={containerVariants}
@@ -1286,6 +1272,6 @@ export default function UploadPage() {
           </p>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }

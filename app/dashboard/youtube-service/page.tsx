@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import {
     Card,
     CardContent,
@@ -36,7 +36,8 @@ import {
     Youtube,
     Music,
 } from "lucide-react";
-import { getYouTubeRequests, YouTubeServiceRequest, updateYouTubeRequestStatus, YouTubeRequestStatus, buildYouTubeExportRows, getStatusLabel, getReleaseIdDisplay } from "@/lib/api/youtube-service";
+import { YouTubeServiceRequest, updateYouTubeRequestStatus, YouTubeRequestStatus, buildYouTubeExportRows, getStatusLabel, getReleaseIdDisplay } from "@/lib/api/youtube-service";
+import { useYouTubeRequests } from "@/hooks/use-youtube-requests";
 import { isStaffUser } from "@/lib/permissions";
 import RequestModal from "@/components/dashboard/youtube-service/request-modal";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
@@ -99,8 +100,7 @@ function matchesYouTubeSearch(request: YouTubeServiceRequest, query: string) {
 }
 
 export default function YouTubeServicePage() {
-    const [requests, setRequests] = useState<YouTubeServiceRequest[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { requests, loading, invalidate } = useYouTubeRequests();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [approveDialogId, setApproveDialogId] = useState<string | null>(null);
@@ -117,23 +117,6 @@ export default function YouTubeServicePage() {
         () => requests.filter((request) => matchesYouTubeSearch(request, searchQuery)),
         [requests, searchQuery]
     );
-
-    const fetchRequests = async () => {
-        try {
-            setLoading(true);
-            const data = await getYouTubeRequests();
-            setRequests(data);
-        } catch (error) {
-            toast.error("Failed to fetch YouTube requests");
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchRequests();
-    }, []);
 
     const openApproveDialog = (id: string) => {
         setApproveDialogId(id);
@@ -154,7 +137,7 @@ export default function YouTubeServicePage() {
             await updateYouTubeRequestStatus(id, YouTubeRequestStatus.APPROVED);
             toast.success("Request approved successfully");
             setApproveDialogId(null);
-            fetchRequests();
+            invalidate();
         } catch (error) {
             toast.error("Failed to approve request");
         } finally {
@@ -177,7 +160,7 @@ export default function YouTubeServicePage() {
             toast.success("Request rejected");
             setRejectDialog(null);
             setRejectReason("");
-            fetchRequests();
+            invalidate();
         } catch (error) {
             toast.error("Failed to reject request");
         } finally {
@@ -234,7 +217,7 @@ export default function YouTubeServicePage() {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
@@ -469,7 +452,7 @@ export default function YouTubeServicePage() {
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={() => {
                     setIsModalOpen(false);
-                    fetchRequests();
+                    invalidate();
                 }}
             />
 
@@ -586,6 +569,6 @@ export default function YouTubeServicePage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </DashboardLayout>
+        </>
     );
 }

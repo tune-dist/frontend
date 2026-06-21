@@ -3,6 +3,7 @@ import { Manrope } from 'next/font/google';
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PlanInactiveProvider } from '@/contexts/PlanInactiveContext'
+import QueryProvider from '@/components/providers/query-provider'
 import { Toaster } from 'react-hot-toast'
 import VersionNotifier from '@/components/VersionNotifier'
 import { Outfit } from 'next/font/google'
@@ -61,6 +62,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${manrope.variable} ${outfit.variable}`}>
         <AuthProvider>
+          <QueryProvider>
           <PlanInactiveProvider>
             <SmoothScrollProvider>
               {/* <VersionNotifier /> */}
@@ -90,6 +92,7 @@ export default function RootLayout({
             />
             </SmoothScrollProvider>
           </PlanInactiveProvider>
+          </QueryProvider>
         </AuthProvider>
       </body>
     </html>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 
-import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Quote, Trash2, Loader2, Plus, Edit, Save } from 'lucide-react';
@@ -168,7 +167,6 @@ export default function TestimonialsAdminPage() {
     };
 
     return (
-        <DashboardLayout>
             <div className="space-y-8 p-6 max-w-7xl mx-auto">
                 <div className="flex items-center justify-between">
                     <div>
@@ -377,6 +375,5 @@ export default function TestimonialsAdminPage() {
                     />
                 )}
             </div>
-        </DashboardLayout>
     );
 }

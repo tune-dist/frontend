@@ -16,8 +16,7 @@ import {
   Hash,
 } from "lucide-react";
 import { getRelease, Release, TrackPayload } from "@/lib/api/releases";
-import Preloader from "@/components/Preloader";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -62,12 +61,11 @@ export default function ReleaseDetailsPage() {
   const formatStatus = formatReleaseStatus;
 
   if (loading) {
-    return <Preloader />;
+    return <PageLoading />;
   }
 
   if (error || !release) {
     return (
-      <DashboardLayout>
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <h2 className="text-2xl font-bold text-destructive mb-2">
             Error Loading Release
@@ -80,7 +78,6 @@ export default function ReleaseDetailsPage() {
             Back to Releases
           </Button>
         </div>
-      </DashboardLayout>
     );
   }
 
@@ -98,7 +95,6 @@ export default function ReleaseDetailsPage() {
       : null;
 
   return (
-    <DashboardLayout>
       <div className="space-y-8 pb-24">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative">
@@ -326,6 +322,5 @@ export default function ReleaseDetailsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }

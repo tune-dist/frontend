@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import {
   Card,
   CardContent,
@@ -21,7 +21,6 @@ import {
 import { TrendingUp, Music, ListMusic, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
-import Preloader from "@/components/Preloader";
 import { S3Image } from "@/components/ui/s3-image";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { PLATFORM_COLORS } from "@/lib/platform-logos";
@@ -112,11 +111,10 @@ export default function DashboardPage() {
   const formatStatus = formatReleaseStatus;
 
   if (loading) {
-    return <Preloader />;
+    return <PageLoading />;
   }
 
   return (
-    <DashboardLayout>
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -549,6 +547,5 @@ export default function DashboardPage() {
           </Card>
         </motion.div>
       </motion.div>
-    </DashboardLayout>
   );
 }
