@@ -1,4 +1,5 @@
 import apiClient from "../api-client";
+import { getExportableYouTubeLinks } from "../youtube-url";
 
 export enum YouTubeRequestType {
     CLAIM_MONETIZE = 'Claim UGC video : monetize',
@@ -93,38 +94,59 @@ export function getUserCodeForExport(request: YouTubeServiceRequest): string {
 }
 
 export function getReleaseIdDisplay(request: YouTubeServiceRequest): string {
-    if (request.releaseCode) {
-        return request.releaseCode;
-    }
-    if (typeof request.releaseId === 'object' && request.releaseId?.releaseCode) {
-        return request.releaseId.releaseCode;
-    }
+    const populatedCode =
+        typeof request.releaseId === 'object'
+            ? request.releaseId?.releaseCode?.trim()
+            : undefined;
+    const snapshotCode = request.releaseCode?.trim();
+
+    // Prefer populated release (source of truth) over stale snapshot on the request.
+    if (populatedCode) return populatedCode;
+    if (snapshotCode) return snapshotCode;
     return '—';
 }
 
-export function buildYouTubeExportRows(requests: YouTubeServiceRequest[]) {
-    const rows: Array<{
+export interface YouTubeExportResult {
+    rows: Array<{
         'User ID': string;
         'Release ID': string;
         'Song Name': string;
         'YouTube URL': string;
-    }> = [];
+    }>;
+    skippedInvalidLinks: number;
+    skippedRequestsWithoutLinks: number;
+}
+
+export function buildYouTubeExportRows(requests: YouTubeServiceRequest[]): YouTubeExportResult {
+    const rows: YouTubeExportResult['rows'] = [];
+    let skippedInvalidLinks = 0;
+    let skippedRequestsWithoutLinks = 0;
 
     for (const request of requests) {
         if (request.status !== YouTubeRequestStatus.APPROVED) continue;
 
         const songName = request.songName || request.albumTrackTitle;
-        const links = request.infringingLinks?.length ? request.infringingLinks : [''];
+        const rawLinks = request.infringingLinks ?? [];
+        const links = getExportableYouTubeLinks(rawLinks);
+        skippedInvalidLinks += rawLinks.length - links.length;
+
+        if (links.length === 0) {
+            skippedRequestsWithoutLinks += 1;
+            continue;
+        }
+
+        const userId = getUserCodeForExport(request);
+        const releaseId = getReleaseIdDisplay(request);
 
         for (const link of links) {
             rows.push({
-                'User ID': getUserCodeForExport(request),
-                'Release ID': getReleaseIdDisplay(request),
+                'User ID': userId,
+                'Release ID': releaseId,
                 'Song Name': songName,
                 'YouTube URL': link,
             });
         }
     }
 
-    return rows;
+    return { rows, skippedInvalidLinks, skippedRequestsWithoutLinks };
 }

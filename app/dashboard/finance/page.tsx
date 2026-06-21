@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,12 +19,33 @@ import {
     Banknote,
     Navigation,
     CheckCircle2,
+    Loader2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { canViewBilling } from '@/lib/permissions';
 
 export default function FinancePage() {
+    const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState('all');
+
+    useEffect(() => {
+        if (!authLoading && user && !canViewBilling(user)) {
+            router.push('/dashboard');
+        }
+    }, [authLoading, user, router]);
+
+    if (authLoading || !user || !canViewBilling(user)) {
+        return (
+            <DashboardLayout>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     const transactions = [
         {

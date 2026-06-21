@@ -6,6 +6,8 @@ import {
   PlanInactiveError,
   triggerPlanInactive,
 } from './plan-inactive';
+import { dispatchAuthUserUpdated } from './auth-session';
+import type { User } from './api/auth';
 
 type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -99,7 +101,11 @@ apiClient.interceptors.response.use(
       const refresh_token = Cookies.get('refresh_token');
       if (refresh_token) {
         try {
-          const { data } = await refreshClient.post<{ access_token: string; refresh_token: string }>(
+          const { data } = await refreshClient.post<{
+            access_token: string;
+            refresh_token: string;
+            user?: User;
+          }>(
             '/auth/refresh',
             { refresh_token },
           );
@@ -111,6 +117,11 @@ apiClient.interceptors.response.use(
 
           Cookies.set(config.tokenKey, data.access_token, cookieOptions);
           Cookies.set('refresh_token', data.refresh_token, cookieOptions);
+
+          if (data.user) {
+            Cookies.set('user', JSON.stringify(data.user), cookieOptions);
+            dispatchAuthUserUpdated(data.user);
+          }
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${data.access_token}`;

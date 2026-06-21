@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { User, login as apiLogin, register as apiRegister, getMe, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword, verifyOtp as apiVerifyOtp, resendOtp as apiResendOtp, LoginResponse } from '@/lib/api/auth';
 import { config } from '@/lib/config';
 import { getErrorMessage } from '@/lib/api-client';
+import { AUTH_USER_UPDATED_EVENT } from '@/lib/auth-session';
 
 interface AuthContextType {
   user: User | null;
@@ -53,6 +54,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     initAuth();
+  }, []);
+
+  useEffect(() => {
+    const onUserUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<User>).detail;
+      if (detail) {
+        setUser(detail);
+      }
+    };
+
+    window.addEventListener(AUTH_USER_UPDATED_EVENT, onUserUpdated);
+    return () => window.removeEventListener(AUTH_USER_UPDATED_EVENT, onUserUpdated);
   }, []);
 
   const login = React.useCallback(async (email: string, password: string, redirectUrl?: string) => {

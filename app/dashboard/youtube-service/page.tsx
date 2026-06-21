@@ -186,18 +186,38 @@ export default function YouTubeServicePage() {
     };
 
     const handleExportExcel = () => {
-        const data = buildYouTubeExportRows(filteredRequests);
+        const approvedRequests = requests.filter(
+            (request) => request.status === YouTubeRequestStatus.APPROVED,
+        );
+        const { rows, skippedInvalidLinks, skippedRequestsWithoutLinks } =
+            buildYouTubeExportRows(approvedRequests);
 
-        if (data.length === 0) {
-            toast.error("No accepted claims to export");
+        if (rows.length === 0) {
+            toast.error("No accepted claims with valid YouTube URLs to export");
             return;
         }
 
-        const worksheet = XLSX.utils.json_to_sheet(data);
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        worksheet["!cols"] = [
+            { wch: 14 },
+            { wch: 22 },
+            { wch: 32 },
+            { wch: 72 },
+        ];
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Accepted Claims");
         XLSX.writeFile(workbook, "YouTube_Accepted_Claims.xlsx");
-        toast.success("Excel exported successfully");
+
+        if (skippedInvalidLinks > 0 || skippedRequestsWithoutLinks > 0) {
+            toast.success(
+                `Exported ${rows.length} row(s). Skipped ${skippedInvalidLinks} invalid URL(s)` +
+                    (skippedRequestsWithoutLinks > 0
+                        ? ` and ${skippedRequestsWithoutLinks} claim(s) with no valid URLs.`
+                        : "."),
+            );
+        } else {
+            toast.success("Excel exported successfully");
+        }
     };
 
     const getStatusColor = (status: string) => {

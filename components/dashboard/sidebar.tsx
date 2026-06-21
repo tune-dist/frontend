@@ -35,15 +35,15 @@ const navigation = [
   { name: 'Upload Music', href: '/dashboard/upload', icon: Upload, permission: 'UPLOAD_RELEASE' },
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard, permission: 'VIEW_BILLING' },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, permission: 'VIEW_ANALYTICS' },
-  { name: 'Finance', href: '/dashboard/finance', icon: Wallet },
+  { name: 'Finance', href: '/dashboard/finance', icon: Wallet, permission: 'VIEW_BILLING' },
   { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles, permission: 'MANAGE_PROMOTION' },
   { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote, permission: 'MANAGE_TESTIMONIALS' },
   { name: 'Profile', href: '/dashboard/profile', icon: User, permission: 'PROFILE' },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube, permission: 'USE_YOUTUBE_SERVICE' },
   { name: 'Verifications', href: '/dashboard/verifications', icon: Shield, permission: 'APPROVE_RELEASE' },
-  { name: 'Users', href: '/dashboard/users', icon: User, permission: 'MANAGE_USERS' },
+  { name: 'Users', href: '/dashboard/users', icon: User, permission: 'VIEW_USERS' },
   { name: 'Plan Management', href: '/dashboard/admin/plans', icon: Settings, permission: 'MANAGE_PLANS' },
-  { name: 'Permissions', href: '/dashboard/admin/permissions', icon: Shield, permission: 'MANAGE_PERMISSIONS' },
+  { name: 'Permissions', href: '/dashboard/admin/permissions', icon: Shield, permission: 'VIEW_PERMISSIONS' },
 ]
 
 export default function Sidebar() {

@@ -9,7 +9,7 @@ import { getReleases, Release } from "@/lib/api/releases";
 import { createYouTubeRequest } from "@/lib/api/youtube-service";
 import { S3Image } from "@/components/ui/s3-image";
 import toast from "react-hot-toast";
-import { getInvalidYouTubeLinks, parseYouTubeLinks } from "@/lib/youtube-url";
+import { getExportableYouTubeLinks, getInvalidYouTubeLinks, parseYouTubeLinks } from "@/lib/youtube-url";
 
 interface RequestModalProps {
     isOpen: boolean;
@@ -168,7 +168,7 @@ export default function RequestModal({ isOpen, onClose, onSuccess }: RequestModa
 
         try {
             setLoading(true);
-            const links = parseYouTubeLinks(formData.infringingLinks);
+            const links = getExportableYouTubeLinks(parseYouTubeLinks(formData.infringingLinks));
 
             await createYouTubeRequest({
                 releaseId: formData.releaseId,
