@@ -15,10 +15,30 @@ import {
     TrendingUp,
     Loader2,
     Mail,
+    Users,
+    Layers,
+    Disc3,
 } from 'lucide-react';
 
 const ENTERPRISE_PLAN_KEY = 'enterprise';
 const isEnterprisePlanKey = (key?: string | null) => key === ENTERPRISE_PLAN_KEY;
+
+function formatLimitValue(value?: number) {
+    if (value === -1) return 'Unlimited';
+    if (value === undefined || value === null) return 'N/A';
+    return String(value);
+}
+
+function formatPlanFormatLabel(format: string) {
+    const labels: Record<string, string> = {
+        single: 'Single',
+        ep: 'EP',
+        album: 'Album',
+        remix: 'Remix',
+        compilation: 'Compilation',
+    };
+    return labels[format.toLowerCase()] || format.charAt(0).toUpperCase() + format.slice(1);
+}
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAllPlans, Plan, currencySymbol, derivePeriodLabel, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans';
@@ -433,31 +453,64 @@ export default function BillingPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* Plan Limits Grid */}
-                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-muted/20 border border-border/30">
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Artists Slots</p>
-                                                        <p className="text-sm font-bold text-foreground mt-1">
-                                                            {plan.limits?.maxArtists === -1 ? 'Unlimited' : plan.limits?.maxArtists || 1}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Pending Releases</p>
-                                                        <p className="text-sm font-bold text-foreground mt-1">
-                                                            {plan.limits?.maxPendingReleases === -1 ? 'Unlimited' : plan.limits?.maxPendingReleases || 'N/A'}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Storage Limit</p>
-                                                        <p className="text-sm font-bold text-foreground mt-1">
-                                                            {plan.limits?.maxStorageGB ? `${plan.limits.maxStorageGB} GB` : 'Unlimited'}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Formats</p>
-                                                        <p className="text-xs font-bold text-foreground mt-1 truncate capitalize">
-                                                            {plan.limits?.allowedFormats?.join(', ') || 'All'}
-                                                        </p>
+                                                {/* Plan Limits */}
+                                                <div className="space-y-3">
+                                                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Plan Limits</h4>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4 space-y-3">
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                                                                    <Users className="h-4 w-4" />
+                                                                </div>
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
+                                                                    Artist Slots
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xl font-black text-foreground">
+                                                                {formatLimitValue(plan.limits?.maxArtists ?? 1)}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4 space-y-3">
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500 shrink-0">
+                                                                    <Layers className="h-4 w-4" />
+                                                                </div>
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
+                                                                    Pending Releases
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xl font-black text-foreground">
+                                                                {formatLimitValue(plan.limits?.maxPendingReleases)}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4 space-y-3 sm:col-span-1">
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500 shrink-0">
+                                                                    <Disc3 className="h-4 w-4" />
+                                                                </div>
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
+                                                                    Formats
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {(plan.limits?.allowedFormats?.length
+                                                                    ? plan.limits.allowedFormats
+                                                                    : ['all']
+                                                                ).map((format) => (
+                                                                    <Badge
+                                                                        key={format}
+                                                                        variant="secondary"
+                                                                        className="rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-background/80"
+                                                                    >
+                                                                        {format === 'all'
+                                                                            ? 'All'
+                                                                            : formatPlanFormatLabel(format)}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
 

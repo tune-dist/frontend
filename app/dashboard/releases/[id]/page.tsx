@@ -12,9 +12,8 @@ import {
   Disc,
   FileAudio,
   Disc3,
-  QrCode,
-  BookOpenText,
   AudioWaveform,
+  Hash,
 } from "lucide-react";
 import { getRelease, Release, TrackPayload } from "@/lib/api/releases";
 import Preloader from "@/components/Preloader";
@@ -30,8 +29,7 @@ import {
 import { S3Image } from "@/components/ui/s3-image";
 import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
 import {
-  formatUpcDisplay,
-  formatIsrcListDisplay,
+  formatReleaseCodeDisplay,
   getTrackIsrcDisplay,
 } from "@/lib/release-codes";
 import { isReleaseNoLyrics } from "@/components/dashboard/upload/genre-language";
@@ -138,9 +136,7 @@ export default function ReleaseDetailsPage() {
             { icon: <Globe />, label: "Language", value: release.language },
             { icon: <Calendar />, label: "Date", value: release.releaseDate ? new Date(release.releaseDate).toLocaleDateString() : null },
             { icon: <Disc3 />, label: "Label", value: release.labelName },
-            { icon: <QrCode />, label: "UPC", value: formatUpcDisplay(release) },
-            { icon: <QrCode />, label: "ISRC", value: formatIsrcListDisplay(release) },
-            { icon: <BookOpenText />, label: "Catalog #", value: release.catalogNumber || "-" },
+            { icon: <Hash />, label: "Release ID", value: formatReleaseCodeDisplay(release) },
             ...(writersDisplay
               ? [{ icon: <User />, label: "Lyricist", value: writersDisplay }]
               : []),

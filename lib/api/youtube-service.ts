@@ -19,9 +19,14 @@ export interface YouTubeServiceRequest {
         _id: string;
         fullName: string;
         email: string;
+        userCode?: string;
     } | string;
     requestType: YouTubeRequestType;
-    releaseId: any;
+    releaseId: {
+        _id: string;
+        title?: string;
+        releaseCode?: string;
+    } | string;
     trackIndex: number;
     assetTitle: string;
     albumTrackTitle: string;
@@ -29,6 +34,7 @@ export interface YouTubeServiceRequest {
     artistId: string;
     upc: string;
     isrc: string;
+    releaseCode?: string;
     infringingLinks: string[];
     status: YouTubeRequestStatus;
     dailyViews: number;
@@ -79,32 +85,43 @@ export function getStatusLabel(status: YouTubeRequestStatus | string): string {
     return status;
 }
 
+export function getUserCodeForExport(request: YouTubeServiceRequest): string {
+    if (typeof request.userId === 'object' && request.userId?.userCode) {
+        return request.userId.userCode;
+    }
+    return 'N/A';
+}
+
+export function getReleaseIdDisplay(request: YouTubeServiceRequest): string {
+    if (request.releaseCode) {
+        return request.releaseCode;
+    }
+    if (typeof request.releaseId === 'object' && request.releaseId?.releaseCode) {
+        return request.releaseId.releaseCode;
+    }
+    return '—';
+}
+
 export function buildYouTubeExportRows(requests: YouTubeServiceRequest[]) {
     const rows: Array<{
-        UPC: string;
-        ISRC: string;
+        'User ID': string;
+        'Release ID': string;
         'Song Name': string;
         'YouTube URL': string;
-        Username: string;
     }> = [];
 
     for (const request of requests) {
         if (request.status !== YouTubeRequestStatus.APPROVED) continue;
 
-        const username =
-            typeof request.userId === 'object' && request.userId
-                ? request.userId.fullName
-                : 'N/A';
         const songName = request.songName || request.albumTrackTitle;
         const links = request.infringingLinks?.length ? request.infringingLinks : [''];
 
         for (const link of links) {
             rows.push({
-                UPC: request.upc,
-                ISRC: request.isrc || 'N/A',
+                'User ID': getUserCodeForExport(request),
+                'Release ID': getReleaseIdDisplay(request),
                 'Song Name': songName,
                 'YouTube URL': link,
-                Username: username || 'N/A',
             });
         }
     }

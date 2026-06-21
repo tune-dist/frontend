@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, RefreshCcw, Search } from "lucide-react";
+import { Loader2, Plus, RefreshCcw } from "lucide-react";
+import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 import toast from "react-hot-toast";
 import {
     getPermissions,
@@ -416,30 +417,29 @@ export default function PermissionsPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    <div className="flex gap-4">
-                                        <div className="relative flex-1">
-                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                placeholder="Search by name or email..."
+                                    <PageSearchSection>
+                                        <div className="flex flex-col gap-3 sm:flex-row">
+                                            <PageSearchBar
                                                 value={userSearch}
-                                                onChange={(e) => setUserSearch(e.target.value)}
-                                                className="pl-9"
+                                                onChange={setUserSearch}
+                                                placeholder="Search by name or email..."
+                                                className="flex-1"
                                             />
+                                            <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                                                <SelectTrigger className="w-full sm:w-[200px] h-11 rounded-xl bg-secondary border-border">
+                                                    <SelectValue placeholder="Filter by role" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="All">All Roles</SelectItem>
+                                                    {roles.map((role) => (
+                                                        <SelectItem key={role._id} value={role.name}>
+                                                            {role.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
-                                        <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
-                                            <SelectTrigger className="w-[200px]">
-                                                <SelectValue placeholder="Filter by role" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="All">All Roles</SelectItem>
-                                                {roles.map((role) => (
-                                                    <SelectItem key={role._id} value={role.name}>
-                                                        {role.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    </PageSearchSection>
 
                                     <div className="overflow-x-auto relative">
                                         {usersLoading && (

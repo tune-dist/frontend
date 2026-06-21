@@ -5,6 +5,7 @@
   "author": "Divyanshu Singh",
   "scripts": {
     "dev": "next dev --port 8080",
+    "dev:clean": "rm -rf .next && next dev --port 8080",
     "build": "next build",
     "start": "next start --port 8080",
     "lint": "next lint"

@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, Search, Settings, LogOut, User as UserIcon, ChevronDown, Upload, Zap, Menu, X } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { Settings, LogOut, User as UserIcon, ChevronDown, Upload, Zap, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
@@ -33,18 +32,6 @@ export default function TopNavbar() {
         )}
       </Button>
 
-      {/* Search */}
-      <div className="flex-1 max-w-md">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search releases, tracks..."
-            className="pl-10 w-full"
-          />
-        </div>
-      </div>
-
       {/* Right Side Actions */}
       <div className="flex items-center gap-2 ml-auto">
         {/* Upgrade Button */}
@@ -67,11 +54,6 @@ export default function TopNavbar() {
             <span className="hidden md:inline">Upload</span>
           </Button>
         </Link>
-
-        <Button variant="ghost" size="sm" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
-        </Button>
 
         {/* User Menu */}
         <div className="relative">

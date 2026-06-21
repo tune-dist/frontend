@@ -27,7 +27,7 @@ import {
     Upload,
     PieChart,
 } from 'lucide-react';
-import { Plan, getAllPlans, adminUpdatePlan, adminCreatePlan, adminDeletePlan, adminSyncRazorpayPlan, derivePlanKey, BillingPeriod, currencySymbol, derivePeriodLabel } from '@/lib/api/plans';
+import { Plan, getAllPlans, adminUpdatePlan, adminCreatePlan, adminDeletePlan, adminSyncRazorpayPlan, derivePlanKey, BillingPeriod, currencySymbol, derivePeriodLabel, calculateTotalWithGst, getGstPercent, isGstIncluded, getPlanTotalWithGst } from '@/lib/api/plans';
 import toast from 'react-hot-toast';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +48,7 @@ const emptyNewPlan: Partial<Plan> = {
     pricePerYear: 0,
     royaltyPercent: 10,
     gstPercent: 18,
+    gstIncluded: false,
     isActive: true,
     billingPeriod: 'yearly',
     interval: 1,
@@ -81,17 +82,53 @@ export default function PlanManagementPage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSyncingRazorpay, setIsSyncingRazorpay] = useState(false);
 
-    const promptRazorpaySync = async (plan: Plan) => {
-        if (plan.pricePerYear <= 0 || plan.razorpayPlanId) {
+    const planNeedsRazorpaySync = (plan: Plan) => plan.pricePerYear > 0 && !plan.razorpayPlanId;
+
+    const billingFieldsChanged = (before: Plan, after: Partial<Plan>) =>
+        before.pricePerYear !== after.pricePerYear ||
+        getGstPercent(before) !== getGstPercent(after) ||
+        isGstIncluded(before) !== isGstIncluded(after) ||
+        (before.billingPeriod ?? 'yearly') !== (after.billingPeriod ?? 'yearly') ||
+        (before.interval ?? 1) !== (after.interval ?? 1) ||
+        (before.currency ?? 'INR') !== (after.currency ?? 'INR');
+
+    const formatRazorpayCharge = (plan: Pick<Plan, 'pricePerYear' | 'gstPercent' | 'gstIncluded' | 'currency'>) => {
+        const symbol = currencySymbol(plan.currency);
+        const total = getPlanTotalWithGst(plan);
+        const mode = isGstIncluded(plan) ? 'GST included' : 'GST excluded (+GST on top)';
+        return `${symbol}${total.toFixed(2)} (${mode})`;
+    };
+
+    const promptRazorpaySync = async (plan: Plan, options?: { billingChanged?: boolean }) => {
+        if (plan.pricePerYear <= 0) {
             return;
         }
+
+        const needsInitialSync = planNeedsRazorpaySync(plan);
+        const needsResync = options?.billingChanged === true;
+
+        if (!needsInitialSync && !needsResync) {
+            return;
+        }
+
         const ok = window.confirm(
-            `Plan "${plan.title}" is not linked to Razorpay yet.\n\n` +
-            'Users cannot subscribe with auto-renew until you sync it.\n\n' +
-            'Create Razorpay billing plan now? (GST-inclusive amount)',
+            needsResync
+                ? `Price/GST changed for "${plan.title}".\n\n` +
+                  `Razorpay billing plans cannot be edited — a new plan must be created.\n\n` +
+                  `New charge: ${formatRazorpayCharge(plan)}\n\n` +
+                  'Create updated Razorpay billing plan now?'
+                : `Plan "${plan.title}" is not linked to Razorpay yet.\n\n` +
+                  `Charge amount: ${formatRazorpayCharge(plan)}\n\n` +
+                  'Users cannot subscribe with auto-renew until you sync it.\n\n' +
+                  'Create Razorpay billing plan now?',
         );
         if (!ok) {
-            toast('Save plan first, then use "Sync Razorpay" when ready.', { icon: 'ℹ️' });
+            toast(
+                needsResync
+                    ? 'Razorpay link cleared. Use "Sync Razorpay Plan" before users can subscribe.'
+                    : 'Use "Sync Razorpay Plan" when ready.',
+                { icon: 'ℹ️' },
+            );
             return;
         }
         await handleSyncRazorpay(plan.key);
@@ -103,8 +140,8 @@ export default function PlanManagementPage() {
             const result = await adminSyncRazorpayPlan(planKey);
             toast.success(
                 result.created
-                    ? `Razorpay plan created for "${result.plan.title}"`
-                    : `Razorpay plan linked for "${result.plan.title}"`,
+                    ? `Razorpay plan created — ${formatRazorpayCharge(result.plan)}`
+                    : `Razorpay plan updated — ${formatRazorpayCharge(result.plan)}`,
             );
             await fetchPlans();
             if (selectedPlan?.key === planKey) {
@@ -248,14 +285,23 @@ export default function PlanManagementPage() {
 
     const handleSave = async () => {
         if (!selectedPlan) return;
+        const billingChanged = billingFieldsChanged(selectedPlan, editForm);
+        const {
+            _id,
+            createdAt,
+            updatedAt,
+            razorpayPlanId,
+            razorpayPlanSyncedAt,
+            ...planUpdates
+        } = editForm;
         try {
             setIsSaving(true);
-            console.log('Sending update:', editForm);
-            await adminUpdatePlan(selectedPlan.key, editForm);
+            console.log('Sending update:', planUpdates);
+            await adminUpdatePlan(selectedPlan.key, planUpdates);
             toast.success('Plan updated successfully');
             const refreshed = await fetchPlans();
             const updated = refreshed.find((p) => p.key === selectedPlan.key) ?? selectedPlan;
-            await promptRazorpaySync(updated);
+            await promptRazorpaySync(updated, { billingChanged });
         } catch (error: any) {
             console.error('Update error:', error);
             console.error('Error response:', error.response?.data);
@@ -495,9 +541,27 @@ export default function PlanManagementPage() {
                                                 onChange={(e) => handleInputChange('gstPercent', parseFloat(e.target.value) || 0)}
                                                 className="bg-card/50 border-border/50 rounded-xl h-12"
                                             />
-                                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                                                Added on top at checkout (e.g. 18 → +18% GST)
-                                            </p>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-muted-foreground font-semibold">GST Treatment</Label>
+                                            <select
+                                                value={editForm.gstIncluded ? 'included' : 'excluded'}
+                                                onChange={(e) => handleInputChange('gstIncluded', e.target.value === 'included')}
+                                                className="flex h-12 w-full rounded-xl border border-border/50 bg-card/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            >
+                                                <option value="included">Included — price is final (e.g. ₹999 total)</option>
+                                                <option value="excluded">Excluded — price + GST (e.g. ₹999 + 18% GST)</option>
+                                            </select>
+                                            {(editForm.pricePerYear ?? 0) > 0 && (editForm.gstPercent ?? 0) > 0 && (
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                                    Checkout total: {getCurrencySymbol(currency)}
+                                                    {calculateTotalWithGst(
+                                                        editForm.pricePerYear ?? 0,
+                                                        getGstPercent(editForm),
+                                                        isGstIncluded(editForm),
+                                                    ).toFixed(2)}
+                                                </p>
+                                            )}
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-muted-foreground font-semibold">Trial Period (Days)</Label>
@@ -525,60 +589,42 @@ export default function PlanManagementPage() {
 
                                 <TabsContent value="features" className="space-y-8 glass-card p-8 rounded-3xl">
                                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-primary/70 mb-2">Internal Limits & Entitlements</div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-muted-foreground font-semibold flex items-center justify-between">
-                                                    Max Pending Releases
-                                                    <span className="text-primary font-bold">{editForm.limits?.maxPendingReleases || 0}</span>
-                                                </Label>
-                                                <Input
-                                                    type="number"
-                                                    value={editForm.limits?.maxPendingReleases || 0}
-                                                    onChange={(e) => handleLimitChange('maxPendingReleases', parseInt(e.target.value))}
-                                                    className="bg-card/50 border-border/50 rounded-xl h-12"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-muted-foreground font-semibold flex items-center justify-between">
-                                                    Max Artists
-                                                    <span className="text-primary font-bold">{editForm.limits?.maxArtists || 0}</span>
-                                                </Label>
-                                                <Input
-                                                    type="number"
-                                                    value={editForm.limits?.maxArtists || 0}
-                                                    onChange={(e) => handleLimitChange('maxArtists', parseInt(e.target.value))}
-                                                    className="bg-card/50 border-border/50 rounded-xl h-12"
-                                                />
-                                            </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                                        <div className="space-y-2">
+                                            <Label className="text-muted-foreground font-semibold flex items-center justify-between">
+                                                Max Pending Releases
+                                                <span className="text-primary font-bold">{editForm.limits?.maxPendingReleases || 0}</span>
+                                            </Label>
+                                            <Input
+                                                type="number"
+                                                value={editForm.limits?.maxPendingReleases || 0}
+                                                onChange={(e) => handleLimitChange('maxPendingReleases', parseInt(e.target.value))}
+                                                className="bg-card/50 border-border/50 rounded-xl h-12"
+                                            />
                                         </div>
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-muted-foreground font-semibold flex items-center justify-between">
-                                                    Max Storage (GB)
-                                                    <span className="text-primary font-bold">{editForm.limits?.maxStorageGB || 0}</span>
-                                                </Label>
-                                                <Input
-                                                    type="number"
-                                                    value={editForm.limits?.maxStorageGB || 0}
-                                                    onChange={(e) => handleLimitChange('maxStorageGB', parseInt(e.target.value))}
-                                                    className="bg-card/50 border-border/50 rounded-xl h-12"
-                                                />
-                                            </div>
-                                            <div className="space-y-4 pt-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="space-y-0.5">
-                                                        <Label className="text-muted-foreground font-semibold capitalize">Allow Concurrent Streams</Label>
-                                                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Global Setting</p>
-                                                    </div>
-                                                    <Switch
-                                                        checked={editForm.limits?.allowConcurrent || false}
-                                                        onCheckedChange={(checked: boolean) => handleLimitChange('allowConcurrent', checked)}
-                                                        className="data-[state=checked]:bg-primary"
-                                                    />
-                                                </div>
-                                            </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-muted-foreground font-semibold flex items-center justify-between">
+                                                Max Artists
+                                                <span className="text-primary font-bold">{editForm.limits?.maxArtists || 0}</span>
+                                            </Label>
+                                            <Input
+                                                type="number"
+                                                value={editForm.limits?.maxArtists || 0}
+                                                onChange={(e) => handleLimitChange('maxArtists', parseInt(e.target.value))}
+                                                className="bg-card/50 border-border/50 rounded-xl h-12"
+                                            />
                                         </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-border/80 bg-card/30 p-5 flex items-center justify-between gap-4">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-muted-foreground font-semibold capitalize">Allow Concurrent Streams</Label>
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Global Setting</p>
+                                        </div>
+                                        <Switch
+                                            checked={editForm.limits?.allowConcurrent || false}
+                                            onCheckedChange={(checked: boolean) => handleLimitChange('allowConcurrent', checked)}
+                                            className="data-[state=checked]:bg-primary"
+                                        />
                                     </div>
                                 </TabsContent>
                             </Tabs>
@@ -641,13 +687,21 @@ export default function PlanManagementPage() {
                             <div className="p-6 rounded-3xl bg-primary/5 border border-primary/20 mt-8 space-y-4">
                                 {selectedPlan && selectedPlan.pricePerYear > 0 && (
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-primary/10">
-                                        <div className="text-xs text-muted-foreground">
-                                            Razorpay:{' '}
-                                            {selectedPlan.razorpayPlanId ? (
-                                                <span className="text-emerald-400 font-mono">{selectedPlan.razorpayPlanId}</span>
-                                            ) : (
-                                                <span className="text-amber-400 font-semibold">Not linked — auto-renew disabled</span>
-                                            )}
+                                        <div className="text-xs text-muted-foreground space-y-1">
+                                            <p>
+                                                Razorpay charge:{' '}
+                                                <span className="text-foreground font-semibold">
+                                                    {formatRazorpayCharge(editForm as Plan)}
+                                                </span>
+                                            </p>
+                                            <p>
+                                                Linked plan:{' '}
+                                                {editForm.razorpayPlanId ? (
+                                                    <span className="text-emerald-400 font-mono">{editForm.razorpayPlanId}</span>
+                                                ) : (
+                                                    <span className="text-amber-400 font-semibold">Not linked — sync required after price/GST changes</span>
+                                                )}
+                                            </p>
                                         </div>
                                         <Button
                                             type="button"
@@ -704,7 +758,7 @@ export default function PlanManagementPage() {
                         <DialogHeader>
                             <DialogTitle>Create New Plan</DialogTitle>
                             <DialogDescription>
-                                Set the essentials. Paid plans need a Razorpay sync before users can subscribe with auto-renew (GST included in billing amount).
+                                Set the essentials. Paid plans need a Razorpay sync before users can subscribe with auto-renew. Choose whether GST is included in the price or added on top.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -778,9 +832,27 @@ export default function PlanManagementPage() {
                                     value={newPlan.gstPercent ?? 18}
                                     onChange={(e) => updateNewPlanField('gstPercent', parseFloat(e.target.value) || 0)}
                                 />
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                                    Shown to users as +GST at checkout (0 = no GST)
-                                </p>
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label>GST Treatment</Label>
+                                <select
+                                    value={newPlan.gstIncluded ? 'included' : 'excluded'}
+                                    onChange={(e) => updateNewPlanField('gstIncluded', e.target.value === 'included')}
+                                    className="w-full bg-card/50 border border-border/50 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                >
+                                    <option value="included">Included — entered price is final (GST inside)</option>
+                                    <option value="excluded">Excluded — GST added on top at checkout</option>
+                                </select>
+                                {(newPlan.pricePerYear ?? 0) > 0 && (newPlan.gstPercent ?? 0) > 0 && (
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                        Customer pays: {getCurrencySymbol(newPlan.currency || 'INR')}
+                                        {calculateTotalWithGst(
+                                            newPlan.pricePerYear ?? 0,
+                                            getGstPercent(newPlan),
+                                            isGstIncluded(newPlan),
+                                        ).toFixed(2)}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -811,35 +883,31 @@ export default function PlanManagementPage() {
                                 </p>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>Max Pending Releases</Label>
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    value={newPlan.limits?.maxPendingReleases ?? 1}
-                                    onChange={(e) => updateNewPlanLimit('maxPendingReleases', parseInt(e.target.value) || 0)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Max Artists</Label>
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    value={newPlan.limits?.maxArtists ?? 1}
-                                    onChange={(e) => updateNewPlanLimit('maxArtists', parseInt(e.target.value) || 0)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Max Storage (GB)</Label>
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    value={newPlan.limits?.maxStorageGB ?? 1}
-                                    onChange={(e) => updateNewPlanLimit('maxStorageGB', parseInt(e.target.value) || 0)}
-                                />
-                            </div>
-                            <div className="space-y-2 flex items-end">
-                                <div className="flex items-center justify-between w-full">
+                            <div className="md:col-span-2 pt-2">
+                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/70 mb-4">
+                                    Plan Limits
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Max Pending Releases</Label>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={newPlan.limits?.maxPendingReleases ?? 1}
+                                            onChange={(e) => updateNewPlanLimit('maxPendingReleases', parseInt(e.target.value) || 0)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Max Artists</Label>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={newPlan.limits?.maxArtists ?? 1}
+                                            onChange={(e) => updateNewPlanLimit('maxArtists', parseInt(e.target.value) || 0)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mt-4 rounded-2xl border border-border/80 bg-card/30 p-4 flex items-center justify-between gap-4">
                                     <Label>Allow Concurrent Uploads</Label>
                                     <Switch
                                         checked={newPlan.limits?.allowConcurrent ?? false}

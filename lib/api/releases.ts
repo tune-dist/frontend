@@ -140,6 +140,7 @@ export interface TrackPayload {
 
 export interface Release {
   _id: string;
+  releaseCode?: string;
   userId: string | { _id: string; email: string; fullName: string };
   status: ReleaseStatus;
   title: string;
@@ -297,6 +298,7 @@ export interface GetReleasesParams {
   page?: number;
   limit?: number;
   userId?: string;
+  search?: string;
 }
 
 // Process and submit new release with file uploads

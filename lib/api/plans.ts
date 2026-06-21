@@ -16,8 +16,10 @@ export interface Plan {
   title: string;
   pricePerYear: number;
   royaltyPercent: number;
-  /** GST % added on top of pricePerYear at checkout (e.g. 18). */
+  /** GST % (e.g. 18). Meaning depends on gstIncluded. */
   gstPercent?: number;
+  /** When true, pricePerYear is final (GST inside). When false, GST is added on top. */
+  gstIncluded?: boolean;
   limits: PlanLimits;
   fieldRules: Record<string, any>;
   version: number;
@@ -94,18 +96,43 @@ export function getGstPercent(plan: Pick<Plan, 'gstPercent'>): number {
   return plan.gstPercent ?? 0;
 }
 
-export function calculateGstAmount(basePrice: number, gstPercent: number): number {
+export function isGstIncluded(plan: Pick<Plan, 'gstIncluded'>): boolean {
+  return plan.gstIncluded ?? false;
+}
+
+export function calculateGstAmount(
+  basePrice: number,
+  gstPercent: number,
+  gstIncluded = false,
+): number {
   if (!gstPercent || basePrice <= 0) return 0;
+  if (gstIncluded) {
+    const base = basePrice / (1 + gstPercent / 100);
+    return basePrice - base;
+  }
   return basePrice * (gstPercent / 100);
 }
 
-export function calculateTotalWithGst(basePrice: number, gstPercent: number): number {
-  return basePrice + calculateGstAmount(basePrice, gstPercent);
+export function calculateTotalWithGst(
+  pricePerYear: number,
+  gstPercent: number,
+  gstIncluded = false,
+): number {
+  if (pricePerYear <= 0) return 0;
+  if (!gstPercent || gstIncluded) return pricePerYear;
+  return pricePerYear + calculateGstAmount(pricePerYear, gstPercent, false);
 }
 
-/** e.g. "+18% GST" */
-export function formatGstLabel(gstPercent: number): string {
+export function getPlanTotalWithGst(
+  plan: Pick<Plan, 'pricePerYear' | 'gstPercent' | 'gstIncluded'>,
+): number {
+  return calculateTotalWithGst(plan.pricePerYear, getGstPercent(plan), isGstIncluded(plan));
+}
+
+/** e.g. "+18% GST" or "18% GST included" */
+export function formatGstLabel(gstPercent: number, gstIncluded = false): string {
   if (!gstPercent || gstPercent <= 0) return '';
+  if (gstIncluded) return `${gstPercent}% GST included`;
   return `+${gstPercent}% GST`;
 }
 

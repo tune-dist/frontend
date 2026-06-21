@@ -72,7 +72,8 @@ import {
   getReleaseStatusColor,
   sanitizeReleaseError,
 } from "@/lib/release-status";
-import { formatUpcDisplay, formatIsrcListDisplay } from "@/lib/release-codes";
+import { formatReleaseCodeDisplay } from "@/lib/release-codes";
+import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 
 // Animation variants
 const containerVariants = {
@@ -116,6 +117,8 @@ export default function ReleasesPage() {
   >(null);
   const [rejectDialog, setRejectDialog] = useState<{ id: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const { user } = useAuth();
   const router = useRouter();
@@ -138,6 +141,10 @@ export default function ReleasesPage() {
         params.userId = selectedUserId;
       } else if (user?._id && !canManage) {
         params.userId = user._id;
+      }
+
+      if (debouncedSearch) {
+        params.search = debouncedSearch;
       }
 
       const response = await getReleases(params);
@@ -164,12 +171,17 @@ export default function ReleasesPage() {
   };
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
     setPage(1);
-  }, [statusFilter, selectedUserId]);
+  }, [statusFilter, selectedUserId, debouncedSearch]);
 
   useEffect(() => {
     fetchReleases();
-  }, [statusFilter, selectedUserId, page]);
+  }, [statusFilter, selectedUserId, page, debouncedSearch]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -313,8 +325,19 @@ export default function ReleasesPage() {
         </motion.div>
 
         <motion.div variants={itemVariants}>
+          <PageSearchSection>
+            <PageSearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by title, artist, release ID, UPC, or ISRC..."
+            />
+          </PageSearchSection>
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
           <Card className="glass-card overflow-hidden">
             <CardHeader className="border-b border-border/50 bg-primary/5 pb-6">
+              <div className="space-y-4">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
 
                 {canManage && (
@@ -338,7 +361,9 @@ export default function ReleasesPage() {
               <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-4">
                 <CardDescription className="flex items-center gap-2 text-sm font-medium">
                   <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
-                  {totalReleases} total releases found
+                  {debouncedSearch
+                    ? `${totalReleases} matching release${totalReleases !== 1 ? "s" : ""}`
+                    : `${totalReleases} total releases found`}
                 </CardDescription>
 
                 <div className="flex flex-col gap-2">
@@ -361,6 +386,7 @@ export default function ReleasesPage() {
                   </div>
                 </div>
               </div>
+              </div>
             </CardHeader>
 
             <CardContent className="p-0">
@@ -380,7 +406,7 @@ export default function ReleasesPage() {
                         <TableHead className="w-[100px] pl-6 font-bold uppercase tracking-wider text-[10px]">Poster</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Title</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Artist</TableHead>
-                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">UPC/ISRC</TableHead>
+                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">Release ID</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Status</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Reviewed By</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">WorldWide DSP</TableHead>
@@ -432,10 +458,9 @@ export default function ReleasesPage() {
                             <TableCell className="font-bold text-foreground/90">{release.title}</TableCell>
                             <TableCell className="text-muted-foreground">{release.artistName}</TableCell>
                             <TableCell>
-                              <div className="flex flex-col gap-1 text-[10px] text-muted-foreground font-mono">
-                                <span className="px-1.5 py-0.5 rounded bg-muted/50 w-fit">UPC: {formatUpcDisplay(release)}</span>
-                                <span className="px-1.5 py-0.5 rounded bg-muted/50 w-fit">ISRC: {formatIsrcListDisplay(release)}</span>
-                              </div>
+                              <span className="px-2 py-1 rounded bg-muted/50 text-[11px] text-muted-foreground font-mono font-semibold w-fit">
+                                {formatReleaseCodeDisplay(release)}
+                              </span>
                             </TableCell>
                             <TableCell>
                               <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}>

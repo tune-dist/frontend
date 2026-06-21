@@ -2,10 +2,22 @@
 
 export interface ReleaseCodeSource {
   status?: string;
+  releaseCode?: string;
   barcode?: string;
   upc?: string;
   isrc?: string;
   tracks?: Array<{ isrc?: string }>;
+}
+
+/** KratoLib public release identity, e.g. ABC000001 */
+export function formatReleaseCodeDisplay(
+  release: ReleaseCodeSource,
+): string {
+  const code = release.releaseCode?.trim();
+  if (code) {
+    return code;
+  }
+  return release.status === 'Draft' ? 'Pending' : '—';
 }
 
 /** Collect unique ISRC values from release root and tracks. */

@@ -3,13 +3,14 @@
 import {
   Plan,
   getGstPercent,
+  isGstIncluded,
   formatGstLabel,
-  calculateTotalWithGst,
+  getPlanTotalWithGst,
   currencySymbol,
 } from '@/lib/api/plans';
 
 interface PlanGstNoteProps {
-  plan: Pick<Plan, 'pricePerYear' | 'gstPercent' | 'currency'>;
+  plan: Pick<Plan, 'pricePerYear' | 'gstPercent' | 'gstIncluded' | 'currency'>;
   /** Show "Total ₹X incl. GST" below the label */
   showTotal?: boolean;
   className?: string;
@@ -21,12 +22,14 @@ export function PlanGstNote({ plan, showTotal = false, className = '' }: PlanGst
     return null;
   }
 
+  const gstIncluded = isGstIncluded(plan);
   const symbol = currencySymbol(plan.currency);
-  const total = calculateTotalWithGst(plan.pricePerYear, gstPercent);
+  const total = getPlanTotalWithGst(plan);
+  const label = formatGstLabel(gstPercent, gstIncluded);
 
   return (
     <div className={`text-xs text-muted-foreground ${className}`.trim()}>
-      <p>{formatGstLabel(gstPercent)} applicable</p>
+      <p>{gstIncluded ? label : `${label} applicable`}</p>
       {showTotal && (
         <p className="font-medium text-foreground/80 mt-0.5">
           Total {symbol}{total.toFixed(2)} incl. GST

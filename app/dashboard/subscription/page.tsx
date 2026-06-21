@@ -33,7 +33,7 @@ import {
     PaymentHistoryItem,
     CancelSubscriptionResponse,
 } from '@/lib/api/payments'
-import { getAllPlans, Plan, calculateTotalWithGst, getGstPercent, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans'
+import { getAllPlans, Plan, getPlanTotalWithGst, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users'
 import apiClient from '@/lib/api-client'
@@ -309,7 +309,7 @@ export default function SubscriptionPage() {
     const baseArtistLimit = resolvedPlanDetails?.limits?.maxArtists ?? 0
     const effectiveArtistLimit = effective?.maxArtists ?? baseArtistLimit + extraArtistSlots
     const planPriceInPaise = Math.round(
-        calculateTotalWithGst(resolvedPlanDetails?.pricePerYear ?? 0, getGstPercent(resolvedPlanDetails ?? {})) * 100,
+        getPlanTotalWithGst(resolvedPlanDetails ?? { pricePerYear: 0 }) * 100,
     )
     const addonsTotalInPaise = extraArtistSlots * ARTIST_ADDON_PRICE_INR * 100
     const billedTotalInPaise = planPriceInPaise + addonsTotalInPaise

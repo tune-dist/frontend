@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,9 +36,10 @@ import {
     Youtube,
     Music,
 } from "lucide-react";
-import { getYouTubeRequests, YouTubeServiceRequest, updateYouTubeRequestStatus, YouTubeRequestStatus, buildYouTubeExportRows, getStatusLabel } from "@/lib/api/youtube-service";
+import { getYouTubeRequests, YouTubeServiceRequest, updateYouTubeRequestStatus, YouTubeRequestStatus, buildYouTubeExportRows, getStatusLabel, getReleaseIdDisplay } from "@/lib/api/youtube-service";
 import { isStaffUser } from "@/lib/permissions";
 import RequestModal from "@/components/dashboard/youtube-service/request-modal";
+import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 import { CheckCircle, XCircle, Ban, MessageSquare, Download, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -63,6 +64,40 @@ const itemVariants = {
     },
 };
 
+const COMMENT_PREVIEW_LENGTH = 60;
+
+function getCommentPreview(text: string) {
+    if (text.length <= COMMENT_PREVIEW_LENGTH) return text;
+    return `${text.slice(0, COMMENT_PREVIEW_LENGTH).trim()}...`;
+}
+
+function matchesYouTubeSearch(request: YouTubeServiceRequest, query: string) {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+
+    const song = (request.songName || request.albumTrackTitle || "").toLowerCase();
+    const releaseId = getReleaseIdDisplay(request).toLowerCase();
+    const status = getStatusLabel(request.status).toLowerCase();
+    const comment = (request.rejectionReason || "").toLowerCase();
+    const links = request.infringingLinks.join(" ").toLowerCase();
+
+    let userText = "";
+    if (typeof request.userId === "object" && request.userId) {
+        userText = [
+            request.userId.fullName,
+            request.userId.email,
+            request.userId.userCode,
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+    }
+
+    return [song, releaseId, status, comment, links, userText].some((field) =>
+        field.includes(q)
+    );
+}
+
 export default function YouTubeServicePage() {
     const [requests, setRequests] = useState<YouTubeServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -71,18 +106,16 @@ export default function YouTubeServicePage() {
     const [approveDialogId, setApproveDialogId] = useState<string | null>(null);
     const [rejectDialog, setRejectDialog] = useState<{ id: string } | null>(null);
     const [rejectReason, setRejectReason] = useState("");
+    const [commentDialog, setCommentDialog] = useState<{ text: string; title?: string } | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
     const { user } = useAuth();
 
     const isStaff = isStaffUser(user);
-    const isArtist = user?.role === "artist";
+    const canSubmitClaim = !isStaff;
 
-    const isLimited = (user?.plan === 'free' || user?.plan === 'solo') && user?.role === 'artist';
-    const approvedCount = requests.filter(r => r.status === 'Approved').length;
-    const totalCount = requests.length;
-
-    const hasHitLimit = isLimited && (
-        (approvedCount === 0 && totalCount >= 1) ||
-        (approvedCount >= 1 && totalCount >= 2)
+    const filteredRequests = useMemo(
+        () => requests.filter((request) => matchesYouTubeSearch(request, searchQuery)),
+        [requests, searchQuery]
     );
 
     const fetchRequests = async () => {
@@ -153,7 +186,7 @@ export default function YouTubeServicePage() {
     };
 
     const handleExportExcel = () => {
-        const data = buildYouTubeExportRows(requests);
+        const data = buildYouTubeExportRows(filteredRequests);
 
         if (data.length === 0) {
             toast.error("No accepted claims to export");
@@ -198,10 +231,7 @@ export default function YouTubeServicePage() {
                             YouTube <span className="animated-gradient">Service</span>
                         </h1>
                         <p className="text-muted-foreground">
-                            {hasHitLimit 
-                                ? "You have reached the maximum number of requests for your plan"
-                                : "Manage your YouTube content claims and takedowns"
-                            }
+                            Manage your YouTube content claims and takedowns
                         </p>
                     </div>
                     <div className="flex gap-3">
@@ -216,7 +246,7 @@ export default function YouTubeServicePage() {
                                 Export Excel
                             </Button>
                         )}
-                        {isArtist && !loading && !hasHitLimit && (
+                        {canSubmitClaim && (
                             <Button size="lg" className="gap-2" onClick={() => setIsModalOpen(true)}>
                                 <Plus className="h-4 w-4" />
                                 Send request form
@@ -225,21 +255,34 @@ export default function YouTubeServicePage() {
                     </div>
                 </motion.div>
 
+                <motion.div variants={itemVariants}>
+                    <PageSearchSection>
+                        <PageSearchBar
+                            value={searchQuery}
+                            onChange={setSearchQuery}
+                            placeholder={
+                                isStaff
+                                    ? "Search by song, user, release ID, URL, or status..."
+                                    : "Search by song, release ID, URL, or status..."
+                            }
+                        />
+                    </PageSearchSection>
+                </motion.div>
+
                 {/* Requests Table */}
                 <motion.div variants={itemVariants}>
                     <Card className="glass-card">
                         <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Youtube className="h-5 w-5 text-red-600" />
-                                        All Rights Issues
-                                    </CardTitle>
-                                    <CardDescription className="mt-1">
-                                        {requests.length} request{requests.length !== 1 ? "s" : ""}{" "}
-                                        found
-                                    </CardDescription>
-                                </div>
+                            <div>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Youtube className="h-5 w-5 text-red-600" />
+                                    All Rights Issues
+                                </CardTitle>
+                                <CardDescription className="mt-1">
+                                    {searchQuery.trim()
+                                        ? `${filteredRequests.length} of ${requests.length} request${requests.length !== 1 ? "s" : ""} found`
+                                        : `${requests.length} request${requests.length !== 1 ? "s" : ""} found`}
+                                </CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -254,8 +297,7 @@ export default function YouTubeServicePage() {
                                             <TableRow>
                                                 {isStaff && <TableHead>USER</TableHead>}
                                                 <TableHead>SONG</TableHead>
-                                                <TableHead>ISRC</TableHead>
-                                                <TableHead>UPC</TableHead>
+                                                <TableHead>RELEASE ID</TableHead>
                                                 <TableHead>YOUTUBE URL</TableHead>
                                                 <TableHead>STATUS</TableHead>
                                                 <TableHead>COMMENT</TableHead>
@@ -263,25 +305,29 @@ export default function YouTubeServicePage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {requests.length === 0 ? (
+                                            {filteredRequests.length === 0 ? (
                                                 <TableRow>
                                                     <TableCell
-                                                        colSpan={isStaff ? 8 : 6}
+                                                        colSpan={isStaff ? 7 : 5}
                                                         className="text-center text-muted-foreground py-12"
                                                     >
                                                         <div className="flex flex-col items-center gap-2">
                                                             <Youtube className="h-12 w-12 text-muted-foreground/50" />
                                                             <p className="text-lg font-medium">
-                                                                No requests found
+                                                                {searchQuery.trim()
+                                                                    ? "No matching requests found"
+                                                                    : "No requests found"}
                                                             </p>
                                                             <p className="text-sm">
-                                                                Start by sending your first request form
+                                                                {searchQuery.trim()
+                                                                    ? "Try a different search term"
+                                                                    : "Start by sending your first request form"}
                                                             </p>
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>
                                             ) : (
-                                                requests.map((request) => (
+                                                filteredRequests.map((request) => (
                                                     <TableRow key={request._id}>
                                                         {isStaff && (
                                                             <TableCell>
@@ -299,10 +345,7 @@ export default function YouTubeServicePage() {
                                                             {request.songName || request.albumTrackTitle}
                                                         </TableCell>
                                                         <TableCell className="text-sm font-mono">
-                                                            {request.isrc || "-"}
-                                                        </TableCell>
-                                                        <TableCell className="text-sm font-mono">
-                                                            {request.upc}
+                                                            {getReleaseIdDisplay(request)}
                                                         </TableCell>
                                                         <TableCell className="text-sm max-w-[220px]">
                                                             <div className="space-y-1">
@@ -331,10 +374,22 @@ export default function YouTubeServicePage() {
                                                         </TableCell>
                                                         <TableCell className="max-w-[200px]">
                                                             {request.rejectionReason ? (
-                                                                <div className="flex items-start gap-1 text-xs text-muted-foreground bg-muted/50 p-2 rounded border border-border/50">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setCommentDialog({
+                                                                            text: request.rejectionReason!,
+                                                                            title: request.songName || request.albumTrackTitle,
+                                                                        })
+                                                                    }
+                                                                    className="flex items-start gap-1 text-xs text-left text-muted-foreground bg-muted/50 p-2 rounded border border-border/50 hover:bg-muted/80 hover:border-border transition-colors w-full cursor-pointer"
+                                                                    title="Click to view full comment"
+                                                                >
                                                                     <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
-                                                                    <span className="italic">"{request.rejectionReason}"</span>
-                                                                </div>
+                                                                    <span className="italic line-clamp-2">
+                                                                        &ldquo;{getCommentPreview(request.rejectionReason)}&rdquo;
+                                                                    </span>
+                                                                </button>
                                                             ) : (
                                                                 <span className="text-muted-foreground/30">-</span>
                                                             )}
@@ -483,6 +538,30 @@ export default function YouTubeServicePage() {
                             ) : (
                                 "Reject"
                             )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={commentDialog !== null}
+                onOpenChange={(open) => {
+                    if (!open) setCommentDialog(null);
+                }}
+            >
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Comment</DialogTitle>
+                        {commentDialog?.title && (
+                            <DialogDescription>{commentDialog.title}</DialogDescription>
+                        )}
+                    </DialogHeader>
+                    <div className="text-sm text-foreground/90 bg-muted/50 p-4 rounded-lg border border-border/50 whitespace-pre-wrap break-words leading-relaxed">
+                        {commentDialog?.text}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setCommentDialog(null)}>
+                            Close
                         </Button>
                     </DialogFooter>
                 </DialogContent>

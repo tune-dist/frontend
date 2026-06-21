@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -49,6 +49,7 @@ import {
   getVerificationStatusLabel,
 } from "@/lib/api/profile-verifications";
 import { getDisplayUrl } from "@/lib/api/s3";
+import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -84,6 +85,24 @@ function getStatusColor(status: VerificationRequestStatus) {
   }
 }
 
+function matchesVerificationSearch(
+  request: ProfileVerificationRequest,
+  query: string,
+) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  const userName = (request.user?.fullName || "").toLowerCase();
+  const userEmail = (request.user?.email || "").toLowerCase();
+  const documentType = getDocumentTypeLabel(request.documentType).toLowerCase();
+  const status = getVerificationStatusLabel(request.status).toLowerCase();
+  const comment = (request.rejectionReason || "").toLowerCase();
+
+  return [userName, userEmail, documentType, status, comment].some((field) =>
+    field.includes(q),
+  );
+}
+
 export default function VerificationsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -94,8 +113,14 @@ export default function VerificationsPage() {
   const [rejectDialog, setRejectDialog] = useState<{ id: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [viewingDoc, setViewingDoc] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const isStaff = isStaffUser(user);
+
+  const filteredRequests = useMemo(
+    () => requests.filter((request) => matchesVerificationSearch(request, searchQuery)),
+    [requests, searchQuery],
+  );
 
   useEffect(() => {
     if (!authLoading && user && !isStaff) {
@@ -205,6 +230,16 @@ export default function VerificationsPage() {
         </motion.div>
 
         <motion.div variants={itemVariants}>
+          <PageSearchSection>
+            <PageSearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by artist name, email, document, or status..."
+            />
+          </PageSearchSection>
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -212,7 +247,9 @@ export default function VerificationsPage() {
                 Verification Requests
               </CardTitle>
               <CardDescription>
-                {requests.length} request{requests.length !== 1 ? "s" : ""} found
+                {searchQuery.trim()
+                  ? `${filteredRequests.length} of ${requests.length} request${requests.length !== 1 ? "s" : ""} found`
+                  : `${requests.length} request${requests.length !== 1 ? "s" : ""} found`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -234,7 +271,7 @@ export default function VerificationsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {requests.length === 0 ? (
+                      {filteredRequests.length === 0 ? (
                         <TableRow>
                           <TableCell
                             colSpan={6}
@@ -242,12 +279,16 @@ export default function VerificationsPage() {
                           >
                             <div className="flex flex-col items-center gap-2">
                               <Shield className="h-12 w-12 text-muted-foreground/50" />
-                              <p className="text-lg font-medium">No verification requests</p>
+                              <p className="text-lg font-medium">
+                                {searchQuery.trim()
+                                  ? "No matching verification requests"
+                                  : "No verification requests"}
+                              </p>
                             </div>
                           </TableCell>
                         </TableRow>
                       ) : (
-                        requests.map((request) => (
+                        filteredRequests.map((request) => (
                           <TableRow key={request.id}>
                             <TableCell>
                               <div className="flex flex-col">

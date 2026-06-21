@@ -20,6 +20,7 @@ export interface LoginData {
 
 export interface User {
   _id: string;
+  userCode?: string;
   email: string;
   fullName: string;
   plan: 'free' | 'solo' | 'pro' | 'enterprise';
