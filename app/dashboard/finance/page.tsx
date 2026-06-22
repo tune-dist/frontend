@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import DashboardLayout from '@/components/dashboard/dashboard-layout';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import PageLoading from '@/components/dashboard/page-loading';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,12 +19,27 @@ import {
     Banknote,
     Navigation,
     CheckCircle2,
+    Loader2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { canViewBilling } from '@/lib/permissions';
 
 export default function FinancePage() {
+    const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState('all');
+
+    useEffect(() => {
+        if (!authLoading && user && !canViewBilling(user)) {
+            router.push('/dashboard');
+        }
+    }, [authLoading, user, router]);
+
+    if (authLoading || !user || !canViewBilling(user)) {
+        return <PageLoading />;
+    }
 
     const transactions = [
         {
@@ -68,7 +84,6 @@ export default function FinancePage() {
     ];
 
     return (
-        <DashboardLayout>
             <div className="space-y-8 p-4 lg:p-6 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -245,6 +260,5 @@ export default function FinancePage() {
                     </Card>
                 </div>
             </div>
-        </DashboardLayout>
     );
 }

@@ -1,4 +1,6 @@
 import apiClient from '../api-client';
+import axios from 'axios';
+import { config } from '../config';
 
 export interface RegisterData {
   email: string;
@@ -18,6 +20,7 @@ export interface LoginData {
 
 export interface User {
   _id: string;
+  userCode?: string;
   email: string;
   fullName: string;
   plan: 'free' | 'solo' | 'pro' | 'enterprise';
@@ -41,6 +44,10 @@ export interface User {
   updatedAt: string;
   phoneNumber?: string;
   isPhoneVerified?: boolean;
+  isPhoneNumberVerified?: boolean;
+  isPanVerified?: boolean;
+  isAadharVerified?: boolean;
+  isProfileVerified?: boolean;
   phoneOtpExpiresAt?: string;
   address?: string;
   addressProof?: {
@@ -54,6 +61,16 @@ export interface User {
     uploadedAt: string;
   };
   selfieWithPassport?: {
+    url: string;
+    filename: string;
+    uploadedAt: string;
+  };
+  pan?: {
+    url: string;
+    filename: string;
+    uploadedAt: string;
+  };
+  aadhar?: {
     url: string;
     filename: string;
     uploadedAt: string;
@@ -80,6 +97,7 @@ export interface RegisterResponse {
 interface RefreshResponse {
   access_token: string;
   refresh_token: string;
+  user?: User;
 }
 
 export interface LoginResponse {
@@ -126,7 +144,11 @@ export const resendOtp = async (data: ResendOtpData): Promise<{ message: string 
 
 // Refresh token
 export const refreshToken = async (token: string): Promise<RefreshResponse> => {
-  const response = await apiClient.post<RefreshResponse>('/auth/refresh', { refresh_token: token });
+  const response = await axios.post<RefreshResponse>(
+    `${config.apiUrl}/auth/refresh`,
+    { refresh_token: token },
+    { headers: { 'Content-Type': 'application/json' } },
+  );
   return response.data;
 };
 

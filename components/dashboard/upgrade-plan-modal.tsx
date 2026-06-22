@@ -7,6 +7,8 @@ import { X, Check, Loader2, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAllPlans, Plan, currencySymbol, derivePeriodLabel } from '@/lib/api/plans'
+import { PlanGstNote } from '@/components/plans/plan-gst-note'
+import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
@@ -23,6 +25,10 @@ interface UpgradePlanModalProps {
     // selecting a different plan goes through /payments/upgrade-plan (cancels old,
     // creates new). Otherwise we treat it as a fresh subscription via create-order.
     hasActiveSubscription?: boolean
+    /** When cancelled, user may renew/re-purchase the same plan before expiry. */
+    subscriptionStatus?: 'active' | 'cancelled'
+    /** Called after a successful payment so the parent can refetch subscription data. */
+    onPaymentSuccess?: () => void | Promise<void>
 }
 
 // Helper to normalize keys for comparison
@@ -31,12 +37,12 @@ const normalizeKey = (key?: string) => key?.toLowerCase().replace(/_/g, '-') || 
 const ENTERPRISE_PLAN_KEY = 'enterprise'
 const isEnterprisePlan = (plan: Plan) => normalizeKey(plan.key) === ENTERPRISE_PLAN_KEY
 
-export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'free', targetPlanKey, title, subtitle, hasActiveSubscription = false }: UpgradePlanModalProps) {
+export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'free', targetPlanKey, title, subtitle, hasActiveSubscription = false, subscriptionStatus, onPaymentSuccess }: UpgradePlanModalProps) {
     const [plans, setPlans] = useState<Plan[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
     const [confirmingPlan, setConfirmingPlan] = useState<Plan | null>(null)
-    const [isAutoPay] = useState(true)
+    const [isAutoPay, setIsAutoPay] = useState(true)
     const { initiatePayment, isLoading: paymentLoading } = useRazorpay()
     const { user, refreshUser } = useAuth()
     const router = useRouter()
@@ -75,6 +81,13 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
         return normalizeKey(plan.key) === normalizeKey(currentPlanKey)
     }
 
+    /** Block re-select only while subscription is actively billing — cancelled users can renew. */
+    const isCurrentPlanLocked = (plan: Plan) =>
+        isCurrentPlan(plan) && hasActiveSubscription && subscriptionStatus !== 'cancelled'
+
+    const isCurrentPlanRenewable = (plan: Plan) =>
+        isCurrentPlan(plan) && subscriptionStatus === 'cancelled'
+
     const currentPlanPrice = (() => {
         const current = plans.find(p => isCurrentPlan(p))
         return current ? current.pricePerYear : 0
@@ -85,8 +98,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
         !isCurrentPlan(plan) && !isEnterprisePlan(plan) && plan.pricePerYear < currentPlanPrice
 
     const handleSelectPlan = async (plan: Plan) => {
-        // Don't allow selecting current plan
-        if (isCurrentPlan(plan)) {
+        if (isCurrentPlanLocked(plan)) {
             toast('You are already on this plan')
             return
         }
@@ -126,19 +138,16 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                     name: user?.fullName,
                     email: user?.email,
                 },
-                { isUpgrade: hasActiveSubscription },
+                { isUpgrade: hasActiveSubscription, isAutoPay },
             )
 
             if (result?.success) {
                 toast.success('Payment successful! Your plan has been upgraded.')
-                // Refresh user data to get updated plan info
                 await refreshUser()
+                await onPaymentSuccess?.()
                 setConfirmingPlan(null)
                 onClose()
-                // Refresh the page to show updated subscription
                 router.refresh()
-            } else {
-                toast.error('Payment was not completed')
             }
         } catch (error) {
             console.error('Payment error:', error)
@@ -149,7 +158,8 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
     }
 
     const getButtonLabel = (plan: Plan) => {
-        if (isCurrentPlan(plan)) return 'Current Plan'
+        if (isCurrentPlanRenewable(plan)) return 'Renew Plan'
+        if (isCurrentPlanLocked(plan)) return 'Current Plan'
         if (isEnterprisePlan(plan)) return plan.ctaLabel || 'Contact Us'
         if (isPlanDowngrade(plan)) return 'Contact support to downgrade'
         if (plan.pricePerYear === 0) return 'Free'
@@ -159,7 +169,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex justify-center items-start overflow-y-auto p-4 sm:p-6 pt-10 sm:pt-20">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -172,11 +182,11 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ duration: 0.2 }}
-                        className="relative w-auto max-w-[95vw] flex flex-col z-50 mb-10 sm:mb-20"
+                        className="relative z-50 flex w-full max-w-[min(1200px,95vw)] max-h-[min(90vh,calc(100dvh-2rem))] flex-col"
                     >
-                        <div className="bg-[#0f172a] border border-border shadow-2xl relative flex flex-col overflow-hidden rounded-xl">
+                        <div className="bg-[#0f172a] border border-border shadow-2xl relative flex flex-col overflow-hidden rounded-xl max-h-full min-h-0">
                             {/* Header and Close Button */}
-                            <div className="p-6 pb-2 shrink-0">
+                            <div className="p-6 pb-2 shrink-0 border-b border-border/40">
                                 <button
                                     onClick={onClose}
                                     disabled={paymentLoading}
@@ -194,7 +204,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                 </div>
                             </div>
 
-                            <div className="p-6 pt-4">
+                            <div className="flex-1 overflow-y-auto overscroll-contain p-6 pt-4 min-h-0">
                                 {confirmingPlan ? (
                                     <div className="flex flex-col max-w-md mx-auto py-2">
                                         <div className="text-center mb-6">
@@ -212,30 +222,14 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                 </div>
                                                 <span className="text-2xl font-black text-primary">{confirmingPlan.priceDisplay}</span>
                                             </div>
-                                            
-                                            {/* <div className="mt-5">
-                                                <p className="text-sm font-semibold text-foreground mb-3">Select Billing Frequency</p>
-                                                
-                                                <div className="grid grid-cols-2 gap-3 w-full">
-                                                    <div 
-                                                        onClick={() => setIsAutoPay(true)} 
-                                                        className={`cursor-pointer rounded-lg border-2 p-2.5 flex flex-col items-center justify-center transition-all ${isAutoPay ? 'border-primary bg-primary/5' : 'border-border bg-transparent hover:bg-muted/50'}`}
-                                                    >
-                                                        <RefreshCw className={`h-4 w-4 mb-1.5 ${isAutoPay ? 'text-primary' : 'text-muted-foreground'}`} />
-                                                        <span className={`font-semibold text-xs ${isAutoPay ? 'text-foreground' : 'text-muted-foreground'}`}>Subscription</span>
-                                                        <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">Billed annually</span>
-                                                    </div>
-                                                    
-                                                    <div 
-                                                        onClick={() => setIsAutoPay(false)} 
-                                                        className={`cursor-pointer rounded-lg border-2 p-2.5 flex flex-col items-center justify-center transition-all ${!isAutoPay ? 'border-primary bg-primary/5' : 'border-border bg-transparent hover:bg-muted/50'}`}
-                                                    >
-                                                        <CreditCard className={`h-4 w-4 mb-1.5 ${!isAutoPay ? 'text-primary' : 'text-muted-foreground'}`} />
-                                                        <span className={`font-semibold text-xs ${!isAutoPay ? 'text-foreground' : 'text-muted-foreground'}`}>One-time Pass</span>
-                                                        <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">1 year access</span>
-                                                    </div>
-                                                </div>
-                                            </div> */}
+                                            <PlanGstNote plan={confirmingPlan} showTotal className="mt-3" />
+
+                                            <div className="mt-5">
+                                                <BillingTypeToggle
+                                                    isAutoPay={isAutoPay}
+                                                    onChange={setIsAutoPay}
+                                                />
+                                            </div>
                                         </div>
                                         
                                         <div className="flex gap-4 w-full">
@@ -256,27 +250,38 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                         <Loader2 className="h-8 w-8 animate-spin" />
                                     </div>
                                 ) : plans.length > 0 ? (
-                                    <div className="flex flex-wrap justify-center gap-4 items-stretch">
+                                    <div className="flex flex-wrap justify-center gap-4 items-stretch pb-2">
                                         {plans.map((plan) => {
                                             const current = isCurrentPlan(plan)
+                                            const locked = isCurrentPlanLocked(plan)
+                                            const renewable = isCurrentPlanRenewable(plan)
                                             return (
                                             <Card
                                                 key={plan.key}
-                                                className={`flex flex-col w-full sm:w-[260px] transition-all relative ${current
+                                                className={`flex flex-col w-full sm:w-[260px] shrink-0 transition-all relative ${locked
                                                     ? 'border-primary border-2 shadow-lg shadow-primary/20 bg-primary/5 ring-2 ring-primary/40'
+                                                    : renewable
+                                                        ? 'border-orange-500/60 border-2 shadow-md bg-orange-500/5'
                                                     : plan.isPopular
                                                         ? 'border-primary border-2 shadow-md border-border/50 hover:border-primary/50'
                                                         : 'border-border/50 hover:border-primary/50'
                                                     }`}
                                             >
-                                                {current && (
+                                                {locked && (
                                                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
                                                         <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
                                                             Current Plan
                                                         </span>
                                                     </div>
                                                 )}
-                                                {!current && plan.isPopular && (
+                                                {renewable && (
+                                                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                                                        <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                                                            Renew Available
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {!locked && !renewable && plan.isPopular && (
                                                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
                                                         <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
                                                             Popular
@@ -298,6 +303,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                             <span className="text-muted-foreground text-xs">{label}</span>
                                                         ) : null
                                                     })()}
+                                                    <PlanGstNote plan={plan} className="mt-1 text-center" />
                                                     <CardDescription className="mt-2 text-xs min-h-[30px]">
                                                         {plan.description}
                                                     </CardDescription>
@@ -321,10 +327,10 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                         if (downgrade) return null
                                                         return (
                                                             <Button
-                                                                variant={current ? 'secondary' : (plan.isPopular || enterprise ? 'default' : 'outline')}
+                                                                variant={locked ? 'secondary' : renewable ? 'default' : (plan.isPopular || enterprise ? 'default' : 'outline')}
                                                                 className="w-full h-8 text-sm"
                                                                 size="sm"
-                                                                disabled={paymentLoading || current}
+                                                                disabled={paymentLoading || locked}
                                                                 onClick={() => handleSelectPlan(plan)}
                                                             >
                                                                 {selectedPlan === plan.key ? (

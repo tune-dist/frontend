@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ import {
   getPlanByKey,
   getPlanFieldRules,
 } from "@/lib/api/plans";
+import { hasPermission } from "@/lib/permissions";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
@@ -90,7 +91,7 @@ export default function UploadPage() {
     if (!loading && !user) {
       // Redirect to auth if not logged in
       router.push("/auth");
-    } else if (!loading && user && !user.permissions?.includes("UPLOAD_RELEASE")) {
+    } else if (!loading && user && !hasPermission(user, "UPLOAD_RELEASE")) {
       router.push("/dashboard");
     }
   }, [user, loading, router]);
@@ -216,7 +217,7 @@ export default function UploadPage() {
 
       // Fetch field rules
       const planKey = (user.plan as string) || "free";
-      getPlanFieldRules(planKey, true)
+      getPlanFieldRules(planKey)
         .then((rules) => {
           setFieldRules(rules);
           if (planKey === "free") {
@@ -274,8 +275,8 @@ export default function UploadPage() {
           // Fetch plan data first to know what fields are required
           const planKey = (user?.plan as string) || "free";
           const [limits, fieldRules] = await Promise.all([
-            getPlanLimits(planKey, true),
-            getPlanFieldRules(planKey, true),
+            getPlanLimits(planKey),
+            getPlanFieldRules(planKey),
           ]);
 
           // Build validation fields array based on plan
@@ -937,28 +938,15 @@ export default function UploadPage() {
   }, [user]);
 
   if (loading || !user) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    );
+    return <PageLoading />;
   }
 
   if (isCheckingEligibility) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </DashboardLayout>
-    );
+    return <PageLoading />;
   }
 
   if (!canUpload) {
     return (
-      <DashboardLayout>
         <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
           <div className="bg-yellow-500/10 p-6 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
             <Info className="h-10 w-10 text-yellow-500" />
@@ -986,12 +974,11 @@ export default function UploadPage() {
             </Button>
           </div>
         </div>
-      </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="min-h-screen bg-background p-4 lg:p-6">
         <motion.div
           variants={containerVariants}
@@ -1285,6 +1272,6 @@ export default function UploadPage() {
           </p>
         </div>
       )}
-    </DashboardLayout>
+    </>
   );
 }

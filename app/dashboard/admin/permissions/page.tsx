@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import {
     Card,
     CardContent,
@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, RefreshCcw, Search } from "lucide-react";
+import { Loader2, Plus, RefreshCcw, Lock } from "lucide-react";
+import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 import toast from "react-hot-toast";
 import {
     getPermissions,
@@ -40,6 +41,8 @@ import {
 import { getRoles, updateRole, Role } from "@/lib/api/roles";
 import { getUsers, updateUserPermissions } from "@/lib/api/users";
 import { User } from "@/lib/api/auth";
+import { canManagePermissions, canViewPermissions } from "@/lib/permissions";
+import { formatRoleLabel, formatPermissionLabel } from "@/lib/rbac-labels";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import {
@@ -55,10 +58,29 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+
+type UserPermissionState = {
+    fromRole: boolean;
+    fromUser: boolean;
+    effective: boolean;
+};
+
+function getUserPermissionState(
+    user: User,
+    permissionSlug: string,
+    roles: Role[],
+): UserPermissionState {
+    const roleDef = roles.find((r) => r.name === user.role);
+    const fromRole = roleDef?.permissions.includes(permissionSlug) ?? false;
+    const fromUser = (user.permissions ?? []).includes(permissionSlug);
+    return { fromRole, fromUser, effective: fromRole || fromUser };
+}
 
 export default function PermissionsPage() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
+    const canManage = canManagePermissions(user);
     const [permissions, setPermissions] = useState<Permission[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [users, setUsers] = useState<User[]>([]);
@@ -134,7 +156,7 @@ export default function PermissionsPage() {
     // Redirect if unauthorized
     useEffect(() => {
         if (!authLoading && user) {
-            if (user.role !== "super_admin" && !user.permissions?.includes("MANAGE_PERMISSIONS")) {
+            if (!canViewPermissions(user)) {
                 router.push("/dashboard");
             }
         }
@@ -151,6 +173,7 @@ export default function PermissionsPage() {
     }, [activeTab, userSearch, userRoleFilter]);
 
     const handleToggle = async (role: Role, permissionSlug: string) => {
+        if (!canManage) return;
         const toggleKey = `role-${role._id}-${permissionSlug}`;
         if (pendingToggles[toggleKey]) return;
 
@@ -199,10 +222,11 @@ export default function PermissionsPage() {
     };
 
     const handleUserPermissionToggle = async (user: User, permissionSlug: string) => {
+        if (!canManage) return;
         const toggleKey = `user-${user._id}-${permissionSlug}`;
         if (pendingToggles[toggleKey]) return;
 
-        const userPermissions = (user as any).permissions || [];
+        const userPermissions = user.permissions ?? [];
         const hasPermission = userPermissions.includes(permissionSlug);
         const newPermissions = hasPermission
             ? userPermissions.filter((p: string) => p !== permissionSlug)
@@ -210,7 +234,7 @@ export default function PermissionsPage() {
 
         setUsers((prevUsers) =>
             prevUsers.map((u) =>
-                u._id === user._id ? { ...u, permissions: newPermissions } as any : u
+                u._id === user._id ? { ...u, permissions: newPermissions } : u
             )
         );
 
@@ -228,17 +252,10 @@ export default function PermissionsPage() {
     };
 
     if (loading) {
-        return (
-            <DashboardLayout>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            </DashboardLayout>
-        );
+        return <PageLoading />;
     }
 
     return (
-        <DashboardLayout>
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
@@ -257,12 +274,14 @@ export default function PermissionsPage() {
                             Refresh
                         </Button>
                         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                            {canManage && (
                             <DialogTrigger asChild>
                                 <Button>
                                     <Plus className="h-4 w-4 mr-2" />
                                     Add Permission
                                 </Button>
                             </DialogTrigger>
+                            )}
                             <DialogContent>
                                 <DialogHeader>
                                     <DialogTitle>Create New Permission</DialogTitle>
@@ -355,8 +374,8 @@ export default function PermissionsPage() {
                                             <TableRow>
                                                 <TableHead className="w-[300px]">Permission</TableHead>
                                                 {roles.map((role) => (
-                                                    <TableHead key={role._id} className="text-center">
-                                                        {role.name}
+                                                    <TableHead key={role._id} className="text-center min-w-[120px]">
+                                                        {formatRoleLabel(role.name)}
                                                     </TableHead>
                                                 ))}
                                             </TableRow>
@@ -365,25 +384,28 @@ export default function PermissionsPage() {
                                             {permissions.map((permission) => (
                                                 <TableRow key={permission._id}>
                                                     <TableCell className="font-medium">
-                                                        <div>{permission.name}</div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {permission.slug}
-                                                        </div>
+                                                        {formatPermissionLabel(permission)}
                                                     </TableCell>
                                                     {roles.map((role) => {
                                                         const toggleKey = `role-${role._id}-${permission.slug}`;
                                                         return (
                                                         <TableCell key={`${role._id}-${permission._id}`} className="text-center">
-                                                            <div className="flex justify-center">
+                                                            <div className="flex flex-col items-center gap-1">
                                                                 {pendingToggles[toggleKey] ? (
                                                                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                                                 ) : (
+                                                                <>
                                                                 <Switch
                                                                     checked={role.permissions.includes(permission.slug)}
+                                                                    disabled={!canManage}
                                                                     onCheckedChange={() =>
                                                                         handleToggle(role, permission.slug)
                                                                     }
                                                                 />
+                                                                <span className={role.permissions.includes(permission.slug) ? "text-[10px] font-medium text-primary" : "text-[10px] text-muted-foreground"}>
+                                                                    {role.permissions.includes(permission.slug) ? "ON" : "OFF"}
+                                                                </span>
+                                                                </>
                                                                 )}
                                                             </div>
                                                         </TableCell>
@@ -410,35 +432,50 @@ export default function PermissionsPage() {
                             <CardHeader>
                                 <CardTitle>User Permissions</CardTitle>
                                 <CardDescription>
-                                    Assign custom permissions to individual users. User permissions override role defaults.
+                                    Extra permissions on top of role defaults. Role permissions show as locked — use the Role tab to change those.
                                 </CardDescription>
+                                <div className="flex flex-wrap gap-3 pt-2 text-xs text-muted-foreground">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <Badge variant="secondary" className="gap-1 px-2 py-0 text-[10px] font-normal">
+                                            <Lock className="h-3 w-3" /> Role
+                                        </Badge>
+                                        from role (not editable here)
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <Switch checked disabled className="scale-75 pointer-events-none" />
+                                        ON = extra permission for this user
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <Switch checked={false} disabled className="scale-75 pointer-events-none" />
+                                        OFF = no access (unless role grants it)
+                                    </span>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    <div className="flex gap-4">
-                                        <div className="relative flex-1">
-                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                placeholder="Search by name or email..."
+                                    <PageSearchSection>
+                                        <div className="flex flex-col gap-3 sm:flex-row">
+                                            <PageSearchBar
                                                 value={userSearch}
-                                                onChange={(e) => setUserSearch(e.target.value)}
-                                                className="pl-9"
+                                                onChange={setUserSearch}
+                                                placeholder="Search by name or email..."
+                                                className="flex-1"
                                             />
+                                            <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                                                <SelectTrigger className="w-full sm:w-[200px] h-11 rounded-xl bg-secondary border-border">
+                                                    <SelectValue placeholder="Filter by role" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="All">All Roles</SelectItem>
+                                                    {roles.map((role) => (
+                                                        <SelectItem key={role._id} value={role.name}>
+                                                            {formatRoleLabel(role.name)}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
-                                        <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
-                                            <SelectTrigger className="w-[200px]">
-                                                <SelectValue placeholder="Filter by role" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="All">All Roles</SelectItem>
-                                                {roles.map((role) => (
-                                                    <SelectItem key={role._id} value={role.name}>
-                                                        {role.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    </PageSearchSection>
 
                                     <div className="overflow-x-auto relative">
                                         {usersLoading && (
@@ -454,7 +491,7 @@ export default function PermissionsPage() {
                                                     {permissions.map((permission) => (
                                                         <TableHead key={permission._id} className="text-center">
                                                             <div className="min-w-[120px]">
-                                                                <div className="text-xs">{permission.name}</div>
+                                                                <div className="text-xs">{formatPermissionLabel(permission)}</div>
                                                             </div>
                                                         </TableHead>
                                                     ))}
@@ -470,23 +507,39 @@ export default function PermissionsPage() {
                                                             </div>
                                                         </TableCell>
                                                         <TableCell className="sticky left-[250px] z-10 bg-background">
-                                                            <span className="text-sm capitalize">{user.role}</span>
+                                                            <span className="text-sm">{formatRoleLabel(user.role)}</span>
                                                         </TableCell>
                                                         {permissions.map((permission) => {
-                                                            const userPermissions = (user as any).permissions || [];
+                                                            const state = getUserPermissionState(user, permission.slug, roles);
                                                             const toggleKey = `user-${user._id}-${permission.slug}`;
                                                             return (
                                                                 <TableCell key={`${user._id}-${permission._id}`} className="text-center">
-                                                                    <div className="flex justify-center">
+                                                                    <div className="flex flex-col items-center gap-1 min-w-[100px]">
                                                                         {pendingToggles[toggleKey] ? (
                                                                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                                        ) : state.fromRole ? (
+                                                                            <Badge
+                                                                                variant="secondary"
+                                                                                className="gap-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                                                                title="Granted by role — edit on Role tab"
+                                                                            >
+                                                                                <Lock className="h-3 w-3" />
+                                                                                Role
+                                                                            </Badge>
                                                                         ) : (
-                                                                        <Switch
-                                                                            checked={userPermissions.includes(permission.slug)}
-                                                                            onCheckedChange={() =>
-                                                                                handleUserPermissionToggle(user, permission.slug)
-                                                                            }
-                                                                        />
+                                                                            <>
+                                                                                <Switch
+                                                                                    checked={state.fromUser}
+                                                                                    disabled={!canManage}
+                                                                                    onCheckedChange={() =>
+                                                                                        handleUserPermissionToggle(user, permission.slug)
+                                                                                    }
+                                                                                    aria-label={`${formatPermissionLabel(permission)} for ${user.fullName}`}
+                                                                                />
+                                                                                <span className={state.fromUser ? "text-[10px] font-medium text-primary" : "text-[10px] text-muted-foreground"}>
+                                                                                    {state.fromUser ? "Extra · ON" : "OFF"}
+                                                                                </span>
+                                                                            </>
                                                                         )}
                                                                     </div>
                                                                 </TableCell>
@@ -510,6 +563,5 @@ export default function PermissionsPage() {
                     </TabsContent>
                 </Tabs>
             </div>
-        </DashboardLayout>
     );
 }

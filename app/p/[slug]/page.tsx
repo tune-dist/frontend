@@ -3,8 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Music, ExternalLink, Play, Disc, Share2 } from "lucide-react";
+import { Music, Play } from "lucide-react";
 import { getPublicPromotionBySlug, getPromoTemplates } from "@/lib/api/promotions";
+import { PromotionShareButtons } from "@/components/promotion/promotion-share-buttons";
+import { getPromotionShareText, getPromotionUrl } from "@/lib/promotion-share";
 import { PLATFORM_BADGES } from "@/config/platform-badges";
 import { PROMO_TEMPLATES } from "@/config/promo-templates";
 import { getDisplayUrl } from "@/lib/api/s3";
@@ -139,9 +141,8 @@ export default function PublicPromotionPage() {
             <main className="relative z-10 w-full max-w-lg mx-auto px-4 flex flex-col items-center">
 
                 {/* Header/Brand */}
-                <div className="mb-10 flex items-center gap-2">
-                    <Disc className="h-5 w-5 text-primary animate-spin-slow" />
-                    <span className="font-black text-lg tracking-widest text-white/90">KRATOLIB</span>
+                <div className="mb-10 flex items-center justify-center">
+                    <img src="/logo.png" alt="KratoLib" className="h-8 w-auto object-contain" />
                 </div>
 
                 {/* Release Card */}
@@ -378,13 +379,12 @@ export default function PublicPromotionPage() {
                 </motion.div>
 
                 {/* Footer */}
-                <footer className="mt-16 text-center space-y-6">
-                    <div className="flex justify-center gap-6">
-                        <button className="text-white/20 hover:text-white transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest bg-white/5 px-6 py-3 rounded-full border border-white/5 hover:border-white/20">
-                            <Share2 className="h-4 w-4" />
-                            Share Experience
-                        </button>
-                    </div>
+                <footer className="mt-16 text-center space-y-6 w-full">
+                    <PromotionShareButtons
+                        variant="public"
+                        url={getPromotionUrl(slug)}
+                        shareText={getPromotionShareText(release?.title, release?.artistName)}
+                    />
                     <p className="text-white/10 text-[10px] font-black uppercase tracking-[0.3em]">
                         &copy; 2026 KratoLib &bull; Advanced Music Experiences
                     </p>
@@ -392,13 +392,6 @@ export default function PublicPromotionPage() {
             </main>
 
             <style jsx global>{`
-                @keyframes spin-slow {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-                .animate-spin-slow {
-                    animation: spin-slow 12s linear infinite;
-                }
                 body {
                     background-color: #050505;
                 }

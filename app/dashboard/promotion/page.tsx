@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
 import { getPromotionByReleaseId } from "@/lib/api/promotions";
 import { S3Image } from "@/components/ui/s3-image";
 import { PromotionWizardDialog } from "@/components/promotion/promotion-wizard-dialog";
@@ -33,6 +32,8 @@ import {
   isPromotableRelease,
 } from '@/lib/release-status';
 import { getReleases, Release } from "@/lib/api/releases";
+import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
+import { formatReleaseCodeDisplay } from "@/lib/release-codes";
 
 export default function PromotionListingPage() {
     const [releases, setReleases] = useState<Release[]>([]);
@@ -40,6 +41,7 @@ export default function PromotionListingPage() {
     const [promotions, setPromotions] = useState<Map<string, any>>(new Map());
     const [formatDialogOpen, setFormatDialogOpen] = useState(false);
     const [selectedReleaseForPromo, setSelectedReleaseForPromo] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
     const { user } = useAuth();
     const router = useRouter();
 
@@ -90,10 +92,29 @@ export default function PromotionListingPage() {
         setFormatDialogOpen(true);
     };
 
+    const filteredReleases = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return releases;
+
+        return releases.filter((release) => {
+            const fields = [
+                release.title,
+                release.artistName,
+                formatReleaseCodeDisplay(release),
+                release.status,
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            return fields.includes(q);
+        });
+    }, [releases, searchQuery]);
+
 
 
     return (
-        <DashboardLayout>
+        <>
             <div className="space-y-6">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">
@@ -104,6 +125,14 @@ export default function PromotionListingPage() {
                     </p>
                 </div>
 
+                <PageSearchSection>
+                    <PageSearchBar
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        placeholder="Search by title, artist, or release ID..."
+                    />
+                </PageSearchSection>
+
                 <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -111,7 +140,9 @@ export default function PromotionListingPage() {
                             Promote Your Music
                         </CardTitle>
                         <CardDescription>
-                            Select a release to start generating promotional content
+                            {searchQuery.trim()
+                                ? `${filteredReleases.length} of ${releases.length} release${releases.length !== 1 ? "s" : ""} found`
+                                : "Select a release to start generating promotional content"}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -119,12 +150,18 @@ export default function PromotionListingPage() {
                             <div className="flex items-center justify-center py-12">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
-                        ) : releases.length === 0 ? (
+                        ) : filteredReleases.length === 0 ? (
                             <div className="text-center py-12">
                                 <Music className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                                <p className="text-lg font-medium">No releases available for promotion</p>
+                                <p className="text-lg font-medium">
+                                    {searchQuery.trim()
+                                        ? "No matching releases found"
+                                        : "No releases available for promotion"}
+                                </p>
                                 <p className="text-sm text-muted-foreground">
-                                    Your releases must be In Process, Submitted, or Released before you can promote them.
+                                    {searchQuery.trim()
+                                        ? "Try a different search term"
+                                        : "Your releases must be In Process, Submitted, or Released before you can promote them."}
                                 </p>
                             </div>
                         ) : (
@@ -140,7 +177,7 @@ export default function PromotionListingPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {releases.map((release) => (
+                                        {filteredReleases.map((release) => (
                                             <TableRow key={release._id}>
                                                 <TableCell>
                                                     <div className="h-12 w-12 rounded-md overflow-hidden bg-muted">
@@ -170,17 +207,16 @@ export default function PromotionListingPage() {
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
-                                                                title="Copy promotion link"
+                                                                title="Open promotion link"
                                                                 className="text-green-500 border-green-500/20 hover:bg-green-500/10"
-                                                                onClick={async () => {
+                                                                onClick={() => {
                                                                     const promo = promotions.get(release._id);
                                                                     const url = `${window.location.origin}/p/${promo.slug}`;
-                                                                    await navigator.clipboard.writeText(url);
-                                                                    toast.success("Promotion link copied to clipboard!");
+                                                                    window.open(url, "_blank", "noopener,noreferrer");
                                                                 }}
                                                             >
                                                                 <ExternalLink className="h-4 w-4 mr-1" />
-                                                                Copy Link
+                                                                Open Link
                                                             </Button>
                                                         )}
                                                         {promotions.has(release._id) ? (
@@ -213,9 +249,13 @@ export default function PromotionListingPage() {
             </div>
             <PromotionWizardDialog
                 open={formatDialogOpen}
-                onClose={() => setFormatDialogOpen(false)}
+                onClose={() => {
+                    setFormatDialogOpen(false);
+                    setSelectedReleaseForPromo(null);
+                }}
+                onSuccess={fetchReleases}
                 releaseId={selectedReleaseForPromo}
             />
-        </DashboardLayout>
+        </>
     );
 }

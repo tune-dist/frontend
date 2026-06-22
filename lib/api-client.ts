@@ -6,6 +6,16 @@ import {
   PlanInactiveError,
   triggerPlanInactive,
 } from './plan-inactive';
+import { dispatchAuthUserUpdated } from './auth-session';
+import type { User } from './api/auth';
+
+type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
+
+// Bare client for token refresh — avoids interceptor loops and duplicate refresh calls.
+const refreshClient = axios.create({
+  baseURL: config.apiUrl,
+  headers: { 'Content-Type': 'application/json' },
+});
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -49,7 +59,7 @@ const processQueue = (error: any, token: string | null = null) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<{ code?: string; reason?: string; message?: string }>) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as RetryableRequest;
 
     // Handle 403 from ActivePlanGuard (cancelled/halted/expired subscription).
     // Show the global subscribe-modal and reject with a tagged error so call
@@ -64,10 +74,16 @@ apiClient.interceptors.response.use(
     }
 
     // Handle 401 errors (unauthorized)
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh') && !originalRequest.url?.includes('/auth/login')) {
-
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh') &&
+      !originalRequest.url?.includes('/auth/login')
+    ) {
       if (isRefreshing) {
-        return new Promise(function (resolve, reject) {
+        originalRequest._retry = true;
+        return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
@@ -76,9 +92,7 @@ apiClient.interceptors.response.use(
             }
             return apiClient(originalRequest);
           })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
@@ -87,10 +101,15 @@ apiClient.interceptors.response.use(
       const refresh_token = Cookies.get('refresh_token');
       if (refresh_token) {
         try {
-          const { refreshToken: performRefresh } = await import('./api/auth');
-          const data = await performRefresh(refresh_token);
+          const { data } = await refreshClient.post<{
+            access_token: string;
+            refresh_token: string;
+            user?: User;
+          }>(
+            '/auth/refresh',
+            { refresh_token },
+          );
 
-          // Update tokens in cookies with same options as AuthContext
           const cookieOptions = {
             expires: 7,
             sameSite: 'lax' as const,
@@ -99,7 +118,11 @@ apiClient.interceptors.response.use(
           Cookies.set(config.tokenKey, data.access_token, cookieOptions);
           Cookies.set('refresh_token', data.refresh_token, cookieOptions);
 
-          // Update authorization header and retry
+          if (data.user) {
+            Cookies.set('user', JSON.stringify(data.user), cookieOptions);
+            dispatchAuthUserUpdated(data.user);
+          }
+
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
           }
@@ -108,29 +131,30 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         } catch (refreshError: any) {
           processQueue(refreshError, null);
-          isRefreshing = false;
-          // Refresh failed, clear tokens and redirect only if it's an auth error
           if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
             Cookies.remove(config.tokenKey);
             Cookies.remove('refresh_token');
+            Cookies.remove('user');
             if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
               window.location.href = '/auth';
             }
           }
           return Promise.reject(refreshError);
-        }
-      } else {
-        // No refresh token, clear access token and redirect
-        processQueue(new Error('No refresh token available'), null);
-        isRefreshing = false;
-        Cookies.remove(config.tokenKey);
-        Cookies.remove('user');
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-          window.location.href = '/auth';
+        } finally {
+          isRefreshing = false;
         }
       }
-    } else if (error.response?.status === 401 || error.response?.status === 403) {
-      // If it was already a retry or a refresh request that failed, logout
+
+      isRefreshing = false;
+      processQueue(new Error('No refresh token available'), null);
+      Cookies.remove(config.tokenKey);
+      Cookies.remove('user');
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+        window.location.href = '/auth';
+      }
+      return Promise.reject(error);
+    } else if (error.response?.status === 401) {
+      // Session expired and refresh already failed or was skipped.
       Cookies.remove(config.tokenKey);
       Cookies.remove('refresh_token');
       Cookies.remove('user');

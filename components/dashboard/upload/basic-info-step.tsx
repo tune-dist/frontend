@@ -66,9 +66,9 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         const fetchPlanData = async () => {
             try {
                 const [limits, rules, plans] = await Promise.all([
-                    getPlanLimits(planKey, true), // Force refresh
-                    getPlanFieldRules(planKey, true), // Force refresh to get latest from DB
-                    getAllPlans(true),
+                    getPlanLimits(planKey),
+                    getPlanFieldRules(planKey),
+                    getAllPlans(),
                 ])
                 setPlanLimits(limits)
                 setFieldRules(rules)

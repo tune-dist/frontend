@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, Ban, MoreVertical, Search, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, TrendingDown } from 'lucide-react';
+import { canViewUsers } from '@/lib/permissions';
 import { getUsers } from '@/lib/api/users';
-import DashboardLayout from '@/components/dashboard/dashboard-layout';
+import { PageSearchBar, PageSearchSection } from '@/components/dashboard/page-search-bar';
 import {
     Select,
     SelectContent,
@@ -47,7 +48,7 @@ export default function UsersPage() {
     // Redirect if unauthorized
     useEffect(() => {
         if (!authLoading && isMounted) {
-            if (!user || (user.role !== 'super_admin' && !user.permissions?.includes('MANAGE_USERS'))) {
+            if (!user || !canViewUsers(user)) {
                 router.push('/dashboard');
             }
         }
@@ -97,7 +98,6 @@ export default function UsersPage() {
 
 
     return (
-        <DashboardLayout>
             <div className="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
                 <div className="max-w-[1400px] mx-auto flex flex-col gap-8">
                     {/* ... content ... */}
@@ -176,21 +176,14 @@ export default function UsersPage() {
                         </div>
                     </div>
                     {/* Command Bar: Search & Filter */}
-                    <div className="glass-card p-2">
+                    <PageSearchSection>
                         <div className="flex flex-col md:flex-row gap-2">
-                            {/* Search */}
-                            <div className="flex-1 relative">
-                                {/* <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span className="material-symbols-outlined text-text-secondary">search</span>
-                                </div> */}
-                                <input
-                                    className="block w-full pl-10 pr-3 py-3 border-none rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all sm:text-sm"
-                                    placeholder="Search by ID, email, artist name, or label..."
-                                    type="text"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                />
-                            </div>
+                            <PageSearchBar
+                                value={search}
+                                onChange={setSearch}
+                                placeholder="Search by ID, email, artist name, or label..."
+                                className="flex-1"
+                            />
                             {/* Filters */}
                             {isMounted ? (
                                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
@@ -235,7 +228,7 @@ export default function UsersPage() {
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </PageSearchSection>
                     {/* Data Table */}
                     <div className="rounded-2xl glass-card overflow-hidden">
                         <div className="overflow-x-auto">
@@ -349,6 +342,5 @@ export default function UsersPage() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
     );
 }

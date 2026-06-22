@@ -16,6 +16,10 @@ export interface Plan {
   title: string;
   pricePerYear: number;
   royaltyPercent: number;
+  /** GST % (e.g. 18). Meaning depends on gstIncluded. */
+  gstPercent?: number;
+  /** When true, pricePerYear is final (GST inside). When false, GST is added on top. */
+  gstIncluded?: boolean;
   limits: PlanLimits;
   fieldRules: Record<string, any>;
   version: number;
@@ -34,6 +38,9 @@ export interface Plan {
   features?: string[];
   ctaLabel?: string;
   isPopular?: boolean;
+  /** Linked Razorpay billing plan for auto-renew (amount incl. GST). */
+  razorpayPlanId?: string;
+  razorpayPlanSyncedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +55,33 @@ export function derivePlanKey(title: string): string {
     .replace(/[^a-z0-9_]/g, '');
 }
 
+/** Normalize plan keys for comparison (solo, solo_pro, creator-plus → consistent). */
+export function normalizePlanKey(key?: string | null): string {
+  return (key || '').toLowerCase().trim().replace(/_/g, '-');
+}
+
+export function findPlanByKey(plans: Plan[], planKey?: string | null): Plan | undefined {
+  if (!planKey) return undefined;
+  const target = normalizePlanKey(planKey);
+  return plans.find((p) => normalizePlanKey(p.key) === target || p.key === planKey);
+}
+
+/** Human-readable title: API plan title → formatted key fallback. */
+export function resolvePlanTitle(
+  planKey: string | undefined | null,
+  plans: Plan[],
+  options?: { mappingTitle?: string | null; detailsTitle?: string | null },
+): string {
+  if (options?.mappingTitle?.trim()) return options.mappingTitle.trim();
+  if (options?.detailsTitle?.trim()) return options.detailsTitle.trim();
+  const matched = findPlanByKey(plans, planKey);
+  if (matched?.title?.trim()) return matched.title.trim();
+  if (!planKey || planKey === 'free') return 'Free';
+  return planKey
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: '₹',
   USD: '$',
@@ -58,6 +92,50 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 // Pick a display symbol for a currency code. Unknown codes fall back to the
 // raw 3-letter code with a trailing space ("AUD "). Missing currency defaults
 // to ₹ so legacy plans without the field keep their existing display.
+export function getGstPercent(plan: Pick<Plan, 'gstPercent'>): number {
+  return plan.gstPercent ?? 0;
+}
+
+export function isGstIncluded(plan: Pick<Plan, 'gstIncluded'>): boolean {
+  return plan.gstIncluded ?? false;
+}
+
+export function calculateGstAmount(
+  basePrice: number,
+  gstPercent: number,
+  gstIncluded = false,
+): number {
+  if (!gstPercent || basePrice <= 0) return 0;
+  if (gstIncluded) {
+    const base = basePrice / (1 + gstPercent / 100);
+    return basePrice - base;
+  }
+  return basePrice * (gstPercent / 100);
+}
+
+export function calculateTotalWithGst(
+  pricePerYear: number,
+  gstPercent: number,
+  gstIncluded = false,
+): number {
+  if (pricePerYear <= 0) return 0;
+  if (!gstPercent || gstIncluded) return pricePerYear;
+  return pricePerYear + calculateGstAmount(pricePerYear, gstPercent, false);
+}
+
+export function getPlanTotalWithGst(
+  plan: Pick<Plan, 'pricePerYear' | 'gstPercent' | 'gstIncluded'>,
+): number {
+  return calculateTotalWithGst(plan.pricePerYear, getGstPercent(plan), isGstIncluded(plan));
+}
+
+/** e.g. "+18% GST" or "18% GST included" */
+export function formatGstLabel(gstPercent: number, gstIncluded = false): string {
+  if (!gstPercent || gstPercent <= 0) return '';
+  if (gstIncluded) return `${gstPercent}% GST included`;
+  return `+${gstPercent}% GST`;
+}
+
 export function currencySymbol(currency?: string): string {
   if (!currency) return '₹';
   return CURRENCY_SYMBOLS[currency.toUpperCase()] ?? `${currency} `;
@@ -100,7 +178,8 @@ export interface PlanLimitsMap {
 
 // Cache for plans
 let plansCache: Plan[] | null = null;
-let plansCacheTimestamp: number = 0;
+let plansCacheTimestamp = 0;
+let plansFetchPromise: Promise<Plan[]> | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Cache for plan limits map
@@ -113,24 +192,33 @@ let planLimitsMapCache: Record<string, PlanLimitsMap> | null = null;
 export async function getAllPlans(forceRefresh = false): Promise<Plan[]> {
   const now = Date.now();
 
-  // Return cached data if available and not expired
-  if (!forceRefresh && plansCache && (now - plansCacheTimestamp) < CACHE_DURATION) {
+  if (!forceRefresh && plansCache && now - plansCacheTimestamp < CACHE_DURATION) {
     return plansCache;
   }
 
-  try {
-    const response = await apiClient.get<Plan[]>('/plans');
-    plansCache = response.data;
-    plansCacheTimestamp = now;
-    return plansCache;
-  } catch (error) {
-    // If we have cached data, return it even if expired
-    if (plansCache) {
-      console.warn('Failed to fetch plans, using cached data:', error);
-      return plansCache;
-    }
-    throw error;
+  if (plansFetchPromise) {
+    return plansFetchPromise;
   }
+
+  plansFetchPromise = (async () => {
+    try {
+      const response = await apiClient.get<Plan[]>('/plans');
+      plansCache = response.data;
+      plansCacheTimestamp = Date.now();
+      planLimitsMapCache = null;
+      return plansCache;
+    } catch (error) {
+      if (plansCache) {
+        console.warn('Failed to fetch plans, using cached data:', error);
+        return plansCache;
+      }
+      throw error;
+    } finally {
+      plansFetchPromise = null;
+    }
+  })();
+
+  return plansFetchPromise;
 }
 
 /**
@@ -139,7 +227,7 @@ export async function getAllPlans(forceRefresh = false): Promise<Plan[]> {
  */
 export async function getPlanByKey(key: string, forceRefresh = false): Promise<Plan | null> {
   const plans = await getAllPlans(forceRefresh);
-  return plans.find(p => p.key === key) || null;
+  return findPlanByKey(plans, key) ?? null;
 }
 
 /**
@@ -214,9 +302,18 @@ export async function adminCreatePlan(planData: Partial<Plan>): Promise<Plan> {
 }
 
 /**
- * Admin: Soft-delete a plan. Backend flips isActive to false; the plan is
- * hidden from public/admin GET /plans and from new subscription/upgrade flows.
- * Existing subscribers on this plan are not affected automatically.
+ * Admin: Create/link Razorpay billing plan (GST-inclusive yearly amount).
+ */
+export async function adminSyncRazorpayPlan(key: string): Promise<{ plan: Plan; created: boolean }> {
+  const response = await apiClient.post<{ plan: Plan; created: boolean }>(`/admin/plans/${key}/sync-razorpay`);
+  clearPlansCache();
+  return response.data;
+}
+
+/**
+ * Admin: Soft-delete a plan.
+ * Razorpay subscription cancel-at-cycle-end for affected users, and keeps
+ * their access until planEndDate. After expiry, PLAN_INACTIVE popup is shown.
  */
 export async function adminDeletePlan(key: string): Promise<{ message: string }> {
   const response = await apiClient.delete<{ message: string }>(`/admin/plans/${key}`);
@@ -233,5 +330,6 @@ export function clearPlansCache(): void {
   plansCache = null;
   planLimitsMapCache = null;
   plansCacheTimestamp = 0;
+  plansFetchPromise = null;
 }
 

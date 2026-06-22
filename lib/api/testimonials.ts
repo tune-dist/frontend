@@ -1,4 +1,5 @@
 import apiClient from '../api-client';
+import { useEffect, useState } from 'react';
 
 export interface Testimonial {
     _id: string;
@@ -40,3 +41,31 @@ export const testimonialsApi = {
         return response.data;
     },
 };
+
+export function useTestimonials() {
+    const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let active = true;
+
+        testimonialsApi
+            .getAll()
+            .then((data) => {
+                if (active) setTestimonials(data);
+            })
+            .catch((error) => {
+                console.error('Failed to load testimonials:', error);
+                if (active) setTestimonials([]);
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    return { testimonials, loading };
+}

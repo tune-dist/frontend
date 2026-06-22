@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
 import { Tooltip } from '@/components/ui/tooltip'
 import { S3Image } from '@/components/ui/s3-image'
+import { canAccessNavItem, canAccessYouTubeService } from '@/lib/permissions'
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -34,14 +35,15 @@ const navigation = [
   { name: 'Upload Music', href: '/dashboard/upload', icon: Upload, permission: 'UPLOAD_RELEASE' },
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard, permission: 'VIEW_BILLING' },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, permission: 'VIEW_ANALYTICS' },
-  { name: 'Finance', href: '/dashboard/finance', icon: Wallet },
+  { name: 'Finance', href: '/dashboard/finance', icon: Wallet, permission: 'VIEW_BILLING' },
   { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles, permission: 'MANAGE_PROMOTION' },
   { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote, permission: 'MANAGE_TESTIMONIALS' },
   { name: 'Profile', href: '/dashboard/profile', icon: User, permission: 'PROFILE' },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube, permission: 'USE_YOUTUBE_SERVICE' },
-  { name: 'Users', href: '/dashboard/users', icon: User, permission: 'MANAGE_USERS' },
+  { name: 'Verifications', href: '/dashboard/verifications', icon: Shield, permission: 'APPROVE_RELEASE' },
+  { name: 'Users', href: '/dashboard/users', icon: User, permission: 'VIEW_USERS' },
   { name: 'Plan Management', href: '/dashboard/admin/plans', icon: Settings, permission: 'MANAGE_PLANS' },
-  { name: 'Permissions', href: '/dashboard/admin/permissions', icon: Shield, permission: 'MANAGE_PERMISSIONS' },
+  { name: 'Permissions', href: '/dashboard/admin/permissions', icon: Shield, permission: 'VIEW_PERMISSIONS' },
 ]
 
 export default function Sidebar() {
@@ -82,33 +84,42 @@ export default function Sidebar() {
         }}
       >
 
-        <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className={cn(
-            "flex h-16 items-center border-b border-border transition-all duration-300 shrink-0",
-            isSidebarCollapsed ? "justify-center px-0" : "justify-between px-6"
-          )}>
-            {!isSidebarCollapsed && (
-              <Link href="/dashboard" className="flex items-center">
-                <img src="/logo.png" alt="KratoLib" className="w-[120px] max-w-[100%]" />
-              </Link>
+        <div className="flex h-full flex-col overflow-hidden">
+          {/* Logo + collapse */}
+          <div
+            className={cn(
+              'flex shrink-0 items-center border-b border-border',
+              isSidebarCollapsed
+                ? 'h-[4.5rem] flex-col justify-center gap-1.5 px-1'
+                : 'h-16 justify-between gap-2 px-3',
             )}
-            {isSidebarCollapsed && (
-              <Link href="/dashboard" className="flex items-center">
-                <img src="/favicon.png" alt="KratoLib" className="w-8 h-8 object-contain" />
-              </Link>
-            )}
+          >
+            <Link
+              href="/dashboard"
+              className={cn(
+                'flex items-center min-w-0',
+                isSidebarCollapsed ? 'justify-center' : 'flex-1',
+              )}
+            >
+              {isSidebarCollapsed ? (
+                <img src="/favicon.png" alt="KratoLib" className="h-7 w-7 object-contain" />
+              ) : (
+                <img src="/logo.png" alt="KratoLib" className="h-8 w-auto max-w-[120px] object-contain" />
+              )}
+            </Link>
+
             <button
               onClick={toggleSidebar}
               className={cn(
-                "hidden lg:flex items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground transition-all duration-200 fixed right-[-12px] top-6 z-50 h-6 w-6 shadow-md hover:scale-110",
+                'hidden lg:flex shrink-0 items-center justify-center rounded-lg border border-border/80 bg-card text-muted-foreground hover:bg-accent hover:text-foreground transition-colors',
+                isSidebarCollapsed ? 'h-6 w-6' : 'h-8 w-8',
               )}
-              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
             >
               {isSidebarCollapsed ? (
                 <PanelLeftOpen className="h-3.5 w-3.5" />
               ) : (
-                <PanelLeftClose className="h-3.5 w-3.5" />
+                <PanelLeftClose className="h-4 w-4" />
               )}
             </button>
           </div>
@@ -116,11 +127,11 @@ export default function Sidebar() {
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-3 py-4">
             {navigation
-              .filter(item => {
-                if ((item as any).permission) {
-                  return user?.permissions?.includes((item as any).permission);
+              .filter((item) => {
+                if (item.href === '/dashboard/youtube-service') {
+                  return canAccessYouTubeService(user);
                 }
-                return true;
+                return canAccessNavItem(user, (item as { permission?: string }).permission);
               })
               .map((item) => {
                 const Icon = item.icon

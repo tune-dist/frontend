@@ -47,10 +47,11 @@ const PLATFORMS = [
 interface PromotionWizardDialogProps {
     open: boolean;
     onClose: () => void;
+    onSuccess?: () => void;
     releaseId: string | null;
 }
 
-export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWizardDialogProps) {
+export function PromotionWizardDialog({ open, onClose, onSuccess, releaseId }: PromotionWizardDialogProps) {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -201,16 +202,8 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
                 }
             });
 
-            const landingPageUrl = `${window.location.origin}/p/${slug}`;
-
-            try {
-                await navigator.clipboard.writeText(landingPageUrl);
-                toast.success("Promotion created! Link copied to clipboard.");
-            } catch (clipboardError) {
-                console.error("Clipboard failed:", clipboardError);
-                toast.success("Promotion created successfully!");
-            }
-
+            toast.success("Promotion created successfully!");
+            onSuccess?.();
             onClose();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to save promotion");
@@ -223,8 +216,8 @@ export function PromotionWizardDialog({ open, onClose, releaseId }: PromotionWiz
     const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
     return (
-        <Dialog open={open} onOpenChange={(val) => !val && !loading && onClose()}>
-            <DialogContent className="max-w-[95vw] w-[1100px] h-[92vh] p-0 gap-0 flex flex-col overflow-hidden bg-[#0A0A0B] border-white/5 shadow-2xl rounded-3xl relative">
+        <Dialog open={open} onOpenChange={(val) => !val && !loading && !saving && onClose()}>
+            <DialogContent className="max-w-[95vw] w-[1100px] h-[min(92vh,calc(100dvh-2rem))] p-0 gap-0 flex flex-col overflow-hidden bg-[#0A0A0B] border-white/5 shadow-2xl rounded-3xl">
                 {loading && (
                     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />

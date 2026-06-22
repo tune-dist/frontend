@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Loader2, CreditCard, CheckCircle, XCircle } from 'lucide-react'
 import { getPlanByKey, Plan } from '@/lib/api/plans'
+import { PlanGstNote } from '@/components/plans/plan-gst-note'
+import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
@@ -20,6 +22,7 @@ function CheckoutContent() {
     const [plan, setPlan] = useState<Plan | null>(null)
     const [loading, setLoading] = useState(true)
     const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending')
+    const [isAutoPay, setIsAutoPay] = useState(true)
 
     const planKey = searchParams.get('plan')
 
@@ -65,7 +68,7 @@ function CheckoutContent() {
             const result = await initiatePayment(plan.key, {
                 name: user?.fullName,
                 email: user?.email,
-            })
+            }, { isAutoPay })
 
             if (result?.success) {
                 setPaymentStatus('success')
@@ -130,30 +133,18 @@ function CheckoutContent() {
                                 <span className="font-semibold">{plan.title}</span>
                                 <span className="text-xl font-bold">{plan.priceDisplay}</span>
                             </div>
+                            <PlanGstNote plan={plan} showTotal className="mb-2" />
                             <p className="text-sm text-muted-foreground">{plan.description}</p>
-                            
-                            {/* {paymentStatus === 'pending' && (
+
+                            {paymentStatus === 'pending' && plan.pricePerYear > 0 && (
                                 <div className="mt-4 pt-4 border-t border-border/50">
-                                    <p className="text-xs font-medium text-muted-foreground mb-2 text-center">Select Billing Type</p>
-                                    <div className="flex bg-background border rounded-lg p-1">
-                                        <button 
-                                            onClick={() => setIsAutoPay(true)}
-                                            className={`flex-1 text-xs py-2 px-2 rounded-md transition-all ${isAutoPay ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:bg-muted/50'}`}
-                                        >
-                                            Subscription
-                                        </button>
-                                        <button 
-                                            onClick={() => setIsAutoPay(false)}
-                                            className={`flex-1 text-xs py-2 px-2 rounded-md transition-all ${!isAutoPay ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:bg-muted/50'}`}
-                                        >
-                                            One-time Pass
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-3 text-center">
-                                        {isAutoPay ? 'Billed annually. Cancel anytime.' : '1 year access. Non-renewing.'}
-                                    </p>
+                                    <BillingTypeToggle
+                                        isAutoPay={isAutoPay}
+                                        onChange={setIsAutoPay}
+                                        compact
+                                    />
                                 </div>
-                            )} */}
+                            )}
                         </div>
 
                         {paymentStatus === 'pending' && !isScriptLoaded && (

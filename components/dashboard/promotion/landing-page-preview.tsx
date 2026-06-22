@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from "framer-motion";
-import { Music, Play, Disc, Share2 } from "lucide-react";
+import { Music, Play, Share2 } from "lucide-react";
 import { PLATFORM_BADGES } from "@/config/platform-badges";
 import { PromoTemplate } from "@/config/promo-templates";
 import { getDisplayUrl } from "@/lib/api/s3";
@@ -102,9 +102,8 @@ export const LandingPagePreview = ({
             {/* Main Content Container */}
             <div className="relative z-10 w-full flex flex-col items-center h-fit pb-24">
                 {/* Header/Brand */}
-                <div className="mb-3 mt-3 flex items-center gap-2 shrink-0">
-                    <Disc className="h-3 w-3 text-primary animate-spin-slow" />
-                    <span className="font-black text-[10px] tracking-[0.3em] text-white/90">KRATOLIB</span>
+                <div className="mb-3 mt-3 flex items-center justify-center shrink-0">
+                    <img src="/logo.png" alt="KratoLib" className="h-5 w-auto object-contain" />
                 </div>
 
                 {/* Release Card */}
@@ -304,16 +303,6 @@ export const LandingPagePreview = ({
                     </p>
                 </div>
             </div>
-
-            <style jsx global>{`
-                @keyframes spin-slow {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-                .animate-spin-slow {
-                    animation: spin-slow 12s linear infinite;
-                }
-            `}</style>
         </div>
     );
 };

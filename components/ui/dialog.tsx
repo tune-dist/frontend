@@ -137,20 +137,23 @@ const DialogContent = React.forwardRef<
     return createPortal(
         <>
             <DialogOverlay />
-            <div
-                ref={ref}
-                className={cn(
-                    "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 animate-in fade-in-0 zoom-in-95 sm:rounded-lg",
-                    className
-                )}
-                onClick={(e) => e.stopPropagation()}
-                {...props}
-            >
-                {children}
-                <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Close</span>
-                </DialogClose>
+            {/* Outer shell centers the panel; inner panel may use relative/absolute without breaking layout. */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pointer-events-none">
+                <div
+                    ref={ref}
+                    className={cn(
+                        "pointer-events-auto relative grid w-full max-w-lg max-h-[min(92vh,calc(100dvh-2rem))] gap-4 overflow-y-auto border bg-background p-6 shadow-lg duration-200 animate-in fade-in-0 zoom-in-95 sm:rounded-lg",
+                        className
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                    {...props}
+                >
+                    {children}
+                    <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Close</span>
+                    </DialogClose>
+                </div>
             </div>
         </>,
         document.body

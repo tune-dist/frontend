@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,8 +31,10 @@ import {
     cancelMainSubscription,
     getPaymentHistory,
     PaymentHistoryItem,
+    CancelSubscriptionResponse,
 } from '@/lib/api/payments'
-import { getAllPlans, Plan } from '@/lib/api/plans'
+import { getAllPlans, Plan, getPlanTotalWithGst, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans'
+import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users'
 import apiClient from '@/lib/api-client'
 import { useRazorpay } from '@/hooks/useRazorpay'
@@ -50,12 +52,45 @@ async function fetchActiveSubscriptions(): Promise<any[]> {
 
 async function cancelSubscriptionById(
     subscriptionId?: string,
-): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.post<{ success: boolean; message: string }>(
+): Promise<CancelSubscriptionResponse> {
+    const response = await apiClient.post<CancelSubscriptionResponse>(
         '/payments/cancel-subscription',
         { subscriptionId },
     )
     return response.data
+}
+
+function applyCancelToLocalState(
+    result: CancelSubscriptionResponse,
+    setProfile: Dispatch<SetStateAction<ProfileWithPlan | null>>,
+    setActiveSubscriptions: Dispatch<SetStateAction<any[]>>,
+    cancellingType: 'plan' | 'addon',
+    selectedSubId?: string,
+) {
+    if (result.subscriptionStatus) {
+        setProfile((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      subscriptionStatus: result.subscriptionStatus,
+                      isSubscriptionActive: result.isSubscriptionActive ?? false,
+                      planEndDate: result.planEndDate ?? prev.planEndDate,
+                  }
+                : prev,
+        )
+    }
+
+    setActiveSubscriptions((prev) =>
+        prev.map((sub) => {
+            if (cancellingType === 'addon' && sub.id === selectedSubId) {
+                return { ...sub, status: 'cancelled' }
+            }
+            if (cancellingType === 'plan' && sub.type === 'subscription') {
+                return { ...sub, status: 'cancelled' }
+            }
+            return sub
+        }),
+    )
 }
 
 const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
@@ -90,16 +125,23 @@ export default function SubscriptionPage() {
         setProfile(nextProfile)
         setPayments(history)
         setAllPlans(plans)
+        return { profile: nextProfile, history, plans }
     }, [])
 
     const reloadActiveSubscriptions = useCallback(async () => {
         try {
             const subs = await fetchActiveSubscriptions()
             setActiveSubscriptions(subs)
+            return subs
         } catch (err) {
             console.error('Failed to fetch active subscriptions:', err)
+            return []
         }
     }, [])
+
+    const reloadAllSubscriptionData = useCallback(async () => {
+        await Promise.all([refreshUser(), reloadProfile(), reloadActiveSubscriptions()])
+    }, [refreshUser, reloadProfile, reloadActiveSubscriptions])
 
     useEffect(() => {
         let cancelled = false
@@ -119,6 +161,17 @@ export default function SubscriptionPage() {
         }
     }, [reloadProfile, reloadActiveSubscriptions])
 
+    // Refetch when landing here after payment (?payment=success from checkout/billing)
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const params = new URLSearchParams(window.location.search)
+        if (params.get('payment') !== 'success') return
+
+        reloadAllSubscriptionData().finally(() => {
+            router.replace('/dashboard/subscription')
+        })
+    }, [reloadAllSubscriptionData, router])
+
     const handleUpgrade = () => {
         setShowUpgradeModal(true)
     }
@@ -132,7 +185,7 @@ export default function SubscriptionPage() {
             })
             if (result?.success) {
                 toast.success('Extra artist slot added to your plan!')
-                await Promise.all([refreshUser(), reloadProfile(), reloadActiveSubscriptions()])
+                await reloadAllSubscriptionData()
             }
         } catch (err) {
             console.error('Addon purchase failed:', err)
@@ -155,6 +208,13 @@ export default function SubscriptionPage() {
                     ? await cancelSubscriptionById(selectedSubId)
                     : await cancelMainSubscription()
             if (result?.success) {
+                applyCancelToLocalState(
+                    result,
+                    setProfile,
+                    setActiveSubscriptions,
+                    cancellingType,
+                    selectedSubId,
+                )
                 toast.success(
                     result.message ||
                         (cancellingType === 'addon'
@@ -163,7 +223,8 @@ export default function SubscriptionPage() {
                 )
                 setShowCancelDialog(false)
                 setSelectedSubId(undefined)
-                await Promise.all([refreshUser(), reloadProfile(), reloadActiveSubscriptions()])
+                // Sync auth + subscriptions in background; profile already updated from response
+                void Promise.all([refreshUser(), reloadActiveSubscriptions()])
             } else {
                 toast.error(result?.message || 'Cancellation failed.')
             }
@@ -224,18 +285,32 @@ export default function SubscriptionPage() {
     const activeAddons = profile?.activeAddons ?? []
 
     const planKey = activeMapping?.planKey ?? profile?.plan ?? 'free'
-    const planTitle = activeMapping?.planTitle ?? planDetails?.title ?? planKey
+    const matchedPlan = findPlanByKey(allPlans, planKey) ?? null
+    const resolvedPlanDetails = planDetails ?? matchedPlan
+    const planTitle = resolvePlanTitle(planKey, allPlans, {
+        mappingTitle: activeMapping?.planTitle,
+        detailsTitle: planDetails?.title ?? matchedPlan?.title,
+    })
     const planStartDate = activeMapping?.startDate ?? profile?.planStartDate
     const planEndDate = activeMapping?.endDate ?? profile?.planEndDate
     const isFreePlan = !activeMapping && (planKey === 'free' || !planKey)
     const isExpired = !!planEndDate && new Date(planEndDate) < new Date()
-    const isSubscriptionActive = !!activeMapping && activeMapping.status === 'active' && !isExpired
-    const isCancellationPending = !!activeMapping && activeMapping.status === 'cancelled' && !isExpired
+    const subscriptionStatus =
+        profile?.subscriptionStatus ??
+        user?.subscriptionStatus ??
+        activeMapping?.status ??
+        (!isFreePlan && !isExpired && profile?.isSubscriptionActive !== false && user?.isSubscriptionActive !== false
+            ? 'active'
+            : undefined)
+    const isSubscriptionActive = !isFreePlan && !isExpired && subscriptionStatus === 'active'
+    const isCancellationPending = !isFreePlan && !isExpired && subscriptionStatus === 'cancelled'
 
     const extraArtistSlots = effective?.extraArtistSlots ?? activeAddons.length
-    const baseArtistLimit = planDetails?.limits?.maxArtists ?? 0
+    const baseArtistLimit = resolvedPlanDetails?.limits?.maxArtists ?? 0
     const effectiveArtistLimit = effective?.maxArtists ?? baseArtistLimit + extraArtistSlots
-    const planPriceInPaise = (planDetails?.pricePerYear ?? 0) * 100
+    const planPriceInPaise = Math.round(
+        getPlanTotalWithGst(resolvedPlanDetails ?? { pricePerYear: 0 }) * 100,
+    )
     const addonsTotalInPaise = extraArtistSlots * ARTIST_ADDON_PRICE_INR * 100
     const billedTotalInPaise = planPriceInPaise + addonsTotalInPaise
 
@@ -314,10 +389,13 @@ export default function SubscriptionPage() {
                                     </div>
                                 )}
 
-                                {planDetails && planKey !== 'enterprise' && (
-                                    <p className="text-muted-foreground mt-2">
-                                        {planDetails.priceDisplay} {planDetails.period}
-                                    </p>
+                                {resolvedPlanDetails && planKey !== 'enterprise' && (
+                                    <div className="mt-2">
+                                        <p className="text-muted-foreground">
+                                            {resolvedPlanDetails.priceDisplay} {resolvedPlanDetails.period}
+                                        </p>
+                                        <PlanGstNote plan={resolvedPlanDetails} className="mt-1" />
+                                    </div>
                                 )}
                             </div>
 
@@ -352,11 +430,11 @@ export default function SubscriptionPage() {
                         </div>
 
                         {/* Plan Features */}
-                        {planDetails?.features && planDetails.features.length > 0 && (
+                        {resolvedPlanDetails?.features && resolvedPlanDetails.features.length > 0 && (
                             <div className="mt-6 pt-6 border-t">
                                 <h4 className="font-semibold mb-3">Plan Features</h4>
                                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {planDetails.features.map((feature, i) => (
+                                    {resolvedPlanDetails.features.map((feature, i) => (
                                         <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                                             <CheckCircle className="h-4 w-4 text-primary" />
                                             {feature}
@@ -521,7 +599,7 @@ export default function SubscriptionPage() {
                                                     {formatDate(payment.createdAt)}
                                                 </td>
                                                 <td className="py-3 px-2 text-sm capitalize">
-                                                    {payment.planKey.replace('_', ' ')}
+                                                    {resolvePlanTitle(payment.planKey, allPlans)}
                                                 </td>
                                                 <td className="py-3 px-2 text-sm font-medium">
                                                     {formatAmount(payment.amount, payment.currency)}
@@ -545,6 +623,8 @@ export default function SubscriptionPage() {
                 onClose={() => setShowUpgradeModal(false)}
                 currentPlanKey={planKey}
                 hasActiveSubscription={!isFreePlan && isSubscriptionActive}
+                subscriptionStatus={subscriptionStatus === 'cancelled' ? 'cancelled' : subscriptionStatus === 'active' ? 'active' : undefined}
+                onPaymentSuccess={reloadAllSubscriptionData}
             />
 
             {/* Cancel Subscription / Add-on confirmation */}

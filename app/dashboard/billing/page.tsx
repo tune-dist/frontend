@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/dashboard/dashboard-layout';
+import PageLoading from "@/components/dashboard/page-loading";
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,13 +15,35 @@ import {
     TrendingUp,
     Loader2,
     Mail,
+    Users,
+    Layers,
+    Disc3,
 } from 'lucide-react';
 
 const ENTERPRISE_PLAN_KEY = 'enterprise';
 const isEnterprisePlanKey = (key?: string | null) => key === ENTERPRISE_PLAN_KEY;
+
+function formatLimitValue(value?: number) {
+    if (value === -1) return 'Unlimited';
+    if (value === undefined || value === null) return 'N/A';
+    return String(value);
+}
+
+function formatPlanFormatLabel(format: string) {
+    const labels: Record<string, string> = {
+        single: 'Single',
+        ep: 'EP',
+        album: 'Album',
+        remix: 'Remix',
+        compilation: 'Compilation',
+    };
+    return labels[format.toLowerCase()] || format.charAt(0).toUpperCase() + format.slice(1);
+}
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAllPlans, Plan, currencySymbol, derivePeriodLabel } from '@/lib/api/plans';
+import { getAllPlans, Plan, currencySymbol, derivePeriodLabel, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans';
+import { PlanGstNote } from '@/components/plans/plan-gst-note';
+import { BillingTypeToggle } from '@/components/plans/billing-type-toggle';
 import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import toast from 'react-hot-toast';
@@ -36,6 +58,7 @@ export default function BillingPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     const [selectedPlanKey, setSelectedPlanKey] = useState<string | null>(null);
+    const [isAutoPay, setIsAutoPay] = useState(true);
 
     useEffect(() => {
         if (authLoading) return;
@@ -73,13 +96,12 @@ export default function BillingPage() {
 
     const currentPlanKey =
         profile?.activePlanMapping?.planKey || profile?.plan || user?.plan || 'free';
-    const currentPlan = plans.find(p => p.key === currentPlanKey);
+    const currentPlan = findPlanByKey(plans, currentPlanKey);
 
-    const currentPlanTitle =
-        profile?.activePlanMapping?.planTitle ||
-        profile?.planDetails?.title ||
-        currentPlan?.title ||
-        (currentPlanKey === 'free' ? 'Free' : currentPlanKey || 'No Plan');
+    const currentPlanTitle = resolvePlanTitle(currentPlanKey, plans, {
+        mappingTitle: profile?.activePlanMapping?.planTitle,
+        detailsTitle: profile?.planDetails?.title ?? currentPlan?.title,
+    });
     const currentPlanDescription =
         profile?.planDetails?.description ||
         currentPlan?.description ||
@@ -104,10 +126,14 @@ export default function BillingPage() {
     const subscriptionStatus =
         activeMapping?.status ?? (profile as any)?.subscriptionStatus ?? 'inactive';
     const isFreePlan = currentPlanKey === 'free';
-    const hasRazorpaySubscription = !!(profile as any)?.razorpaySubscriptionId;
     const isSubscriptionActiveBackend =
         !isFreePlan &&
-        ((profile as any)?.isSubscriptionActive ?? subscriptionStatus === 'active');
+        subscriptionStatus === 'active' &&
+        ((profile as any)?.isSubscriptionActive ?? true);
+    const isCurrentPlanLocked = (planKey: string) =>
+        planKey === currentPlanKey && isSubscriptionActiveBackend;
+    const isCurrentPlanRenewable = (planKey: string) =>
+        planKey === currentPlanKey && subscriptionStatus === 'cancelled';
 
     const formatBillingDate = (d: string | null | undefined) => {
         if (!d) return 'N/A';
@@ -140,7 +166,7 @@ export default function BillingPage() {
     };
 
     const handleSelectPlan = async (plan: Plan) => {
-        if (plan.key === currentPlanKey) return;
+        if (isCurrentPlanLocked(plan.key)) return;
         if (plan.pricePerYear === 0) {
             toast('To downgrade to the free plan, contact support.');
             return;
@@ -150,9 +176,13 @@ export default function BillingPage() {
             const result = await initiatePayment(
                 plan.key,
                 { name: user?.fullName, email: user?.email },
-                { isUpgrade: hasRazorpaySubscription && isSubscriptionActiveBackend },
+                {
+                    isUpgrade: isSubscriptionActiveBackend && plan.pricePerYear > currentPlanPrice,
+                    isAutoPay,
+                },
             );
             if (result?.success) {
+                toast.success('Payment successful! Your plan has been updated.');
                 const [, nextProfile] = await Promise.all([
                     refreshUser(),
                     getUserProfileWithPlan(),
@@ -172,17 +202,10 @@ export default function BillingPage() {
     const selectedPlan = plans.find(p => p.key === selectedPlanKey);
 
     if (isLoading) {
-        return (
-            <DashboardLayout>
-                <div className="flex items-center justify-center h-screen">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            </DashboardLayout>
-        );
+        return <PageLoading />;
     }
 
     return (
-        <DashboardLayout>
             <div className="space-y-8 max-w-7xl mx-auto">
                 {/* Header */}
                 <div>
@@ -289,6 +312,8 @@ export default function BillingPage() {
                         >
                             {filteredPlans.map((plan) => {
                                 const isCurrent = plan.key === currentPlanKey;
+                                const isLocked = isCurrentPlanLocked(plan.key);
+                                const isRenewable = isCurrentPlanRenewable(plan.key);
                                 const isEnterprise = isEnterprisePlanKey(plan.key);
                                 const isSelected = selectedPlanKey === plan.key;
                                 return (
@@ -308,9 +333,14 @@ export default function BillingPage() {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap mb-1">
                                                 <span className="font-bold text-base text-foreground truncate">{plan.title}</span>
-                                                {isCurrent && (
+                                                {isLocked && (
                                                     <Badge className="bg-primary/20 text-primary border-0 text-[9px] font-bold px-1.5 py-0.5">
                                                         Current
+                                                    </Badge>
+                                                )}
+                                                {isRenewable && (
+                                                    <Badge className="bg-orange-500/20 text-orange-500 border-0 text-[9px] font-bold px-1.5 py-0.5">
+                                                        Renew
                                                     </Badge>
                                                 )}
                                                 {plan.isPopular && (
@@ -340,6 +370,7 @@ export default function BillingPage() {
                                                     <span className="text-[10px] text-muted-foreground">
                                                         {derivePeriodLabel(plan) ?? '/yr'}
                                                     </span>
+                                                    <PlanGstNote plan={plan} className="mt-1" />
                                                 </div>
                                             )}
                                         </div>
@@ -359,8 +390,10 @@ export default function BillingPage() {
                             {selectedPlan ? (() => {
                                 const plan = selectedPlan;
                                 const isCurrent = plan.key === currentPlanKey;
+                                const isLocked = isCurrentPlanLocked(plan.key);
+                                const isRenewable = isCurrentPlanRenewable(plan.key);
                                 const isEnterprise = isEnterprisePlanKey(plan.key);
-                                const isDowngrade = !isCurrent && !isEnterprise && plan.pricePerYear < currentPlanPrice;
+                                const isDowngrade = !isLocked && !isRenewable && !isEnterprise && plan.pricePerYear < currentPlanPrice;
 
                                 return (
                                     <motion.div
@@ -383,9 +416,14 @@ export default function BillingPage() {
                                                                     Popular Choice
                                                                 </Badge>
                                                             )}
-                                                            {isCurrent && (
+                                                            {isLocked && (
                                                                 <Badge className="bg-primary/20 text-primary border-0 text-[10px] font-bold px-2.5 py-0.5">
                                                                     Current Plan
+                                                                </Badge>
+                                                            )}
+                                                            {isRenewable && (
+                                                                <Badge className="bg-orange-500/20 text-orange-500 border-0 text-[10px] font-bold px-2.5 py-0.5">
+                                                                    Renew Available
                                                                 </Badge>
                                                             )}
                                                         </div>
@@ -402,36 +440,70 @@ export default function BillingPage() {
                                                                 <div className="text-xs text-muted-foreground font-medium mt-1">
                                                                     Charged {derivePeriodLabel(plan) ? derivePeriodLabel(plan)?.replace('/', '') : 'yearly'}
                                                                 </div>
+                                                                <PlanGstNote plan={plan} showTotal className="mt-2 text-left sm:text-right" />
                                                             </>
                                                         )}
                                                     </div>
                                                 </div>
 
-                                                {/* Plan Limits Grid */}
-                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-muted/20 border border-border/30">
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Artists Slots</p>
-                                                        <p className="text-sm font-bold text-foreground mt-1">
-                                                            {plan.limits?.maxArtists === -1 ? 'Unlimited' : plan.limits?.maxArtists || 1}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Pending Releases</p>
-                                                        <p className="text-sm font-bold text-foreground mt-1">
-                                                            {plan.limits?.maxPendingReleases === -1 ? 'Unlimited' : plan.limits?.maxPendingReleases || 'N/A'}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Storage Limit</p>
-                                                        <p className="text-sm font-bold text-foreground mt-1">
-                                                            {plan.limits?.maxStorageGB ? `${plan.limits.maxStorageGB} GB` : 'Unlimited'}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Formats</p>
-                                                        <p className="text-xs font-bold text-foreground mt-1 truncate capitalize">
-                                                            {plan.limits?.allowedFormats?.join(', ') || 'All'}
-                                                        </p>
+                                                {/* Plan Limits */}
+                                                <div className="space-y-3">
+                                                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Plan Limits</h4>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4 space-y-3">
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                                                                    <Users className="h-4 w-4" />
+                                                                </div>
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
+                                                                    Artist Slots
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xl font-black text-foreground">
+                                                                {formatLimitValue(plan.limits?.maxArtists ?? 1)}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4 space-y-3">
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500 shrink-0">
+                                                                    <Layers className="h-4 w-4" />
+                                                                </div>
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
+                                                                    Pending Releases
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xl font-black text-foreground">
+                                                                {formatLimitValue(plan.limits?.maxPendingReleases)}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="rounded-2xl border border-border/30 bg-muted/20 p-4 space-y-3 sm:col-span-1">
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500 shrink-0">
+                                                                    <Disc3 className="h-4 w-4" />
+                                                                </div>
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight">
+                                                                    Formats
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {(plan.limits?.allowedFormats?.length
+                                                                    ? plan.limits.allowedFormats
+                                                                    : ['all']
+                                                                ).map((format) => (
+                                                                    <Badge
+                                                                        key={format}
+                                                                        variant="secondary"
+                                                                        className="rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-background/80"
+                                                                    >
+                                                                        {format === 'all'
+                                                                            ? 'All'
+                                                                            : formatPlanFormatLabel(format)}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
 
@@ -449,13 +521,31 @@ export default function BillingPage() {
                                                 </div>
 
                                                 {/* Action Buttons */}
-                                                <div className="pt-4 border-t border-border/30">
-                                                    {isCurrent ? (
+                                                <div className="pt-4 border-t border-border/30 space-y-4">
+                                                    {!isLocked && !isEnterprise && plan.pricePerYear > 0 && (
+                                                        <BillingTypeToggle
+                                                            isAutoPay={isAutoPay}
+                                                            onChange={setIsAutoPay}
+                                                        />
+                                                    )}
+                                                    {isLocked ? (
                                                         <Button
                                                             disabled
                                                             className="w-full rounded-xl py-6 font-bold bg-primary/20 text-primary border-primary/20 hover:bg-primary/20"
                                                         >
                                                             Your Current Plan
+                                                        </Button>
+                                                    ) : isRenewable ? (
+                                                        <Button
+                                                            onClick={() => handleSelectPlan(plan)}
+                                                            disabled={paymentLoading || purchasingKey !== null}
+                                                            className="w-full rounded-xl py-6 font-bold bg-orange-500 hover:bg-orange-600 text-white transition-all duration-200"
+                                                        >
+                                                            {purchasingKey === plan.key ? (
+                                                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
+                                                            ) : (
+                                                                'Renew Plan'
+                                                            )}
                                                         </Button>
                                                     ) : isEnterprise ? (
                                                         <Button
@@ -509,6 +599,5 @@ export default function BillingPage() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
     );
 }

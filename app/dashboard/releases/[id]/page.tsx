@@ -12,13 +12,11 @@ import {
   Disc,
   FileAudio,
   Disc3,
-  QrCode,
-  BookOpenText,
   AudioWaveform,
+  Hash,
 } from "lucide-react";
 import { getRelease, Release, TrackPayload } from "@/lib/api/releases";
-import Preloader from "@/components/Preloader";
-import DashboardLayout from "@/components/dashboard/dashboard-layout";
+import PageLoading from "@/components/dashboard/page-loading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,8 +28,7 @@ import {
 import { S3Image } from "@/components/ui/s3-image";
 import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
 import {
-  formatUpcDisplay,
-  formatIsrcListDisplay,
+  formatReleaseCodeDisplay,
   getTrackIsrcDisplay,
 } from "@/lib/release-codes";
 import { isReleaseNoLyrics } from "@/components/dashboard/upload/genre-language";
@@ -64,12 +61,11 @@ export default function ReleaseDetailsPage() {
   const formatStatus = formatReleaseStatus;
 
   if (loading) {
-    return <Preloader />;
+    return <PageLoading />;
   }
 
   if (error || !release) {
     return (
-      <DashboardLayout>
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <h2 className="text-2xl font-bold text-destructive mb-2">
             Error Loading Release
@@ -82,7 +78,6 @@ export default function ReleaseDetailsPage() {
             Back to Releases
           </Button>
         </div>
-      </DashboardLayout>
     );
   }
 
@@ -100,7 +95,6 @@ export default function ReleaseDetailsPage() {
       : null;
 
   return (
-    <DashboardLayout>
       <div className="space-y-8 pb-24">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative">
@@ -138,9 +132,7 @@ export default function ReleaseDetailsPage() {
             { icon: <Globe />, label: "Language", value: release.language },
             { icon: <Calendar />, label: "Date", value: release.releaseDate ? new Date(release.releaseDate).toLocaleDateString() : null },
             { icon: <Disc3 />, label: "Label", value: release.labelName },
-            { icon: <QrCode />, label: "UPC", value: formatUpcDisplay(release) },
-            { icon: <QrCode />, label: "ISRC", value: formatIsrcListDisplay(release) },
-            { icon: <BookOpenText />, label: "Catalog #", value: release.catalogNumber || "-" },
+            { icon: <Hash />, label: "Release ID", value: formatReleaseCodeDisplay(release) },
             ...(writersDisplay
               ? [{ icon: <User />, label: "Lyricist", value: writersDisplay }]
               : []),
@@ -330,6 +322,5 @@ export default function ReleaseDetailsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }
