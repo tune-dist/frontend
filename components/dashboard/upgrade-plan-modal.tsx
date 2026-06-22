@@ -12,6 +12,7 @@ import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/get-error-message'
 
 interface UpgradePlanModalProps {
     isOpen: boolean
@@ -68,7 +69,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                     }
                 } catch (error) {
                     console.error('Failed to fetch plans:', error)
-                    toast.error('Failed to load plans')
+                    toast.error(getErrorMessage(error, 'Failed to load plans'))
                 } finally {
                     setLoading(false)
                 }

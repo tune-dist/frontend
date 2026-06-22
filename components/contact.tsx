@@ -31,6 +31,7 @@ const XIcon = ({ className }: { className?: string }) => (
     </svg>
 )
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/get-error-message'
 
 const contactInfo = [
     {
@@ -96,7 +97,7 @@ export default function Contact() {
             setFormData({ name: '', email: '', subject: '', message: '', plan: '' })
         } catch (error: any) {
             console.error('Failed to send message:', error)
-            toast.error(error.response?.data?.message || 'Failed to send message. Please try again later.')
+            toast.error(getErrorMessage(error, 'Failed to send message. Please try again later.'))
         } finally {
             setIsLoading(false)
         }

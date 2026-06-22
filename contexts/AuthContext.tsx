@@ -5,7 +5,6 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { User, login as apiLogin, register as apiRegister, getMe, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword, verifyOtp as apiVerifyOtp, resendOtp as apiResendOtp, LoginResponse } from '@/lib/api/auth';
 import { config } from '@/lib/config';
-import { getErrorMessage } from '@/lib/api-client';
 import { AUTH_USER_UPDATED_EVENT } from '@/lib/auth-session';
 
 interface AuthContextType {
@@ -100,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       return response;
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, [router]);
 
@@ -128,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(response.user);
       router.push(redirectUrl || '/dashboard');
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, [router]);
 
@@ -162,7 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await login(email, password, redirectUrl);
       }
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, [login, router]);
 
@@ -209,7 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userData);
       router.push('/dashboard');
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, [router]);
 
@@ -217,7 +216,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await apiResendOtp({ email });
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, []);
 

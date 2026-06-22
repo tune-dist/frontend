@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Plan, getAllPlans, adminUpdatePlan, adminCreatePlan, adminDeletePlan, adminSyncRazorpayPlan, derivePlanKey, BillingPeriod, currencySymbol, derivePeriodLabel, calculateTotalWithGst, getGstPercent, isGstIncluded, getPlanTotalWithGst } from '@/lib/api/plans';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '@/lib/get-error-message';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -147,7 +148,7 @@ export default function PlanManagementPage() {
                 handleSelectPlan(result.plan);
             }
         } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to sync Razorpay plan');
+            toast.error(getErrorMessage(error, 'Failed to sync Razorpay plan'));
         } finally {
             setIsSyncingRazorpay(false);
         }
@@ -177,7 +178,7 @@ export default function PlanManagementPage() {
             }
             return data;
         } catch (error) {
-            toast.error('Failed to load plans');
+            toast.error(getErrorMessage(error, 'Failed to load plans'));
             return [];
         } finally {
             setIsLoading(false);
@@ -257,7 +258,7 @@ export default function PlanManagementPage() {
             await promptRazorpaySync(created);
         } catch (error: any) {
             console.error('Create plan error:', error);
-            toast.error(error.response?.data?.message || 'Failed to create plan');
+            toast.error(getErrorMessage(error, 'Failed to create plan'));
         } finally {
             setIsCreating(false);
         }
@@ -304,7 +305,7 @@ export default function PlanManagementPage() {
         } catch (error: any) {
             console.error('Update error:', error);
             console.error('Error response:', error.response?.data);
-            toast.error(error.response?.data?.message || 'Failed to update plan');
+            toast.error(getErrorMessage(error, 'Failed to update plan'));
         } finally {
             setIsSaving(false);
         }
@@ -326,7 +327,7 @@ export default function PlanManagementPage() {
             await fetchPlans();
         } catch (error: any) {
             console.error('Delete error:', error);
-            toast.error(error.response?.data?.message || 'Failed to delete plan');
+            toast.error(getErrorMessage(error, 'Failed to delete plan'));
         } finally {
             setIsDeleting(false);
         }

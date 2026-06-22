@@ -21,7 +21,7 @@ import {
 import { TrendingUp, Music, ListMusic, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
-import { S3Image } from "@/components/ui/s3-image";
+import { ReleaseCoverArt } from "@/components/releases/release-cover-art";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { PLATFORM_COLORS } from "@/lib/platform-logos";
 import { PlatformLegendItem } from "@/components/analytics/platform-icon";
@@ -72,35 +72,6 @@ const itemVariants = {
 
 function formatTrend(value: number) {
   return `${value >= 0 ? "+" : ""}${value}%`;
-}
-
-function ReleaseCover({
-  coverArtUrl,
-  title,
-  className,
-}: {
-  coverArtUrl?: string;
-  title: string;
-  className?: string;
-}) {
-  const fallback = (
-    <div className={`${className} bg-secondary/40 flex items-center justify-center`}>
-      <Music className="h-5 w-5 text-muted-foreground" />
-    </div>
-  );
-
-  if (!coverArtUrl) {
-    return fallback;
-  }
-
-  return (
-    <S3Image
-      src={coverArtUrl}
-      alt={title}
-      className={className}
-      fallback={fallback}
-    />
-  );
 }
 
 export default function DashboardPage() {
@@ -259,10 +230,10 @@ export default function DashboardPage() {
                     >
                       <div className="flex items-center gap-4 min-w-0">
                         <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors shadow-lg shrink-0">
-                          <ReleaseCover
+                          <ReleaseCoverArt
                             coverArtUrl={release.coverArtUrl}
                             title={release.title}
-                            className="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                            className="transform group-hover:scale-110 transition-transform duration-500"
                           />
                         </div>
                         <div className="flex flex-col min-w-0">
@@ -383,10 +354,10 @@ export default function DashboardPage() {
                       >
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors shrink-0">
-                            <ReleaseCover
+                            <ReleaseCoverArt
                               coverArtUrl={track.coverArtUrl}
                               title={track.title}
-                              className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                              className="group-hover:scale-110 transition-transform duration-500"
                             />
                           </div>
                           <div className="flex flex-col min-w-0">

@@ -47,6 +47,7 @@ import { BillingTypeToggle } from '@/components/plans/billing-type-toggle';
 import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '@/lib/get-error-message';
 
 export default function BillingPage() {
     const { user, refreshUser, loading: authLoading, isAuthenticated } = useAuth();
@@ -83,7 +84,7 @@ export default function BillingPage() {
                 }
             } catch (error) {
                 console.error('Failed to load billing data:', error);
-                toast.error('Failed to load plans');
+                toast.error(getErrorMessage(error, 'Failed to load plans'));
             } finally {
                 if (!cancelled) setIsLoading(false);
             }

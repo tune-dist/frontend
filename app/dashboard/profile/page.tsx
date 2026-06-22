@@ -27,6 +27,7 @@ import { uploadFileDirectly } from '@/lib/upload/chunk-uploader'
 import { getDisplayUrl } from '@/lib/api/s3'
 import { isAllowedVerificationFile, VERIFICATION_FILE_ACCEPT, VERIFICATION_FILE_HINT } from '@/lib/verification-document'
 import { API_URL } from '@/lib/config'
+import { getErrorMessage } from '@/lib/get-error-message'
 import { hasPermission } from '@/lib/permissions'
 import { formatPlanDisplayName } from '@/lib/utils'
 import { S3Image } from '@/components/ui/s3-image'
@@ -149,7 +150,7 @@ export default function ProfilePage() {
       setUploadDocType(null);
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to upload verification document');
+      toast.error(getErrorMessage(error, 'Failed to upload verification document'));
     } finally {
       setIsVerifyingProfile(false);
     }
@@ -171,7 +172,7 @@ export default function ProfilePage() {
         : 'OTP sent to your phone number. Please check console logs.');
       setShowOTPModal(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send OTP');
+      toast.error(getErrorMessage(error, 'Failed to send OTP'));
     } finally {
       setIsSendingOTP(false);
     }
@@ -191,7 +192,7 @@ export default function ProfilePage() {
       setOtp('');
       await refreshUser();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Invalid OTP');
+      toast.error(getErrorMessage(error, 'Invalid OTP'));
     } finally {
       setIsVerifyingOTP(false);
     }
@@ -208,7 +209,7 @@ export default function ProfilePage() {
       toast.success('Address updated successfully');
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update address');
+      toast.error(getErrorMessage(error, 'Failed to update address'));
     } finally {
       setIsLoading(false);
     }
@@ -254,7 +255,7 @@ export default function ProfilePage() {
       }, 1000);
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to upload profile picture');
+      toast.error(getErrorMessage(error, 'Failed to upload profile picture'));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -278,7 +279,7 @@ export default function ProfilePage() {
       await refreshUser()
       toast.success('Profile updated successfully')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile')
+      toast.error(getErrorMessage(error, 'Failed to update profile'))
     } finally {
       setIsLoading(false)
     }

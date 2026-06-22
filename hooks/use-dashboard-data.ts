@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getErrorMessage } from "@/lib/get-error-message";
+import { isPlanInactiveError } from "@/lib/plan-inactive";
 import {
   DashboardLatestRelease,
   DashboardStats,
@@ -47,17 +49,18 @@ export function useDashboardData(
   });
 
   useEffect(() => {
-    if (statsQuery.isError) {
-      toast.error("Failed to fetch dashboard data");
+    if (statsQuery.isError && !isPlanInactiveError(statsQuery.error)) {
+      toast.error(getErrorMessage(statsQuery.error, "Failed to fetch dashboard data"));
       console.error(statsQuery.error);
     }
   }, [statsQuery.isError, statsQuery.error]);
 
   useEffect(() => {
-    if (latestQuery.isError || topTracksQuery.isError) {
-      toast.error("Failed to fetch dashboard data");
+    const error = latestQuery.error ?? topTracksQuery.error;
+    if ((latestQuery.isError || topTracksQuery.isError) && !isPlanInactiveError(error)) {
+      toast.error(getErrorMessage(error, "Failed to fetch dashboard data"));
     }
-  }, [latestQuery.isError, topTracksQuery.isError]);
+  }, [latestQuery.isError, topTracksQuery.isError, latestQuery.error, topTracksQuery.error]);
 
   const loading =
     enabled &&

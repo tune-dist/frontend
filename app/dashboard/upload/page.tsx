@@ -41,6 +41,7 @@ import { validateCoverArtSize } from "@/components/dashboard/upload/cover-art-fi
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage } from "@/lib/api/releases";
 import { isPlanInactiveError } from "@/lib/plan-inactive";
+import { getErrorMessage } from "@/lib/get-error-message";
 import {
   getPlanLimits,
   getPlanByKey,
@@ -810,7 +811,7 @@ export default function UploadPage() {
       setIsSubmitting(false);
       // The plan-inactive modal already explains the block — skip the toast.
       if (!isPlanInactiveError(error)) {
-        toast.error(error.message || "Failed to submit release");
+        toast.error(getErrorMessage(error, "Failed to submit release"));
         scrollToError();
       }
     }

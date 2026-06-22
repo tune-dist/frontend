@@ -4,6 +4,8 @@ import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getErrorMessage } from "@/lib/get-error-message";
+import { isPlanInactiveError } from "@/lib/plan-inactive";
 import {
   BreakdownDimension,
   BreakdownResponse,
@@ -82,14 +84,15 @@ export function useAnalyticsData(
   });
 
   useEffect(() => {
-    if (languagesQuery.isError || genresQuery.isError) {
-      toast.error("Failed to fetch analytics breakdowns");
+    const error = languagesQuery.error ?? genresQuery.error;
+    if ((languagesQuery.isError || genresQuery.isError) && !isPlanInactiveError(error)) {
+      toast.error(getErrorMessage(error, "Failed to fetch analytics breakdowns"));
     }
-  }, [languagesQuery.isError, genresQuery.isError]);
+  }, [languagesQuery.isError, genresQuery.isError, languagesQuery.error, genresQuery.error]);
 
   useEffect(() => {
-    if (trendsQuery.isError) {
-      toast.error("Failed to load streaming trends");
+    if (trendsQuery.isError && !isPlanInactiveError(trendsQuery.error)) {
+      toast.error(getErrorMessage(trendsQuery.error, "Failed to load streaming trends"));
       console.error(trendsQuery.error);
     }
   }, [trendsQuery.isError, trendsQuery.error]);
@@ -117,7 +120,9 @@ export function useAnalyticsData(
           queryFn: () => getBreakdown(dimension, limit),
         });
       } catch (error) {
-        toast.error(`Failed to load ${dimension} breakdown`);
+        if (!isPlanInactiveError(error)) {
+          toast.error(getErrorMessage(error, `Failed to load ${dimension} breakdown`));
+        }
         console.error(error);
         return null;
       }

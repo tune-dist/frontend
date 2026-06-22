@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/get-error-message";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import PageLoading from "@/components/dashboard/page-loading";
@@ -163,7 +164,7 @@ export default function ReleasesPage() {
       setTotalReleases(pagination?.total ?? response.releases.length);
       setTotalPages(pagination?.totalPages ?? 1);
     } catch (error) {
-      toast.error("Failed to fetch releases");
+      toast.error(getErrorMessage(error, "Failed to fetch releases"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -265,7 +266,7 @@ export default function ReleasesPage() {
       setRejectReason("");
       fetchReleases();
     } catch (error) {
-      toast.error("Failed to reject release");
+      toast.error(getErrorMessage(error, "Failed to reject release"));
     } finally {
       setActionLoading(null);
     }

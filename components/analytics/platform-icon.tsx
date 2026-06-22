@@ -129,24 +129,32 @@ interface PlatformLegendItemProps {
 
 export function PlatformLegendItem({ dsp, label, className }: PlatformLegendItemProps) {
   const logo = getPlatformLogo(dsp);
+  const color = getPlatformColor(dsp);
 
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
       {logo ? (
-        <div className="h-9 w-9 rounded-lg bg-white/95 flex items-center justify-center shrink-0 p-1.5">
+        <div
+          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 p-1.5 shadow-sm"
+          style={{ backgroundColor: color }}
+          title={label}
+        >
           <Image
             src={logo}
             alt={label}
             width={28}
             height={28}
-            className="h-6 w-auto max-w-full object-contain"
+            className="h-6 w-auto max-w-full object-contain brightness-0 invert"
           />
         </div>
       ) : (
         <div
-          className="h-3.5 w-3.5 rounded-full shrink-0"
-          style={{ backgroundColor: getPlatformColor(dsp) }}
-        />
+          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-black uppercase text-white shadow-sm"
+          style={{ backgroundColor: color }}
+          title={label}
+        >
+          {label.slice(0, 2)}
+        </div>
       )}
     </div>
   );
