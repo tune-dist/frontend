@@ -43,6 +43,27 @@ export interface Plan {
   razorpayPlanSyncedAt?: string;
   createdAt: string;
   updatedAt: string;
+  /** Admin-only: users currently on this plan */
+  userCount?: number;
+  /** Admin-only: month-over-month growth in new plan starts */
+  growthPercent?: number;
+}
+
+export function formatPlanUserCount(count = 0): string {
+  if (count >= 1_000_000) {
+    const millions = count / 1_000_000;
+    return `${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M Users`;
+  }
+  if (count >= 1_000) {
+    const thousands = count / 1_000;
+    return `${thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(1)}k Users`;
+  }
+  return `${count} User${count === 1 ? '' : 's'}`;
+}
+
+export function formatPlanGrowthPercent(percent = 0): string {
+  if (percent > 0) return `+${percent}%`;
+  return `${percent}%`;
 }
 
 // Derive the Mongo `key` from a plan title. Mirrors the backend rule:
@@ -281,6 +302,14 @@ export async function getPlanLimits(planKey: string, forceRefresh = false): Prom
 export async function getPlanFieldRules(planKey: string, forceRefresh = false): Promise<Record<string, any>> {
   const plan = await getPlanByKey(planKey, forceRefresh);
   return plan?.fieldRules || {};
+}
+
+/**
+ * Admin: Get all plans with subscriber stats
+ */
+export async function adminGetAllPlans(): Promise<Plan[]> {
+  const response = await apiClient.get<Plan[]>('/admin/plans');
+  return response.data;
 }
 
 /**

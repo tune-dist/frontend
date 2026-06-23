@@ -90,7 +90,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
     // Check if featured artists are allowed by plan fieldRules
     const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false
-    const isLabelNameAllowed = fieldRules.labelName?.allow !== false
+    const isLabelNameAllowed = planKey !== 'free'
     const isExplicitAllowed = fieldRules.isExplicit?.allow !== false
 
     // Check if main artist name should be locked (Limit reached, including any purchased add-on slots)
@@ -1383,7 +1383,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     </p>
                     {errors.releaseDate && <p className="text-xs text-red-500 mt-1">{errors.releaseDate.message}</p>}
                 </div>
-                {/* Label Name Field - Always show, but disable and show message if not allowed by plan */}
+                {/* Label Name Field - editable on paid plans; locked to default on free */}
                 <div className="space-y-3 pt-6 border-t border-border">
                     <Label htmlFor="labelName" className="text-lg font-semibold">
                         Label Name <span className="text-red-500">*</span>
@@ -1392,13 +1392,13 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         id="labelName"
                         placeholder="Enter Label Name"
                         {...register('labelName')}
-                        disabled={!isLabelNameAllowed}
+                        readOnly={!isLabelNameAllowed}
                         className={errors.labelName ? 'border-red-500' : ''}
                     />
                     {!isLabelNameAllowed && (
                         <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
                             <Info className="h-3 w-3 mt-0.5" />
-                            <span>Upgrade to Creator+ or higher to use custom Label Name.</span>
+                            <span>Upgrade to a paid plan to use a custom Label Name.</span>
                         </div>
                     )}
                     {errors.labelName && (

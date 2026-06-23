@@ -142,7 +142,7 @@ export default function UploadPage() {
       title: "",
       artistName: "",
       version: "",
-      previouslyReleased: undefined,
+      previouslyReleased: "no",
       primaryGenre: "",
       secondaryGenre: "",
       language: "",
@@ -398,12 +398,11 @@ export default function UploadPage() {
           isValid = true;
           // Validate required fields in Credits step
           if (formData.format === "single") {
-            // For singles, validate genre and previously released
+            // For singles, validate genre and credits metadata
             // Also validate songwriters and composers based on fieldRules
             const fieldsToValidate = [
               "primaryGenre",
               "secondaryGenre",
-              "previouslyReleased",
               "language",
             ];
             console.log("fieldsToValidate", fieldRules);
@@ -442,14 +441,6 @@ export default function UploadPage() {
               isValid = false;
             }
 
-            // Manual validation for previouslyReleased
-            if (!formData.previouslyReleased) {
-              form.setError("previouslyReleased", {
-                type: "required",
-                message: "Release history is required for single releases",
-              });
-              isValid = false;
-            }
 
             // Manual validation for mood (Vibe)
             if (!formData.mood || formData.mood.trim() === "") {

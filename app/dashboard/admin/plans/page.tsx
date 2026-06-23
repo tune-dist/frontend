@@ -26,7 +26,8 @@ import {
     Upload,
     PieChart,
 } from 'lucide-react';
-import { Plan, getAllPlans, adminUpdatePlan, adminCreatePlan, adminDeletePlan, adminSyncRazorpayPlan, derivePlanKey, BillingPeriod, currencySymbol, derivePeriodLabel, calculateTotalWithGst, getGstPercent, isGstIncluded, getPlanTotalWithGst } from '@/lib/api/plans';
+import { Plan, adminGetAllPlans, adminUpdatePlan, adminCreatePlan, adminDeletePlan, adminSyncRazorpayPlan, derivePlanKey, BillingPeriod, currencySymbol, derivePeriodLabel, calculateTotalWithGst, getGstPercent, isGstIncluded, getPlanTotalWithGst, formatPlanUserCount, formatPlanGrowthPercent } from '@/lib/api/plans';
+import { resolveArtistKeepPercent } from '@/lib/plans-display';
 import toast from 'react-hot-toast';
 import { getErrorMessage } from '@/lib/get-error-message';
 import { Switch } from '@/components/ui/switch';
@@ -171,7 +172,7 @@ export default function PlanManagementPage() {
     const fetchPlans = async (): Promise<Plan[]> => {
         try {
             setIsLoading(true);
-            const data = await getAllPlans(true);
+            const data = await adminGetAllPlans();
             setPlans(data);
             if (data.length > 0 && !selectedPlan) {
                 handleSelectPlan(data[0]);
@@ -292,6 +293,8 @@ export default function PlanManagementPage() {
             updatedAt,
             razorpayPlanId,
             razorpayPlanSyncedAt,
+            userCount,
+            growthPercent,
             ...planUpdates
         } = editForm;
         try {
@@ -423,12 +426,12 @@ export default function PlanManagementPage() {
                                 <div className="flex items-center gap-4 text-sm font-medium">
                                     <div className="flex flex-col">
                                         <span className="text-muted-foreground text-xs uppercase tracking-wider">Users</span>
-                                        <span>24k Users</span>
+                                        <span>{formatPlanUserCount(plan.userCount)}</span>
                                     </div>
                                     <div className="w-px h-8 bg-border/50" />
-                                    <div className="flex items-center gap-1 text-primary">
+                                    <div className={`flex items-center gap-1 ${(plan.growthPercent ?? 0) < 0 ? 'text-destructive' : 'text-primary'}`}>
                                         <BarChart3 className="h-4 w-4" />
-                                        <span>+12%</span>
+                                        <span>{formatPlanGrowthPercent(plan.growthPercent)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -488,6 +491,20 @@ export default function PlanManagementPage() {
                                                 placeholder="Most Popular"
                                                 className="bg-card/50 border-border/50 rounded-xl h-12"
                                             />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-muted-foreground font-semibold">Royalty % (platform fee)</Label>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                value={editForm.royaltyPercent ?? 0}
+                                                onChange={(e) => handleInputChange('royaltyPercent', parseFloat(e.target.value) || 0)}
+                                                className="bg-card/50 border-border/50 rounded-xl h-12"
+                                            />
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                                Artist keeps {resolveArtistKeepPercent(editForm as Plan)}% · shown as &quot;Earnings kept&quot; on pricing page
+                                            </p>
                                         </div>
                                     </div>
 
@@ -813,7 +830,7 @@ export default function PlanManagementPage() {
                                 </p>
                             </div>
                             <div className="space-y-2">
-                                <Label>Royalty %</Label>
+                                <Label>Royalty % (platform fee)</Label>
                                 <Input
                                     type="number"
                                     min={0}
@@ -821,6 +838,9 @@ export default function PlanManagementPage() {
                                     value={newPlan.royaltyPercent ?? 10}
                                     onChange={(e) => updateNewPlanField('royaltyPercent', parseFloat(e.target.value) || 0)}
                                 />
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                    Artist keeps {resolveArtistKeepPercent(newPlan as Plan)}% of earnings
+                                </p>
                             </div>
                             <div className="space-y-2">
                                 <Label>GST %</Label>
