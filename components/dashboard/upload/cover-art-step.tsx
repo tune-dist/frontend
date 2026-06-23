@@ -499,7 +499,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 {/* Templates Button & Modal */}
                 <Dialog>
                     <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full rounded-xl py-6 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold uppercase tracking-wider transition-all hover:scale-[1.02]">
+                        <Button variant="outline" className="w-full rounded-xl py-6 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-bold uppercase tracking-wider transition-all hover:scale-[1.02] hidden">
                             <ImageIcon className="mr-2 h-5 w-5" />
                             Cover Art Templates
                         </Button>

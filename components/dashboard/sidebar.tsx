@@ -125,7 +125,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto scrollbar-thin" data-lenis-prevent="true">
             {navigation
               .filter((item) => {
                 if (item.href === '/dashboard/youtube-service') {
