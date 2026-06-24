@@ -13,9 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import {
     getCoverArtMaxSizeMB,
     validateCoverArtFile,
+    validateCoverArtDimensions,
+    loadCoverArtImage,
     validateCoverArt,
+    isExistingUnchangedCoverArt,
 } from './cover-art-file-validation'
-import { validateCoverArt } from '@/lib/api/cover-art'
 import { getErrorMessage } from '@/lib/get-error-message'
 
 interface CoverArtStepProps {
@@ -35,11 +37,45 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
     const validationStatus = watch('coverArtValidationStatus');
     const validationIssues = watch('coverArtValidationIssues') || [];
-    const hasValidated = !!validationStatus;
-
+    const coverArtChanged = watch('coverArtChanged');
     const coverArtPreview = watch('coverArtPreview')
     const coverArt = watch('coverArt')
-    // console.log(coverArt, 'coverArt')
+    const existingCoverPath = (coverArt as { path?: string } | null)?.path
+    const isExistingS3Cover = Boolean(existingCoverPath && coverArtPreview)
+    const skipAiValidation = isExistingUnchangedCoverArt(coverArt, coverArtChanged);
+    const hasValidated = skipAiValidation || !!validationStatus;
+
+    const buildValidationMetadata = (formData: UploadFormData) => {
+        const featuredArtists = (formData.artists || []).map((artist) => artist.name);
+        if (formData.featuringArtist) {
+            featuredArtists.push(formData.featuringArtist);
+        }
+
+        return {
+            artistName: formData.artistName,
+            trackTitle: formData.title,
+            featuredArtists,
+            isExplicit: formData.isExplicit,
+            releaseYear: formData.releaseDate
+                ? new Date(formData.releaseDate).getFullYear().toString()
+                : undefined,
+            recordLabel: formData.labelName,
+        };
+    };
+
+    const applyValidationResult = (validationResult: Awaited<ReturnType<typeof validateCoverArt>>) => {
+        setValue('coverArtValidationStatus', validationResult.status);
+        setValue(
+            'coverArtValidationIssues',
+            validationResult.issues || validationResult.errors || [],
+        );
+        setValue('coverArtConsent', false);
+        setValue('coverArtChanged', false);
+
+        if (validationResult.status === 'approved') {
+            toast.success('Cover art validated successfully');
+        }
+    };
     const requirements = useMemo(() => [
         {
             id: 'resolution',
@@ -103,6 +139,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         console.log('🖼️ Album cover upload started:', file.name)
         setValue('coverArtValidationStatus', undefined);
         setValue('coverArtValidationIssues', []);
+        setValue('coverArtChanged', true);
 
         const fileValidation = validateCoverArtFile(file, coverArtRules);
         if (!fileValidation.valid) {
@@ -113,110 +150,73 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
             return;
         }
 
+        let imageData: { width: number; height: number; previewDataUrl: string };
+        try {
+            imageData = await loadCoverArtImage(file);
+        } catch (error) {
+            const message = getErrorMessage(
+                error,
+                'Failed to load image. If you are using a phone, please ensure it is a standard JPG or PNG file.',
+            );
+            toast.error(message);
+            setError('coverArt', { type: 'manual', message });
+            setValue('coverArt', null, { shouldValidate: true });
+            setValue('coverArtPreview', '', { shouldValidate: true });
+            return;
+        }
+
+        const dimensionValidation = validateCoverArtDimensions(
+            imageData.width,
+            imageData.height,
+        );
+        if (!dimensionValidation.valid) {
+            toast.error(dimensionValidation.message);
+            setError('coverArt', { type: 'manual', message: dimensionValidation.message });
+            setValue('coverArt', null, { shouldValidate: true });
+            setValue('coverArtPreview', '', { shouldValidate: true });
+            return;
+        }
+
         clearErrors('coverArt');
 
-        const reader = new FileReader()
-        reader.onloadend = async () => {
-            const img = new Image()
-            img.onerror = () => {
-                console.error('🖼️ Image load error - possibly unsupported format or corrupted file');
-                toast.error('Failed to load image. If you are using a phone, please ensure it is a standard JPG or PNG file.');
-                setIsUploading(false);
-            }
-            img.onload = async () => {
-                const formData = watch();
+        const formData = watch();
 
-                if (img.width < 3000 || img.height < 3000) {
-                    const message = `Image resolution too low. Minimum 3000x3000px required. Current: ${img.width}x${img.height}px`;
-                    setError('coverArt', { type: 'manual', message });
-                    setValue('coverArtValidationStatus', 'rejected');
-                    setValue('coverArtValidationIssues', [{
-                        code: 'LOW_RESOLUTION',
-                        message,
-                        severity: 'error',
-                    }]);
-                    setValue('coverArtConsent', false);
-                    setValue('coverArtPreview', reader.result as string, { shouldValidate: true });
-                    setValue('coverArt', {
-                        file: file,
-                        path: '',
-                        fileName: file.name,
-                        size: file.size,
-                        dimensions: { width: img.width, height: img.height },
-                        format: file.type.split('/')[1] || 'jpg',
-                    } as any, { shouldValidate: true });
-                    return;
-                }
+        try {
+            const validationMetadata = buildValidationMetadata(formData);
 
-                try {
-                    // Backend validation (OCR, metadata match, quality checks, etc.)
+            console.log('Validating cover art with metadata:', validationMetadata);
+            setIsUploading(true);
+            setIsValidating(true);
+            setUploadProgress(0);
 
-                    // Extract metadata for validation
-                    const featuredArtists = (formData.artists || []).map(a => a.name);
-                    if (formData.featuringArtist) {
-                        featuredArtists.push(formData.featuringArtist);
-                    }
+            const validationResult = await validateCoverArt(file, validationMetadata);
+            applyValidationResult(validationResult);
 
-                    const validationMetadata = {
-                        artistName: formData.artistName,
-                        trackTitle: formData.title,
-                        featuredArtists: featuredArtists,
-                        isExplicit: formData.isExplicit,
-                        releaseYear: formData.releaseDate ? new Date(formData.releaseDate).getFullYear().toString() : undefined,
-                        recordLabel: formData.labelName
-                    };
-
-                    console.log('Validating cover art with metadata:', validationMetadata);
-                    setIsUploading(true);
-                    setIsValidating(true);
-                    setUploadProgress(0);
-
-                    const validationResult = await validateCoverArt(file, validationMetadata);
-
-                    setIsValidating(false);
-
-                    // Sync validation result with form state
-                    setValue('coverArtValidationStatus', validationResult.status);
-                    setValue('coverArtValidationIssues', validationResult.issues || validationResult.errors || []);
-                    setValue('coverArtConsent', false); // Reset consent for new upload
-
-                    if (validationResult.status === 'approved') {
-                        toast.success('Cover art validated successfully');
-                    }
-
-                    // rejected / warned: issues are shown inline in the panel below — no extra toast
-
-                    // 2. Set Preview and Metadata (Deferred S3 Upload)
-                    setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
-
-                    setValue('coverArt', {
-                        file: file,
-                        path: '', // Signal that it needs upload on final submit
-                        fileName: file.name,
-                        size: file.size,
-                        dimensions: {
-                            width: img.width,
-                            height: img.height
-                        },
-                        format: file.type.split('/')[1] || 'jpg'
-                    } as any, { shouldValidate: true });
-                } catch (error) {
-                    console.error('[CoverArt] Upload/Validation failed:', error);
-                    const message = getErrorMessage(
-                        error,
-                        'Failed to validate cover art. Please try again.',
-                    );
-                    setError('coverArt', { type: 'server', message });
-                    setValue('coverArt', null, { shouldValidate: true });
-                    setValue('coverArtPreview', '', { shouldValidate: true });
-                } finally {
-                    setIsUploading(false);
-                    setIsValidating(false);
-                }
-            }
-            img.src = reader.result as string
+            setValue('coverArtPreview', imageData.previewDataUrl, { shouldValidate: true });
+            setValue('coverArt', {
+                file: file,
+                path: '',
+                fileName: file.name,
+                size: file.size,
+                dimensions: {
+                    width: imageData.width,
+                    height: imageData.height,
+                },
+                format: file.type.split('/')[1] || 'jpg',
+            } as any, { shouldValidate: true });
+        } catch (error) {
+            console.error('[CoverArt] Upload/Validation failed:', error);
+            const message = getErrorMessage(
+                error,
+                'Failed to validate cover art. Please try again.',
+            );
+            setError('coverArt', { type: 'server', message });
+            setValue('coverArt', null, { shouldValidate: true });
+            setValue('coverArtPreview', '', { shouldValidate: true });
+        } finally {
+            setIsUploading(false);
+            setIsValidating(false);
         }
-        reader.readAsDataURL(file)
     }
 
     const handleCoverArtDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -250,6 +250,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         setValue('coverArtValidationStatus', undefined);
         setValue('coverArtValidationIssues', []);
         setValue('coverArtConsent', false);
+        setValue('coverArtChanged', false);
     }
 
     return (
@@ -302,6 +303,13 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                         </div>
                     ) : (
                         <div className="space-y-6">
+                            {isExistingS3Cover && (
+                                <div className="flex justify-center">
+                                    <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                                        Saved cover art
+                                    </span>
+                                </div>
+                            )}
                             <div className="relative mx-auto max-w-sm group">
                                 <img
                                     src={coverArtPreview}
@@ -333,9 +341,13 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
                             {coverArt && (
                                 <div className="flex flex-col items-center gap-1">
-                                    <p className="text-lg font-semibold truncate max-w-md">{getValues('title')}.{coverArt?.fileName?.split('.').pop()}</p>
+                                    <p className="text-lg font-semibold truncate max-w-md">
+                                        {(coverArt as { fileName?: string }).fileName ||
+                                            `${getValues('title') || 'cover-art'}.jpg`}
+                                    </p>
                                     <p className="text-muted-foreground">
-                                        {((coverArt as any).size / 1024 / 1024).toFixed(2)} MB • {(coverArt as any).path ? 'Uploaded' : 'Validated'}
+                                        {((coverArt as any).size / 1024 / 1024).toFixed(2)} MB •{' '}
+                                        {(coverArt as any).path ? 'Saved on server' : 'Validated'}
                                     </p>
                                 </div>
                             )}

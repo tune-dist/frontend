@@ -19,6 +19,7 @@ export const audioFileSchema = z.object({
     size: z.number().optional(),
     // Fields from Chunk Upload response
     path: z.string().optional(),
+    playbackUrl: z.string().optional(),
     duration: z.number().optional(),
     resolution: z.object({
         width: z.number().optional(),
@@ -141,6 +142,9 @@ export const uploadFormSchema = z.object({
     coverArtConsent: z.boolean().default(false),
     coverArtValidationStatus: z.string().optional(),
     coverArtValidationIssues: z.array(z.any()).default([]),
+    coverArtMetadataStale: z.boolean().default(false),
+    /** True only after the user uploads/replaces cover art in this session. */
+    coverArtChanged: z.boolean().default(false),
     audioConsent: z.boolean().default(false),
     audioDuplicateDetected: z.boolean().default(false),
     audioWarningMessage: z.string().optional(),

@@ -1052,7 +1052,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 }}
                                                 onFocus={() => !isArtistLocked && setActiveSearchIndex('main')}
                                                 readOnly={isArtistLocked || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile}
-                                                className={`${isSearching && activeSearchIndex === 'main' ? 'pr-10' : ''} ${errors.artistName ? 'border-red-500' : ''} ${(isArtistLocked || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''} ${(usedArtists.length > 0 || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) && !isArtistLocked ? 'pr-24' : ''}`}
+                                                className={`${errors.artistName ? 'border-red-500' : ''} ${(isArtistLocked || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''} ${(usedArtists.length > 0 || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) && !isArtistLocked ? 'pr-24' : ''}`}
                                             />
                                             {(usedArtists.length > 0 || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) && !isArtistLocked && (
                                                 <button
@@ -1069,15 +1069,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 >
                                                     Change Artist
                                                 </button>
-                                            )}
-                                            {isSearching && activeSearchIndex === 'main' && !(!!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) && (
-                                                <div className="absolute right-24 top-1/2 -translate-y-1/2">
-                                                    <motion.div
-                                                        animate={{ rotate: 360 }}
-                                                        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                                        className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
-                                                    />
-                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -1225,15 +1216,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                     className={`w-full ${usedArtists.length > 0 ? 'pr-24' : 'pr-10'}`}
                                                     onFocus={() => setActiveSearchIndex(index)}
                                                 />
-                                                {isSearching && activeSearchIndex === index && (
-                                                    <div className="absolute right-24 top-1/2 -translate-y-1/2">
-                                                        <motion.div
-                                                            animate={{ rotate: 360 }}
-                                                            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                                            className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
-                                                        />
-                                                    </div>
-                                                )}
                                                 {usedArtists.length > 0 && (
                                                     <button
                                                         type="button"

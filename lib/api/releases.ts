@@ -3,8 +3,9 @@ import { uploadFile, getAudioMetadata, getImageMetadata } from "./upload";
 import { uploadFileInChunks } from "@/lib/upload/chunk-uploader";
 import Cookies from "js-cookie";
 import { config } from "@/lib/config";
-import { toast } from "react-hot-toast";
 import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/upload/genre-language";
+import { isTrackEligibleForCrbt } from "@/components/dashboard/upload/crbt-validation";
+import { resolveAudioUploadTitle } from "@/lib/upload/audio-upload-title";
 
 export interface ReleaseFormData {
   title: string;
@@ -197,6 +198,7 @@ export interface Release {
   };
   /** Set after initial platform processing (metadata + assets upload) succeeds */
   pdlAlbumId?: string;
+  previewClipStartTime?: string;
 }
 
 
@@ -301,14 +303,11 @@ export interface GetReleasesParams {
   search?: string;
 }
 
-// Process and submit new release with file uploads
-export const submitNewRelease = async (formData: ReleaseFormData) => {
-  const token = Cookies.get(config.tokenKey) || "";
-  let submissionToastId: string | undefined;
-
-  try {
-    submissionToastId = toast.loading("Finalizing assets and submitting release...");
-
+// Build API payload from upload form (shared by create + update)
+export const buildCreateReleaseData = async (
+  formData: ReleaseFormData,
+  token: string,
+): Promise<CreateReleaseData> => {
     // 1. Process Tracks (if any)
     let tracksPayload: TrackPayload[] = [];
     if (formData.tracks && formData.tracks.length > 0) {
@@ -326,9 +325,22 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         for (let i = 0; i < audioFiles.length; i++) {
           const af = audioFiles[i];
           if (af.file instanceof File && !af.path) {
-            console.log(`Uploading missing audio file for track: ${af.fileName}`);
-            toast.loading(`Uploading audio: ${af.fileName}...`, { id: submissionToastId });
-            const result = await uploadFileInChunks(af.file, token, undefined, 'audio', formData.artistName, formData.title, formData.audioConsent);
+            const uploadTitle = resolveAudioUploadTitle(
+              af,
+              formData.tracks,
+              i,
+              formData.title,
+            );
+            console.log(`Uploading missing audio file for track: ${uploadTitle}`);
+            const result = await uploadFileInChunks(
+              af.file,
+              token,
+              undefined,
+              "audio",
+              formData.artistName,
+              uploadTitle,
+              formData.audioConsent,
+            );
             af.path = result.path;
             af.duration = result.metaData?.duration;
             af.hash = result.metaData?.hash;
@@ -375,7 +387,9 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
             ? false
             : track.explicitLyrics === "yes" || track.isExplicit === true,
           isInstrumental: trackNoLyrics || track.isInstrumental === "yes",
-          previewStartTime: track.previewClipStartTime,
+          previewStartTime: isTrackEligibleForCrbt(trackAudioData?.duration)
+            ? track.previewClipStartTime || formData.previewClipStartTime
+            : undefined,
           price: track.price,
           writers: trackNoLyrics ? [] : track.writers,
           composers: track.composers,
@@ -389,6 +403,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
             const lang = resolveLanguage(
               track.primaryGenre || formData.primaryGenre,
               track.language || formData.language,
+              track.isInstrumental ?? formData.instrumental,
             );
             return lang
               ? lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()
@@ -402,6 +417,25 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           mood: track.mood,
         };
       });
+    }
+
+    if (
+      (formData.format === 'single' || formData.releaseType === 'single') &&
+      tracksPayload.length > 0
+    ) {
+      const rootTrack = tracksPayload[0];
+      const rootDuration =
+        (formData.audioFile as { duration?: number } | undefined)?.duration ??
+        rootTrack.audioFile?.duration;
+      tracksPayload[0] = {
+        ...rootTrack,
+        composers: formData.composers?.length ? formData.composers : rootTrack.composers,
+        writers: formData.writers?.length ? formData.writers : rootTrack.writers,
+        mood: (formData as any).mood || rootTrack.mood,
+        previewStartTime: isTrackEligibleForCrbt(rootDuration)
+          ? formData.previewClipStartTime || rootTrack.previewStartTime
+          : rootTrack.previewStartTime,
+      };
     }
 
     const releaseNoLyrics = isInstrumentalRelease(
@@ -422,7 +456,11 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
           ? false
           : formData.explicitLyrics === 'yes' || formData.isExplicit === true,
         isInstrumental: releaseNoLyrics || formData.instrumental === 'yes',
-        previewStartTime: formData.previewClipStartTime,
+        previewStartTime: isTrackEligibleForCrbt(
+          (formData.audioFile as { duration?: number } | undefined)?.duration,
+        )
+          ? formData.previewClipStartTime
+          : undefined,
         price: undefined, // Not available in single release root form data
         writers: releaseNoLyrics ? [] : (formData.writers || []),
         composers: formData.composers || [],
@@ -433,7 +471,11 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         featuringArtist: formData.featuringArtist,
         isrc: formData.isrc,
         language: (() => {
-          const lang = resolveLanguage(formData.primaryGenre, formData.language);
+          const lang = resolveLanguage(
+            formData.primaryGenre,
+            formData.language,
+            formData.instrumental,
+          );
           return lang
             ? lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()
             : undefined;
@@ -467,7 +509,6 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       } else if (audioFileData instanceof File || audioFileData.file instanceof File) {
         const fileToUpload = audioFileData instanceof File ? audioFileData : audioFileData.file;
         console.log(`Uploading missing root audio file: ${fileToUpload.name}`);
-        toast.loading(`Uploading audio: ${fileToUpload.name}...`, { id: submissionToastId });
         const result = await uploadFileInChunks(fileToUpload, token, undefined, 'audio', formData.artistName, formData.title, formData.audioConsent);
         // Path is now S3 key
         audioData = {
@@ -493,14 +534,12 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
     }
 
     // 3. Upload cover art
-    // submissionToastId is already set at the top
 
     console.log("Processing cover art...");
     let coverUrl: string;
     const coverArtData = formData.coverArt as any;
 
     if (!coverArtData) {
-      toast.dismiss(submissionToastId);
       throw new Error("Cover art is missing or invalid. Please check the Cover Art step.");
     }
 
@@ -509,7 +548,6 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       coverUrl = coverArtData.path;
     } else if (formData.coverArt instanceof File || coverArtData.file instanceof File) {
       console.log("Cover art not uploaded yet, uploading now...");
-      toast.loading("Uploading cover art...", { id: submissionToastId });
 
       const fileToUpload = formData.coverArt instanceof File ? formData.coverArt : coverArtData.file;
       const result = await uploadFileInChunks(fileToUpload, token, undefined, 'coverart', formData.artistName, formData.title, formData.coverArtConsent);
@@ -524,7 +562,6 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
         }
       }
     } else {
-      toast.dismiss(submissionToastId);
       throw new Error("Invalid cover art data. Please re-upload your cover art.");
     }
 
@@ -542,24 +579,32 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       );
     }
 
-    toast.loading("Submitting metadata to stores...", { id: submissionToastId });
-
     // 4. Prepare release data
     const releaseData: CreateReleaseData = {
       title: formData.title,
       artistName: formData.artistName,
       version: formData.version,
-      ...(resolveLanguage(formData.primaryGenre, formData.language) && {
+      ...(resolveLanguage(
+        formData.primaryGenre,
+        formData.language,
+        formData.instrumental,
+      ) && {
         language: (() => {
-          const lang = resolveLanguage(formData.primaryGenre, formData.language);
+          const lang = resolveLanguage(
+            formData.primaryGenre,
+            formData.language,
+            formData.instrumental,
+          );
           return lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase();
         })(),
       }),
       ...(formData.primaryGenre && { primaryGenre: formData.primaryGenre }),
       ...(formData.secondaryGenre && {
         secondaryGenre: formData.secondaryGenre,
+        subGenre: formData.subGenre || formData.secondaryGenre,
       }),
-      ...(formData.subGenre && { subGenre: formData.subGenre }),
+      ...(formData.subGenre &&
+        !formData.secondaryGenre && { subGenre: formData.subGenre }),
       releaseType: (formData.format as any) || formData.releaseType || "single",
       isExplicit: releaseNoLyrics
         ? false
@@ -671,7 +716,8 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       ...(formData.artworkConfirmed !== undefined && {
         artworkConfirmed: formData.artworkConfirmed,
       }),
-      ...(formData.previewClipStartTime && {
+      ...(isTrackEligibleForCrbt(audioData?.duration) &&
+        formData.previewClipStartTime && {
         previewClipStartTime: formData.previewClipStartTime,
       }),
       ...(formData.radioEdit && { radioEdit: formData.radioEdit }),
@@ -711,11 +757,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       coverArtConsent: formData.coverArtConsent === true
     };
 
-    // 5. Create release via API
-    console.log(
-      "Creating release with data:",
-      JSON.stringify(releaseData, null, 2)
-    );
+    console.log("Prepared release payload:", JSON.stringify(releaseData, null, 2));
 
     try {
       JSON.stringify(releaseData);
@@ -726,12 +768,31 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
       );
     }
 
-    const result = await createRelease(releaseData);
-    toast.dismiss(submissionToastId);
-    return result;
+    return releaseData;
+};
+
+// Process and submit new release with file uploads
+export const submitNewRelease = async (formData: ReleaseFormData) => {
+  const token = Cookies.get(config.tokenKey) || "";
+
+  try {
+    const releaseData = await buildCreateReleaseData(formData, token);
+    return await createRelease(releaseData);
   } catch (error: any) {
-    if (submissionToastId) toast.dismiss(submissionToastId);
     console.error("Release submission failed:", error);
+    throw error;
+  }
+};
+
+// Update an existing draft release (release manager only)
+export const submitReleaseUpdate = async (id: string, formData: ReleaseFormData) => {
+  const token = Cookies.get(config.tokenKey) || "";
+
+  try {
+    const releaseData = await buildCreateReleaseData(formData, token);
+    return await updateRelease(id, releaseData);
+  } catch (error: any) {
+    console.error("Release update failed:", error);
     throw error;
   }
 };
@@ -801,8 +862,8 @@ export const createRelease = async (
 export const updateRelease = async (
   id: string,
   data: Partial<CreateReleaseData>
-): Promise<Release> => {
-  const response = await apiClient.put<Release>(`/releases/${id}`, data);
+): Promise<Release & { pdlSynced?: boolean; pdlMessage?: string }> => {
+  const response = await apiClient.put(`/releases/${id}`, data);
   return response.data;
 };
 

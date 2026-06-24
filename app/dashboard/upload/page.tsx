@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import PageLoading from "@/components/dashboard/page-loading";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,20 +37,41 @@ import AudioFileStep from "@/components/dashboard/upload/audio-file-step";
 import CoverArtStep from "@/components/dashboard/upload/cover-art-step";
 import CreditsStep from "@/components/dashboard/upload/credits-step";
 import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/upload/genre-language";
-import { validateCoverArtSize } from "@/components/dashboard/upload/cover-art-file-validation";
+import { validateCoverArtSize, validateCoverArtDimensions, isExistingUnchangedCoverArt } from "@/components/dashboard/upload/cover-art-file-validation";
 import ReviewStep from "@/components/dashboard/upload/review-step";
-import { submitNewRelease, getArtistUsage, getReleases } from "@/lib/api/releases";
+import { submitNewRelease, getArtistUsage, getReleases, getRelease, submitReleaseUpdate } from "@/lib/api/releases";
+import { releaseToUploadFormData } from "@/lib/upload/release-form-mapper";
+import {
+  attachSignedPlaybackUrl,
+  attachSignedPlaybackUrls,
+} from "@/lib/upload/audio-playback";
+import { getSignedUrl } from "@/lib/api/s3";
 import { isPlanInactiveError } from "@/lib/plan-inactive";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { applyUploadApiErrors } from "@/lib/upload-api-errors";
+import {
+  areMandatoryChecksComplete,
+  getUncheckedMandatoryChecks,
+  MANDATORY_CHECK_LABELS,
+  buildAcceptedMandatoryChecks,
+} from "@/lib/upload/mandatory-checks-validation";
 import {
   getPlanLimits,
   getPlanByKey,
   getPlanFieldRules,
 } from "@/lib/api/plans";
-import { hasPermission } from "@/lib/permissions";
+import { canManageReleases, hasPermission } from "@/lib/permissions";
+import { isRmEditableRelease } from "@/lib/release-status";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Animation variants
 const containerVariants = {
@@ -84,19 +105,32 @@ const steps = [
 
 export default function UploadPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editReleaseId = searchParams.get("edit");
+  const isEditMode = !!editReleaseId;
   const { user, loading } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(isEditMode);
+  const [showCancelEditDialog, setShowCancelEditDialog] = useState(false);
+  const isHydratingRef = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) {
-      // Redirect to auth if not logged in
       router.push("/auth");
-    } else if (!loading && user && !hasPermission(user, "UPLOAD_RELEASE")) {
-      router.push("/dashboard");
+      return;
     }
-  }, [user, loading, router]);
+    if (!loading && user) {
+      if (isEditMode) {
+        if (!canManageReleases(user)) {
+          router.push("/dashboard/releases");
+        }
+      } else if (!hasPermission(user, "UPLOAD_RELEASE")) {
+        router.push("/dashboard");
+      }
+    }
+  }, [user, loading, router, isEditMode]);
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -162,6 +196,7 @@ export default function UploadPage() {
       producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib"],
       recordingYear: new Date().getFullYear(),
       mood: "",
+      coverArtChanged: false,
     },
     mode: "onChange",
   });
@@ -171,22 +206,86 @@ export default function UploadPage() {
     control,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = form;
 
-  // Clear cover art when metadata changes
-  const artistName = watch("artistName");
-  const title = watch("title");
-  const featuringArtist = watch("featuringArtist");
-
   useEffect(() => {
-    if (form.getValues("coverArt") || form.getValues("coverArtPreview")) {
-      console.log("Metadata changed, clearing cover art to ensure re-validation");
-      form.setValue("coverArt", null);
-      form.setValue("coverArtPreview", "");
-      toast.error("Cover art cleared. Please re-upload to match new metadata.");
-    }
-  }, [artistName, title, form]);
+    if (!isEditMode || !editReleaseId || !user || !canManageReleases(user)) return;
+
+    let cancelled = false;
+
+    const loadReleaseForEdit = async () => {
+      setIsLoadingEdit(true);
+      try {
+        const release = await getRelease(editReleaseId);
+        if (cancelled) return;
+
+        if (!isRmEditableRelease(release.status)) {
+          toast.error("Only in-process releases can be edited.");
+          router.push("/dashboard/releases");
+          return;
+        }
+
+        const formValues = releaseToUploadFormData(release);
+        isHydratingRef.current = true;
+        form.reset({
+          ...form.getValues(),
+          ...formValues,
+          format: formValues.format || "single",
+          releaseType: formValues.format || "single",
+          coverArtMetadataStale: false,
+          coverArtChanged: false,
+        } as UploadFormData);
+
+        if (formValues.writers?.length) setWriters(formValues.writers);
+        if (formValues.composers?.length) setComposers(formValues.composers);
+
+        setMandatoryChecks(buildAcceptedMandatoryChecks());
+        setLegalConfirmationsLocked(true);
+        setShowMandatoryCheckErrors(false);
+
+        const hydratedAudioFile = formValues.audioFile
+          ? await attachSignedPlaybackUrl(formValues.audioFile as any)
+          : null;
+        const hydratedAudioFiles = formValues.audioFiles?.length
+          ? await attachSignedPlaybackUrls(formValues.audioFiles as any)
+          : [];
+
+        if (hydratedAudioFile) {
+          form.setValue("audioFile", hydratedAudioFile as any, { shouldValidate: true });
+        }
+        if (hydratedAudioFiles.length) {
+          form.setValue("audioFiles", hydratedAudioFiles as any, { shouldValidate: true });
+        }
+
+        if (release.coverArt?.url) {
+          try {
+            const previewUrl = await getSignedUrl(release.coverArt.url);
+            if (!cancelled) {
+              form.setValue("coverArtPreview", previewUrl, { shouldValidate: true });
+            }
+          } catch (error) {
+            console.error("Failed to load cover art preview", error);
+          }
+        }
+
+        isHydratingRef.current = false;
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(getErrorMessage(error, "Failed to load release for editing"));
+          router.push("/dashboard/releases");
+        }
+      } finally {
+        if (!cancelled) setIsLoadingEdit(false);
+      }
+    };
+
+    loadReleaseForEdit();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editReleaseId, form, isEditMode, router, user]);
 
   // Separate state for internal component logic (Credits step songwriters list etc)
   // These could be moved into the form too, but for UI lists that map to a final field, local state is sometimes easier until submit.
@@ -205,6 +304,19 @@ export default function UploadPage() {
     termsAgreement: false,
     ownershipConfirmation: false,
   });
+  const [showMandatoryCheckErrors, setShowMandatoryCheckErrors] = useState(false);
+  const [legalConfirmationsLocked, setLegalConfirmationsLocked] = useState(false);
+  const handleMandatoryChecksChange = (checks: MandatoryChecks) => {
+    if (legalConfirmationsLocked) return;
+    setMandatoryChecks(checks);
+    if (showMandatoryCheckErrors) {
+      const title = form.getValues("title") || "";
+      const artistName = form.getValues("artistName") || "";
+      if (areMandatoryChecksComplete(checks, title, artistName)) {
+        setShowMandatoryCheckErrors(false);
+      }
+    }
+  };
 
   const [usedArtists, setUsedArtists] = useState<any[]>([]);
   const [fieldRules, setFieldRules] = useState<Record<string, any>>({});
@@ -430,9 +542,11 @@ export default function UploadPage() {
             }
 
             // Manual validation for language
+            const stepValues = form.getValues();
             const resolvedLanguage = resolveLanguage(
-              formData.primaryGenre,
-              formData.language,
+              stepValues.primaryGenre,
+              stepValues.language,
+              stepValues.instrumental,
             );
             if (!resolvedLanguage) {
               form.setError("language", {
@@ -440,6 +554,11 @@ export default function UploadPage() {
                 message: "Language is required for single releases",
               });
               isValid = false;
+            } else {
+              form.clearErrors("language");
+              if (stepValues.language !== resolvedLanguage) {
+                form.setValue("language", resolvedLanguage, { shouldValidate: true });
+              }
             }
 
 
@@ -717,6 +836,15 @@ export default function UploadPage() {
               message: "Cover art is required",
             });
             isValid = false;
+          } else if (
+            isExistingUnchangedCoverArt(
+              formData.coverArt,
+              formData.coverArtChanged,
+            )
+          ) {
+            form.clearErrors("coverArt");
+            form.clearErrors("coverArtConsent");
+            isValid = true;
           } else {
             const coverArtData = formData.coverArt as any;
             const coverSize =
@@ -736,10 +864,36 @@ export default function UploadPage() {
               toast.error(sizeValidation.message);
               isValid = false;
             } else {
+              const coverWidth = coverArtData?.dimensions?.width ?? 0;
+              const coverHeight = coverArtData?.dimensions?.height ?? 0;
+              const dimensionValidation = validateCoverArtDimensions(
+                coverWidth,
+                coverHeight,
+              );
+
+              if (!dimensionValidation.valid) {
+                form.setError("coverArt", {
+                  type: "manual",
+                  message: dimensionValidation.message,
+                });
+                toast.error(dimensionValidation.message);
+                isValid = false;
+              } else if (
+                formData.coverArtChanged &&
+                !formData.coverArtValidationStatus
+              ) {
+                form.setError("coverArt", {
+                  type: "manual",
+                  message: "Please wait for cover art validation to finish.",
+                });
+                toast.error("Cover art must be validated before continuing.");
+                isValid = false;
+              } else {
               const status = formData.coverArtValidationStatus;
               const issues = formData.coverArtValidationIssues || [];
               const hasIssues =
-                (status && status !== "approved") || issues.length > 0;
+                formData.coverArtChanged &&
+                ((status && status !== "approved") || issues.length > 0);
 
               if (hasIssues && !formData.coverArtConsent) {
                 form.setError("coverArtConsent", {
@@ -754,6 +908,7 @@ export default function UploadPage() {
               } else {
                 form.clearErrors("coverArtConsent");
                 isValid = true;
+              }
               }
             }
           }
@@ -787,16 +942,72 @@ export default function UploadPage() {
     }
   };
 
+  const exitEditMode = () => {
+    router.push("/dashboard/releases");
+  };
+
+  const requestCancelEdit = () => {
+    if (isDirty) {
+      setShowCancelEditDialog(true);
+      return;
+    }
+    exitEditMode();
+  };
+
+  const confirmCancelEdit = () => {
+    setShowCancelEditDialog(false);
+    exitEditMode();
+  };
+
+  const validateMandatoryChecksBeforeSubmit = (): boolean => {
+    const title = form.getValues("title") || "";
+    const artistName = form.getValues("artistName") || "";
+    const unchecked = getUncheckedMandatoryChecks(mandatoryChecks, title, artistName);
+
+    if (unchecked.length === 0) {
+      setShowMandatoryCheckErrors(false);
+      return true;
+    }
+
+    setShowMandatoryCheckErrors(true);
+    const firstMissing = MANDATORY_CHECK_LABELS[unchecked[0]];
+    toast.error(
+      unchecked.length === 1
+        ? firstMissing
+        : `Please accept all ${unchecked.length} required legal confirmations before submitting.`,
+    );
+
+    document.getElementById("legal-confirmations")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    return false;
+  };
+
   const onSubmit = async (data: UploadFormData) => {
     if (isProcessing || isSubmitting) return;
+    if (!validateMandatoryChecksBeforeSubmit()) {
+      return;
+    }
     setIsSubmitting(true);
-    console.log(data, "datatat");
     try {
-      const response = await submitNewRelease({
-        ...data,
-        mandatoryChecks: mandatoryChecks
-      } as any);
-      toast.success("Release submitted successfully!");
+      if (isEditMode && editReleaseId) {
+        const result = await submitReleaseUpdate(editReleaseId, {
+          ...data,
+          mandatoryChecks: mandatoryChecks,
+        } as any);
+        toast.success(
+          result?.pdlSynced
+            ? "Release updated and synced to PDL."
+            : "Release updated successfully!",
+        );
+      } else {
+        await submitNewRelease({
+          ...data,
+          mandatoryChecks: mandatoryChecks,
+        } as any);
+        toast.success("Release submitted successfully!");
+      }
       router.push("/dashboard/releases");
     } catch (error: any) {
       console.error("Submission error:", error);
@@ -815,7 +1026,12 @@ export default function UploadPage() {
         if (globalErrors.length > 0) {
           toast.error(globalErrors.map((item) => item.message).join(". "));
         } else if (fieldErrors.length === 0) {
-          toast.error(getErrorMessage(error, "Failed to submit release"));
+          toast.error(
+            getErrorMessage(
+              error,
+              isEditMode ? "Failed to update release" : "Failed to submit release",
+            ),
+          );
         }
 
         // Wait for step navigation + error UI to render before scrolling.
@@ -862,7 +1078,9 @@ export default function UploadPage() {
           <ReviewStep
             formData={formData}
             mandatoryChecks={mandatoryChecks}
-            setMandatoryChecks={setMandatoryChecks}
+            setMandatoryChecks={handleMandatoryChecksChange}
+            showMandatoryCheckErrors={showMandatoryCheckErrors}
+            legalConfirmationsLocked={legalConfirmationsLocked}
           />
         );
       default:
@@ -882,6 +1100,12 @@ export default function UploadPage() {
   useEffect(() => {
     const checkEligibility = async () => {
       if (!user) return;
+
+      if (isEditMode) {
+        setCanUpload(true);
+        setIsCheckingEligibility(false);
+        return;
+      }
 
       const planKey = (user?.plan as string) || "free";
 
@@ -941,17 +1165,17 @@ export default function UploadPage() {
     };
 
     checkEligibility();
-  }, [user]);
+  }, [user, isEditMode]);
 
-  if (loading || !user) {
+  if (loading || !user || isLoadingEdit) {
     return <PageLoading />;
   }
 
-  if (isCheckingEligibility) {
+  if (!isEditMode && isCheckingEligibility) {
     return <PageLoading />;
   }
 
-  if (!canUpload) {
+  if (!isEditMode && !canUpload) {
     return (
         <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
           <div className="bg-yellow-500/10 p-6 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
@@ -993,13 +1217,30 @@ export default function UploadPage() {
           className="space-y-6 max-w-4xl mx-auto"
         >
           {/* Header */}
-          <motion.div variants={itemVariants}>
-            <h1 className="text-3xl font-bold mb-2">
-              <span className="animated-gradient">Upload</span> New Release
-            </h1>
-            <p className="text-muted-foreground">
-              Follow the steps to upload and distribute your music
-            </p>
+          <motion.div variants={itemVariants} className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">
+                <span className="animated-gradient">{isEditMode ? "Edit" : "Upload"}</span>{" "}
+                {isEditMode ? "In Process Release" : "New Release"}
+              </h1>
+              <p className="text-muted-foreground">
+                {isEditMode
+                  ? "Update release details while processing is in progress"
+                  : "Follow the steps to upload and distribute your music"}
+              </p>
+            </div>
+            {isEditMode && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={requestCancelEdit}
+                disabled={isSubmitting}
+                className="shrink-0 rounded-xl"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Releases
+              </Button>
+            )}
           </motion.div>
 
           {/* Progress Steps */}
@@ -1085,40 +1326,13 @@ export default function UploadPage() {
                       {fieldRules.copyright?.allow !== false && (
                         <div className="space-y-1">
                           <Label htmlFor="copyright">
-                            C-Line©{fieldRules.copyright?.required && " *"}
+                            C-Line ©{fieldRules.copyright?.required && " *"}
                           </Label>
                           <Input
                             id="copyright"
-                            placeholder="© Your label Name"
+                            placeholder="© Your label name"
                             readOnly={user?.plan === "free"}
-                            {...register("copyright", {
-                              onChange: (e) => {
-                                const suffix =
-                                  "";
-                                const marker = "";
-                                let value = e.target.value;
-                                let content = "";
-
-                                const markerIndex = value.lastIndexOf(marker);
-                                if (markerIndex !== -1) {
-                                  content = value
-                                    .substring(0, markerIndex)
-                                    .trim();
-                                } else {
-                                  content = value.replace(suffix, "").trim();
-                                }
-
-                                if (content) {
-                                  setValue("copyright", `${content}${suffix}`, {
-                                    shouldValidate: true,
-                                  });
-                                } else {
-                                  setValue("copyright", "", {
-                                    shouldValidate: true,
-                                  });
-                                }
-                              },
-                            })}
+                            {...register("copyright")}
                           />
                           {user?.plan === "free" && (
                             <p className="text-xs text-amber-600 mt-1">
@@ -1158,7 +1372,7 @@ export default function UploadPage() {
                       {fieldRules.producers?.allow !== false && (
                         <div className="space-y-2 mt-4">
                           <Label htmlFor="producers">
-                            P-Line℗{fieldRules.producers?.required && " *"}
+                            P-Line ℗{fieldRules.producers?.required && " *"}
                           </Label>
                           <Input
                             id="producers"
@@ -1191,16 +1405,29 @@ export default function UploadPage() {
                 className=" z-[30] -mx-4 lg:-mx-6 px-4 lg:px-6 py-5 bg-background/80 backdrop-blur-xl border-t border-border/50 flex items-center justify-between mt-10 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]"
               >
                 <div className="max-w-4xl mx-auto w-full flex items-center justify-between">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={currentStep === 1 || isSubmitting}
-                    className="rounded-xl px-6"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Previous
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {isEditMode && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={requestCancelEdit}
+                        disabled={isSubmitting}
+                        className="rounded-xl px-4 text-muted-foreground hover:text-foreground"
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePrevious}
+                      disabled={currentStep === 1 || isSubmitting}
+                      className="rounded-xl px-6"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Previous
+                    </Button>
+                  </div>
 
                   <div className="flex gap-2">
                     {currentStep < 5 ? (
@@ -1222,10 +1449,10 @@ export default function UploadPage() {
                         {isSubmitting ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Submitting…
+                            {isEditMode ? "Saving…" : "Submitting…"}
                           </>
                         ) : (
-                          'Submit for Review'
+                          isEditMode ? "Save Changes" : "Submit for Review"
                         )}
                       </Button>
                     )}
@@ -1236,6 +1463,30 @@ export default function UploadPage() {
           </FormProvider>
         </motion.div>
       </div>
+      <Dialog open={showCancelEditDialog} onOpenChange={setShowCancelEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discard changes?</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes. If you leave now, your edits will not be saved and the
+              release will stay as it was.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowCancelEditDialog(false)}
+            >
+              Keep Editing
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmCancelEdit}>
+              Discard &amp; Go Back
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <TrackEditModal
         isOpen={isTrackModalOpen}
         onClose={() => setIsTrackModalOpen(false)}

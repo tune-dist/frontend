@@ -11,6 +11,8 @@ type ApiErrorBody = {
 export type ApiFieldError = {
   field: string;
   message: string;
+  code?: string;
+  action?: string;
 };
 
 function collectStructuredErrors(value: unknown): ApiFieldError[] {
@@ -34,8 +36,16 @@ function collectStructuredErrors(value: unknown): ApiFieldError[] {
           typeof item.field === 'string' && item.field.trim()
             ? item.field.trim()
             : 'global';
+        const code =
+          typeof item.code === 'string' && item.code.trim()
+            ? item.code.trim()
+            : undefined;
+        const action =
+          typeof item.action === 'string' && item.action.trim()
+            ? item.action.trim()
+            : undefined;
 
-        return { field, message };
+        return { field, message, code, action };
       }
 
       return null;
@@ -126,12 +136,34 @@ export function sanitizeErrorMessage(
   return trimmed;
 }
 
-function formatFieldMessage(item: { field?: string; message?: string }): string | null {
+function formatFieldMessage(item: {
+  field?: string;
+  message?: string;
+  action?: string;
+}): string | null {
   const message = typeof item.message === 'string' ? item.message.trim() : '';
   if (!message) return null;
 
+  const action = typeof item.action === 'string' ? item.action.trim() : '';
+  if (action) {
+    return `${message} ${action}`;
+  }
+
   const field = typeof item.field === 'string' ? item.field.trim() : '';
-  return field ? `${field}: ${message}` : message;
+  if (field && field !== 'global') {
+    return `${message}`;
+  }
+
+  return message;
+}
+
+export function formatApiFieldErrorsForDisplay(errors: ApiFieldError[]): string {
+  if (!errors.length) return '';
+
+  return errors
+    .map((item) => formatFieldMessage(item))
+    .filter((item): item is string => Boolean(item))
+    .join(' ');
 }
 
 function stringifyMessages(value: unknown): string | null {

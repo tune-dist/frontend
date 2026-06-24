@@ -200,6 +200,7 @@ export default function Sidebar() {
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-muted-foreground truncate">
                         {user?.role === 'super_admin' ? 'Super Admin' :
+                          user?.role === 'admin' ? 'Admin' :
                           user?.role === 'release_manager' ? 'Release Manager' : 'Artist'}
                       </p>
                     </div>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Track, Songwriter } from './types'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Music, X, Loader2, Plus, Info, UserCheck } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/lib/api/genres'
@@ -12,11 +12,15 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
 import WaveformTrimmer from './WaveformTrimmer'
+import { getCrbtIneligibilityMessage, isTrackEligibleForCrbt } from './crbt-validation'
 import {
     INSTRUMENTAL_LANGUAGE,
+    filterGenresForInstrumentalChoice,
     isInstrumentalPrimaryGenre,
     isInstrumentalRelease,
+    isInstrumentalSelection,
     LANGUAGE_OPTIONS,
+    resolveInstrumentalPrimaryGenre,
     resolveLanguage,
 } from './genre-language'
 
@@ -77,6 +81,14 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [instrumental, setInstrumental] = useState<string>(track?.isInstrumental || 'no')
     const [modalFeaturingArtist, setModalFeaturingArtist] = useState(track?.featuringArtist || '')
     const [mood, setMood] = useState(track?.mood || '')
+
+    const linkedAudioFile = useMemo(
+        () => audioFiles.find((af) => af.id === track?.audioFileId),
+        [audioFiles, track?.audioFileId],
+    )
+    const trackDurationSec =
+        typeof linkedAudioFile?.duration === 'number' ? linkedAudioFile.duration : null
+    const isCrbtEligible = isTrackEligibleForCrbt(trackDurationSec)
 
     const areFeaturedArtistsAllowed = (fieldRules || {}).featuredArtists?.allow !== false
 
@@ -172,25 +184,70 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         void loadSubGenres(primaryGenre)
     }, [primaryGenre, genresLoading, loadSubGenres])
 
-    const isInstrumentalGenre = isInstrumentalPrimaryGenre(primaryGenre)
     const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumental)
+    const availableGenres = useMemo(
+        () => filterGenresForInstrumentalChoice(genres, instrumental),
+        [genres, instrumental],
+    )
+    const languageOptions = isNoLyricsTrack
+        ? [INSTRUMENTAL_LANGUAGE]
+        : LANGUAGE_OPTIONS.filter((lang) => lang !== INSTRUMENTAL_LANGUAGE)
 
-    const prevPrimaryGenreRef = useRef(primaryGenre)
-    useEffect(() => {
-        const prevGenre = prevPrimaryGenreRef.current
-        const wasInstrumentalGenre = isInstrumentalPrimaryGenre(prevGenre)
-        const isNowInstrumentalGenre = isInstrumentalPrimaryGenre(primaryGenre)
+    const handleInstrumentalChange = useCallback((value: 'yes' | 'no') => {
+        setInstrumental(value)
 
-        if (isNowInstrumentalGenre) {
-            setInstrumental('yes')
+        if (value === 'yes') {
             setLanguage(INSTRUMENTAL_LANGUAGE)
-        } else if (wasInstrumentalGenre && !isNowInstrumentalGenre) {
-            setInstrumental('no')
-            setLanguage('')
+            const instrumentalGenre = resolveInstrumentalPrimaryGenre(genres)
+            if (instrumentalGenre) {
+                setPrimaryGenre(instrumentalGenre)
+                setSecondaryGenre('')
+            } else if (primaryGenre && !isInstrumentalPrimaryGenre(primaryGenre)) {
+                setPrimaryGenre('')
+                setSecondaryGenre('')
+            }
+            return
         }
 
-        prevPrimaryGenreRef.current = primaryGenre
+        if (language === INSTRUMENTAL_LANGUAGE) {
+            setLanguage('')
+        }
+        if (primaryGenre && isInstrumentalPrimaryGenre(primaryGenre)) {
+            setPrimaryGenre('')
+            setSecondaryGenre('')
+        }
+    }, [genres, language, primaryGenre])
+
+    useEffect(() => {
+        if (isInstrumentalPrimaryGenre(primaryGenre)) {
+            setInstrumental('yes')
+            setLanguage(INSTRUMENTAL_LANGUAGE)
+        }
     }, [primaryGenre])
+
+    useEffect(() => {
+        if (isInstrumentalSelection(instrumental)) {
+            setLanguage(INSTRUMENTAL_LANGUAGE)
+        }
+    }, [instrumental])
+
+    useEffect(() => {
+        if (
+            !isInstrumentalSelection(instrumental) ||
+            genresLoading ||
+            genres.length === 0
+        ) {
+            return
+        }
+
+        const instrumentalGenre = resolveInstrumentalPrimaryGenre(genres)
+        if (!instrumentalGenre) return
+
+        if (!primaryGenre || !isInstrumentalPrimaryGenre(primaryGenre)) {
+            setPrimaryGenre(instrumentalGenre)
+            setSecondaryGenre('')
+        }
+    }, [instrumental, genres, genresLoading, primaryGenre])
 
     useEffect(() => {
         if (isNoLyricsTrack) {
@@ -199,6 +256,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setIsExplicit(false)
         }
     }, [isNoLyricsTrack])
+
+    useEffect(() => {
+        if (!isCrbtEligible && previewClipStartTime) {
+            setPreviewClipStartTime('')
+        }
+    }, [isCrbtEligible, previewClipStartTime])
 
     // Update state when track changes (switching between different tracks)
     useEffect(() => {
@@ -456,6 +519,11 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 return
             }
 
+            if (previewClipStartTime && !isCrbtEligible) {
+                toast.error(getCrbtIneligibilityMessage(trackDurationSec))
+                return
+            }
+
             // Featured Artist validation
             if ((fieldRules as any).featuredArtists?.required && !modalFeaturingArtist?.trim()) {
                 toast.error('Featuring artist is required')
@@ -561,7 +629,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 title: trackTitle,
                 artistName: modalArtistSearch,
                 language: (() => {
-                    const lang = resolveLanguage(primaryGenre, language)
+                    const lang = resolveLanguage(primaryGenre, language, instrumental)
                     return lang
                         ? lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()
                         : ''
@@ -570,7 +638,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 previouslyReleased,
                 primaryGenre,
                 secondaryGenre,
-                previewClipStartTime,
+                previewClipStartTime: isCrbtEligible ? previewClipStartTime : '',
                 version,
                 spotifyProfile: modalSpotifyProfile,
                 appleMusicProfile: modalAppleMusicProfile,
@@ -1366,27 +1434,74 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             </div>
                         </div>
                     </div>
+                    {/* Instrumental — first so genre & language follow this choice */}
+                    <div className="space-y-3 pt-4 border-t border-border">
+                        <Label className="text-lg font-semibold">Is Instrumental?</Label>
+                        <p className="text-sm text-muted-foreground">
+                            Choose first — genre and language options below will update based on your answer.
+                        </p>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-instrumental-no"
+                                    name="track-instrumental"
+                                    value="no"
+                                    checked={instrumental === 'no'}
+                                    onChange={() => handleInstrumentalChange('no')}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="track-instrumental-no" className="font-normal cursor-pointer">
+                                    This song contains lyrics
+                                </Label>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-instrumental-yes"
+                                    name="track-instrumental"
+                                    value="yes"
+                                    checked={instrumental === 'yes'}
+                                    onChange={() => handleInstrumentalChange('yes')}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
+                                    This song is instrumental and contains no lyrics
+                                </Label>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Language */}
                     <div className="space-y-2">
                         <Label htmlFor="track-language">Language</Label>
                         <select
                             id="track-language"
-                            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${isInstrumentalGenre ? 'opacity-80 cursor-not-allowed' : ''}`}
-                            value={isInstrumentalGenre ? INSTRUMENTAL_LANGUAGE : language}
-                            disabled={isInstrumentalGenre}
+                            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${isNoLyricsTrack ? 'opacity-80 cursor-not-allowed' : ''}`}
+                            value={isNoLyricsTrack ? INSTRUMENTAL_LANGUAGE : language}
+                            disabled={isNoLyricsTrack}
                             onChange={(e) => {
-                                if (!isInstrumentalGenre) {
+                                if (!isNoLyricsTrack) {
                                     setLanguage(e.target.value)
                                 }
                             }}
                         >
-                            <option value="">Select a language</option>
-                            {LANGUAGE_OPTIONS.map((lang) => (
+                            <option value="">
+                                {isNoLyricsTrack ? INSTRUMENTAL_LANGUAGE : 'Select a language'}
+                            </option>
+                            {languageOptions.map((lang) => (
                                 <option key={lang} value={lang}>
                                     {lang}
                                 </option>
                             ))}
                         </select>
+                        {isNoLyricsTrack && (
+                            <p className="text-xs text-muted-foreground">
+                                Language is set to Instrumental for tracks without lyrics.
+                            </p>
+                        )}
                     </div>
 
 
@@ -1493,7 +1608,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             {genresLoading ? (
                                 <option disabled>Loading genres...</option>
                             ) : (
-                                genres.map((genre) => (
+                                availableGenres.map((genre) => (
                                     <option key={genre._id} value={genre.name}>
                                         {genre.name}
                                     </option>
@@ -1558,51 +1673,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             <option value="Mellow">Mellow</option>
                             <option value="Calm">Calm</option>
                         </select>
-                    </div>
-
-                    {/* Instrumental */}
-                    <div className="space-y-3 pt-4 border-t">
-                        <Label className="text-lg font-semibold">Is Instrumental?</Label>
-
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-instrumental-no"
-                                    name="track-instrumental"
-                                    value="no"
-                                    checked={instrumental === 'no'}
-                                    disabled={isInstrumentalGenre}
-                                    onChange={() => setInstrumental('no')}
-                                    className="h-4 w-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                                <Label
-                                    htmlFor="track-instrumental-no"
-                                    className={`font-normal ${
-                                        isInstrumentalGenre
-                                            ? "opacity-50 cursor-not-allowed"
-                                            : "cursor-pointer"
-                                    }`}
-                                >
-                                    This song contains lyrics
-                                </Label>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-instrumental-yes"
-                                    name="track-instrumental"
-                                    value="yes"
-                                    checked={instrumental === 'yes'}
-                                    onChange={() => setInstrumental('yes')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
-                                    This song is instrumental and contains no lyrics
-                                </Label>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Writers - Hidden when instrumental is yes */}
@@ -1794,7 +1864,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                         <div className="mt-4">
                             <WaveformTrimmer
-                                audioFile={audioFiles.find(af => af.id === track?.audioFileId)?.file}
+                                audioFile={linkedAudioFile?.playbackUrl ?? linkedAudioFile?.file ?? null}
+                                trackDurationSec={trackDurationSec}
                                 initialStartTime={previewClipStartTime}
                                 onTimeChange={(time) => setPreviewClipStartTime(time)}
                             />
