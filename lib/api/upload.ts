@@ -179,10 +179,6 @@ export const submitUploadForm = async (formData: UploadFormData) => {
         return response.data;
     } catch (error: any) {
         console.error('Upload failed:', error);
-        throw new Error(
-            error.response?.data?.message ||
-            error.message ||
-            'Failed to submit release. Please try again.'
-        );
+        throw error;
     }
 };

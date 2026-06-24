@@ -732,11 +732,7 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
   } catch (error: any) {
     if (submissionToastId) toast.dismiss(submissionToastId);
     console.error("Release submission failed:", error);
-    throw new Error(
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to submit release. Please try again."
-    );
+    throw error;
   }
 };
 

@@ -387,6 +387,11 @@ export default function CreditsStep({
   return (
     <>
       <div className="space-y-4">
+        {errors.tracks?.message && (
+          <p className="text-sm text-red-500 rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2">
+            {String(errors.tracks.message)}
+          </p>
+        )}
 
         <h3 className="text-xl font-semibold">Credits & Metadata</h3>
         <p className="text-muted-foreground">Give credit to everyone involved</p>

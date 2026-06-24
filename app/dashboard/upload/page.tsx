@@ -39,9 +39,10 @@ import CreditsStep from "@/components/dashboard/upload/credits-step";
 import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/upload/genre-language";
 import { validateCoverArtSize } from "@/components/dashboard/upload/cover-art-file-validation";
 import ReviewStep from "@/components/dashboard/upload/review-step";
-import { submitNewRelease, getArtistUsage } from "@/lib/api/releases";
+import { submitNewRelease, getArtistUsage, getReleases } from "@/lib/api/releases";
 import { isPlanInactiveError } from "@/lib/plan-inactive";
 import { getErrorMessage } from "@/lib/get-error-message";
+import { applyUploadApiErrors } from "@/lib/upload-api-errors";
 import {
   getPlanLimits,
   getPlanByKey,
@@ -802,8 +803,23 @@ export default function UploadPage() {
       setIsSubmitting(false);
       // The plan-inactive modal already explains the block — skip the toast.
       if (!isPlanInactiveError(error)) {
-        toast.error(getErrorMessage(error, "Failed to submit release"));
-        scrollToError();
+        const { fieldErrors, globalErrors, targetStep } = applyUploadApiErrors(
+          error,
+          form.setError,
+        );
+
+        if (targetStep !== null) {
+          setCurrentStep(targetStep);
+        }
+
+        if (globalErrors.length > 0) {
+          toast.error(globalErrors.map((item) => item.message).join(". "));
+        } else if (fieldErrors.length === 0) {
+          toast.error(getErrorMessage(error, "Failed to submit release"));
+        }
+
+        // Wait for step navigation + error UI to render before scrolling.
+        setTimeout(() => scrollToError(), targetStep !== null ? 250 : 100);
       }
     }
   };
@@ -903,9 +919,7 @@ export default function UploadPage() {
           // For plans that don't allow concurrent (e.g. Free)
           try {
             // Check for 'In Process' releases
-            const response = await import("@/lib/api/releases").then((m) =>
-              m.getReleases({ status: "In Process" })
-            );
+            const response = await getReleases({ status: "In Process" });
 
             if (response && response.releases && response.releases.length > 0) {
               setCanUpload(false);

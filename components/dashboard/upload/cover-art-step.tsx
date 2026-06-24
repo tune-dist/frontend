@@ -14,6 +14,8 @@ import {
     getCoverArtMaxSizeMB,
     validateCoverArtFile,
 } from './cover-art-file-validation'
+import { validateCoverArt } from '@/lib/api/cover-art'
+import { getErrorMessage } from '@/lib/get-error-message'
 
 interface CoverArtStepProps {
     formData?: UploadFormData
@@ -121,14 +123,32 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 setIsUploading(false);
             }
             img.onload = async () => {
-                // Keep client-side dimension check for instant feedback
+                const formData = watch();
+
                 if (img.width < 3000 || img.height < 3000) {
-                    toast.error('Image dimensions must be at least 3000x3000 pixels')
+                    const message = `Image resolution too low. Minimum 3000x3000px required. Current: ${img.width}x${img.height}px`;
+                    setError('coverArt', { type: 'manual', message });
+                    setValue('coverArtValidationStatus', 'rejected');
+                    setValue('coverArtValidationIssues', [{
+                        code: 'LOW_RESOLUTION',
+                        message,
+                        severity: 'error',
+                    }]);
+                    setValue('coverArtConsent', false);
+                    setValue('coverArtPreview', reader.result as string, { shouldValidate: true });
+                    setValue('coverArt', {
+                        file: file,
+                        path: '',
+                        fileName: file.name,
+                        size: file.size,
+                        dimensions: { width: img.width, height: img.height },
+                        format: file.type.split('/')[1] || 'jpg',
+                    } as any, { shouldValidate: true });
+                    return;
                 }
 
                 try {
-                    // 1. Strict Backend Validation
-                    const formData = watch(); // Get all form data
+                    // Backend validation (OCR, metadata match, quality checks, etc.)
 
                     // Extract metadata for validation
                     const featuredArtists = (formData.artists || []).map(a => a.name);
@@ -150,7 +170,6 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     setIsValidating(true);
                     setUploadProgress(0);
 
-                    const { validateCoverArt } = await import('@/lib/api/cover-art');
                     const validationResult = await validateCoverArt(file, validationMetadata);
 
                     setIsValidating(false);
@@ -160,12 +179,11 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     setValue('coverArtValidationIssues', validationResult.issues || validationResult.errors || []);
                     setValue('coverArtConsent', false); // Reset consent for new upload
 
-                    if (validationResult.status === 'rejected') {
-                        console.warn('Validation failed (rejected), but proceeding with upload as per requirements:', validationResult.errors);
-                        toast.error('Cover art requirements not met. Please check the warnings below and provide consent if you want to proceed.');
-                    } else if (validationResult.status === 'warned' || validationResult.status === 'warning') {
-                        toast('Cover art has some warnings. Please review them below.', { icon: '⚠️', duration: 5000 });
+                    if (validationResult.status === 'approved') {
+                        toast.success('Cover art validated successfully');
                     }
+
+                    // rejected / warned: issues are shown inline in the panel below — no extra toast
 
                     // 2. Set Preview and Metadata (Deferred S3 Upload)
                     setValue('coverArtPreview', reader.result as string, { shouldValidate: true })
@@ -181,11 +199,13 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                         },
                         format: file.type.split('/')[1] || 'jpg'
                     } as any, { shouldValidate: true });
-
-                    toast.success('Cover art validated successfully');
                 } catch (error) {
                     console.error('[CoverArt] Upload/Validation failed:', error);
-                    toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    const message = getErrorMessage(
+                        error,
+                        'Failed to validate cover art. Please try again.',
+                    );
+                    setError('coverArt', { type: 'server', message });
                     setValue('coverArt', null, { shouldValidate: true });
                     setValue('coverArtPreview', '', { shouldValidate: true });
                 } finally {
