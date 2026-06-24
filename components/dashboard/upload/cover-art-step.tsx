@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import {
     getCoverArtMaxSizeMB,
     validateCoverArtFile,
+    validateCoverArt,
 } from './cover-art-file-validation'
 import { validateCoverArt } from '@/lib/api/cover-art'
 import { getErrorMessage } from '@/lib/get-error-message'
