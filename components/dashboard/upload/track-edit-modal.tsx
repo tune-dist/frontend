@@ -175,12 +175,22 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const isInstrumentalGenre = isInstrumentalPrimaryGenre(primaryGenre)
     const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumental)
 
+    const prevPrimaryGenreRef = useRef(primaryGenre)
     useEffect(() => {
-        if (isInstrumentalGenre) {
+        const prevGenre = prevPrimaryGenreRef.current
+        const wasInstrumentalGenre = isInstrumentalPrimaryGenre(prevGenre)
+        const isNowInstrumentalGenre = isInstrumentalPrimaryGenre(primaryGenre)
+
+        if (isNowInstrumentalGenre) {
             setInstrumental('yes')
             setLanguage(INSTRUMENTAL_LANGUAGE)
+        } else if (wasInstrumentalGenre && !isNowInstrumentalGenre) {
+            setInstrumental('no')
+            setLanguage('')
         }
-    }, [isInstrumentalGenre])
+
+        prevPrimaryGenreRef.current = primaryGenre
+    }, [primaryGenre])
 
     useEffect(() => {
         if (isNoLyricsTrack) {
@@ -1562,14 +1572,14 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     name="track-instrumental"
                                     value="no"
                                     checked={instrumental === 'no'}
-                                    disabled={isNoLyricsTrack}
+                                    disabled={isInstrumentalGenre}
                                     onChange={() => setInstrumental('no')}
                                     className="h-4 w-4 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <Label
                                     htmlFor="track-instrumental-no"
                                     className={`font-normal ${
-                                        isNoLyricsTrack
+                                        isInstrumentalGenre
                                             ? "opacity-50 cursor-not-allowed"
                                             : "cursor-pointer"
                                     }`}
