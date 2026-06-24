@@ -1,6 +1,32 @@
+import apiClient from '@/lib/api-client';
+
 export interface CoverArtFieldRules {
   allowedFileTypes?: string[];
   maxFileSizeMB?: number;
+}
+
+export interface CoverArtMetadata {
+  artistName: string;
+  trackTitle: string;
+  featuredArtists?: string[];
+  isExplicit?: boolean;
+  releaseYear?: string;
+  recordLabel?: string;
+}
+
+export type CoverArtValidationStatus = 'approved' | 'rejected' | 'warned' | 'warning';
+
+export interface CoverArtValidationError {
+  code: string;
+  message: string;
+  field?: string;
+  severity?: 'error' | 'warning';
+}
+
+export interface CoverArtValidationResponse {
+  status: CoverArtValidationStatus;
+  issues?: CoverArtValidationError[];
+  errors: CoverArtValidationError[];
 }
 
 export function getCoverArtMaxSizeMB(rules?: CoverArtFieldRules): number {
@@ -62,4 +88,26 @@ export function validateCoverArtSize(
     valid: false,
     message: `File size (${fileSizeMB.toFixed(2)}MB) exceeds the maximum allowed size of ${maxSizeMB}MB.`,
   };
+}
+
+/** Server-side cover art validation (OCR, NSFW, metadata rules). */
+export async function validateCoverArt(
+  file: File,
+  metadata: CoverArtMetadata,
+): Promise<CoverArtValidationResponse> {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('metadata', JSON.stringify(metadata));
+
+  const response = await apiClient.post<CoverArtValidationResponse>(
+    '/cover-art-validation/validate',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  );
+
+  return response.data;
 }

@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import {
     getCoverArtMaxSizeMB,
     validateCoverArtFile,
+    validateCoverArt,
 } from './cover-art-file-validation'
 
 interface CoverArtStepProps {
@@ -150,7 +151,6 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     setIsValidating(true);
                     setUploadProgress(0);
 
-                    const { validateCoverArt } = await import('@/lib/api/cover-art');
                     const validationResult = await validateCoverArt(file, validationMetadata);
 
                     setIsValidating(false);
