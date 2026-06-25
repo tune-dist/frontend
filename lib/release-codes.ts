@@ -21,12 +21,10 @@ export function formatReleaseCodeDisplay(
 }
 
 /** Collect unique ISRC values from release root and tracks. */
-export function getTrackIsrcs(release: ReleaseCodeSource): string[] {
+export function getTrackIsrcs(
+  release: ReleaseCodeSource & { tracks?: Array<{ isrc?: string }> },
+): string[] {
   const codes = new Set<string>();
-
-  if (release.isrc?.trim()) {
-    codes.add(release.isrc.trim());
-  }
 
   for (const track of release.tracks ?? []) {
     if (track.isrc?.trim()) {
@@ -34,13 +32,25 @@ export function getTrackIsrcs(release: ReleaseCodeSource): string[] {
     }
   }
 
+  // Legacy root isrc fallback
+  if (release.isrc?.trim()) {
+    codes.add(release.isrc.trim());
+  }
+
   return Array.from(codes);
 }
 
 export function formatUpcDisplay(
-  release: ReleaseCodeSource,
+  release: ReleaseCodeSource & {
+    release?: { upc?: string | null };
+    distribution?: { upc?: string | null };
+  },
 ): string {
-  const upc = release.barcode?.trim() || release.upc?.trim();
+  const upc =
+    release.release?.upc?.trim() ||
+    release.distribution?.upc?.trim() ||
+    release.upc?.trim() ||
+    release.barcode?.trim();
   if (upc) {
     return upc;
   }

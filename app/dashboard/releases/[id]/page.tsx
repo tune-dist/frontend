@@ -240,40 +240,12 @@ export default function ReleaseDetailsPage() {
                     Tracklist
                   </h2>
                   <p className="text-white/40 mt-2 text-sm">
-                    {release.tracks?.length || (release.audioFile ? 1 : 0)} track(s) in this release
+                    {release.tracks?.length ?? 0} track(s) in this release
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                {/* Single Track Release (Legacy/Simple structure) */}
-                {release.releaseType === "single" && release.audioFile && (!release.tracks || release.tracks.length === 0) && (
-                  <div className="flex items-center justify-between p-4 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors group">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-2xl bg-white/5 group-hover:bg-primary/20 transition-colors flex items-center justify-center text-white/50 group-hover:text-primary font-black text-sm">
-                        1
-                      </div>
-                      <div>
-                        <p className="font-bold text-white text-base">{release.title}</p>
-                        <p className="text-sm text-white/40">{release.artistName}</p>
-                        <p className="text-[10px] font-mono text-white/30 mt-1">
-                          ISRC: {getTrackIsrcDisplay({}, release)}
-                        </p>
-                      </div>
-                    </div>
-                    <a
-                      href={release.audioFile.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-6 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold tracking-wide transition-colors flex items-center gap-2"
-                    >
-                      <AudioWaveform className="w-3.5 h-3.5" />
-                      Download
-                    </a>
-                  </div>
-                )}
-
-                {/* Multi-track Release */}
                 {release.tracks && release.tracks.length > 0 && (
                   <div className="space-y-3">
                     {release.tracks.map((track: TrackPayload, index: number) => (

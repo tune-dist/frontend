@@ -40,7 +40,7 @@ import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/u
 import { validateCoverArtSize, validateCoverArtDimensions, isExistingUnchangedCoverArt } from "@/components/dashboard/upload/cover-art-file-validation";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage, getReleases, getRelease, submitReleaseUpdate } from "@/lib/api/releases";
-import { releaseToUploadFormData } from "@/lib/upload/release-form-mapper";
+import { hydrateDraftForm } from "@/lib/releases";
 import {
   attachSignedPlaybackUrl,
   attachSignedPlaybackUrls,
@@ -226,7 +226,7 @@ export default function UploadPage() {
           return;
         }
 
-        const formValues = releaseToUploadFormData(release);
+        const formValues = hydrateDraftForm(release);
         isHydratingRef.current = true;
         form.reset({
           ...form.getValues(),

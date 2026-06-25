@@ -195,7 +195,6 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
             setValue('coverArtPreview', imageData.previewDataUrl, { shouldValidate: true });
             setValue('coverArt', {
                 file: file,
-                path: '',
                 fileName: file.name,
                 size: file.size,
                 dimensions: {
