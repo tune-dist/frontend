@@ -72,7 +72,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [isrc, setIsrc] = useState(track?.isrc || '')
     const [isrcError, setIsrcError] = useState('')
     const [showIsrc, setShowIsrc] = useState(!!track?.isrc)
-    const [previouslyReleased, setPreviouslyReleased] = useState(track?.previouslyReleased || 'no')
     const [primaryGenre, setPrimaryGenre] = useState(track?.primaryGenre || '')
     const [secondaryGenre, setSecondaryGenre] = useState(track?.secondaryGenre || '')
     const [previewClipStartTime, setPreviewClipStartTime] = useState(track?.previewClipStartTime || '')
@@ -270,7 +269,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setLanguage(track.language || '')
             setIsrc(track.isrc || '')
             setShowIsrc(!!track.isrc)
-            setPreviouslyReleased(track.previouslyReleased || 'no')
             setPrimaryGenre(track.primaryGenre || '')
             setSecondaryGenre(track.secondaryGenre || '')
             setPreviewClipStartTime(track.previewClipStartTime || '')
@@ -635,7 +633,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         : ''
                 })(),
                 isrc,
-                previouslyReleased,
                 primaryGenre,
                 secondaryGenre,
                 previewClipStartTime: isCrbtEligible ? previewClipStartTime : '',
@@ -1474,39 +1471,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </div>
                     </div>
 
-                    {/* Language */}
-                    <div className="space-y-2">
-                        <Label htmlFor="track-language">Language</Label>
-                        <select
-                            id="track-language"
-                            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${isNoLyricsTrack ? 'opacity-80 cursor-not-allowed' : ''}`}
-                            value={isNoLyricsTrack ? INSTRUMENTAL_LANGUAGE : language}
-                            disabled={isNoLyricsTrack}
-                            onChange={(e) => {
-                                if (!isNoLyricsTrack) {
-                                    setLanguage(e.target.value)
-                                }
-                            }}
-                        >
-                            <option value="">
-                                {isNoLyricsTrack ? INSTRUMENTAL_LANGUAGE : 'Select a language'}
-                            </option>
-                            {languageOptions.map((lang) => (
-                                <option key={lang} value={lang}>
-                                    {lang}
-                                </option>
-                            ))}
-                        </select>
-                        {isNoLyricsTrack && (
-                            <p className="text-xs text-muted-foreground">
-                                Language is set to Instrumental for tracks without lyrics.
-                            </p>
-                        )}
-                    </div>
-
-
                     {/* ISRC */}
-                    <div className="space-y-4 pt-4 border-t border-border">
+                    <div className="space-y-4 pt-6 border-t border-border">
                         <div className="flex flex-col space-y-2">
                             <Label className="text-lg font-semibold">ISRC</Label>
                             <div className="flex items-center space-x-2">
@@ -1518,10 +1484,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                         const checked = e.target.checked
                                         setShowIsrc(checked)
                                         if (checked) {
-                                            // Pre-fill with default from env if empty
-                                            // if (!isrc) {
-                                            //     setIsrc(process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")
-                                            // }
+                                            if (!isrc) {
+                                                setIsrc(process.env.NEXT_PUBLIC_DEFAULT_ISRC || '')
+                                            }
                                         } else {
                                             setIsrc('')
                                             setIsrcError('')
@@ -1561,35 +1526,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                 )}
                             </div>
                         )}
-                    </div>
-
-                    {/* Previously Released */}
-                    <div className="space-y-3">
-                        <Label className="text-lg font-semibold">Has this track been previously released?</Label>
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-prev-no"
-                                    name="track-previously-released"
-                                    value="no"
-                                    checked={previouslyReleased === 'no'}
-                                    onChange={() => setPreviouslyReleased('no')}
-                                />
-                                <Label htmlFor="track-prev-no">No</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-prev-yes"
-                                    name="track-previously-released"
-                                    value="yes"
-                                    checked={previouslyReleased === 'yes'}
-                                    onChange={() => setPreviouslyReleased('yes')}
-                                />
-                                <Label htmlFor="track-prev-yes">Yes</Label>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Primary Genre */}
@@ -1673,6 +1609,40 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             <option value="Mellow">Mellow</option>
                             <option value="Calm">Calm</option>
                         </select>
+                    </div>
+
+                    {/* Language */}
+                    <div className="space-y-4 pt-6 border-t border-border">
+                        <div className="space-y-3">
+                            <Label htmlFor="track-language" className="text-lg font-semibold">
+                                Language <span className="text-red-500">*</span>
+                            </Label>
+                            <select
+                                id="track-language"
+                                className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${isNoLyricsTrack ? 'opacity-80 cursor-not-allowed' : ''}`}
+                                value={isNoLyricsTrack ? INSTRUMENTAL_LANGUAGE : language}
+                                disabled={isNoLyricsTrack}
+                                onChange={(e) => {
+                                    if (!isNoLyricsTrack) {
+                                        setLanguage(e.target.value)
+                                    }
+                                }}
+                            >
+                                <option value="">
+                                    {isNoLyricsTrack ? INSTRUMENTAL_LANGUAGE : 'Select a language'}
+                                </option>
+                                {languageOptions.map((lang) => (
+                                    <option key={lang} value={lang}>
+                                        {lang}
+                                    </option>
+                                ))}
+                            </select>
+                            {isNoLyricsTrack && (
+                                <p className="text-xs text-muted-foreground">
+                                    Language is set to Instrumental for tracks without lyrics.
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Writers - Hidden when instrumental is yes */}
