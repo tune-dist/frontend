@@ -13,9 +13,9 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { User as UserIcon, Mail, CreditCard, Loader2, Save, Phone, MapPin, FileText, Shield, CheckCircle2, UploadCloud } from 'lucide-react'
+import { User as UserIcon, Mail, CreditCard, Loader2, Save, MapPin, FileText, Shield, CheckCircle2, UploadCloud } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { updateUserProfile, sendPhoneOTP, verifyPhoneOTP, updateAddress } from '@/lib/api/users'
+import { updateUserProfile, updateAddress } from '@/lib/api/users'
 import {
   getVerificationRequests,
   submitVerificationRequest,
@@ -64,12 +64,13 @@ export default function ProfilePage() {
   const { user, refreshUser, loading } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState('')
+  // Phone verification — disabled for now
+  // const [phoneNumber, setPhoneNumber] = useState('')
   const [address, setAddress] = useState('')
-  const [isSendingOTP, setIsSendingOTP] = useState(false)
-  const [showOTPModal, setShowOTPModal] = useState(false)
-  const [otp, setOtp] = useState('')
-  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false)
+  // const [isSendingOTP, setIsSendingOTP] = useState(false)
+  // const [showOTPModal, setShowOTPModal] = useState(false)
+  // const [otp, setOtp] = useState('')
+  // const [isVerifyingOTP, setIsVerifyingOTP] = useState(false)
 
   const [showVerifyModal, setShowVerifyModal] = useState(false)
   const [uploadDocType, setUploadDocType] = useState<VerificationDocumentType | null>(null)
@@ -89,10 +90,10 @@ export default function ProfilePage() {
     }
   }, [user, loading, router]);
 
-  // Initialize phone and address from user data
+  // Initialize address from user data
   useEffect(() => {
     if (user) {
-      setPhoneNumber(user.phoneNumber || '');
+      // setPhoneNumber(user.phoneNumber || '');
       setAddress(user.address || '');
     }
   }, [user]);
@@ -158,6 +159,7 @@ export default function ProfilePage() {
 
   /* Selfie + passport flow — disabled for now */
 
+  /* Phone verification — disabled for now
   const handleSendOTP = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
       toast.error('Please enter a valid phone number');
@@ -197,6 +199,7 @@ export default function ProfilePage() {
       setIsVerifyingOTP(false);
     }
   };
+  */
 
   const handleUpdateAddress = async () => {
     setIsLoading(true);
@@ -490,7 +493,7 @@ export default function ProfilePage() {
           </Card>
         </motion.div>
 
-        {/* Phone Verification */}
+        {/* Phone Verification — disabled for now
         <motion.div variants={itemVariants}>
           <Card className="glass-card">
             <CardHeader>
@@ -549,6 +552,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </motion.div>
+        */}
 
         {/* Address Information */}
         <motion.div variants={itemVariants}>
@@ -720,7 +724,7 @@ export default function ProfilePage() {
         </motion.div>
       </motion.div>
 
-      {/* OTP Verification Modal */}
+      {/* OTP Verification Modal — disabled for now
       <Dialog open={showOTPModal} onOpenChange={setShowOTPModal}>
         <DialogContent>
           <DialogHeader>
@@ -771,6 +775,7 @@ export default function ProfilePage() {
           </div>
         </DialogContent>
       </Dialog>
+      */}
 
       {/* Verify Profile Modal */}
       <Dialog
