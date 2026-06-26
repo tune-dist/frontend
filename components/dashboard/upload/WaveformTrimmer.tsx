@@ -22,6 +22,8 @@ interface WaveformTrimmerProps {
 }
 
 const CLIP_MAX_DURATION_SEC = CRBT_CLIP_DURATION_SEC;
+/** Green clip-range overlay opacity on the waveform grid (55%). */
+const CLIP_RANGE_OPACITY = 0.55;
 
 const formatTime = (seconds: number) => {
   const m = Math.floor(seconds / 60);
@@ -206,7 +208,7 @@ export default function WaveformTrimmer({
         id: "trim-region",
         start,
         end,
-        color: "rgba(74, 222, 128, 0.9)",
+        color: `rgba(74, 222, 128, ${CLIP_RANGE_OPACITY})`,
         drag: true,
         resize: false,
         minLength: clipDuration,

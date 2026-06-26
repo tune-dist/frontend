@@ -48,6 +48,10 @@ import {
 import { getSignedUrl } from "@/lib/api/s3";
 import { isPlanInactiveError } from "@/lib/plan-inactive";
 import { getErrorMessage } from "@/lib/get-error-message";
+import {
+  getLegalPersonNameError,
+  LEGAL_PERSON_NAME_HINT,
+} from '@/lib/validation/legal-person-name';
 import { applyUploadApiErrors } from "@/lib/upload-api-errors";
 import {
   areMandatoryChecksComplete,
@@ -686,7 +690,7 @@ export default function UploadPage() {
               isValid = false;
             } else {
               // Check each track for required fields
-              const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/;
+              const nameErrorHint = LEGAL_PERSON_NAME_HINT;
               let hasError = false;
 
               for (let i = 0; i < formData.tracks.length; i++) {
@@ -729,9 +733,9 @@ export default function UploadPage() {
 
                 if (!isNoLyricsTrack) {
                 for (const sw of filledWriters) {
-                  if (!nameRegex.test(sw.trim())) {
+                  if (getLegalPersonNameError(sw.trim())) {
                     toast.error(
-                      `Track ${i + 1}: Invalid writer name "${sw}". Must be "Firstname Lastname"`
+                      `Track ${i + 1}: Invalid writer name "${sw}". ${nameErrorHint}`
                     );
                     hasError = true;
                     break;
@@ -744,9 +748,9 @@ export default function UploadPage() {
                 const filledComposers = (track.composers || []).filter(comp => comp?.trim());
                 if (filledComposers.length > 0) {
                   for (const comp of filledComposers) {
-                    if (!nameRegex.test(comp.trim())) {
+                    if (getLegalPersonNameError(comp.trim())) {
                       toast.error(
-                        `Track ${i + 1}: Invalid composer name "${comp}". Must be "Firstname Lastname"`
+                        `Track ${i + 1}: Invalid composer name "${comp}". ${nameErrorHint}`
                       );
                       hasError = true;
                       break;

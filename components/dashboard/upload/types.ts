@@ -1,12 +1,15 @@
 import { z } from 'zod'
+import {
+    isValidLegalPersonName,
+    LEGAL_PERSON_NAME_HINT,
+} from '@/lib/validation/legal-person-name'
 
 export const songwriterSchema = z.string()
     .refine((val) => {
         if (!val || val.trim() === '') return true;
-        // Strict regex: "^[a-zA-Z]{3,} [a-zA-Z]{3,}$"
-        return /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/.test(val.trim());
+        return isValidLegalPersonName(val);
     }, {
-        message: 'Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.'
+        message: LEGAL_PERSON_NAME_HINT,
     });
 
 export type Songwriter = string;

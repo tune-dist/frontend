@@ -13,6 +13,7 @@ import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
 import WaveformTrimmer from './WaveformTrimmer'
 import { getCrbtIneligibilityMessage, isTrackEligibleForCrbt } from './crbt-validation'
+import { getLegalPersonNameError, LEGAL_PERSON_NAME_HINT } from '@/lib/validation/legal-person-name'
 import {
     INSTRUMENTAL_LANGUAGE,
     filterGenresForInstrumentalChoice,
@@ -472,15 +473,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     }
 
     const validateName = (name: string): string => {
-        if (!name.trim()) {
-            return ''
-        }
-        // Strict validation: First Name (3+ letters) + Space + Last Name (3+ letters)
-        const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
-        if (!nameRegex.test(name.trim())) {
-            return 'Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.'
-        }
-        return ''
+        return getLegalPersonNameError(name) ?? ''
     }
 
     const handleSave = () => {
@@ -528,11 +521,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 return
             }
 
-            // Strict Songwriter/Composer Validation Regex
-            // First Name (3+ letters) + Space + Last Name (3+ letters)
-            const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
-
-            // Filter out empty entries before validation
             const filteredWriters = modalWriters.filter(w => w?.trim())
             const filteredComposers = modalComposers.filter(c => c?.trim())
             const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumental)
@@ -545,8 +533,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             }
 
             for (const sw of filteredWriters) {
-                if (!nameRegex.test(sw.trim())) {
-                    toast.error(`Invalid Writer name: "${sw}". Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.`)
+                const writerError = getLegalPersonNameError(sw.trim())
+                if (writerError) {
+                    toast.error(`Invalid Writer name: "${sw}". ${writerError}`)
                     return
                 }
             }
@@ -554,8 +543,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
             // Validate Composers (if provided, must be valid)
             for (const comp of filteredComposers) {
-                if (!nameRegex.test(comp.trim())) {
-                    toast.error(`Invalid Composer name: "${comp}". Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.`)
+                const composerError = getLegalPersonNameError(comp.trim())
+                if (composerError) {
+                    toast.error(`Invalid Composer name: "${comp}". ${composerError}`)
                     return
                 }
             }
@@ -1650,12 +1640,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         <div className="space-y-3 pt-4 border-t">
                             <div>
                                 <Label className="text-lg font-semibold">Writer/Author <span className="text-red-500">*</span></Label>
-                                <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.</p>
+                                <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. {LEGAL_PERSON_NAME_HINT}</p>
                             </div>
                             {modalWriters.map((writer, idx) => (
                                 <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
                                     <Input
-                                        placeholder="Enter Firstname Lastname *"
+                                        placeholder="Legal full name *"
                                         value={writer}
                                         onChange={(e) => {
                                             const updated = [...modalWriters]
@@ -1707,12 +1697,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     <div className="space-y-3 pt-4 border-t">
                         <div>
                             <Label className="text-lg font-semibold">Composer</Label>
-                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.</p>
+                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. {LEGAL_PERSON_NAME_HINT}</p>
                         </div>
                         {modalComposers.map((composer, idx) => (
                             <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
                                 <Input
-                                    placeholder="Enter Firstname Lastname"
+                                    placeholder="Legal full name"
                                     value={composer}
                                     onChange={(e) => {
                                         const updated = [...modalComposers]

@@ -22,10 +22,23 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import {
+    resolvePlatformProfile,
+    profileNeedsSearchHydration,
+    type PlatformSearchResults,
+} from '@/lib/integrations/platform-profile.util'
 
 // Hardcoded artist add-on price (frontend display only — backend is source of truth)
 const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
 const ARTIST_ADDON_PRICE_INR = 500
+
+type SearchIndex = number | 'main'
+
+const emptySearchResults = (): PlatformSearchResults => ({ spotify: [], apple: [], youtube: [] })
+
+function searchIndexKey(index: SearchIndex): string {
+    return String(index)
+}
 
 interface BasicInfoStepProps {
     // Keeping these optional for compatibility, but we primarily use context
@@ -119,18 +132,13 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const [isSearching, setIsSearching] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
     const [activeSearchIndex, setActiveSearchIndex] = useState<number | 'main' | null>(null)
-    const [searchResults, setSearchResults] = useState<{
-        spotify: any[];
-        apple: any[];
-        youtube: any[];
-    }>({ spotify: [], apple: [], youtube: [] })
+    const [searchResults, setSearchResults] = useState<PlatformSearchResults>(emptySearchResults())
+    const [searchCache, setSearchCache] = useState<
+        Record<string, { results: PlatformSearchResults; hasSearched: boolean }>
+    >({})
 
     const searchTimeout = useRef<NodeJS.Timeout>()
-
-    // Clear search results when switching between artists
-    useEffect(() => {
-        setSearchResults({ spotify: [], apple: [], youtube: [] })
-    }, [activeSearchIndex])
+    const hydratedArtistSearchRef = useRef<Set<string>>(new Set())
 
     // Modal/dialog state
     // - showAddonDialog: ₹500 "buy 1 extra artist" dialog (shown on the second-to-last plan)
@@ -248,7 +256,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                     // Call Spotify, Apple Music, and YouTube search APIs in parallel via backend
                     const [spotifyResponse, appleResponse, youtubeResponse] = await Promise.all([
-                        fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=15`)
+                        fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=10`)
                             .catch(err => {
                                 console.error('Spotify search error:', err)
                                 return null
@@ -269,25 +277,35 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     const appleArtists = appleResponse?.ok ? await appleResponse.json() : []
                     const youtubeChannels = youtubeResponse?.ok ? await youtubeResponse.json() : []
 
-                    setSearchResults({
+                    const results = {
                         spotify: spotifyArtists,
                         apple: appleArtists,
-                        youtube: youtubeChannels
-                    })
+                        youtube: youtubeChannels,
+                    }
+                    setSearchResults(results)
+                    setSearchCache((prev) => ({
+                        ...prev,
+                        [searchIndexKey(index)]: { results, hasSearched: true },
+                    }))
                 } catch (error) {
                     console.error('Search error:', error)
-                    setSearchResults({ spotify: [], apple: [], youtube: [] })
+                    const results = emptySearchResults()
+                    setSearchResults(results)
+                    setSearchCache((prev) => ({
+                        ...prev,
+                        [searchIndexKey(index)]: { results, hasSearched: true },
+                    }))
                 } finally {
                     setIsSearching(false)
                     setHasSearched(true)
                 }
             }, 1000)
         } else {
-            setSearchResults({ spotify: [], apple: [], youtube: [] })
+            setSearchResults(emptySearchResults())
             setIsSearching(false)
             setHasSearched(false)
         }
-    }, [searchTimeout, setActiveSearchIndex, setIsSearching, setSearchResults, setHasSearched])
+    }, [])
 
 
 
@@ -348,47 +366,68 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         }
     }, [user, setValue, planLimits, usedArtists, handleSearch]) // Removed artistName to avoid loops, handled inside
 
-    // Hydrate Legacy Profiles from Search Results
-    // If we have a profile set as a string (URL) and search results appear, try to find a match to upgrade to rich object
+    // Hydrate lean profiles (id/url only) from search results — same as track-edit modal
     useEffect(() => {
-        const hydrateProfile = (platform: 'spotify' | 'apple' | 'youtube', currentVal: any, results: any[]) => {
-            if (typeof currentVal === 'string' && results.length > 0) {
-                // Try to find match by ID or URL
-                // Spotify results usually have id, externalUrl
-                // Apple results have url, id?
-                const match = results.find(r =>
-                    r.id === currentVal ||
-                    (r.externalUrl && r.externalUrl === currentVal) ||
-                    (r.url && r.url === currentVal) ||
-                    (r.channelUrl && r.channelUrl === currentVal)
-                );
+        const hydrateMainProfiles = (results: PlatformSearchResults) => {
+            if (!artistName) return
 
-                if (match) {
-                    console.log(`Hydrating ${platform} profile from search result`, match);
-                    // Construct proper object
-                    const richProfile = {
-                        id: match.id,
-                        name: match.name,
-                        image: match.image || '',
-                        url: match.externalUrl || match.channelUrl || match.url || '',
-                        followers: match.followers,
-                        track: match.track
-                    };
+            const hydrateProfile = (
+                platform: 'spotify' | 'apple' | 'youtube',
+                currentVal: unknown,
+            ) => {
+                if (!profileNeedsSearchHydration(currentVal)) return
+                const rich = resolvePlatformProfile(
+                    platform,
+                    currentVal,
+                    artistName,
+                    results,
+                    usedArtists,
+                )
+                if (!rich || rich === currentVal || typeof rich !== 'object') return
+                if (platform === 'spotify') setValue('spotifyProfile', rich as UploadFormData['spotifyProfile'])
+                if (platform === 'apple') setValue('appleMusicProfile', rich as UploadFormData['appleMusicProfile'])
+                if (platform === 'youtube') setValue('youtubeMusicProfile', rich as UploadFormData['youtubeMusicProfile'])
+            }
 
-                    if (platform === 'spotify') setValue('spotifyProfile', richProfile);
-                    if (platform === 'apple') setValue('appleMusicProfile', richProfile);
-                    if (platform === 'youtube') setValue('youtubeMusicProfile', richProfile);
-                }
+            hydrateProfile('spotify', spotifyProfile)
+            hydrateProfile('apple', appleMusicProfile)
+            hydrateProfile('youtube', youtubeMusicProfile)
+        }
+
+        if (!isSearching && artistName) {
+            const results = searchCache.main?.results ?? searchResults
+            if (searchCache.main?.hasSearched || (activeSearchIndex === 'main' && hasSearched)) {
+                hydrateMainProfiles(results)
             }
         }
+    }, [
+        searchResults,
+        searchCache.main,
+        hasSearched,
+        isSearching,
+        activeSearchIndex,
+        spotifyProfile,
+        appleMusicProfile,
+        youtubeMusicProfile,
+        artistName,
+        usedArtists,
+        setValue,
+    ])
 
-        if (activeSearchIndex === 'main' && hasSearched && !isSearching) {
-            hydrateProfile('spotify', spotifyProfile, searchResults.spotify);
-            hydrateProfile('apple', appleMusicProfile, searchResults.apple);
-            hydrateProfile('youtube', youtubeMusicProfile, searchResults.youtube);
-        }
-
-    }, [searchResults, hasSearched, isSearching, activeSearchIndex, spotifyProfile, appleMusicProfile, youtubeMusicProfile, setValue]);
+    // When artist name is pre-filled (edit/roster), run search once to load platform results
+    useEffect(() => {
+        if (!artistName || artistName.length < 2) return
+        const cacheKey = `main:${artistName}`
+        if (hydratedArtistSearchRef.current.has(cacheKey)) return
+        const needsProfileHydration =
+            profileNeedsSearchHydration(spotifyProfile) ||
+            profileNeedsSearchHydration(appleMusicProfile) ||
+            profileNeedsSearchHydration(youtubeMusicProfile) ||
+            !searchCache.main?.hasSearched
+        if (!needsProfileHydration) return
+        hydratedArtistSearchRef.current.add(cacheKey)
+        handleSearch(artistName, 'main')
+    }, [artistName, spotifyProfile, appleMusicProfile, youtubeMusicProfile, searchCache.main?.hasSearched, handleSearch])
 
     const handleMainArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
@@ -460,9 +499,20 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         const currentApple = getCurrentProfile('apple')
         const currentYoutube = getCurrentProfile('youtube')
 
+        const cacheKey = searchIndexKey(index)
+        const cached = searchCache[cacheKey]
+        const isActiveSearch = activeSearchIndex === index
+        const indexResults =
+            isActiveSearch && (isSearching || hasSearched)
+                ? searchResults
+                : cached?.results ?? emptySearchResults()
+        const indexHasSearched = Boolean(cached?.hasSearched || (isActiveSearch && hasSearched))
+
         // Render Selected View Helper
         const renderSelectedProfile = (platform: 'spotify' | 'apple' | 'youtube', profileData: any) => {
-            if (!profileData) return null
+            const resolved = resolvePlatformProfile(platform, profileData, currentName, indexResults, usedArtists)
+            if (!resolved) return null
+            profileData = resolved
             if (profileData === 'new') {
                 return (
                     <div className="bg-primary/10 border border-primary rounded-md p-3 flex flex-col">
@@ -594,19 +644,12 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         const currentName = index === 'main' ? artistName : (artists && artists[index]?.name)
         if (!currentName || currentName.length < 2) return null
 
-        // Conditions to show the block:
-        // 1. If actively searching this index.
-        // 2. OR if there are results (and not searching).
-        // 3. OR if there are selected profiles for this index (Persistent View).
-        // NOW UPDATED: Always show if active search index matches, to allow manual entry even if no results.
-        const isActiveSearch = activeSearchIndex === index
-        // const hasResults = searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0
-        // const showSearchResults = isActiveSearch && (hasResults || isSearching)
-        const showSearchResults = isActiveSearch // Always show when active to allow manual entry
-
         const hasAnySelection = !!(currentSpotify || currentApple || currentYoutube)
+        const showPlatformBlock = hasAnySelection || indexHasSearched || isActiveSearch
 
-        if (!showSearchResults && !hasAnySelection) return null
+        if (!showPlatformBlock) return null
+
+        const showLoadingSkeleton = isSearching && isActiveSearch && !hasAnySelection
 
         return (
             <motion.div
@@ -630,10 +673,8 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     )}
                 </div>
 
-                {isSearching && isActiveSearch ? (
-                    // Show skeleton or just keep the header with loader above
+                {showLoadingSkeleton ? (
                     <div className="space-y-4 opacity-50 pointer-events-none">
-                        {/* Placeholder for Spotify */}
                         <div className="h-12 bg-muted/20 rounded-md animate-pulse" />
                         <div className="h-12 bg-muted/20 rounded-md animate-pulse" />
                         <div className="h-12 bg-muted/20 rounded-md animate-pulse" />
@@ -641,7 +682,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Spotify Section */}
-                        {(showSearchResults || currentSpotify) && (
+                        {(indexResults.spotify.length > 0 || currentSpotify || indexHasSearched) && (
                             <div className="space-y-3 flex flex-col">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -657,7 +698,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                 ) : (
                                     // Only show results if no selection exists
                                     <>
-                                        {searchResults.spotify.map((artist: any) => (
+                                        {indexResults.spotify.map((artist: any) => (
                                             <div
                                                 key={artist.id}
                                                 className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
@@ -728,7 +769,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         )}
 
                         {/* Apple Music Section */}
-                        {(showSearchResults || currentApple) && (
+                        {(indexResults.apple.length > 0 || currentApple || indexHasSearched) && (
                             <div className="space-y-3 flex flex-col">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -743,7 +784,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                     renderSelectedProfile('apple', currentApple)
                                 ) : (
                                     <>
-                                        {searchResults.apple.map((artist: any) => (
+                                        {indexResults.apple.map((artist: any) => (
                                             <div
                                                 key={artist.id}
                                                 className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
@@ -810,7 +851,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         )}
 
                         {/* YouTube Section */}
-                        {(showSearchResults || currentYoutube) && (
+                        {(indexResults.youtube.length > 0 || currentYoutube || indexHasSearched) && (
                             <div className="space-y-3 flex flex-col">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -825,7 +866,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                     renderSelectedProfile('youtube', currentYoutube)
                                 ) : (
                                     <>
-                                        {searchResults.youtube.map((profile: any) => (
+                                        {indexResults.youtube.map((profile: any) => (
                                             <div
                                                 key={profile.id}
                                                 className={`flex items-center gap-3 p-3 rounded-md transition-colors cursor-pointer ${currentYoutube === profile.id ? 'bg-primary/10 border border-primary' : 'bg-background hover:bg-accent'
@@ -1079,11 +1120,12 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
 
                         {/* Artist Not Found Message */}
-                        {activeSearchIndex === 'main' && hasSearched && !isSearching &&
-                            searchResults.spotify.length === 0 &&
-                            searchResults.apple.length === 0 &&
-                            searchResults.youtube.length === 0 &&
-                            artistName.length >= 2 && (
+                        {searchCache.main?.hasSearched && !isSearching &&
+                            searchCache.main.results.spotify.length === 0 &&
+                            searchCache.main.results.apple.length === 0 &&
+                            searchCache.main.results.youtube.length === 0 &&
+                            artistName.length >= 2 &&
+                            !spotifyProfile && !appleMusicProfile && !youtubeMusicProfile && (
                                 <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
                                     <p className="text-sm text-yellow-600 dark:text-yellow-400">
                                         Artist not found. Please upload music via a distributor to create a Spotify profile

@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
 import WaveformTrimmer from "./WaveformTrimmer";
 import { isTrackEligibleForCrbt } from "./crbt-validation";
+import { LEGAL_PERSON_NAME_HINT } from "@/lib/validation/legal-person-name";
 import { useResolvedCrbtPlayback } from "@/lib/upload/audio-playback";
 import {
   INSTRUMENTAL_LANGUAGE,
@@ -871,7 +872,7 @@ export default function CreditsStep({
                       )}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.
+                      Real names, not stage names. {LEGAL_PERSON_NAME_HINT}
                     </p>
                   </div>
 
@@ -882,7 +883,7 @@ export default function CreditsStep({
                     >
                       <div className="grid grid-cols-1 gap-1">
                         <Input
-                          placeholder={`Enter Firstname Lastname ${fieldRules.songwriters?.required !== false ? "*" : ""
+                          placeholder={`Legal full name ${fieldRules.songwriters?.required !== false ? "*" : ""
                             }`}
                           {...register(`writers.${index}` as const)}
                           className="text-sm"
@@ -930,7 +931,7 @@ export default function CreditsStep({
                       )}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.
+                      Real names, not stage names. {LEGAL_PERSON_NAME_HINT}
                     </p>
                   </div>
 
@@ -941,7 +942,7 @@ export default function CreditsStep({
                     >
                       <div className="grid grid-cols-1 gap-1">
                         <Input
-                          placeholder={`Enter Firstname Lastname ${fieldRules.composers?.required !== false ? "*" : ""
+                          placeholder={`Legal full name ${fieldRules.composers?.required !== false ? "*" : ""
                             }`}
                           {...register(`composers.${index}` as const)}
                           className="text-sm"
