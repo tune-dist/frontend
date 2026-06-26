@@ -9,7 +9,7 @@ import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock, UserCheck, Link 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { UploadFormData, SecondaryArtist } from './types'
-import { useFormContext } from 'react-hook-form'
+import { useFormContext, Controller } from 'react-hook-form'
 import { getPlanLimits, getPlanFieldRules, getAllPlans, Plan } from '@/lib/api/plans'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import UpgradePlanModal from '@/components/dashboard/upgrade-plan-modal'
@@ -27,6 +27,11 @@ import {
     profileNeedsSearchHydration,
     type PlatformSearchResults,
 } from '@/lib/integrations/platform-profile.util'
+import {
+    getDefaultLabelName,
+    isReservedPlatformLabelName,
+    RESERVED_LABEL_NAME_MESSAGE,
+} from '@/lib/validation/label-name'
 
 // Hardcoded artist add-on price (frontend display only — backend is source of truth)
 const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
@@ -50,7 +55,7 @@ interface BasicInfoStepProps {
 
 export default function BasicInfoStep({ formData: propFormData, setFormData: propSetFormData, usedArtists = [] }: BasicInfoStepProps) {
     const { user, refreshUser } = useAuth()
-    const { register, formState: { errors }, watch, setValue } = useFormContext<UploadFormData>()
+    const { register, formState: { errors }, watch, setValue, control } = useFormContext<UploadFormData>()
     const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay()
 
     // Watch values for conditional rendering
@@ -104,7 +109,16 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     // Check if featured artists are allowed by plan fieldRules
     const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false
     const isLabelNameAllowed = planKey !== 'free'
+    const defaultLabelName = getDefaultLabelName()
+    const labelNameValue = watch('labelName')
     const isExplicitAllowed = fieldRules.isExplicit?.allow !== false
+
+    // Free plan: keep label locked to the platform default (blocks paste/typing bypass).
+    useEffect(() => {
+        if (!isLabelNameAllowed && labelNameValue !== defaultLabelName) {
+            setValue('labelName', defaultLabelName, { shouldValidate: true })
+        }
+    }, [isLabelNameAllowed, labelNameValue, defaultLabelName, setValue])
 
     // Check if main artist name should be locked (Limit reached, including any purchased add-on slots)
     const isArtistLocked = !!planLimits && usedArtists.length >= (planLimits.artistLimit + extraSlots);
@@ -1412,18 +1426,55 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     <Label htmlFor="labelName" className="text-lg font-semibold">
                         Label Name <span className="text-red-500">*</span>
                     </Label>
-                    <Input
-                        id="labelName"
-                        placeholder="Enter Label Name"
-                        {...register('labelName')}
-                        readOnly={!isLabelNameAllowed}
-                        className={errors.labelName ? 'border-red-500' : ''}
+                    <Controller
+                        name="labelName"
+                        control={control}
+                        render={({ field }) => (
+                            <Input
+                                id="labelName"
+                                placeholder="Enter Label Name"
+                                value={isLabelNameAllowed ? (field.value ?? '') : defaultLabelName}
+                                onChange={(event) => {
+                                    if (!isLabelNameAllowed) {
+                                        field.onChange(defaultLabelName)
+                                        return
+                                    }
+                                    const next = event.target.value
+                                    if (!isReservedPlatformLabelName(next)) {
+                                        field.onChange(next)
+                                    }
+                                }}
+                                onBlur={field.onBlur}
+                                onPaste={(event) => {
+                                    if (!isLabelNameAllowed) {
+                                        event.preventDefault()
+                                        return
+                                    }
+                                    const pasted = event.clipboardData.getData('text')
+                                    if (isReservedPlatformLabelName(pasted)) {
+                                        event.preventDefault()
+                                    }
+                                }}
+                                onKeyDown={(event) => {
+                                    if (!isLabelNameAllowed) {
+                                        event.preventDefault()
+                                    }
+                                }}
+                                readOnly={!isLabelNameAllowed}
+                                className={errors.labelName ? 'border-red-500' : ''}
+                            />
+                        )}
                     />
                     {!isLabelNameAllowed && (
                         <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
                             <Info className="h-3 w-3 mt-0.5" />
-                            <span>Upgrade to a paid plan to use a custom Label Name.</span>
+                            <span>Free plan releases use the default label ({defaultLabelName}). Upgrade to set a custom label name.</span>
                         </div>
+                    )}
+                    {isLabelNameAllowed && (
+                        <p className="text-xs text-muted-foreground">
+                            {RESERVED_LABEL_NAME_MESSAGE}
+                        </p>
                     )}
                     {errors.labelName && (
                         <p className="text-xs text-red-500 mt-1">{errors.labelName.message}</p>

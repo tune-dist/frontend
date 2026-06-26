@@ -30,6 +30,11 @@ import {
   MandatoryChecks,
   Track,
 } from "@/components/dashboard/upload/types";
+import {
+  getDefaultLabelName,
+  isReservedPlatformLabelName,
+  RESERVED_LABEL_NAME_MESSAGE,
+} from "@/lib/validation/label-name";
 
 // Child Components
 import BasicInfoStep from "@/components/dashboard/upload/basic-info-step";
@@ -196,8 +201,8 @@ export default function UploadPage() {
       instrumental: "no",
       writers: [],
       composers: [],
-      copyright: process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib",
-      producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib"],
+      copyright: getDefaultLabelName(),
+      producers: [getDefaultLabelName()],
       recordingYear: new Date().getFullYear(),
       mood: "",
       coverArtChanged: false,
@@ -339,8 +344,7 @@ export default function UploadPage() {
         .then((rules) => {
           setFieldRules(rules);
           if (planKey === "free") {
-            const defaultLabel = process.env.NEXT_PUBLIC_DEFAULT_LABEL || "KratoLib";
-            form.setValue("labelName", defaultLabel, { shouldValidate: true });
+            form.setValue("labelName", getDefaultLabelName(), { shouldValidate: true });
           }
         })
         .catch((err) => console.error("Failed to fetch field rules", err));
@@ -405,7 +409,26 @@ export default function UploadPage() {
             fieldsToValidate.push("featuringArtist");
           }
 
+          if (planKey === "free") {
+            form.setValue("labelName", getDefaultLabelName(), { shouldValidate: true });
+          }
+
           isValid = await form.trigger(fieldsToValidate as any);
+
+          if (
+            planKey !== "free" &&
+            isReservedPlatformLabelName(form.getValues("labelName") || "")
+          ) {
+            form.setError(
+              "labelName",
+              {
+                type: "manual",
+                message: RESERVED_LABEL_NAME_MESSAGE,
+              },
+              { shouldFocus: true },
+            );
+            isValid = false;
+          }
 
           // Manually check featuredArtist if required by plan
           // form.trigger doesn't pick up dynamic validation because the Zod schema defines it as optional
