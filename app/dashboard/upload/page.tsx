@@ -185,6 +185,7 @@ export default function UploadPage() {
       numberOfSongs: "1",
       title: "",
       artistName: "",
+      cosmosArtistId: "",
       version: "",
       previouslyReleased: "no",
       primaryGenre: "",

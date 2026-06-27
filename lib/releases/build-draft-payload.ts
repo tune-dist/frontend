@@ -104,6 +104,9 @@ function buildArtists(form: BuildDraftPayloadInput): CreateReleaseDraftRequest['
   if (form.artistName?.trim()) {
     main.push({
       name: form.artistName.trim(),
+      ...(form.cosmosArtistId?.trim()
+        ? { cosmosId: form.cosmosArtistId.trim() }
+        : {}),
       profiles: buildProfilesFromLegacy({
         spotifyProfile: form.spotifyProfile,
         appleMusicProfile: form.appleMusicProfile,
@@ -120,6 +123,9 @@ function buildArtists(form: BuildDraftPayloadInput): CreateReleaseDraftRequest['
     if (!artist.name?.trim()) continue;
     main.push({
       name: artist.name.trim(),
+      ...(artist.cosmosArtistId?.trim()
+        ? { cosmosId: artist.cosmosArtistId.trim() }
+        : {}),
       profiles: buildProfilesFromLegacy({
         spotifyProfile: artist.spotifyProfile,
         appleMusicProfile: artist.appleMusicProfile,

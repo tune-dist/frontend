@@ -94,6 +94,7 @@ function hydrateFromDetail(detail: ReleaseDetailResponse): Partial<UploadFormDat
 
   const secondaryArtists = detail.artists.main.slice(1).map((artist) => ({
     name: artist.name,
+    cosmosArtistId: artist.cosmosId,
     spotifyProfile: artist.profiles?.spotify,
     appleMusicProfile: artist.profiles?.appleMusic,
     youtubeMusicProfile: artist.profiles?.youtubeMusic,
@@ -106,6 +107,7 @@ function hydrateFromDetail(detail: ReleaseDetailResponse): Partial<UploadFormDat
     title: detail.release.title,
     version: detail.release.version || undefined,
     artistName: mainArtist?.name || '',
+    cosmosArtistId: mainArtist?.cosmosId || undefined,
     artists: secondaryArtists as UploadFormData['artists'],
     isrc: firstTrack?.isrc || undefined,
     primaryGenre: isSingle ? firstTrack?.genre.primary : undefined,

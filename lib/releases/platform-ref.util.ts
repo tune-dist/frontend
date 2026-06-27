@@ -8,7 +8,9 @@ export function toPlatformRef(value: unknown): PlatformRef | undefined {
 
   if (typeof value === 'string') {
     const trimmed = value.trim();
-    if (!trimmed || SENTINEL_VALUES.has(trimmed.toLowerCase())) return undefined;
+    if (!trimmed) return undefined;
+    if (trimmed.toLowerCase() === 'new') return { id: 'new' };
+    if (SENTINEL_VALUES.has(trimmed.toLowerCase())) return undefined;
     return { url: trimmed };
   }
 
@@ -35,6 +37,10 @@ export function toPlatformRef(value: unknown): PlatformRef | undefined {
 }
 
 export function toAppleMusicPlatformRef(value: unknown): AppleMusicPlatformRef | undefined {
+  if (typeof value === 'string' && value.trim().toLowerCase() === 'new') {
+    return { id: 'new', appleId: 'new' };
+  }
+
   const base = toPlatformRef(value);
   if (!base && value && typeof value === 'object') {
     const record = value as Record<string, unknown>;
@@ -111,10 +117,16 @@ export function profilesToLegacyFormFields(profiles?: ArtistProfiles): {
   const instagramUrl = profiles?.instagram?.url;
   const facebookUrl = profiles?.facebook?.url;
 
+  const toLegacyProfile = (ref?: PlatformRef | AppleMusicPlatformRef) => {
+    if (!ref) return undefined;
+    if (ref.id === 'new') return 'new';
+    return ref;
+  };
+
   return {
-    spotifyProfile: profiles?.spotify ?? undefined,
-    appleMusicProfile: profiles?.appleMusic ?? undefined,
-    youtubeMusicProfile: profiles?.youtubeMusic ?? undefined,
+    spotifyProfile: toLegacyProfile(profiles?.spotify),
+    appleMusicProfile: toLegacyProfile(profiles?.appleMusic),
+    youtubeMusicProfile: toLegacyProfile(profiles?.youtubeMusic),
     instagramProfile: instagramUrl ? 'yes' : 'no',
     instagramProfileUrl: instagramUrl,
     facebookProfile: facebookUrl ? 'yes' : 'no',

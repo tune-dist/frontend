@@ -1,5 +1,4 @@
-'use client'
-
+import { searchArtistProfiles, emptySearchResults } from '@/lib/integrations/artist-search.util'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { UploadFormData } from './types'
@@ -15,11 +14,7 @@ interface ReleaseDetailsStepProps {
 export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDetailsStepProps) {
     const [isSearching, setIsSearching] = useState(false)
 
-    const [searchResults, setSearchResults] = useState<{
-        spotify: any[];
-        apple: any[];
-        youtube: any[];
-    }>({ spotify: [], apple: [], youtube: [] })
+    const [searchResults, setSearchResults] = useState(emptySearchResults())
     const searchTimeout = useRef<NodeJS.Timeout | null>(null)
     const handleArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
@@ -33,39 +28,22 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
             setIsSearching(true)
             searchTimeout.current = setTimeout(async () => {
                 try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-
-                    // Call both Spotify and YouTube search APIs in parallel
-                    const [spotifyResponse, youtubeResponse] = await Promise.all([
-                        fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`)
-                            .catch(err => {
-                                console.error('Spotify search error:', err)
-                                return null
-                            }),
-                        fetch(`${apiUrl}/integrations/youtube/search?q=${encodeURIComponent(name)}&limit=5`)
-                            .catch(err => {
-                                console.error('YouTube search error:', err)
-                                return null
-                            })
-                    ])
-
-                    const spotifyArtists = spotifyResponse?.ok ? await spotifyResponse.json() : []
-                    const youtubeChannels = youtubeResponse?.ok ? await youtubeResponse.json() : []
-
-                    setSearchResults({
-                        spotify: spotifyArtists,
-                        apple: [], // TODO: Implement Apple Music search
-                        youtube: youtubeChannels
+                    const results = await searchArtistProfiles(name, {
+                        spotifyLimit: 5,
+                        appleLimit: 5,
+                        youtubeLimit: 5,
+                        cosmosLimit: 10,
                     })
+                    setSearchResults(results)
                 } catch (error) {
                     console.error('Search error:', error)
-                    setSearchResults({ spotify: [], apple: [], youtube: [] })
+                    setSearchResults(emptySearchResults())
                 } finally {
                     setIsSearching(false)
                 }
             }, 1000)
         } else {
-            setSearchResults({ spotify: [], apple: [], youtube: [] })
+            setSearchResults(emptySearchResults())
             setIsSearching(false)
         }
     }
@@ -115,8 +93,8 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                         )}
                     </div>
 
-                    {/* Search Results / Platform Linking */}
-                    {formData.artistName.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.youtube.length > 0) && (
+                    {/* Legacy platform search UI — disabled while testing COSMOS-only flow */}
+                    {formData.artistName.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0) && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}

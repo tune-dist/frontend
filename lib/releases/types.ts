@@ -28,6 +28,7 @@ export interface ArtistProfiles {
 
 export interface DraftArtist {
   name: string;
+  cosmosId?: string;
   profiles?: ArtistProfiles;
 }
 

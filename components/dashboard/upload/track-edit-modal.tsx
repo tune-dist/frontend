@@ -24,6 +24,7 @@ import {
     resolveInstrumentalPrimaryGenre,
     resolveLanguage,
 } from './genre-language'
+import { searchArtistProfiles, emptySearchResults } from '@/lib/integrations/artist-search.util'
 
 interface TrackEditModalProps {
     isOpen: boolean
@@ -97,7 +98,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [isSearching, setIsSearching] = useState(false)
     const [creatingNewArtist, setCreatingNewArtist] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
-    const [searchResults, setSearchResults] = useState<{ spotify: any[]; apple: any[]; youtube: any[] }>({ spotify: [], apple: [], youtube: [] })
+    const [searchResults, setSearchResults] = useState(emptySearchResults())
     const searchTimeout = useRef<NodeJS.Timeout>()
 
     const [modalWriters, setModalWriters] = useState<string[]>(
@@ -343,7 +344,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setModalComposers(track.composers && track.composers.length > 0 ? track.composers : [''])
             setComposerErrors([])
 
-            setSearchResults({ spotify: [], apple: [], youtube: [] })
+            setSearchResults(emptySearchResults())
             setHasSearched(false)
         } else if (isOpen) {
             // New track or empty state
@@ -421,32 +422,23 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setIsSearching(true)
             searchTimeout.current = setTimeout(async () => {
                 try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-                    const [spotifyResponse, appleResponse, youtubeResponse] = await Promise.all([
-                        fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null),
-                        fetch(`${apiUrl}/integrations/apple/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null),
-                        fetch(`${apiUrl}/integrations/youtube/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null)
-                    ])
-
-                    const spotifyArtists = spotifyResponse?.ok ? await spotifyResponse.json() : []
-                    const appleArtists = appleResponse?.ok ? await appleResponse.json() : []
-                    const youtubeChannels = youtubeResponse?.ok ? await youtubeResponse.json() : []
-
-                    setSearchResults({
-                        spotify: spotifyArtists,
-                        apple: appleArtists,
-                        youtube: youtubeChannels
+                    const results = await searchArtistProfiles(name, {
+                        spotifyLimit: 5,
+                        appleLimit: 5,
+                        youtubeLimit: 5,
+                        cosmosLimit: 10,
                     })
+                    setSearchResults(results)
                 } catch (error) {
                     console.error('Search error:', error)
-                    setSearchResults({ spotify: [], apple: [], youtube: [] })
+                    setSearchResults(emptySearchResults())
                 } finally {
                     setIsSearching(false)
                     setHasSearched(true)
                 }
             }, 500)
         } else {
-            setSearchResults({ spotify: [], apple: [], youtube: [] })
+            setSearchResults(emptySearchResults())
             setIsSearching(false)
             setHasSearched(false)
         }
@@ -796,7 +788,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             )}
                         </div>
 
-                        {/* Artist Not Found Message */}
+                        {/* Legacy artist-not-found message */}
                         {hasSearched && !isSearching &&
                             searchResults.spotify.length === 0 &&
                             searchResults.apple.length === 0 &&
@@ -809,7 +801,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                 </div>
                             )}
 
-                        {/* Rich Search Results */}
+                        {/* Legacy platform search UI — disabled while testing COSMOS-only flow */}
                         {modalArtistSearch && modalArtistSearch.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0 || modalSpotifyProfile || modalAppleMusicProfile || modalYoutubeProfile) && (
                             <div className="space-y-6 pt-4 border-t border-border/50">
                                 <div className="flex items-center justify-between">

@@ -91,8 +91,10 @@ export const uploadFormSchema = z.object({
     title: z.string().min(1, 'Title is required'),
     version: z.string().optional(),
     artistName: z.string().min(1, 'Artist Name is required'),
+    cosmosArtistId: z.string().optional(),
     artists: z.array(z.object({
         name: z.string().min(1, 'Artist name is required'),
+        cosmosArtistId: z.string().optional(),
         spotifyProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
         appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
         youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
