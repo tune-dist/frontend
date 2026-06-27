@@ -61,3 +61,33 @@ export async function getArtistSearchMode(): Promise<{
   );
   return parseJson(response);
 }
+
+export interface ArtistEnrichmentResponse {
+  spotify?: {
+    image?: string;
+    followers?: number;
+    externalUrl?: string;
+  };
+  apple?: {
+    image?: string;
+    albumName?: string;
+    genre?: string;
+  };
+}
+
+/** Fetch Spotify photos / Apple iTunes album-art fallback for linked profile ids or URLs. */
+export async function enrichArtistProfile(input: {
+  spotifyId?: string;
+  appleId?: string;
+  appleUrl?: string;
+}): Promise<ArtistEnrichmentResponse> {
+  const params = new URLSearchParams();
+  if (input.spotifyId) params.set('spotifyId', input.spotifyId);
+  if (input.appleId) params.set('appleId', input.appleId);
+  if (input.appleUrl) params.set('appleUrl', input.appleUrl);
+
+  const response = await fetch(
+    `${config.apiUrl}/integrations/artists/enrich?${params.toString()}`,
+  );
+  return parseJson<ArtistEnrichmentResponse>(response);
+}

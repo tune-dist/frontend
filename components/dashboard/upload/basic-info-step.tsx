@@ -23,9 +23,12 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import {
+    extractAppleArtistId,
+    profileNeedsAppleEnrichment,
     profileNeedsSearchHydration,
     resolvePlatformProfile,
 } from '@/lib/integrations/platform-profile.util'
+import { enrichArtistProfile } from '@/lib/api/artist-search'
 import { emptySearchResults, type PlatformSearchResults } from '@/lib/integrations/artist-search.util'
 import {
     buildProfileValueToSave,
@@ -379,6 +382,41 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         usedArtists,
         setValue,
     ])
+
+    // Apple profiles saved as URLs have no artist photo — fetch iTunes album-art fallback.
+    useEffect(() => {
+        if (!artistName || !profileNeedsAppleEnrichment(appleMusicProfile)) return
+
+        const appleId = extractAppleArtistId(appleMusicProfile)
+        if (!appleId) return
+
+        let cancelled = false
+        const storedUrl =
+            typeof appleMusicProfile === 'string'
+                ? appleMusicProfile
+                : typeof appleMusicProfile === 'object' &&
+                    appleMusicProfile !== null &&
+                    typeof (appleMusicProfile as { url?: string }).url === 'string'
+                  ? (appleMusicProfile as { url: string }).url
+                  : `https://music.apple.com/artist/${appleId}`
+
+        enrichArtistProfile({ appleId })
+            .then((result) => {
+                if (cancelled || !result.apple?.image) return
+                setValue('appleMusicProfile', {
+                    id: appleId,
+                    name: artistName,
+                    image: result.apple.image,
+                    url: storedUrl,
+                    track: result.apple.albumName || 'Apple Music',
+                })
+            })
+            .catch(() => {})
+
+        return () => {
+            cancelled = true
+        }
+    }, [appleMusicProfile, artistName, setValue])
 
     // When artist name is pre-filled (edit/roster), run search once to load platform results
     useEffect(() => {

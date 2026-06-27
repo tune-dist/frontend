@@ -9,6 +9,38 @@ export type RichPlatformProfile = {
     track?: string
 }
 
+export function extractAppleArtistId(value: unknown): string | null {
+    if (value == null) return null
+
+    if (typeof value === 'object') {
+        const record = value as Record<string, unknown>
+        const id = typeof record.id === 'string' ? record.id.trim() : ''
+        if (/^\d+$/.test(id)) return id
+        const url =
+            typeof record.url === 'string'
+                ? record.url
+                : typeof record.externalUrl === 'string'
+                  ? record.externalUrl
+                  : ''
+        return extractAppleArtistId(url)
+    }
+
+    if (typeof value !== 'string') return null
+
+    const trimmed = value.trim()
+    const fromRegionalUrl = trimmed.match(
+        /music\.apple\.com(?:\/[a-z]{2})?\/artist(?:\/[^/?#]+)*\/(\d+)/i,
+    )?.[1]
+    if (fromRegionalUrl) return fromRegionalUrl
+
+    const fromSimpleUrl = trimmed.match(/music\.apple\.com\/artist\/(\d+)/i)?.[1]
+    if (fromSimpleUrl) return fromSimpleUrl
+
+    if (/^\d+$/.test(trimmed)) return trimmed
+
+    return null
+}
+
 export function extractSpotifyArtistId(value: unknown): string | null {
     if (value == null) return null
 
@@ -99,12 +131,46 @@ function findSpotifyInResults(stored: unknown, results: any[]): any | null {
     return results.find((artist) => spotifyArtistMatches(stored, artist)) ?? null
 }
 
+function appleArtistMatches(stored: unknown, artist: any): boolean {
+    const storedId = extractAppleArtistId(stored)
+    if (storedId && artist.id === storedId) return true
+
+    if (typeof stored === 'string') {
+        const normalizedStored = normalizeUrl(stored)
+        const candidates = [artist.externalUrl, artist.url].filter(Boolean) as string[]
+        if (candidates.some((url) => normalizeUrl(url) === normalizedStored)) {
+            return true
+        }
+    }
+
+    if (stored && typeof stored === 'object') {
+        const record = stored as Record<string, unknown>
+        const storedUrls = [record.url, record.externalUrl].filter(
+            (v): v is string => typeof v === 'string' && v.length > 0,
+        )
+        const candidates = [artist.externalUrl, artist.url].filter(Boolean) as string[]
+        if (
+            storedUrls.some((storedUrl) =>
+                candidates.some((url) => normalizeUrl(url) === normalizeUrl(storedUrl)),
+            )
+        ) {
+            return true
+        }
+    }
+
+    return false
+}
+
 function findGenericInResults(
     stored: unknown,
     results: any[],
     platform: 'apple' | 'youtube',
 ): any | null {
     const matchStored = (candidate: unknown, artist: any) => {
+        if (platform === 'apple') {
+            return appleArtistMatches(candidate, artist)
+        }
+
         if (typeof candidate === 'string') {
             return (
                 artist.id === candidate ||
@@ -141,6 +207,22 @@ export function profileNeedsSearchHydration(profile: unknown): boolean {
     return true
 }
 
+export function profileNeedsAppleEnrichment(profile: unknown): boolean {
+    if (!profile || profile === 'new') return false
+
+    if (typeof profile === 'object' && profile !== null) {
+        const record = profile as Record<string, unknown>
+        if (typeof record.image === 'string' && record.image.trim()) return false
+        return Boolean(extractAppleArtistId(profile))
+    }
+
+    return (
+        typeof profile === 'string' &&
+        profile.startsWith('http') &&
+        Boolean(extractAppleArtistId(profile))
+    )
+}
+
 /** Resolve stored profile (URL, id, lean object) to a rich card using search/roster data. */
 export function resolvePlatformProfile(
     platform: 'spotify' | 'apple' | 'youtube',
@@ -175,6 +257,11 @@ export function resolvePlatformProfile(
 
         if (platform === 'spotify' && field) {
             const rosterMatch = findSpotifyInResults(field, platformResults)
+            if (rosterMatch) return toRichProfile(rosterMatch)
+        }
+
+        if (platform === 'apple' && field) {
+            const rosterMatch = findGenericInResults(field, platformResults, 'apple')
             if (rosterMatch) return toRichProfile(rosterMatch)
         }
     }
