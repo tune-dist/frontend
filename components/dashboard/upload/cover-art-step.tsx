@@ -136,7 +136,6 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
             toast.error('An upload is already in progress');
             return;
         }
-        console.log('🖼️ Album cover upload started:', file.name)
         setValue('coverArtValidationStatus', undefined);
         setValue('coverArtValidationIssues', []);
         setValue('coverArtChanged', true);
@@ -183,8 +182,6 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
         try {
             const validationMetadata = buildValidationMetadata(formData);
-
-            console.log('Validating cover art with metadata:', validationMetadata);
             setIsUploading(true);
             setIsValidating(true);
             setUploadProgress(0);

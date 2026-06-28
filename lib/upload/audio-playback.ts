@@ -61,18 +61,6 @@ export function resolveCrbtTrackDuration(
   return null;
 }
 
-/** @deprecated Use useResolvedCrbtPlayback for async path/signing support. */
-export function resolveCrbtAudioSource(
-  audioFile: FormAudio,
-  audioFiles: AudioFile[],
-  tracks: Track[],
-): File | string | null {
-  const record = findCrbtAudioRecord(audioFile, audioFiles, tracks) as AudioFile | null;
-  if (!record) return null;
-  if (isFile(record.file)) return record.file;
-  return record.playbackUrl || null;
-}
-
 async function resolvePlaybackUrl(record: AudioFile | FormAudio): Promise<string | null> {
   const audio = record as AudioFile;
   if (audio.playbackUrl?.trim()) return audio.playbackUrl;

@@ -190,8 +190,8 @@ export interface ReleaseListItem {
   createdAt?: string;
 }
 
-/** Legacy flat API document (pre-v2) — adapter input only. */
-export interface LegacyReleaseDocument {
+/** Flat Mongo release document — mapper input when API response is not yet v2-shaped. */
+export interface MongoReleaseDocument {
   _id?: string;
   id?: string;
   releaseCode?: string;
@@ -280,13 +280,13 @@ export interface LegacyReleaseDocument {
     hash?: string;
     fingerprint?: string;
   };
-  tracks?: LegacyTrackDocument[];
+  tracks?: MongoReleaseTrack[];
   writers?: string[];
   composers?: string[];
   producers?: string[];
 }
 
-export interface LegacyTrackDocument {
+export interface MongoReleaseTrack {
   _id?: string;
   trackOrder?: number;
   title?: string;

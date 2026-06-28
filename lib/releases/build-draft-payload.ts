@@ -13,7 +13,7 @@ import type {
   DraftTrack,
   ReleaseType,
 } from './types';
-import { buildProfilesFromLegacy, toPlatformRef } from './platform-ref.util';
+import { buildProfilesFromFlatFields, toPlatformRef } from './platform-ref.util';
 
 type FormAudioFile = {
   id?: string;
@@ -107,7 +107,7 @@ function buildArtists(form: BuildDraftPayloadInput): CreateReleaseDraftRequest['
       ...(form.cosmosArtistId?.trim()
         ? { cosmosId: form.cosmosArtistId.trim() }
         : {}),
-      profiles: buildProfilesFromLegacy({
+      profiles: buildProfilesFromFlatFields({
         spotifyProfile: form.spotifyProfile,
         appleMusicProfile: form.appleMusicProfile,
         youtubeMusicProfile: form.youtubeMusicProfile,
@@ -126,7 +126,7 @@ function buildArtists(form: BuildDraftPayloadInput): CreateReleaseDraftRequest['
       ...(artist.cosmosArtistId?.trim()
         ? { cosmosId: artist.cosmosArtistId.trim() }
         : {}),
-      profiles: buildProfilesFromLegacy({
+      profiles: buildProfilesFromFlatFields({
         spotifyProfile: artist.spotifyProfile,
         appleMusicProfile: artist.appleMusicProfile,
         youtubeMusicProfile: artist.youtubeMusicProfile,
@@ -390,7 +390,7 @@ export async function buildDraftPayload(
   };
 }
 
-/** Extract platform URL for legacy API flat fields. */
+/** Extract platform URL for flat upload form fields. */
 function profileUrl(value: unknown): string | undefined {
   return toPlatformRef(value)?.url;
 }

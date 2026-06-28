@@ -272,7 +272,7 @@ function AuthContent() {
         data.email,
         data.password,
         data.fullName,
-        'artist',
+        undefined,
         googleId,
         spotifyId,
         avatar,

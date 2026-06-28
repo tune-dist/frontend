@@ -29,7 +29,7 @@ import {
     resolvePlatformProfile,
 } from '@/lib/integrations/platform-profile.util'
 import { enrichArtistProfile } from '@/lib/api/artist-search'
-import { emptySearchResults, type PlatformSearchResults } from '@/lib/integrations/artist-search.util'
+import { emptySearchResults, type ArtistSearchResults } from '@/lib/integrations/artist-search.util'
 import {
     buildProfileValueToSave,
     profileFieldForPlatform,
@@ -99,7 +99,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 setPlanLimits(limits)
                 setFieldRules(rules)
                 setAllPlans(plans)
-                console.log('Loaded fieldRules:', rules) // Debug log
             } catch (error) {
                 console.error('Failed to fetch plan data:', error)
                 // Fallback to default (free plan)
@@ -137,10 +136,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     // Update featuringArtist validation when fieldRules change
     useEffect(() => {
         if (Object.keys(fieldRules).length > 0) {
-            console.log('Registering featuringArtist with validation:', {
-                required: fieldRules.featuredArtists?.required,
-                message: fieldRules.featuredArtists?.required ? 'Featuring artist is required' : 'Not required'
-            });
             // Re-register the field with updated validation
             register('featuringArtist', {
                 required: fieldRules.featuredArtists?.required ? 'Featuring artist is required' : false
@@ -291,7 +286,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 const artistNameStr = typeof previousArtistObj === 'string' ? previousArtistObj : previousArtistObj.name;
 
                 if (artistNameStr && artistNameStr !== artistName) {
-                    console.log('Prefilling artist:', artistNameStr);
                     setValue('artistName', artistNameStr, { shouldValidate: true })
                     handleSearch(artistNameStr, 'main')
                 }
@@ -313,7 +307,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
     // Hydrate lean profiles (id/url only) from search results — same as track-edit modal
     useEffect(() => {
-        const hydrateMainProfiles = (results: PlatformSearchResults) => {
+        const hydrateMainProfiles = (results: ArtistSearchResults) => {
             if (!artistName) return
 
             const hydrateProfile = (

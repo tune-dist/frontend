@@ -5,7 +5,7 @@ import {
   type PlatformArtistSearchHit,
 } from '@/lib/api/artist-search';
 
-export type { ArtistSearchSource, PlatformArtistSearchHit };
+export type { ArtistSearchSource, PlatformArtistSearchHit, ArtistSearchResponse };
 
 export type ArtistSearchResults = ArtistSearchResponse;
 
@@ -33,9 +33,6 @@ export async function searchArtistProfiles(
     return emptyArtistSearchResults();
   }
 }
-
-/** @deprecated use ArtistSearchResults */
-export type PlatformSearchResults = ArtistSearchResults;
 
 export function emptySearchResults(): ArtistSearchResults {
   return emptyArtistSearchResults();

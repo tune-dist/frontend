@@ -1,7 +1,7 @@
 import type { UploadFormData, AudioFile, Track } from '@/components/dashboard/upload/types';
 import type { ReleaseDetailResponse } from './types';
-import { toReleaseDetailResponse } from './legacy-release.adapter';
-import { profilesToLegacyFormFields } from './platform-ref.util';
+import { toReleaseDetailResponse } from './release-document.mapper';
+import { profilesToFormFields } from './platform-ref.util';
 
 function toAudioFormFile(
   storageKey: string | undefined,
@@ -40,7 +40,7 @@ function formatDateInput(value?: string | null): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-/** Map v2 (or legacy) API response → react-hook-form upload state. */
+/** Map v2 (or Mongo flat) API response → react-hook-form upload state. */
 export function hydrateDraftForm(input: unknown): Partial<UploadFormData> {
   const detail = toReleaseDetailResponse(input);
   return hydrateFromDetail(detail);
@@ -50,7 +50,7 @@ function hydrateFromDetail(detail: ReleaseDetailResponse): Partial<UploadFormDat
   const format = detail.release.type as UploadFormData['format'];
   const isSingle = format === 'single';
   const mainArtist = detail.artists.main[0];
-  const social = profilesToLegacyFormFields(mainArtist?.profiles);
+  const social = profilesToFormFields(mainArtist?.profiles);
 
   const audioFiles: AudioFile[] = [];
   const tracks: Track[] = [];

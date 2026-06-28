@@ -1,6 +1,6 @@
 import { config } from '@/lib/config';
 
-export type ArtistSearchSource = 'cosmos' | 'legacy';
+export type ArtistSearchSource = 'cosmos';
 
 export interface PlatformArtistSearchHit {
   id: string;
@@ -28,7 +28,7 @@ async function parseJson<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-/** Single upload UI entry point — backend picks COSMOS vs legacy via USE_COSMOS_ARTIST_SEARCH. */
+/** Unified upload UI artist search (COSMOS catalog). */
 export async function searchArtists(
   query: string,
   options?: {
@@ -48,15 +48,6 @@ export async function searchArtists(
     `${config.apiUrl}/integrations/artists/search?${params.toString()}`,
   );
   return parseJson<ArtistSearchResponse>(response);
-}
-
-export async function getArtistSearchMode(): Promise<{
-  useCosmosArtistSearch: boolean;
-}> {
-  const response = await fetch(
-    `${config.apiUrl}/integrations/artists/search-mode`,
-  );
-  return parseJson(response);
 }
 
 export interface ArtistEnrichmentResponse {

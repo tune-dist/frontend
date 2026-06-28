@@ -28,12 +28,9 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
     const [isUploading, setIsUploading] = useState(false)
     const [activeFileId, setActiveFileId] = useState<string | null>(null)
-
-    // console.log('values', getValues())
     const format = watch('format')
     const audioFile = watch('audioFile')
     const audioFileName = getValues('title')
-    console.log(audioFileName, 'audioFileName')
     const audioFiles = watch('audioFiles') || []
     const tracks = watch('tracks') || []
 

@@ -1,4 +1,4 @@
-export type PlatformSearchResults = { spotify: any[]; apple: any[]; source?: 'cosmos' | 'legacy' }
+export type PlatformSearchResults = { spotify: any[]; apple: any[]; source?: 'cosmos' }
 
 export type RichPlatformProfile = {
     id: string

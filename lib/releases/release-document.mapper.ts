@@ -1,14 +1,13 @@
 import type {
-  CreateReleaseDraftRequest,
   DraftArtist,
   DraftTrack,
-  LegacyReleaseDocument,
-  LegacyTrackDocument,
+  MongoReleaseDocument,
+  MongoReleaseTrack,
   ReleaseDetailResponse,
   ReleaseListItem,
   ReleaseType,
 } from './types';
-import { buildProfilesFromLegacy, profilesToLegacyFormFields } from './platform-ref.util';
+import { buildProfilesFromFlatFields, profilesToFormFields } from './platform-ref.util';
 
 export function isV2ReleaseDetail(value: unknown): value is ReleaseDetailResponse {
   if (!value || typeof value !== 'object') return false;
@@ -34,20 +33,22 @@ function parsePreviouslyReleased(value?: string | boolean): boolean {
 }
 
 function parseInstrumental(
-  track: LegacyTrackDocument,
-  release: LegacyReleaseDocument,
+  track: MongoReleaseTrack,
+  document: MongoReleaseDocument,
 ): boolean {
   if (typeof track.isInstrumental === 'boolean') return track.isInstrumental;
   if (track.isInstrumental === 'yes') return true;
-  if (release.isInstrumentalFlag === true) return true;
-  if (release.instrumental?.toLowerCase() === 'yes') return true;
+  if (document.isInstrumentalFlag === true) return true;
+  if (document.instrumental?.toLowerCase() === 'yes') return true;
   return false;
 }
 
-function mapLegacyArtist(artist: NonNullable<LegacyReleaseDocument['primaryArtists']>[number]): DraftArtist {
+function mapMongoArtist(
+  artist: NonNullable<MongoReleaseDocument['primaryArtists']>[number],
+): DraftArtist {
   return {
     name: artist.name,
-    profiles: buildProfilesFromLegacy({
+    profiles: buildProfilesFromFlatFields({
       spotifyProfile: artist.spotifyProfile,
       appleMusicProfile: artist.appleMusicProfile,
       youtubeMusicProfile: artist.youtubeMusicProfile,
@@ -59,22 +60,22 @@ function mapLegacyArtist(artist: NonNullable<LegacyReleaseDocument['primaryArtis
   };
 }
 
-function buildMainArtists(legacy: LegacyReleaseDocument): DraftArtist[] {
-  if (legacy.primaryArtists?.length) {
-    return legacy.primaryArtists.map(mapLegacyArtist);
+function buildMainArtists(document: MongoReleaseDocument): DraftArtist[] {
+  if (document.primaryArtists?.length) {
+    return document.primaryArtists.map(mapMongoArtist);
   }
-  if (legacy.artistName?.trim()) {
+  if (document.artistName?.trim()) {
     return [
       {
-        name: legacy.artistName.trim(),
-        profiles: buildProfilesFromLegacy({
-          spotifyProfile: legacy.spotifyProfile ?? legacy.socialPlatforms?.spotifyProfile,
-          appleMusicProfile: legacy.appleMusicProfile ?? legacy.socialPlatforms?.appleMusicProfile,
-          youtubeMusicProfile: legacy.youtubeMusicProfile ?? legacy.socialPlatforms?.youtubeMusicProfile,
-          instagramProfile: legacy.instagramProfile ?? legacy.socialPlatforms?.instagramProfile,
-          instagramProfileUrl: legacy.instagramProfileUrl ?? legacy.socialPlatforms?.instagramProfileUrl,
-          facebookProfile: legacy.facebookProfile ?? legacy.socialPlatforms?.facebookProfile,
-          facebookProfileUrl: legacy.facebookProfileUrl ?? legacy.socialPlatforms?.facebookProfileUrl,
+        name: document.artistName.trim(),
+        profiles: buildProfilesFromFlatFields({
+          spotifyProfile: document.spotifyProfile ?? document.socialPlatforms?.spotifyProfile,
+          appleMusicProfile: document.appleMusicProfile ?? document.socialPlatforms?.appleMusicProfile,
+          youtubeMusicProfile: document.youtubeMusicProfile ?? document.socialPlatforms?.youtubeMusicProfile,
+          instagramProfile: document.instagramProfile ?? document.socialPlatforms?.instagramProfile,
+          instagramProfileUrl: document.instagramProfileUrl ?? document.socialPlatforms?.instagramProfileUrl,
+          facebookProfile: document.facebookProfile ?? document.socialPlatforms?.facebookProfile,
+          facebookProfileUrl: document.facebookProfileUrl ?? document.socialPlatforms?.facebookProfileUrl,
         }),
       },
     ];
@@ -82,38 +83,38 @@ function buildMainArtists(legacy: LegacyReleaseDocument): DraftArtist[] {
   return [];
 }
 
-function mapLegacyTrack(
-  track: LegacyTrackDocument,
+function mapMongoTrack(
+  track: MongoReleaseTrack,
   index: number,
-  legacy: LegacyReleaseDocument,
+  document: MongoReleaseDocument,
 ): DraftTrack | null {
-  const audio = track.audioFile ?? (index === 0 ? legacy.audioFile : undefined);
+  const audio = track.audioFile ?? (index === 0 ? document.audioFile : undefined);
   if (!audio?.url) return null;
 
-  const primaryGenre = track.primaryGenre || legacy.primaryGenre || '';
-  const secondaryGenre = track.secondaryGenre || legacy.secondaryGenre || legacy.subGenre;
+  const primaryGenre = track.primaryGenre || document.primaryGenre || '';
+  const secondaryGenre = track.secondaryGenre || document.secondaryGenre || document.subGenre;
 
   return {
     order: track.trackOrder ?? index + 1,
-    title: track.title || legacy.title || 'Untitled',
+    title: track.title || document.title || 'Untitled',
     version: null,
-    artistName: track.artistName || legacy.artistName || null,
-    language: track.language || legacy.language || 'Hindi',
+    artistName: track.artistName || document.artistName || null,
+    language: track.language || document.language || 'Hindi',
     genre: {
       primary: primaryGenre,
       secondary: secondaryGenre || undefined,
     },
-    mood: track.mood || legacy.mood || '',
-    isExplicit: track.isExplicit ?? legacy.isExplicit ?? false,
-    isInstrumental: parseInstrumental(track, legacy),
-    isrc: track.isrc || legacy.isrc || null,
+    mood: track.mood || document.mood || '',
+    isExplicit: track.isExplicit ?? document.isExplicit ?? false,
+    isInstrumental: parseInstrumental(track, document),
+    isrc: track.isrc || document.isrc || null,
     dolbyIsrc: track.dolbyIsrc || null,
     previouslyReleased: parsePreviouslyReleased(track.previouslyReleased),
-    originalReleaseDate: toIsoDateInput(track.originalReleaseDate || legacy.originalReleaseDate),
+    originalReleaseDate: toIsoDateInput(track.originalReleaseDate || document.originalReleaseDate),
     credits: {
-      writers: track.writers?.length ? track.writers : legacy.writers || [],
-      composers: track.composers?.length ? track.composers : legacy.composers || [],
-      featuring: track.featuringArtist || legacy.featuredArtists?.[0] || null,
+      writers: track.writers?.length ? track.writers : document.writers || [],
+      composers: track.composers?.length ? track.composers : document.composers || [],
+      featuring: track.featuringArtist || document.featuredArtists?.[0] || null,
     },
     audio: {
       storageKey: audio.url,
@@ -124,8 +125,8 @@ function mapLegacyTrack(
       hash: audio.hash,
       fingerprint: audio.fingerprint,
     },
-    previewClip: (track.previewStartTime || legacy.previewClipStartTime)
-      ? { startTime: track.previewStartTime || legacy.previewClipStartTime || '' }
+    previewClip: (track.previewStartTime || document.previewClipStartTime)
+      ? { startTime: track.previewStartTime || document.previewClipStartTime || '' }
       : undefined,
     crbt:
       track.crbtCutName || track.crbtStartTimeSec != null
@@ -138,58 +139,58 @@ function mapLegacyTrack(
   };
 }
 
-function synthesizeSingleTrackFromRoot(legacy: LegacyReleaseDocument): DraftTrack | null {
-  if (!legacy.audioFile?.url) return null;
+function synthesizeSingleTrackFromRoot(document: MongoReleaseDocument): DraftTrack | null {
+  if (!document.audioFile?.url) return null;
 
   return {
     order: 1,
-    title: legacy.title || 'Untitled',
-    version: legacy.version || null,
-    artistName: legacy.artistName || null,
-    language: legacy.language || 'Hindi',
+    title: document.title || 'Untitled',
+    version: document.version || null,
+    artistName: document.artistName || null,
+    language: document.language || 'Hindi',
     genre: {
-      primary: legacy.primaryGenre || '',
-      secondary: legacy.secondaryGenre || legacy.subGenre || undefined,
+      primary: document.primaryGenre || '',
+      secondary: document.secondaryGenre || document.subGenre || undefined,
     },
-    mood: legacy.mood || '',
-    isExplicit: legacy.isExplicit ?? false,
+    mood: document.mood || '',
+    isExplicit: document.isExplicit ?? false,
     isInstrumental:
-      legacy.isInstrumentalFlag === true || legacy.instrumental?.toLowerCase() === 'yes',
-    isrc: legacy.isrc || null,
+      document.isInstrumentalFlag === true || document.instrumental?.toLowerCase() === 'yes',
+    isrc: document.isrc || null,
     dolbyIsrc: null,
     previouslyReleased: parsePreviouslyReleased(
-      typeof legacy.previouslyReleased === 'string' ? legacy.previouslyReleased : undefined,
+      typeof document.previouslyReleased === 'string' ? document.previouslyReleased : undefined,
     ),
-    originalReleaseDate: toIsoDateInput(legacy.originalReleaseDate),
+    originalReleaseDate: toIsoDateInput(document.originalReleaseDate),
     credits: {
-      writers: legacy.writers || [],
-      composers: legacy.composers || [],
-      featuring: legacy.featuredArtists?.[0] || null,
+      writers: document.writers || [],
+      composers: document.composers || [],
+      featuring: document.featuredArtists?.[0] || null,
     },
     audio: {
-      storageKey: legacy.audioFile.url,
-      filename: legacy.audioFile.filename || 'audio.wav',
-      size: legacy.audioFile.size ?? 0,
-      duration: legacy.audioFile.duration,
-      format: legacy.audioFile.format || 'wav',
-      hash: legacy.audioFile.hash,
-      fingerprint: legacy.audioFile.fingerprint,
+      storageKey: document.audioFile.url,
+      filename: document.audioFile.filename || 'audio.wav',
+      size: document.audioFile.size ?? 0,
+      duration: document.audioFile.duration,
+      format: document.audioFile.format || 'wav',
+      hash: document.audioFile.hash,
+      fingerprint: document.audioFile.fingerprint,
     },
-    previewClip: legacy.previewClipStartTime
-      ? { startTime: legacy.previewClipStartTime }
+    previewClip: document.previewClipStartTime
+      ? { startTime: document.previewClipStartTime }
       : undefined,
   };
 }
 
-function collectTracks(legacy: LegacyReleaseDocument): DraftTrack[] {
+function collectTracks(document: MongoReleaseDocument): DraftTrack[] {
   const fromArray =
-    legacy.tracks
-      ?.map((track, index) => mapLegacyTrack(track, index, legacy))
+    document.tracks
+      ?.map((track, index) => mapMongoTrack(track, index, document))
       .filter((track): track is DraftTrack => track !== null) ?? [];
 
   if (fromArray.length > 0) return fromArray;
 
-  const synthesized = synthesizeSingleTrackFromRoot(legacy);
+  const synthesized = synthesizeSingleTrackFromRoot(document);
   return synthesized ? [synthesized] : [];
 }
 
@@ -198,77 +199,77 @@ export function toReleaseDetailResponse(input: unknown): ReleaseDetailResponse {
   if (isV2ReleaseDetail(input)) {
     return input;
   }
-  return legacyReleaseToDetail(input as LegacyReleaseDocument);
+  return mapMongoReleaseToDetail(input as MongoReleaseDocument);
 }
 
-export function legacyReleaseToDetail(legacy: LegacyReleaseDocument): ReleaseDetailResponse {
-  const id = String(legacy._id ?? legacy.id ?? '');
-  const releaseType = (legacy.releaseType || 'single') as ReleaseType;
-  const tracks = collectTracks(legacy);
+export function mapMongoReleaseToDetail(document: MongoReleaseDocument): ReleaseDetailResponse {
+  const id = String(document._id ?? document.id ?? '');
+  const releaseType = (document.releaseType || 'single') as ReleaseType;
+  const tracks = collectTracks(document);
 
   return {
     id,
-    releaseCode: legacy.releaseCode,
-    status: legacy.status || 'Draft',
-    userId: legacy.userId,
-    createdAt: legacy.createdAt,
-    updatedAt: legacy.updatedAt,
+    releaseCode: document.releaseCode,
+    status: document.status || 'Draft',
+    userId: document.userId,
+    createdAt: document.createdAt,
+    updatedAt: document.updatedAt,
     release: {
-      title: legacy.title || '',
-      version: legacy.version || null,
+      title: document.title || '',
+      version: document.version || null,
       type: releaseType,
-      labelName: legacy.labelName || '',
-      releaseDate: toIsoDateInput(legacy.releaseDate) || '',
-      originalReleaseDate: toIsoDateInput(legacy.originalReleaseDate),
+      labelName: document.labelName || '',
+      releaseDate: toIsoDateInput(document.releaseDate) || '',
+      originalReleaseDate: toIsoDateInput(document.originalReleaseDate),
       previouslyReleased: parsePreviouslyReleased(
-        typeof legacy.previouslyReleased === 'string'
-          ? legacy.previouslyReleased
-          : legacy.previouslyReleased,
+        typeof document.previouslyReleased === 'string'
+          ? document.previouslyReleased
+          : document.previouslyReleased,
       ),
-      distributionTerritories: legacy.distributionTerritories || ['Worldwide'],
-      upc: legacy.upc || legacy.barcode || null,
-      copyright: legacy.copyright || null,
-      publisher: legacy.publisher || null,
-      recordingYear: legacy.recordingYear,
+      distributionTerritories: document.distributionTerritories || ['Worldwide'],
+      upc: document.upc || document.barcode || null,
+      copyright: document.copyright || null,
+      publisher: document.publisher || null,
+      recordingYear: document.recordingYear,
     },
     artists: {
-      main: buildMainArtists(legacy),
-      featured: legacy.featuredArtists || [],
+      main: buildMainArtists(document),
+      featured: document.featuredArtists || [],
     },
     coverArt: {
-      storageKey: legacy.coverArt?.url || '',
-      url: legacy.coverArt?.url,
-      filename: legacy.coverArt?.filename || 'cover.jpg',
-      size: legacy.coverArt?.size ?? 0,
-      dimensions: legacy.coverArt?.dimensions || { width: 0, height: 0 },
-      format: legacy.coverArt?.format || 'jpeg',
+      storageKey: document.coverArt?.url || '',
+      url: document.coverArt?.url,
+      filename: document.coverArt?.filename || 'cover.jpg',
+      size: document.coverArt?.size ?? 0,
+      dimensions: document.coverArt?.dimensions || { width: 0, height: 0 },
+      format: document.coverArt?.format || 'jpeg',
     },
     tracks: tracks.map((track, index) => ({
       ...track,
-      id: legacy.tracks?.[index]?._id ? String(legacy.tracks[index]._id) : `track-${index}`,
+      id: document.tracks?.[index]?._id ? String(document.tracks[index]._id) : `track-${index}`,
       audio: {
         ...track.audio,
         playbackUrl: track.audio.storageKey,
       },
     })),
     rights: {
-      rightsAccepted: legacy.rightsAccepted ?? false,
-      acceptedAt: legacy.acceptedAt || null,
+      rightsAccepted: document.rightsAccepted ?? false,
+      acceptedAt: document.acceptedAt || null,
     },
     distribution: {
-      pdlAlbumId: legacy.pdlAlbumId || null,
-      pdlSubmittedAt: legacy.pdlSubmittedAt || null,
-      platforms: legacy.pdlPlatformsToRelease || null,
-      catalogNumber: legacy.catalogNumber || null,
-      upc: legacy.upc || legacy.barcode || null,
+      pdlAlbumId: document.pdlAlbumId || null,
+      pdlSubmittedAt: document.pdlSubmittedAt || null,
+      platforms: document.pdlPlatformsToRelease || null,
+      catalogNumber: document.catalogNumber || null,
+      upc: document.upc || document.barcode || null,
     },
     workflow: {
-      submittedAt: legacy.submittedAt || null,
-      approvedAt: legacy.approvedAt || null,
-      approvedBy: legacy.approvedBy ? String(legacy.approvedBy) : null,
-      rejectionReason: legacy.rejectionReason || null,
-      riskScore: legacy.riskScore,
-      riskStatus: (legacy.riskStatus as ReleaseDetailResponse['workflow']['riskStatus']) || 'Safe',
+      submittedAt: document.submittedAt || null,
+      approvedAt: document.approvedAt || null,
+      approvedBy: document.approvedBy ? String(document.approvedBy) : null,
+      rejectionReason: document.rejectionReason || null,
+      riskScore: document.riskScore,
+      riskStatus: (document.riskStatus as ReleaseDetailResponse['workflow']['riskStatus']) || 'Safe',
     },
   };
 }
@@ -286,8 +287,8 @@ export function isV2ReleaseListItem(value: unknown): value is ReleaseListItem {
   );
 }
 
-/** Map v2 list item to flat legacy Release for existing dashboard UI. */
-export function listItemToLegacyRelease(item: ReleaseListItem): Record<string, unknown> {
+/** Map v2 list item to flat dashboard Release shape. */
+export function mapListItemToFlatRelease(item: ReleaseListItem): Record<string, unknown> {
   return {
     _id: item.id,
     releaseCode: item.releaseCode,
@@ -314,12 +315,10 @@ export function listItemToLegacyRelease(item: ReleaseListItem): Record<string, u
   };
 }
 
-/**
- * Flat legacy `Release` shape for existing list/detail UI until fully migrated.
- */
-export function detailResponseToLegacyRelease(detail: ReleaseDetailResponse): Record<string, unknown> {
+/** Map v2 detail response to flat dashboard Release shape. */
+export function mapDetailToFlatRelease(detail: ReleaseDetailResponse): Record<string, unknown> {
   const main = detail.artists.main[0];
-  const social = profilesToLegacyFormFields(main?.profiles);
+  const social = profilesToFormFields(main?.profiles);
   const first = detail.tracks[0];
 
   return {
@@ -338,7 +337,7 @@ export function detailResponseToLegacyRelease(detail: ReleaseDetailResponse): Re
     subGenre: first?.genre.secondary,
     mood: first?.mood,
     isExplicit: first?.isExplicit ?? false,
-    instrumental: first?.isInstrumental ? 'yes' : 'no',
+    isInstrumentalFlag: Boolean(first?.isInstrumental),
     isrc: first?.isrc,
     releaseDate: detail.release.releaseDate,
     originalReleaseDate: detail.release.originalReleaseDate,
@@ -365,15 +364,6 @@ export function detailResponseToLegacyRelease(detail: ReleaseDetailResponse): Re
     instagramProfileUrl: social.instagramProfileUrl,
     facebookProfile: social.facebookProfile,
     facebookProfileUrl: social.facebookProfileUrl,
-    socialPlatforms: {
-      spotifyProfile: social.spotifyProfile,
-      appleMusicProfile: social.appleMusicProfile,
-      youtubeMusicProfile: social.youtubeMusicProfile,
-      instagramProfile: social.instagramProfile,
-      instagramProfileUrl: social.instagramProfileUrl,
-      facebookProfile: social.facebookProfile,
-      facebookProfileUrl: social.facebookProfileUrl,
-    },
     coverArt: {
       url: detail.coverArt.storageKey,
       filename: detail.coverArt.filename,
@@ -426,4 +416,3 @@ export function detailResponseToLegacyRelease(detail: ReleaseDetailResponse): Re
     updatedAt: detail.updatedAt,
   };
 }
-

@@ -4,9 +4,9 @@ import { config } from "@/lib/config";
 import {
   buildDraftPayload,
   toReleaseDetailResponse,
-  detailResponseToLegacyRelease,
+  mapDetailToFlatRelease,
   isV2ReleaseListItem,
-  listItemToLegacyRelease,
+  mapListItemToFlatRelease,
 } from "@/lib/releases";
 import type { CreateReleaseDraftRequest } from "@/lib/releases";
 
@@ -235,10 +235,10 @@ export const buildCreateReleaseData = async (
 // Helper to normalize release data from backend
 export const normalizeRelease = (release: any): Release => {
   if (isV2ReleaseListItem(release)) {
-    return listItemToLegacyRelease(release) as unknown as Release;
+    return mapListItemToFlatRelease(release) as unknown as Release;
   }
   const detail = toReleaseDetailResponse(release);
-  return detailResponseToLegacyRelease(detail) as unknown as Release;
+  return mapDetailToFlatRelease(detail) as unknown as Release;
 };
 
 

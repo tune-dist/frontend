@@ -527,10 +527,8 @@ export default function UploadPage() {
               "secondaryGenre",
               "language",
             ];
-            console.log("fieldsToValidate", fieldRules);
             // Manual validation for primaryGenre (check fieldRules - database uses 'genres' key)
             const primaryGenreRequired = fieldRules.genres?.required === true;
-            console.log("primaryGenreRequired", primaryGenreRequired);
             if (primaryGenreRequired && (!formData.primaryGenre || formData.primaryGenre.trim() === "")) {
               form.setError("primaryGenre", {
                 type: "required",
@@ -541,7 +539,6 @@ export default function UploadPage() {
 
             // Manual validation for secondaryGenre (check fieldRules - database uses 'subGenre' key)
             const secondaryGenreRequired = fieldRules.subGenre?.required === true;
-            console.log("secondaryGenreRequired", secondaryGenreRequired);
             if (secondaryGenreRequired && (!formData.secondaryGenre || formData.secondaryGenre.trim() === "")) {
               form.setError("secondaryGenre", {
                 type: "required",
@@ -582,7 +579,6 @@ export default function UploadPage() {
 
             // If validation failed, scroll to error and break
             if (!isValid) {
-              console.log("Credits validation failed");
               scrollToError();
               break;
             }
@@ -676,7 +672,6 @@ export default function UploadPage() {
             const copyrightRequired = fieldRules.copyright?.required === true;
             if (copyrightAllowed) {
               if (copyrightRequired && !formData.copyright) {
-                console.log("Copyright is required");
                 form.setError("copyright", {
                   type: "required",
                   message: "Copyright is required",
@@ -933,12 +928,8 @@ export default function UploadPage() {
           isValid = true;
       }
 
-      if (isValid) {
-        if (currentStep < steps.length) {
-          setCurrentStep(currentStep + 1);
-        }
-      } else {
-        console.log(form.formState.errors);
+      if (isValid && currentStep < steps.length) {
+        setCurrentStep(currentStep + 1);
       }
     } finally {
       setIsProcessing(false);
@@ -1049,8 +1040,7 @@ export default function UploadPage() {
     }
   };
 
-  const onInvalid = (errors: any) => {
-    console.log("Form Errors:", errors);
+  const onInvalid = () => {
     scrollToError();
   };
 
@@ -1126,15 +1116,6 @@ export default function UploadPage() {
           plan?.title ||
           planKey.charAt(0).toUpperCase() + planKey.slice(1).replace("_", " ");
 
-        // Debug logging
-        console.log("Plan eligibility check:", {
-          planKey,
-          planTitle,
-          allowConcurrent: limits.allowConcurrent,
-          limits,
-          planFromDB: plan?.limits,
-        });
-
         setPlanInfo({
           key: planKey,
           title: planTitle,
@@ -1143,12 +1124,8 @@ export default function UploadPage() {
 
         // If plan allows concurrent uploads, we don't block based on 'In Process' status
         if (limits.allowConcurrent) {
-          console.log("Plan allows concurrent uploads, allowing access");
           setCanUpload(true);
         } else {
-          console.log(
-            "Plan does not allow concurrent uploads, checking for In Process releases"
-          );
           // For plans that don't allow concurrent (e.g. Free)
           try {
             // Check for 'In Process' releases

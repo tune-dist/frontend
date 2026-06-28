@@ -2,7 +2,7 @@ import type { AppleMusicPlatformRef, ArtistProfiles, PlatformRef } from './types
 
 const SENTINEL_VALUES = new Set(['yes', 'no', 'new']);
 
-/** Normalize legacy profile values (string URL, rich object, or sentinel) to v2 PlatformRef. */
+/** Normalize flat profile values (string URL, rich object, or sentinel) to v2 PlatformRef. */
 export function toPlatformRef(value: unknown): PlatformRef | undefined {
   if (value == null) return undefined;
 
@@ -68,7 +68,7 @@ export function toAppleMusicPlatformRef(value: unknown): AppleMusicPlatformRef |
   return base;
 }
 
-export function buildProfilesFromLegacy(sources: {
+export function buildProfilesFromFlatFields(sources: {
   spotifyProfile?: unknown;
   appleMusicProfile?: unknown;
   youtubeMusicProfile?: unknown;
@@ -104,8 +104,8 @@ export function buildProfilesFromLegacy(sources: {
   return Object.keys(profiles).length > 0 ? profiles : undefined;
 }
 
-/** Map v2 profiles back to legacy form fields (hydrate UI). */
-export function profilesToLegacyFormFields(profiles?: ArtistProfiles): {
+/** Map v2 profiles back to flat upload form fields. */
+export function profilesToFormFields(profiles?: ArtistProfiles): {
   spotifyProfile?: unknown;
   appleMusicProfile?: unknown;
   youtubeMusicProfile?: unknown;
@@ -117,16 +117,16 @@ export function profilesToLegacyFormFields(profiles?: ArtistProfiles): {
   const instagramUrl = profiles?.instagram?.url;
   const facebookUrl = profiles?.facebook?.url;
 
-  const toLegacyProfile = (ref?: PlatformRef | AppleMusicPlatformRef) => {
+  const toFormProfile = (ref?: PlatformRef | AppleMusicPlatformRef) => {
     if (!ref) return undefined;
     if (ref.id === 'new') return 'new';
     return ref;
   };
 
   return {
-    spotifyProfile: toLegacyProfile(profiles?.spotify),
-    appleMusicProfile: toLegacyProfile(profiles?.appleMusic),
-    youtubeMusicProfile: toLegacyProfile(profiles?.youtubeMusic),
+    spotifyProfile: toFormProfile(profiles?.spotify),
+    appleMusicProfile: toFormProfile(profiles?.appleMusic),
+    youtubeMusicProfile: toFormProfile(profiles?.youtubeMusic),
     instagramProfile: instagramUrl ? 'yes' : 'no',
     instagramProfileUrl: instagramUrl,
     facebookProfile: facebookUrl ? 'yes' : 'no',
