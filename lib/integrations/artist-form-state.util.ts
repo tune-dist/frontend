@@ -19,7 +19,9 @@ export type RosterArtist =
   | string
   | {
       name: string;
+      cosmosId?: string;
       cosmosArtistId?: string;
+      profilesPending?: boolean;
       spotifyProfile?: unknown;
       appleMusicProfile?: unknown;
       youtubeMusicProfile?: unknown;
@@ -38,8 +40,11 @@ export function applyRosterArtistToMainForm(
 ): void {
   if (typeof artist !== 'object') return;
 
-  if (artist.cosmosArtistId?.trim()) {
-    setValue('cosmosArtistId', artist.cosmosArtistId.trim(), { shouldValidate: true });
+  const cosmosId =
+    artist.cosmosArtistId?.trim() ||
+    artist.cosmosId?.trim();
+  if (cosmosId) {
+    setValue('cosmosArtistId', cosmosId, { shouldValidate: true });
   }
   if (artist.spotifyProfile) {
     setValue('spotifyProfile', artist.spotifyProfile as UploadFormData['spotifyProfile'], {
@@ -107,8 +112,11 @@ export function applyRosterArtistToSecondarySlot(
 
   return {
     ...next,
-    ...(rosterArtist.cosmosArtistId?.trim()
-      ? { cosmosArtistId: rosterArtist.cosmosArtistId.trim() }
+    ...(rosterArtist.cosmosArtistId?.trim() || rosterArtist.cosmosId?.trim()
+      ? {
+          cosmosArtistId:
+            rosterArtist.cosmosArtistId?.trim() || rosterArtist.cosmosId?.trim(),
+        }
       : {}),
     ...(rosterArtist.spotifyProfile
       ? { spotifyProfile: rosterArtist.spotifyProfile as UploadFormData['spotifyProfile'] }

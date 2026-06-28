@@ -33,7 +33,7 @@ import { emptySearchResults, type PlatformSearchResults } from '@/lib/integratio
 import {
     buildProfileValueToSave,
     profileFieldForPlatform,
-    registerCosmosArtistIfNeeded,
+    rosterArtistHasPendingProfiles,
     type PlatformKey,
 } from '@/lib/integrations/apply-artist-profile-selection'
 import { useArtistPlatformSearch } from '@/lib/integrations/use-artist-platform-search'
@@ -87,6 +87,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const extraSlots = user?.extraArtistSlots || 0
     const [isAddonAutoPay] = useState(true)
     const [creatingNewMain, setCreatingNewMain] = useState(false)
+    const [pendingProfileNotice, setPendingProfileNotice] = useState(false)
     const [creatingNewSecondary, setCreatingNewSecondary] = useState<Record<number, boolean>>({})
     const planKey = user?.plan || 'free'
     const allowedFormats = planLimits?.allowedFormats || ['single']
@@ -302,30 +303,10 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
                 // Set profiles if available (even if legacy string, useful for hydration matching)
                 if (typeof previousArtistObj === 'object') {
-                    if (previousArtistObj.spotifyProfile && !spotifyProfile) setValue('spotifyProfile', previousArtistObj.spotifyProfile);
-                    if (previousArtistObj.appleMusicProfile && !appleMusicProfile) setValue('appleMusicProfile', previousArtistObj.appleMusicProfile);
-                    if (previousArtistObj.youtubeMusicProfile && !youtubeMusicProfile) setValue('youtubeMusicProfile', previousArtistObj.youtubeMusicProfile);
-                    if (previousArtistObj.instagramProfile && !instagramProfile) setValue('instagramProfile', previousArtistObj.instagramProfile);
-                    // Handle Instagram URL separately as it might be 'yes'/'no' radio + url field logic
-                    if (previousArtistObj.instagramProfile) {
-                        // Check if it looks like a URL
-                        if (previousArtistObj.instagramProfile.startsWith('http')) {
-                            setValue('instagramProfile', 'yes');
-                            setValue('instagramProfileUrl', previousArtistObj.instagramProfile);
-                        } else {
-                            setValue('instagramProfile', previousArtistObj.instagramProfile);
-                        }
+                    applyRosterArtistToMainForm(setValue, previousArtistObj)
+                    if (rosterArtistHasPendingProfiles(previousArtistObj)) {
+                        setPendingProfileNotice(true)
                     }
-                    if (previousArtistObj.facebookProfile && !facebookProfile) setValue('facebookProfile', previousArtistObj.facebookProfile);
-                    if (previousArtistObj.facebookProfile) {
-                        if (previousArtistObj.facebookProfile.startsWith('http')) {
-                            setValue('facebookProfile', 'yes');
-                            setValue('facebookProfileUrl', previousArtistObj.facebookProfile);
-                        } else {
-                            setValue('facebookProfile', previousArtistObj.facebookProfile);
-                        }
-                    }
-
                 }
             }
         }
@@ -476,61 +457,36 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         }
 
         const handleSelectProfile = (platform: PlatformKey, profile: unknown | 'new' | '') => {
-            void (async () => {
-                if (profile === '' && currentName) {
-                    const listKey = platform === 'spotify' ? 'spotify' : platform === 'apple' ? 'apple' : 'youtube'
-                    if (!indexResults[listKey]?.length) {
-                        handleSearch(currentName, index)
-                    }
+            if (profile === '' && currentName) {
+                const listKey = platform === 'spotify' ? 'spotify' : platform === 'apple' ? 'apple' : 'youtube'
+                if (!indexResults[listKey]?.length) {
+                    handleSearch(currentName, index)
                 }
+            }
 
-                const valueToSave = buildProfileValueToSave(profile)
-                const field = profileFieldForPlatform(platform)
+            const valueToSave = buildProfileValueToSave(profile)
+            const field = profileFieldForPlatform(platform)
 
-                if (index === 'main') {
-                    setValue(field, valueToSave as UploadFormData[typeof field], { shouldValidate: true })
-                } else {
-                    const currentArtists = [...(artists || [])]
-                    currentArtists[index] = { ...currentArtists[index], [field]: valueToSave }
-                    setValue('artists', currentArtists, { shouldValidate: true })
-                }
+            if (index === 'main') {
+                setValue(field, valueToSave as UploadFormData[typeof field], { shouldValidate: true })
+            } else {
+                const currentArtists = [...(artists || [])]
+                currentArtists[index] = { ...currentArtists[index], [field]: valueToSave }
+                setValue('artists', currentArtists, { shouldValidate: true })
+            }
 
-                if (
-                    profile &&
-                    typeof profile === 'object' &&
-                    typeof (profile as { cosmosId?: string }).cosmosId === 'string' &&
-                    (profile as { cosmosId: string }).cosmosId.trim()
-                ) {
-                    setCosmosArtistIdForIndex((profile as { cosmosId: string }).cosmosId.trim())
-                }
+            if (
+                profile &&
+                typeof profile === 'object' &&
+                typeof (profile as { cosmosId?: string }).cosmosId === 'string' &&
+                (profile as { cosmosId: string }).cosmosId.trim()
+            ) {
+                setCosmosArtistIdForIndex((profile as { cosmosId: string }).cosmosId.trim())
+            }
 
-                const existingProfiles =
-                    index === 'main'
-                        ? {
-                              spotifyProfile,
-                              appleMusicProfile,
-                              youtubeMusicProfile,
-                              cosmosArtistId,
-                          }
-                        : {
-                              spotifyProfile: artists?.[index]?.spotifyProfile,
-                              appleMusicProfile: artists?.[index]?.appleMusicProfile,
-                              youtubeMusicProfile: artists?.[index]?.youtubeMusicProfile,
-                              cosmosArtistId: artists?.[index]?.cosmosArtistId,
-                          }
-
-                const cosmosId = await registerCosmosArtistIfNeeded({
-                    searchResults: indexResults,
-                    artistName: currentName,
-                    platform,
-                    profile,
-                    valueToSave,
-                    existingProfiles,
-                })
-                if (cosmosId) {
-                    setCosmosArtistIdForIndex(cosmosId)
-                }
-            })()
+            if (index === 'main' && profile && profile !== 'new' && profile !== '') {
+                setPendingProfileNotice(false)
+            }
         }
 
         return (
@@ -546,6 +502,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 onSelectProfile={handleSelectProfile}
                 isArtistFromRoster={index === 'main' && isArtistFromRoster}
                 usedArtists={usedArtists}
+                profilesPendingNotice={index === 'main' && pendingProfileNotice}
             />
         )
     }
@@ -612,7 +569,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                             value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === artistName) ? artistName : (isArtistLocked ? '' : 'new')}
                                             onValueChange={(val) => {
                                                 if (val === 'new') {
-                                                    // Check limit before allowing 'new'
                                                     if (isArtistLocked) {
                                                         setShowUpgradeModal(true);
                                                     } else {
@@ -621,6 +577,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                         setActiveSearchIndex('main')
                                                         resetSearchForIndex('main')
                                                         setCreatingNewMain(true)
+                                                        setPendingProfileNotice(false)
                                                     }
                                                 } else {
                                                     const selectedArtist = usedArtists.find(a => rosterArtistName(a) === val);
@@ -630,6 +587,9 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                         setValue('artistName', name, { shouldValidate: true });
                                                         applyRosterArtistToMainForm(setValue, selectedArtist)
                                                         handleSearch(name, 'main');
+                                                        setPendingProfileNotice(
+                                                            rosterArtistHasPendingProfiles(selectedArtist),
+                                                        )
                                                     }
                                                 }
                                             }}
@@ -643,11 +603,19 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                     return name === artistName || !artists.some(a => a.name === name);
                                                 }).map((artist, i) => {
                                                     const name = typeof artist === 'string' ? artist : artist.name;
+                                                    const pending =
+                                                        typeof artist === 'object' &&
+                                                        rosterArtistHasPendingProfiles(artist);
                                                     return (
                                                         <SelectItem key={i} value={name}>
                                                             <div className="flex items-center gap-2">
                                                                 <UserCheck className="h-4 w-4 text-primary" />
                                                                 <span>{name}</span>
+                                                                {pending && (
+                                                                    <span className="text-[10px] text-amber-500 font-medium">
+                                                                        profiles pending
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </SelectItem>
                                                     )

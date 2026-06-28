@@ -1,4 +1,3 @@
-import { findOrAddCosmosArtist } from '@/lib/api/cosmos-artists';
 import {
   searchArtists,
   type ArtistSearchResponse,
@@ -12,33 +11,6 @@ export type ArtistSearchResults = ArtistSearchResponse;
 
 export function emptyArtistSearchResults(): ArtistSearchResults {
   return { source: 'cosmos', spotify: [], apple: [], youtube: [] };
-}
-
-export async function ensureCosmosArtistId(input: {
-  name: string;
-  spotifyProfile?: unknown;
-  appleMusicProfile?: unknown;
-  createNewSpotifyProfile?: boolean;
-  createNewAppleProfile?: boolean;
-  existingCosmosId?: string;
-  cosmosIdFromSelection?: string;
-}): Promise<string | undefined> {
-  const existing =
-    input.existingCosmosId?.trim() || input.cosmosIdFromSelection?.trim();
-  if (existing) return existing;
-
-  const name = input.name.trim();
-  if (!name) return undefined;
-
-  const result = await findOrAddCosmosArtist({
-    name,
-    spotifyProfile: input.spotifyProfile,
-    appleMusicProfile: input.appleMusicProfile,
-    createNewSpotifyProfile: input.createNewSpotifyProfile,
-    createNewAppleProfile: input.createNewAppleProfile,
-  });
-
-  return result.cosmosId;
 }
 
 export async function searchArtistProfiles(

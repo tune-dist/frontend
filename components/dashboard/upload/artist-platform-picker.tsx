@@ -21,6 +21,7 @@ type ArtistPlatformPickerProps = {
   onSelectProfile: (platform: PlatformKey, profile: unknown | 'new' | '') => void;
   isArtistFromRoster?: boolean;
   usedArtists?: unknown[];
+  profilesPendingNotice?: boolean;
 };
 
 function PlatformIcon({ platform }: { platform: PlatformKey }) {
@@ -364,6 +365,7 @@ export default function ArtistPlatformPicker({
   onSelectProfile,
   isArtistFromRoster = false,
   usedArtists = [],
+  profilesPendingNotice = false,
 }: ArtistPlatformPickerProps) {
   if (!artistName || artistName.length < 2) return null;
 
@@ -394,6 +396,12 @@ export default function ArtistPlatformPicker({
           </div>
         )}
       </div>
+
+      {profilesPendingNotice && (
+        <p className="text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-2">
+          Your profiles may now be available on Spotify or Apple Music — please confirm or select yours below.
+        </p>
+      )}
 
       {showLoadingSkeleton ? (
         <div className="space-y-4 opacity-50 pointer-events-none">
