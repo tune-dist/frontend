@@ -58,13 +58,6 @@ export function applyRosterArtistToMainForm(
       { shouldValidate: true },
     );
   }
-  if (artist.youtubeMusicProfile) {
-    setValue(
-      'youtubeMusicProfile',
-      artist.youtubeMusicProfile as UploadFormData['youtubeMusicProfile'],
-      { shouldValidate: true },
-    );
-  }
   if (artist.instagramProfile) {
     if (
       typeof artist.instagramProfile === 'string' &&
@@ -123,9 +116,6 @@ export function applyRosterArtistToSecondarySlot(
       : {}),
     ...(rosterArtist.appleMusicProfile
       ? { appleMusicProfile: rosterArtist.appleMusicProfile as UploadFormData['appleMusicProfile'] }
-      : {}),
-    ...(rosterArtist.youtubeMusicProfile
-      ? { youtubeMusicProfile: rosterArtist.youtubeMusicProfile as UploadFormData['youtubeMusicProfile'] }
       : {}),
     ...(rosterArtist.instagramProfile
       ? { instagramProfile: rosterArtist.instagramProfile as string }

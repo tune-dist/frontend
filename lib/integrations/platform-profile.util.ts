@@ -1,4 +1,4 @@
-export type PlatformSearchResults = { spotify: any[]; apple: any[]; youtube: any[]; source?: 'cosmos' | 'legacy' }
+export type PlatformSearchResults = { spotify: any[]; apple: any[]; source?: 'cosmos' | 'legacy' }
 
 export type RichPlatformProfile = {
     id: string
@@ -164,39 +164,9 @@ function appleArtistMatches(stored: unknown, artist: any): boolean {
 function findGenericInResults(
     stored: unknown,
     results: any[],
-    platform: 'apple' | 'youtube',
 ): any | null {
-    const matchStored = (candidate: unknown, artist: any) => {
-        if (platform === 'apple') {
-            return appleArtistMatches(candidate, artist)
-        }
-
-        if (typeof candidate === 'string') {
-            return (
-                artist.id === candidate ||
-                artist.externalUrl === candidate ||
-                artist.url === candidate ||
-                artist.channelUrl === candidate
-            )
-        }
-        if (candidate && typeof candidate === 'object') {
-            const record = candidate as Record<string, unknown>
-            const id = typeof record.id === 'string' ? record.id : undefined
-            const urls = [record.url, record.externalUrl, record.channelUrl].filter(
-                (v): v is string => typeof v === 'string',
-            )
-            return (
-                (id && artist.id === id) ||
-                urls.some(
-                    (url) =>
-                        url === artist.externalUrl ||
-                        url === artist.url ||
-                        url === artist.channelUrl,
-                )
-            )
-        }
-        return false
-    }
+    const matchStored = (candidate: unknown, artist: any) =>
+        appleArtistMatches(candidate, artist)
 
     return results.find((artist) => matchStored(stored, artist)) ?? null
 }
@@ -225,7 +195,7 @@ export function profileNeedsAppleEnrichment(profile: unknown): boolean {
 
 /** Resolve stored profile (URL, id, lean object) to a rich card using search/roster data. */
 export function resolvePlatformProfile(
-    platform: 'spotify' | 'apple' | 'youtube',
+    platform: 'spotify' | 'apple',
     profileData: unknown,
     artistName: string,
     results: PlatformSearchResults,
@@ -235,13 +205,13 @@ export function resolvePlatformProfile(
     if (profileData === 'new') return 'new'
     if (profileHasDisplayName(profileData)) return profileData
 
-    const resultKey = platform === 'spotify' ? 'spotify' : platform === 'apple' ? 'apple' : 'youtube'
+    const resultKey = platform === 'spotify' ? 'spotify' : 'apple'
     const platformResults = results[resultKey] || []
 
     const found =
         platform === 'spotify'
             ? findSpotifyInResults(profileData, platformResults)
-            : findGenericInResults(profileData, platformResults, platform)
+            : findGenericInResults(profileData, platformResults)
 
     if (found) return toRichProfile(found)
 
@@ -250,9 +220,7 @@ export function resolvePlatformProfile(
         const field =
             platform === 'spotify'
                 ? rosterArtist.spotifyProfile
-                : platform === 'apple'
-                  ? rosterArtist.appleMusicProfile
-                  : rosterArtist.youtubeMusicProfile
+                : rosterArtist.appleMusicProfile
         if (profileHasDisplayName(field)) return field
 
         if (platform === 'spotify' && field) {
@@ -261,7 +229,7 @@ export function resolvePlatformProfile(
         }
 
         if (platform === 'apple' && field) {
-            const rosterMatch = findGenericInResults(field, platformResults, 'apple')
+            const rosterMatch = findGenericInResults(field, platformResults)
             if (rosterMatch) return toRichProfile(rosterMatch)
         }
     }

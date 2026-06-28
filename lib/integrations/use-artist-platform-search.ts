@@ -57,7 +57,6 @@ export function useArtistPlatformSearch() {
           const results = await searchArtistProfiles(trimmed, {
             spotifyLimit: 10,
             appleLimit: 15,
-            youtubeLimit: 15,
             cosmosLimit: 15,
           });
           setSearchResults(results);

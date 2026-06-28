@@ -314,34 +314,6 @@ export function listItemToLegacyRelease(item: ReleaseListItem): Record<string, u
   };
 }
 
-export function releaseDetailToListItem(detail: ReleaseDetailResponse): {
-  id: string;
-  releaseCode?: string;
-  status: ReleaseDetailResponse['status'];
-  title: string;
-  artistName: string;
-  type: ReleaseType;
-  trackCount: number;
-  coverArtUrl?: string;
-  releaseDate?: string;
-  upc?: string;
-  createdAt?: string;
-} {
-  return {
-    id: detail.id,
-    releaseCode: detail.releaseCode,
-    status: detail.status,
-    title: detail.release.title,
-    artistName: detail.artists.main[0]?.name || '',
-    type: detail.release.type,
-    trackCount: detail.tracks.length,
-    coverArtUrl: detail.coverArt.url || detail.coverArt.storageKey,
-    releaseDate: detail.release.releaseDate,
-    upc: detail.distribution.upc || detail.release.upc || undefined,
-    createdAt: detail.createdAt,
-  };
-}
-
 /**
  * Flat legacy `Release` shape for existing list/detail UI until fully migrated.
  */

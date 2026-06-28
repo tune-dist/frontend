@@ -18,7 +18,6 @@ export interface ArtistSearchResponse {
   source: ArtistSearchSource;
   spotify: PlatformArtistSearchHit[];
   apple: PlatformArtistSearchHit[];
-  youtube: PlatformArtistSearchHit[];
 }
 
 async function parseJson<T>(response: Response): Promise<T> {
@@ -35,7 +34,6 @@ export async function searchArtists(
   options?: {
     spotifyLimit?: number;
     appleLimit?: number;
-    youtubeLimit?: number;
     cosmosLimit?: number;
   },
 ): Promise<ArtistSearchResponse> {
@@ -43,7 +41,6 @@ export async function searchArtists(
     q: query.trim(),
     spotifyLimit: String(options?.spotifyLimit ?? 10),
     appleLimit: String(options?.appleLimit ?? 15),
-    youtubeLimit: String(options?.youtubeLimit ?? 15),
     cosmosLimit: String(options?.cosmosLimit ?? 15),
   });
 

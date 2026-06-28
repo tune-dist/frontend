@@ -1,11 +1,10 @@
 import type { ArtistSearchResponse } from '@/lib/api/artist-search';
 
-export type PlatformKey = 'spotify' | 'apple' | 'youtube';
+export type PlatformKey = 'spotify' | 'apple';
 
 export type ProfileSelectionValue = {
   spotifyProfile?: unknown;
   appleMusicProfile?: unknown;
-  youtubeMusicProfile?: unknown;
   cosmosArtistId?: string;
 };
 
@@ -31,8 +30,7 @@ export function buildProfileValueToSave(
 
 export function profileFieldForPlatform(platform: PlatformKey): keyof ProfileSelectionValue {
   if (platform === 'spotify') return 'spotifyProfile';
-  if (platform === 'apple') return 'appleMusicProfile';
-  return 'youtubeMusicProfile';
+  return 'appleMusicProfile';
 }
 
 export function isCosmosArtistSearch(source: ArtistSearchResponse['source']): boolean {

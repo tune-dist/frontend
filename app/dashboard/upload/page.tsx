@@ -30,11 +30,7 @@ import {
   MandatoryChecks,
   Track,
 } from "@/components/dashboard/upload/types";
-import {
-  getDefaultLabelName,
-  isReservedPlatformLabelName,
-  RESERVED_LABEL_NAME_MESSAGE,
-} from "@/lib/validation/label-name";
+import { getDefaultLabelName } from "@/lib/validation/label-name";
 
 // Child Components
 import BasicInfoStep from "@/components/dashboard/upload/basic-info-step";
@@ -415,21 +411,6 @@ export default function UploadPage() {
           }
 
           isValid = await form.trigger(fieldsToValidate as any);
-
-          if (
-            planKey !== "free" &&
-            isReservedPlatformLabelName(form.getValues("labelName") || "")
-          ) {
-            form.setError(
-              "labelName",
-              {
-                type: "manual",
-                message: RESERVED_LABEL_NAME_MESSAGE,
-              },
-              { shouldFocus: true },
-            );
-            isValid = false;
-          }
 
           // Manually check featuredArtist if required by plan
           // form.trigger doesn't pick up dynamic validation because the Zod schema defines it as optional
@@ -1532,7 +1513,6 @@ export default function UploadPage() {
         mainArtistProfiles={{
           spotify: watch("spotifyProfile") ?? undefined,
           apple: watch("appleMusicProfile") ?? undefined,
-          youtube: watch("youtubeMusicProfile") ?? undefined,
           instagram: (watch("instagramProfile") === 'yes' ? watch("instagramProfileUrl") : watch("instagramProfile")) ?? undefined,
           facebook: (watch("facebookProfile") === 'yes' ? watch("facebookProfileUrl") : watch("facebookProfile")) ?? undefined
         }}

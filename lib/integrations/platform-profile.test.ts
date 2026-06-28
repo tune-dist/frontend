@@ -62,7 +62,6 @@ describe('platform-profile.util', () => {
               track: 'Latest Album',
             },
           ],
-          youtube: [],
         },
       );
 

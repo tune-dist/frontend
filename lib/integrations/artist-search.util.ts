@@ -10,7 +10,7 @@ export type { ArtistSearchSource, PlatformArtistSearchHit };
 export type ArtistSearchResults = ArtistSearchResponse;
 
 export function emptyArtistSearchResults(): ArtistSearchResults {
-  return { source: 'cosmos', spotify: [], apple: [], youtube: [] };
+  return { source: 'cosmos', spotify: [], apple: [] };
 }
 
 export async function searchArtistProfiles(
@@ -18,7 +18,6 @@ export async function searchArtistProfiles(
   options?: {
     spotifyLimit?: number;
     appleLimit?: number;
-    youtubeLimit?: number;
     cosmosLimit?: number;
   },
 ): Promise<ArtistSearchResults> {

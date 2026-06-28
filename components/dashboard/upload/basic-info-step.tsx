@@ -45,11 +45,7 @@ import {
     rosterArtistName,
 } from '@/lib/integrations/artist-form-state.util'
 import ArtistPlatformPicker from '@/components/dashboard/upload/artist-platform-picker'
-import {
-    getDefaultLabelName,
-    isReservedPlatformLabelName,
-    RESERVED_LABEL_NAME_MESSAGE,
-} from '@/lib/validation/label-name'
+import { getDefaultLabelName } from '@/lib/validation/label-name'
 
 // Hardcoded artist add-on price (frontend display only — backend is source of truth)
 const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
@@ -76,7 +72,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const title = watch('title')
     const spotifyProfile = watch('spotifyProfile')
     const appleMusicProfile = watch('appleMusicProfile')
-    const youtubeMusicProfile = watch('youtubeMusicProfile')
     const instagramProfile = watch('instagramProfile')
     const facebookProfile = watch('facebookProfile')
 
@@ -322,7 +317,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
             if (!artistName) return
 
             const hydrateProfile = (
-                platform: 'spotify' | 'apple' | 'youtube',
+                platform: 'spotify' | 'apple',
                 currentVal: unknown,
             ) => {
                 if (!profileNeedsSearchHydration(currentVal)) return
@@ -336,12 +331,10 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 if (!rich || rich === currentVal || typeof rich !== 'object') return
                 if (platform === 'spotify') setValue('spotifyProfile', rich as UploadFormData['spotifyProfile'])
                 if (platform === 'apple') setValue('appleMusicProfile', rich as UploadFormData['appleMusicProfile'])
-                if (platform === 'youtube') setValue('youtubeMusicProfile', rich as UploadFormData['youtubeMusicProfile'])
             }
 
             hydrateProfile('spotify', spotifyProfile)
             hydrateProfile('apple', appleMusicProfile)
-            hydrateProfile('youtube', youtubeMusicProfile)
         }
 
         if (!isSearching && artistName) {
@@ -358,7 +351,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         activeSearchIndex,
         spotifyProfile,
         appleMusicProfile,
-        youtubeMusicProfile,
         artistName,
         usedArtists,
         setValue,
@@ -407,12 +399,11 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         const needsProfileHydration =
             profileNeedsSearchHydration(spotifyProfile) ||
             profileNeedsSearchHydration(appleMusicProfile) ||
-            profileNeedsSearchHydration(youtubeMusicProfile) ||
             !getCachedSearch('main', artistName)?.hasSearched
         if (!needsProfileHydration) return
         hydratedArtistSearchRef.current.add(cacheKey)
         handleSearch(artistName, 'main')
-    }, [artistName, spotifyProfile, appleMusicProfile, youtubeMusicProfile, getCachedSearch, handleSearch])
+    }, [artistName, spotifyProfile, appleMusicProfile, getCachedSearch, handleSearch])
 
     const handleMainArtistNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
@@ -437,13 +428,11 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         const getCurrentProfile = (platform: PlatformKey) => {
             if (index === 'main') {
                 if (platform === 'spotify') return spotifyProfile
-                if (platform === 'apple') return appleMusicProfile
-                return youtubeMusicProfile
+                return appleMusicProfile
             }
             if (!artists || !artists[index]) return ''
             if (platform === 'spotify') return artists[index].spotifyProfile
-            if (platform === 'apple') return artists[index].appleMusicProfile
-            return artists[index].youtubeMusicProfile
+            return artists[index].appleMusicProfile
         }
 
         const setCosmosArtistIdForIndex = (cosmosId: string) => {
@@ -458,7 +447,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
         const handleSelectProfile = (platform: PlatformKey, profile: unknown | 'new' | '') => {
             if (profile === '' && currentName) {
-                const listKey = platform === 'spotify' ? 'spotify' : platform === 'apple' ? 'apple' : 'youtube'
+                const listKey = platform === 'spotify' ? 'spotify' : 'apple'
                 if (!indexResults[listKey]?.length) {
                     handleSearch(currentName, index)
                 }
@@ -498,7 +487,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                 hasSearchedForIndex={hasSearchedForIndex}
                 spotifyProfile={getCurrentProfile('spotify')}
                 appleMusicProfile={getCurrentProfile('apple')}
-                youtubeMusicProfile={getCurrentProfile('youtube')}
                 onSelectProfile={handleSelectProfile}
                 isArtistFromRoster={index === 'main' && isArtistFromRoster}
                 usedArtists={usedArtists}
@@ -644,10 +632,10 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                     handleMainArtistNameChange(e)
                                                 }}
                                                 onFocus={() => !isArtistLocked && setActiveSearchIndex('main')}
-                                                readOnly={isArtistLocked || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile}
-                                                className={`${errors.artistName ? 'border-red-500' : ''} ${(isArtistLocked || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''} ${(usedArtists.length > 0 || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) && !isArtistLocked ? 'pr-24' : ''}`}
+                                                readOnly={isArtistLocked || !!spotifyProfile || !!appleMusicProfile}
+                                                className={`${errors.artistName ? 'border-red-500' : ''} ${(isArtistLocked || !!spotifyProfile || !!appleMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''} ${(usedArtists.length > 0 || !!spotifyProfile || !!appleMusicProfile) && !isArtistLocked ? 'pr-24' : ''}`}
                                             />
-                                            {(usedArtists.length > 0 || !!spotifyProfile || !!appleMusicProfile || !!youtubeMusicProfile) && !isArtistLocked && (
+                                            {(usedArtists.length > 0 || !!spotifyProfile || !!appleMusicProfile) && !isArtistLocked && (
                                                 <button
                                                     type="button"
                                                     onClick={() => {
@@ -674,11 +662,9 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         {getCachedSearch('main', artistName)?.hasSearched && !isSearching &&
                             (getCachedSearch('main', artistName)?.results.spotify.length ?? 0) === 0 &&
                             (getCachedSearch('main', artistName)?.results.apple.length ?? 0) === 0 &&
-                            (getCachedSearch('main', artistName)?.results.youtube.length ?? 0) === 0 &&
                             artistName.length >= 2 &&
                             !spotifyProfile &&
-                            !appleMusicProfile &&
-                            !youtubeMusicProfile && (
+                            !appleMusicProfile && (
                                 <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
                                     <p className="text-sm text-yellow-600 dark:text-yellow-400">
                                         Artist not found. Please upload music via a distributor to create a Spotify profile
@@ -975,19 +961,11 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                         field.onChange(defaultLabelName)
                                         return
                                     }
-                                    const next = event.target.value
-                                    if (!isReservedPlatformLabelName(next)) {
-                                        field.onChange(next)
-                                    }
+                                    field.onChange(event.target.value)
                                 }}
                                 onBlur={field.onBlur}
                                 onPaste={(event) => {
                                     if (!isLabelNameAllowed) {
-                                        event.preventDefault()
-                                        return
-                                    }
-                                    const pasted = event.clipboardData.getData('text')
-                                    if (isReservedPlatformLabelName(pasted)) {
                                         event.preventDefault()
                                     }
                                 }}
@@ -1006,11 +984,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                             <Info className="h-3 w-3 mt-0.5" />
                             <span>Free plan releases use the default label ({defaultLabelName}). Upgrade to set a custom label name.</span>
                         </div>
-                    )}
-                    {isLabelNameAllowed && (
-                        <p className="text-xs text-muted-foreground">
-                            {RESERVED_LABEL_NAME_MESSAGE}
-                        </p>
                     )}
                     {errors.labelName && (
                         <p className="text-xs text-red-500 mt-1">{errors.labelName.message}</p>

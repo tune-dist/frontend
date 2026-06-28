@@ -17,7 +17,6 @@ type ArtistPlatformPickerProps = {
   hasSearchedForIndex: boolean;
   spotifyProfile: unknown;
   appleMusicProfile: unknown;
-  youtubeMusicProfile: unknown;
   onSelectProfile: (platform: PlatformKey, profile: unknown | 'new' | '') => void;
   isArtistFromRoster?: boolean;
   usedArtists?: unknown[];
@@ -32,30 +31,21 @@ function PlatformIcon({ platform }: { platform: PlatformKey }) {
       </svg>
     );
   }
-  if (platform === 'apple') {
-    return (
-      <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.227 15.653c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08z" />
-      </svg>
-    );
-  }
   return (
-    <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+    <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.227 15.653c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08z" />
     </svg>
   );
 }
 
 function platformLabel(platform: PlatformKey): string {
-  if (platform === 'spotify') return 'Spotify';
-  if (platform === 'apple') return 'Apple Music';
-  return 'YouTube Music';
+  return platform === 'spotify' ? 'Spotify' : 'Apple Music';
 }
 
 function urlPlaceholder(platform: PlatformKey): string {
-  if (platform === 'spotify') return 'https://open.spotify.com/artist/...';
-  if (platform === 'apple') return 'https://music.apple.com/artist/...';
-  return 'https://music.youtube.com/channel/...';
+  return platform === 'spotify'
+    ? 'https://open.spotify.com/artist/...'
+    : 'https://music.apple.com/artist/...';
 }
 
 function SelectedProfileCard({
@@ -122,58 +112,56 @@ function SelectedProfileCard({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+            style={{ cursor: resolved.startsWith('http') ? 'pointer' : 'default' }}
           >
             <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
               <PlatformIcon platform={platform} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-primary hover:underline">Profile Linked</p>
+              <p className="font-medium text-primary hover:underline">{artistName || 'Profile Linked'}</p>
               <p className="text-sm text-muted-foreground truncate" title={resolved}>
-                {resolved}
+                Profile Linked: {resolved}
               </p>
             </div>
           </a>
-          <div className="flex items-center gap-1">
-            <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
-              Selected
-            </span>
-            {!isArtistFromRoster && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={onClear}
-                className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500"
-              >
-                Change
-              </Button>
-            )}
-          </div>
+          {!isArtistFromRoster && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClear}
+              className="h-8 text-xs text-muted-foreground hover:text-red-500"
+            >
+              Change
+            </Button>
+          )}
         </div>
       </div>
     );
   }
 
-  const row = resolved as Record<string, unknown>;
-  const profileUrl =
-    (row.externalUrl as string) ||
-    (row.url as string) ||
-    (row.channelUrl as string);
+  const profile = resolved as {
+    name?: string;
+    image?: string;
+    url?: string;
+    track?: string;
+    followers?: number;
+  };
 
   return (
     <div className="bg-primary/10 border border-primary rounded-md p-3 flex flex-col">
       <div className="flex items-center gap-3">
         <a
-          href={profileUrl || undefined}
+          href={profile.url || undefined}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
-          style={{ cursor: profileUrl ? 'pointer' : 'default' }}
+          style={{ cursor: profile.url ? 'pointer' : 'default' }}
         >
-          {row.image ? (
+          {profile.image ? (
             <img
-              src={String(row.image)}
-              alt={String(row.name ?? '')}
+              src={profile.image}
+              alt={profile.name || artistName}
               className="h-10 w-10 rounded-full object-cover shrink-0"
             />
           ) : (
@@ -182,19 +170,17 @@ function SelectedProfileCard({
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p
-              className={`font-medium text-primary ${profileUrl ? 'hover:underline' : ''} truncate`}
-            >
-              {String(row.name ?? '')}
+            <p className={`font-medium text-primary ${profile.url ? 'hover:underline' : ''} truncate`}>
+              {profile.name || artistName}
             </p>
             <p className="text-sm text-muted-foreground truncate">
-              {typeof row.followers === 'number'
-                ? `${row.followers.toLocaleString()} followers`
-                : String(row.track ?? '')}
+              {platform === 'spotify'
+                ? `${(profile.followers || 0).toLocaleString()} followers`
+                : profile.track || 'Profile'}
             </p>
           </div>
         </a>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
             Selected
           </span>
@@ -234,12 +220,7 @@ function PlatformColumn({
   isArtistFromRoster: boolean;
   onSelectProfile: (platform: PlatformKey, profile: unknown | 'new' | '') => void;
 }) {
-  const rows =
-    platform === 'spotify'
-      ? results.spotify
-      : platform === 'apple'
-        ? results.apple
-        : results.youtube;
+  const rows = platform === 'spotify' ? results.spotify : results.apple;
 
   if (!(rows.length > 0 || currentProfile || hasSearchedForIndex)) {
     return null;
@@ -361,7 +342,6 @@ export default function ArtistPlatformPicker({
   hasSearchedForIndex,
   spotifyProfile,
   appleMusicProfile,
-  youtubeMusicProfile,
   onSelectProfile,
   isArtistFromRoster = false,
   usedArtists = [],
@@ -369,7 +349,7 @@ export default function ArtistPlatformPicker({
 }: ArtistPlatformPickerProps) {
   if (!artistName || artistName.length < 2) return null;
 
-  const hasAnySelection = !!(spotifyProfile || appleMusicProfile || youtubeMusicProfile);
+  const hasAnySelection = !!(spotifyProfile || appleMusicProfile);
   const showBlock = hasAnySelection || hasSearchedForIndex || isActiveSearch;
   if (!showBlock) return null;
 
@@ -407,10 +387,9 @@ export default function ArtistPlatformPicker({
         <div className="space-y-4 opacity-50 pointer-events-none">
           <div className="h-12 bg-muted/20 rounded-md animate-pulse" />
           <div className="h-12 bg-muted/20 rounded-md animate-pulse" />
-          <div className="h-12 bg-muted/20 rounded-md animate-pulse" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <PlatformColumn
             platform="spotify"
             artistName={artistName}
@@ -426,16 +405,6 @@ export default function ArtistPlatformPicker({
             artistName={artistName}
             results={results}
             currentProfile={appleMusicProfile}
-            hasSearchedForIndex={hasSearchedForIndex}
-            usedArtists={usedArtists}
-            isArtistFromRoster={isArtistFromRoster}
-            onSelectProfile={onSelectProfile}
-          />
-          <PlatformColumn
-            platform="youtube"
-            artistName={artistName}
-            results={results}
-            currentProfile={youtubeMusicProfile}
             hasSearchedForIndex={hasSearchedForIndex}
             usedArtists={usedArtists}
             isArtistFromRoster={isArtistFromRoster}

@@ -31,7 +31,6 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                     const results = await searchArtistProfiles(name, {
                         spotifyLimit: 5,
                         appleLimit: 5,
-                        youtubeLimit: 5,
                         cosmosLimit: 10,
                     })
                     setSearchResults(results)
@@ -94,7 +93,7 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                     </div>
 
                     {/* Legacy platform search UI — disabled while testing COSMOS-only flow */}
-                    {formData.artistName.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0) && (
+                    {formData.artistName.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0) && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -171,68 +170,6 @@ export default function ReleaseDetailsStep({ formData, setFormData }: ReleaseDet
                                 </div>
                             )}
 
-                            {/* YouTube Results */}
-                            {searchResults.youtube.length > 0 && (
-                                <div className="space-y-3 pt-4 border-t border-border">
-                                    <div className="flex items-center gap-2">
-                                        <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-                                        </svg>
-                                        <span className="text-sm font-medium">YouTube Music</span>
-                                    </div>
-
-                                    {searchResults.youtube.map((profile: any) => (
-                                        <div
-                                            key={profile.id}
-                                            className={`flex items-center gap-3 p-3 rounded-md transition-colors cursor-pointer ${formData.youtubeMusicProfile === profile.id ? 'bg-primary/10 border border-primary' : 'bg-background hover:bg-accent'
-                                                }`}
-                                            onClick={() => setFormData({ ...formData, youtubeMusicProfile: profile.id })}
-                                        >
-                                            <input
-                                                type="radio"
-                                                name="youtubeProfile"
-                                                checked={formData.youtubeMusicProfile === profile.id}
-                                                onChange={() => { }}
-                                                className="h-4 w-4 border-primary text-primary"
-                                            />
-                                            <img src={profile.image} alt={profile.name} className="h-10 w-10 rounded-full object-cover" />
-                                            <div className="flex-1">
-                                                <p className="font-medium text-primary">{profile.name}</p>
-                                                <p className="text-sm text-muted-foreground">{profile.track}</p>
-                                            </div>
-                                            {profile.channelUrl && (
-                                                <a
-                                                    href={profile.channelUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="p-2 hover:bg-background rounded-full transition-colors text-muted-foreground hover:text-primary"
-                                                    title="Open in YouTube Music"
-                                                >
-                                                    <ExternalLink className="h-4 w-4" />
-                                                </a>
-                                            )}
-                                        </div>
-                                    ))}
-
-                                    <div className="space-y-2 mt-4">
-                                        <div className="flex items-center space-x-2">
-                                            <input
-                                                type="radio"
-                                                name="youtubeProfile"
-                                                id="youtube-new"
-                                                value="new"
-                                                checked={formData.youtubeMusicProfile === 'new'}
-                                                onChange={(e) => setFormData({ ...formData, youtubeMusicProfile: e.target.value })}
-                                                className="h-4 w-4"
-                                            />
-                                            <Label htmlFor="youtube-new" className="font-normal cursor-pointer">
-                                                This will be my first <strong>{formData.artistName}</strong> release in YouTube Music.
-                                            </Label>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </motion.div>
                     )}
                 </div>

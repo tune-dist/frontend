@@ -9,8 +9,7 @@
     "build": "next build",
     "start": "next start --port 8080",
     "lint": "next lint",
-    "test": "vitest run",
-    "test:artist-flow": "vitest run lib/integrations/artist-flow.test.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
