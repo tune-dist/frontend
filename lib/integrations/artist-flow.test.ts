@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   applyRosterArtistToSecondarySlot,
   emptySecondaryArtistSlot,
@@ -6,24 +6,12 @@ import {
 } from '@/lib/integrations/artist-form-state.util';
 import {
   buildProfileValueToSave,
-  registerCosmosArtistIfNeeded,
+  rosterArtistHasPendingProfiles,
 } from '@/lib/integrations/apply-artist-profile-selection';
 import { buildArtistSearchCacheKey } from '@/lib/integrations/use-artist-platform-search';
 import { buildProfilesFromLegacy, profilesToLegacyFormFields } from '@/lib/releases/platform-ref.util';
 
-vi.mock('@/lib/api/cosmos-artists', () => ({
-  findOrAddCosmosArtist: vi.fn(),
-}));
-
-import { findOrAddCosmosArtist } from '@/lib/api/cosmos-artists';
-
-const mockedFindOrAdd = vi.mocked(findOrAddCosmosArtist);
-
 describe('artist-flow (frontend)', () => {
-  beforeEach(() => {
-    mockedFindOrAdd.mockReset();
-  });
-
   describe('roster switch does not leak previous artist data', () => {
     it('emptySecondaryArtistSlot clears all platform fields', () => {
       const slot = emptySecondaryArtistSlot('Artist B');
@@ -56,11 +44,34 @@ describe('artist-flow (frontend)', () => {
       expect(artistB.appleMusicProfile).toBe('');
       expect(rosterArtistName(artistA)).toBe('Artist A');
     });
+
+    it('applyRosterArtistToSecondarySlot reads cosmosId from roster', () => {
+      const artistB = applyRosterArtistToSecondarySlot({
+        name: 'Artist B',
+        cosmosId: 'cosmos-b',
+      });
+      expect(artistB.cosmosArtistId).toBe('cosmos-b');
+    });
   });
 
   describe('Create New profile value', () => {
     it('buildProfileValueToSave keeps new sentinel', () => {
       expect(buildProfileValueToSave('new')).toBe('new');
+    });
+
+    it('buildProfileValueToSave preserves cosmosId on search hits', () => {
+      expect(
+        buildProfileValueToSave({
+          id: 'sp1',
+          cosmosId: 'cosmos-from-search',
+          name: 'Artist',
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          id: 'sp1',
+          cosmosId: 'cosmos-from-search',
+        }),
+      );
     });
 
     it('draft roundtrip preserves new for UI reload', () => {
@@ -74,73 +85,26 @@ describe('artist-flow (frontend)', () => {
     });
   });
 
-  describe('registerCosmosArtistIfNeeded', () => {
-    const cosmosSearch = {
-      source: 'cosmos' as const,
-      spotify: [],
-      apple: [],
-      youtube: [],
-    };
-
-    it('does not call find-or-add for Spotify Create New', async () => {
-      const id = await registerCosmosArtistIfNeeded({
-        searchResults: cosmosSearch,
-        artistName: 'New Artist',
-        platform: 'spotify',
-        profile: 'new',
-        valueToSave: 'new',
-        existingProfiles: {},
-      });
-
-      expect(id).toBeUndefined();
-      expect(mockedFindOrAdd).not.toHaveBeenCalled();
-    });
-
-    it('does not call find-or-add for YouTube', async () => {
-      await registerCosmosArtistIfNeeded({
-        searchResults: cosmosSearch,
-        artistName: 'Artist',
-        platform: 'youtube',
-        profile: { id: 'yt1' },
-        valueToSave: { id: 'yt1' },
-        existingProfiles: {},
-      });
-
-      expect(mockedFindOrAdd).not.toHaveBeenCalled();
-    });
-
-    it('uses cosmosId from search row without API call', async () => {
-      const id = await registerCosmosArtistIfNeeded({
-        searchResults: cosmosSearch,
-        artistName: 'Existing',
-        platform: 'spotify',
-        profile: { id: 'sp1', cosmosId: 'cosmos-from-search' },
-        valueToSave: { id: 'sp1' },
-        existingProfiles: {},
-      });
-
-      expect(id).toBe('cosmos-from-search');
-      expect(mockedFindOrAdd).not.toHaveBeenCalled();
-    });
-
-    it('calls find-or-add for linked Spotify profile without cosmosId', async () => {
-      mockedFindOrAdd.mockResolvedValue({
-        matchedExisting: false,
-        cosmosId: 'registered-id',
-        name: 'Linked Artist',
-      });
-
-      const id = await registerCosmosArtistIfNeeded({
-        searchResults: cosmosSearch,
-        artistName: 'Linked Artist',
-        platform: 'spotify',
-        profile: { id: '38O4JwTrDeZv9OVXPYRkZy', name: 'Linked' },
-        valueToSave: { id: '38O4JwTrDeZv9OVXPYRkZy' },
-        existingProfiles: {},
-      });
-
-      expect(id).toBe('registered-id');
-      expect(mockedFindOrAdd).toHaveBeenCalledOnce();
+  describe('roster pending profiles', () => {
+    it('rosterArtistHasPendingProfiles detects new sentinels and flag', () => {
+      expect(
+        rosterArtistHasPendingProfiles({
+          name: 'Artist',
+          profilesPending: true,
+        }),
+      ).toBe(true);
+      expect(
+        rosterArtistHasPendingProfiles({
+          name: 'Artist',
+          spotifyProfile: 'new',
+        }),
+      ).toBe(true);
+      expect(
+        rosterArtistHasPendingProfiles({
+          name: 'Artist',
+          spotifyProfile: { id: 'sp1' },
+        }),
+      ).toBe(false);
     });
   });
 
