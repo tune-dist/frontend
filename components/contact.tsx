@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -63,12 +63,15 @@ const socialLinks = [
 ]
 
 import { sendContactMessage } from '@/lib/api/contact'
+import ContactRecaptcha, { ContactRecaptchaHandle, isRecaptchaConfigured } from '@/components/contact-recaptcha'
 
 export default function Contact() {
     const searchParams = useSearchParams()
     const planFromUrl = searchParams.get('plan')
+    const recaptchaRef = useRef<ContactRecaptchaHandle | null>(null)
 
     const [isLoading, setIsLoading] = useState(false)
+    const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -89,15 +92,39 @@ export default function Contact() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+
+        if (isRecaptchaConfigured()) {
+            const token = recaptchaToken || recaptchaRef.current?.getToken()
+            if (!token) {
+                toast.error('Please complete the reCAPTCHA verification.')
+                return
+            }
+        } else {
+            toast.error('Contact form is not fully configured. Please email info@kratolib.com.')
+            return
+        }
+
         setIsLoading(true)
 
         try {
-            await sendContactMessage(formData)
+            const token = recaptchaToken || recaptchaRef.current?.getToken() || ''
+            await sendContactMessage({
+                name: formData.name,
+                email: formData.email,
+                subject: formData.subject,
+                message: formData.message,
+                ...(formData.plan ? { plan: formData.plan } : {}),
+                recaptchaToken: token,
+            })
             toast.success('Message sent successfully! We\'ll get back to you soon.')
             setFormData({ name: '', email: '', subject: '', message: '', plan: '' })
+            recaptchaRef.current?.reset()
+            setRecaptchaToken(null)
         } catch (error: any) {
             console.error('Failed to send message:', error)
             toast.error(getErrorMessage(error, 'Failed to send message. Please try again later.'))
+            recaptchaRef.current?.reset()
+            setRecaptchaToken(null)
         } finally {
             setIsLoading(false)
         }
@@ -151,7 +178,7 @@ export default function Contact() {
                                     </div>
                                     <div>
                                         <h3 className="text-xl font-semibold">Send us a message</h3>
-                                        <p className="text-sm text-muted-foreground">We'll respond within 24 hours</p>
+                                        <p className="text-sm text-muted-foreground">We&apos;ll get back to you soon</p>
                                     </div>
                                 </div>
 
@@ -208,6 +235,11 @@ export default function Contact() {
                                             className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                                         />
                                     </div>
+
+                                    <ContactRecaptcha
+                                        recaptchaRef={recaptchaRef}
+                                        onTokenChange={setRecaptchaToken}
+                                    />
 
                                     <Button type="submit" className="w-full animated-gradient-bg border-0 text-white" size="lg" disabled={isLoading}>
                                         {isLoading ? (

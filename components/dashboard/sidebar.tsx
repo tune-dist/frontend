@@ -20,6 +20,7 @@ import {
   Quote,
   Shield,
   Wallet,
+  MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Finance', href: '/dashboard/finance', icon: Wallet, permission: 'VIEW_BILLING' },
   { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles, permission: 'MANAGE_PROMOTION' },
   { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote, permission: 'MANAGE_TESTIMONIALS' },
+  { name: 'Inquiries', href: '/dashboard/admin/inquiries', icon: MessageSquare, permission: 'VIEW_CONTACT_INQUIRIES' },
   { name: 'Profile', href: '/dashboard/profile', icon: User, permission: 'PROFILE' },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube, permission: 'USE_YOUTUBE_SERVICE' },
   { name: 'Verifications', href: '/dashboard/verifications', icon: Shield, permission: 'APPROVE_RELEASE' },
