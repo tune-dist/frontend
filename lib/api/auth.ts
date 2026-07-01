@@ -23,6 +23,8 @@ export interface User {
   email: string;
   fullName: string;
   plan: 'free' | 'solo' | 'pro' | 'enterprise';
+  /** False until the user explicitly picks a plan at signup; undefined for legacy users. */
+  planSelected?: boolean;
   planEndDate: string | null;
   role: 'super_admin' | 'admin' | 'release_manager' | 'artist';
   permissions: string[];

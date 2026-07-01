@@ -78,6 +78,20 @@ export async function upgradePlan(planKey: string): Promise<CreateOrderResponse>
     return response.data;
 }
 
+export interface SelectPlanResult {
+    success: boolean;
+    message: string;
+    planKey: string;
+}
+
+/**
+ * Confirm free plan selection after signup (paid plans use createPaymentOrder).
+ */
+export async function selectPlan(planKey: string): Promise<SelectPlanResult> {
+    const response = await apiClient.post<SelectPlanResult>('/payments/select-plan', { planKey });
+    return response.data;
+}
+
 /**
  * Verify payment after Razorpay checkout completes
  */
