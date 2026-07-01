@@ -62,6 +62,10 @@ export function S3Image({ src, fallback, alt, ...props }: S3ImageProps) {
         );
     }
 
+    if (!displayUrl) {
+        return fallback ? <>{fallback}</> : null;
+    }
+
     return (
         <img
             src={displayUrl}

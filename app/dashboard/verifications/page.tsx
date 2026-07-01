@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/get-error-message";
 import PageLoading from "@/components/dashboard/page-loading";
 import {
   Card,
@@ -134,7 +135,7 @@ export default function VerificationsPage() {
       const data = await getVerificationRequests();
       setRequests(data);
     } catch (error) {
-      toast.error("Failed to fetch verification requests");
+      toast.error(getErrorMessage(error, "Failed to fetch verification requests"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -152,8 +153,8 @@ export default function VerificationsPage() {
     try {
       const signedUrl = await getDisplayUrl(url);
       window.open(signedUrl, "_blank", "noopener,noreferrer");
-    } catch {
-      toast.error("Failed to open document");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to open document"));
     } finally {
       setViewingDoc(null);
     }
@@ -169,8 +170,8 @@ export default function VerificationsPage() {
       toast.success("Verification approved");
       setApproveDialogId(null);
       fetchRequests();
-    } catch {
-      toast.error("Failed to approve verification");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to approve verification"));
     } finally {
       setActionLoading(null);
     }
@@ -195,8 +196,8 @@ export default function VerificationsPage() {
       setRejectDialog(null);
       setRejectReason("");
       fetchRequests();
-    } catch {
-      toast.error("Failed to reject verification");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to reject verification"));
     } finally {
       setActionLoading(null);
     }

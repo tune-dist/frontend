@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/get-error-message";
 import { useAuth } from "@/contexts/AuthContext";
 import PageLoading from "@/components/dashboard/page-loading";
 import {
@@ -139,7 +140,7 @@ export default function YouTubeServicePage() {
             setApproveDialogId(null);
             invalidate();
         } catch (error) {
-            toast.error("Failed to approve request");
+            toast.error(getErrorMessage(error, "Failed to approve request"));
         } finally {
             setActionLoading(null);
         }
@@ -162,7 +163,7 @@ export default function YouTubeServicePage() {
             setRejectReason("");
             invalidate();
         } catch (error) {
-            toast.error("Failed to reject request");
+            toast.error(getErrorMessage(error, "Failed to reject request"));
         } finally {
             setActionLoading(null);
         }

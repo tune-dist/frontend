@@ -1,6 +1,6 @@
 import { ReleaseStatus } from '@/lib/api/releases';
 
-export { canManageReleases, isStaffUser, hasPermission } from '@/lib/permissions';
+export { canManageReleases, isStaffUser, hasPermission, isReleaseStaff } from '@/lib/permissions';
 
 /** Legacy DB value — display only, not a filter option */
 const LEGACY_APPROVED = 'Approved';
@@ -42,6 +42,12 @@ export function isPromotableRelease(status: string): boolean {
     PROMOTABLE_RELEASE_STATUSES.includes(status as ReleaseStatus) ||
     status === LEGACY_APPROVED
   );
+}
+
+export const RM_EDITABLE_RELEASE_STATUSES: ReleaseStatus[] = ['In Process'];
+
+export function isRmEditableRelease(status: string): boolean {
+  return RM_EDITABLE_RELEASE_STATUSES.includes(status as ReleaseStatus);
 }
 
 export function sanitizeReleaseError(message: string | undefined, fallback: string): string {

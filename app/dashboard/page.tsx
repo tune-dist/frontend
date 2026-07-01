@@ -21,7 +21,7 @@ import {
 import { TrendingUp, Music, ListMusic, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
-import { S3Image } from "@/components/ui/s3-image";
+import { ReleaseCoverArt } from "@/components/releases/release-cover-art";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { PLATFORM_COLORS } from "@/lib/platform-logos";
 import { PlatformLegendItem } from "@/components/analytics/platform-icon";
@@ -72,35 +72,6 @@ const itemVariants = {
 
 function formatTrend(value: number) {
   return `${value >= 0 ? "+" : ""}${value}%`;
-}
-
-function ReleaseCover({
-  coverArtUrl,
-  title,
-  className,
-}: {
-  coverArtUrl?: string;
-  title: string;
-  className?: string;
-}) {
-  const fallback = (
-    <div className={`${className} bg-secondary/40 flex items-center justify-center`}>
-      <Music className="h-5 w-5 text-muted-foreground" />
-    </div>
-  );
-
-  if (!coverArtUrl) {
-    return fallback;
-  }
-
-  return (
-    <S3Image
-      src={coverArtUrl}
-      alt={title}
-      className={className}
-      fallback={fallback}
-    />
-  );
 }
 
 export default function DashboardPage() {
@@ -259,10 +230,10 @@ export default function DashboardPage() {
                     >
                       <div className="flex items-center gap-4 min-w-0">
                         <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors shadow-lg shrink-0">
-                          <ReleaseCover
+                          <ReleaseCoverArt
                             coverArtUrl={release.coverArtUrl}
                             title={release.title}
-                            className="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                            className="transform group-hover:scale-110 transition-transform duration-500"
                           />
                         </div>
                         <div className="flex flex-col min-w-0">
@@ -375,36 +346,40 @@ export default function DashboardPage() {
                       No stream data for your releases yet.
                     </p>
                   ) : (
-                    topTracks.map((track) => (
-                      <Link
+                    topTracks.map((track, index) => (
+                      <div
                         key={track.id}
-                        href={`/dashboard/releases/${track.id}`}
-                        className="flex items-center justify-between p-2 rounded-xl hover:bg-primary/40 transition-colors group"
+                        className={`pb-2 ${index !== topTracks.length - 1 ? "border-b border-border/40 mb-2" : ""}`}
                       >
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors shrink-0">
-                            <ReleaseCover
-                              coverArtUrl={track.coverArtUrl}
-                              title={track.title}
-                              className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
+                        <Link
+                          href={`/dashboard/releases/${track.id}`}
+                          className="flex items-center justify-between p-2 rounded-xl hover:bg-primary/40 transition-colors group"
+                        >
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="h-14 w-14 rounded-xl overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors shrink-0">
+                              <ReleaseCoverArt
+                                coverArtUrl={track.coverArtUrl}
+                                title={track.title}
+                                className="group-hover:scale-110 transition-transform duration-500"
+                              />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <h4 className="font-bold text-sm text-foreground/90 group-hover:text-white transition-colors line-clamp-1">
+                                {track.title}
+                              </h4>
+                              <p className="text-xs text-muted-foreground line-clamp-1">{track.artistName}</p>
+                            </div>
                           </div>
-                          <div className="flex flex-col min-w-0">
-                            <h4 className="font-bold text-sm text-foreground/90 group-hover:text-white transition-colors line-clamp-1">
-                              {track.title}
-                            </h4>
-                            <p className="text-xs text-muted-foreground line-clamp-1">{track.artistName}</p>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-bold text-foreground/90">
+                              {track.totalStreams.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+                              streams
+                            </p>
                           </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-foreground/90">
-                            {track.totalStreams.toLocaleString()}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
-                            streams
-                          </p>
-                        </div>
-                      </Link>
+                        </Link>
+                      </div>
                     ))
                   )}
                 </div>
@@ -418,14 +393,14 @@ export default function DashboardPage() {
                 <CardTitle className="text-xl font-bold">Top stores</CardTitle>
                 <span className="text-xs text-muted-foreground font-medium">All platforms</span>
               </CardHeader>
-              <CardContent className="flex items-center justify-center py-6">
+              <CardContent className="flex flex-col items-center justify-center py-6 gap-6">
                 {(stats?.platformStreams?.length ?? 0) === 0 ? (
                   <p className="text-sm text-muted-foreground text-center px-4">
                     Store breakdown will appear here after DSP daily reports are ingested.
                   </p>
                 ) : (
-                  <div className="flex flex-col md:flex-row items-center gap-12 w-full max-w-md">
-                    <div className="relative w-40 h-40">
+                  <>
+                    <div className="relative w-64 h-64">
                       <Doughnut
                         data={{
                           labels: stats!.platformStreams.map((p) => p.label),
@@ -470,25 +445,22 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-4 flex-1">
+                    <div className="flex flex-wrap items-center justify-center gap-4 w-full">
                       {stats!.platformStreams.map((store) => (
-                        <div key={store.dsp} className="flex items-center gap-3 group cursor-pointer">
+                        <div key={store.dsp} className="flex items-center gap-2 group cursor-pointer">
                           <PlatformLegendItem dsp={store.dsp} label={store.label} />
                           <div className="flex flex-col">
-                            <span className="text-sm text-muted-foreground font-medium group-hover:text-white transition-colors">
+                            <span className="text-xs text-muted-foreground font-medium group-hover:text-white transition-colors">
                               {store.label}
                             </span>
-                            <span className="text-lg font-black text-white leading-tight">
+                            <span className="text-sm font-black text-white leading-tight">
                               {store.percentage}%
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {store.streams.toLocaleString()} streams
                             </span>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </>
                 )}
               </CardContent>
             </Card>

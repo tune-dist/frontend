@@ -211,6 +211,7 @@ export default function RequestModal({ isOpen, onClose, onSuccess }: RequestModa
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="bg-background w-full max-w-3xl max-h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden border border-border"
+                data-lenis-prevent
             >
                 <div className="flex items-center justify-between p-6 border-b border-border">
                     <div className="flex items-center gap-4">

@@ -6,7 +6,6 @@ export interface RegisterData {
   email: string;
   password: string;
   fullName: string;
-  role?: string;
   googleId?: string;
   spotifyId?: string;
   avatar?: string;

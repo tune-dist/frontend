@@ -1,103 +1,128 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, X, Info } from 'lucide-react'
+import { Check, Info, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { getAllPlans, Plan } from '@/lib/api/plans'
+import { PlanGstNote } from '@/components/plans/plan-gst-note'
+import {
+  formatArtistLimit,
+  formatReleaseLimit,
+  resolveArtistKeepPercent,
+  resolvePlanCta,
+  resolvePlanPeriodLabel,
+  resolvePlanPriceDisplay,
+  sortActivePlans,
+} from '@/lib/plans-display'
 
-interface Feature {
-  name: string;
-  values: (string | boolean)[];
-  types?: string[];
+interface ComparisonRow {
+  name: string
+  values: (string | boolean)[]
+  valueTypes?: ('badge-green' | 'badge-orange' | 'pill' | 'check')[]
 }
 
-interface Category {
-  name: string;
-  features: Feature[];
+interface ComparisonCategory {
+  name: string
+  rows: ComparisonRow[]
 }
 
-const plans = [
-  { name: 'Free Starter', price: '₹0/yr', key: 'free' },
-  { name: 'Solo Pro', price: '₹999/yr', key: 'solo', isPopular: true },
-  { name: 'Growth Label', price: '₹3,999/yr', key: 'growth' },
-  { name: 'Business Label', price: '₹6,999/yr', key: 'business' },
-  { name: 'Enterprise', price: 'Custom', key: 'enterprise' },
-]
-
-const categories: Category[] = [
-  {
-    name: 'CORE LIMITS',
-    features: [
-      { name: 'Artists', values: ['1', '1', '5', '10', 'Unlimited'] },
-      { name: 'Releases', values: ['2 / year', 'Unlimited', 'Unlimited', 'Unlimited', 'Unlimited'] },
-      { name: 'Earnings kept', values: ['80%', '100%', '100%', '100%', '100%'], types: ['badge-orange', 'badge-green', 'badge-green', 'badge-green', 'badge-green'] },
-      { name: 'Support response', values: ['7 days', '72 hours', '48 hours', '24 hours', 'Same day'] },
-    ]
-  },
-  {
-    name: 'DISTRIBUTION',
-    features: [
-      { name: '150+ platforms', values: [true, true, true, true, true] },
-      { name: 'YouTube Content ID', values: [true, true, true, true, true] },
-      { name: 'UGC monetization', values: [true, true, true, true, true] },
-      { name: 'CRBT / Caller Tune', values: [true, true, true, true, true] },
-      { name: 'Lyrics distribution', values: [false, true, true, true, true] },
-    ]
-  },
-  {
-    name: 'ANALYTICS & ARTIST TOOLS',
-    features: [
-      { name: 'Basic analytics', values: [true, true, true, true, true] },
-      { name: 'Advanced analytics', values: [false, true, true, true, true] },
-      { name: 'Daily stats & alerts', values: [false, false, false, true, true] },
-      { name: 'Verified badge support', values: [false, true, true, true, true] },
-      { name: 'YouTube OAC claim', values: [false, true, true, true, true] },
-      { name: 'Spotify for Artists claim', values: [false, false, true, true, true] },
-      { name: 'Spotify Discovery Mode', values: [false, true, true, true, true] },
-    ]
-  },
-  {
-    name: 'MARKETING & RELEASE',
-    features: [
-      { name: 'Playlist pitching', values: [false, true, true, true, true] },
-      { name: 'Playlist promotion', values: [false, false, false, true, true] },
-      { name: 'Pre-save links', values: [false, false, true, true, true] },
-      { name: 'Fan / smart links', values: [false, false, true, true, true] },
-      { name: 'Scheduled release date', values: [false, false, true, true, true] },
-      { name: 'Promotional budget access', values: [false, false, true, true, true] },
-      { name: 'Sync licensing', values: [false, true, true, true, true] },
-      { name: 'Cover song licensing', values: [false, false, false, true, true] },
-    ]
-  },
-  {
-    name: 'ROYALTIES & RIGHTS',
-    features: [
-      { name: 'Royalty splits at source', values: [false, false, true, true, true] },
-      { name: 'Split sheet agreements', values: [false, false, true, true, true] },
-      { name: 'On-demand payouts', values: [false, false, true, true, true] },
-      { name: 'Custom ISRC codes', values: [false, false, true, true, true] },
-      { name: 'SoundExchange registration', values: [false, false, true, true, true] },
-      { name: 'Mastering integration', values: [false, 'Add-on', true, true, true] },
-    ]
-  },
-  {
-    name: 'LABEL & ENTERPRISE TOOLS',
-    features: [
-      { name: 'Label dashboard', values: [false, false, false, false, true] },
-      { name: 'Add artist at ₹499', values: [false, false, false, false, true] },
-      { name: 'Dedicated account manager', values: [false, false, false, false, true] },
-      { name: 'API & bulk upload', values: [false, false, false, false, true] },
-      { name: 'Bulk catalog migration', values: [false, false, false, false, true] },
-      { name: 'White-label solutions', values: [false, false, false, false, true] },
-      { name: 'Team access controls', values: [false, false, false, false, true] },
-    ]
+function buildGridStyle(planCount: number, labelWidth: number) {
+  return {
+    gridTemplateColumns: `${labelWidth}px repeat(${planCount}, minmax(130px, 1fr))`,
   }
-]
+}
+
+function collectUniqueFeatures(plans: Plan[]): string[] {
+  const seen = new Set<string>()
+  const ordered: string[] = []
+
+  for (const plan of plans) {
+    for (const feature of plan.features ?? []) {
+      const label = feature.trim()
+      const key = label.toLowerCase()
+      if (!label || seen.has(key)) continue
+      seen.add(key)
+      ordered.push(label)
+    }
+  }
+
+  return ordered
+}
+
+function buildCategories(plans: Plan[]): ComparisonCategory[] {
+  const categories: ComparisonCategory[] = [
+    {
+      name: 'CORE LIMITS',
+      rows: [
+        {
+          name: 'Artists',
+          values: plans.map((plan) => formatArtistLimit(plan.limits.maxArtists)),
+          valueTypes: plans.map(() => 'pill' as const),
+        },
+        {
+          name: 'Releases',
+          values: plans.map((plan) => formatReleaseLimit(plan.limits.maxPendingReleases)),
+          valueTypes: plans.map(() => 'pill' as const),
+        },
+        {
+          name: 'Earnings kept',
+          values: plans.map((plan) => `${resolveArtistKeepPercent(plan)}%`),
+          valueTypes: plans.map((plan) =>
+            resolveArtistKeepPercent(plan) >= 100 ? 'badge-green' : 'badge-orange',
+          ),
+        },
+      ],
+    },
+  ]
+
+  const featureLabels = collectUniqueFeatures(plans)
+  if (featureLabels.length > 0) {
+    categories.push({
+      name: 'INCLUDED FEATURES',
+      rows: featureLabels.map((label) => ({
+        name: label,
+        values: plans.map((plan) =>
+          (plan.features ?? []).some((feature) => feature.trim().toLowerCase() === label.toLowerCase()),
+        ),
+        valueTypes: plans.map(() => 'check' as const),
+      })),
+    })
+  }
+
+  return categories
+}
 
 export default function StaticPricing() {
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchPlans = async () => {
+      try {
+        const data = await getAllPlans()
+        if (!cancelled) setPlans(sortActivePlans(data))
+      } catch (error) {
+        console.error('Failed to fetch plans:', error)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    fetchPlans()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const categories = useMemo(() => buildCategories(plans), [plans])
+  const gridStyle = useMemo(() => buildGridStyle(plans.length, 240), [plans.length])
+
   return (
     <section id="pricing" className="py-14 md:py-24 bg-background relative overflow-hidden isolate">
-
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           className="text-center mb-8 md:mb-16"
@@ -107,10 +132,8 @@ export default function StaticPricing() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         >
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
-            Music Distribution Pricing {' '}<br />
-            <span className="animated-gradient">
-              ₹999/Year with 100% Earnings | Free Starter Plan
-            </span>
+            Music Distribution Pricing <br />
+            <span className="animated-gradient">Simple plans for every artist</span>
           </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Choose the plan that fits your needs. All plans include global distribution,
@@ -118,119 +141,184 @@ export default function StaticPricing() {
           </p>
         </motion.div>
 
-        {/* Pricing Table Container */}
-        <motion.div
-          className="w-full bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="w-full overflow-x-auto scrollbar-hide">
-            <div className="min-w-max md:min-w-[1100px]">
-              {/* Table Header */}
-              <div className="grid grid-cols-[140px,repeat(5,120px)] md:grid-cols-[280px,repeat(5,1fr)] gap-0 items-stretch border-b border-white/10">
-                <div className="p-4 md:p-8 flex items-end sticky left-0 z-20 bg-[#0a0a0a] border-r border-white/10 shadow-[10px_0_20px_-10px_rgba(0,0,0,0.5)]">
-                  <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-[0.1em] md:tracking-[0.2em]">Comparison Matrix</p>
-                </div>
-                {plans.map((plan) => (
-                  <div
-                    key={plan.key}
-                    className={`p-4 md:p-8 flex flex-col items-center text-center transition-colors relative ${plan.isPopular ? 'bg-white/[0.03]' : ''}`}
-                  >
-                    {plan.isPopular && (
-                      <div className="absolute top-0 left-0 right-0 h-1 animated-gradient-bg" />
-                    )}
-                    <div className="h-8 md:h-12 flex flex-col justify-center mb-2 md:mb-4">
-                      {plan.isPopular && (
-                        <span className="animated-gradient-bg text-white text-[8px] md:text-[10px] uppercase font-black tracking-widest px-2 md:px-3 py-1 rounded-full shadow-lg mb-1 md:mb-2">
-                          Most Popular
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-sm md:text-xl font-bold mb-1 tracking-tight">{plan.name}</h3>
-                    <div className="flex items-baseline gap-1 mb-4 md:mb-6">
-                      <span className="text-lg md:text-2xl font-bold text-white">{plan.price.split('/')[0]}</span>
-                      {plan.price.includes('/') && (
-                        <span className="text-muted-foreground text-[10px] md:text-xs uppercase">/{plan.price.split('/')[1]}</span>
-                      )}
-                    </div>
-                    <Link href="/contact" className="w-full mt-auto">
-                      <Button
-                        variant={plan.isPopular ? "default" : "outline"}
-                        className={`w-full h-9 md:h-11 text-xs md:text-sm rounded-xl font-semibold transition-all duration-300 ${plan.isPopular
-                          ? 'animated-gradient-bg border-0 text-white hover:scale-105 shadow-[0_0_20px_rgba(132,0,215,0.3)]'
-                          : 'hover:bg-white border-white/10 hover:text-black'
-                          }`}
-                      >
-                        Contact Us
-                      </Button>
-                    </Link>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="mt-3 text-sm">Loading pricing...</p>
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <p>No plans available right now. Please check back soon.</p>
+          </div>
+        ) : (
+          <motion.div
+            className="w-full bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="w-full overflow-x-auto scrollbar-hide">
+              <div style={{ minWidth: 240 + plans.length * 130 }}>
+                {/* Plan headers */}
+                <div className="grid border-b border-white/10" style={gridStyle}>
+                  <div className="p-5 md:p-8 flex items-end sticky left-0 z-20 bg-[#0a0a0a] border-r border-white/10">
+                    <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-[0.15em] md:tracking-[0.2em]">
+                      Compare plans
+                    </p>
                   </div>
-                ))}
-              </div>
+                  {plans.map((plan) => (
+                    <PlanHeaderCell key={plan.key} plan={plan} />
+                  ))}
+                </div>
 
-              {/* Comparison Rows */}
-              <div className="pb-12">
-                {categories.map((category) => (
-                  <div key={category.name}>
-                    <div className="bg-white/[0.02] border-y border-white/5 w-full relative">
-                      <div className="sticky left-0 w-[140px] md:w-fit px-4 md:px-8 py-3 md:py-4 bg-[#0a0a0a] z-10 border-r border-white/5 shadow-[10px_0_20px_-10px_rgba(0,0,0,0.5)]">
-                        <h4 className="text-[10px] md:text-xs font-black text-white/40 tracking-[0.15em] md:tracking-[0.3em] uppercase truncate md:overflow-visible">{category.name}</h4>
-                      </div>
-                    </div>
-                    {category.features.map((feature, fIdx) => (
-                      <div
-                        key={feature.name}
-                        className="grid grid-cols-[140px,repeat(5,120px)] md:grid-cols-[280px,repeat(5,1fr)] gap-0 group transition-colors hover:bg-white/[0.01]"
-                      >
-                        <div className="px-4 md:px-8 py-4 flex items-center border-r border-white/5 sticky left-0 z-10 bg-[#0a0a0a] group-hover:bg-[#111] transition-colors shadow-[10px_0_20px_-10px_rgba(0,0,0,0.5)]">
-                          <span className="text-[11px] md:text-sm font-medium text-white/70 group-hover:text-white transition-colors leading-tight">
-                            {feature.name}
-                          </span>
+                {/* Comparison rows */}
+                <div className="pb-8">
+                  {categories.map((category) => (
+                    <div key={category.name}>
+                      <div className="grid bg-white/[0.02] border-y border-white/5" style={gridStyle}>
+                        <div className="sticky left-0 z-10 bg-[#0a0a0a] px-5 md:px-8 py-3 md:py-4 border-r border-white/5">
+                          <h4 className="text-[10px] md:text-xs font-black text-white/40 tracking-[0.15em] md:tracking-[0.25em] uppercase">
+                            {category.name}
+                          </h4>
                         </div>
-                        {feature.values.map((val, idx) => (
+                        {plans.map((plan) => (
                           <div
-                            key={idx}
-                            className={`px-2 md:px-4 py-2 flex items-center justify-center text-center border-r border-white/5 last:border-r-0 ${plans[idx].isPopular ? 'bg-purple-700/[0.3]' : ''}`}
-                          >
-                            {typeof val === 'boolean' ? (
-                              <div className={`flex items-center justify-center h-6 w-6 md:h-8 md:w-8 rounded-full ${val ? 'bg-emerald-500/10' : 'bg-white/5'}`}>
-                                {val ? (
-                                  <Check className="h-3 w-3 md:h-4 md:w-4 text-emerald-500" strokeWidth={3} />
-                                ) : (
-                                  <X className="h-3 w-3 md:h-4 md:w-4 text-white/10" strokeWidth={3} />
-                                )}
-                              </div>
-                            ) : (
-                              <span className={`text-[11px] md:text-sm font-semibold tracking-tight
-                                ${feature.types && feature.types[idx] === 'badge-green' ? 'bg-emerald-500/10 text-emerald-500 px-2 md:px-3 py-1 rounded-full border border-emerald-500/20' : ''}
-                                ${feature.types && feature.types[idx] === 'badge-orange' ? 'bg-orange-500/10 text-orange-500 px-2 md:px-3 py-1 rounded-full border border-orange-500/20' : ''}
-                                ${val === 'Add-on' ? 'text-primary underline underline-offset-4 decoration-primary/30' : 'text-white/80'}
-                                ${val === 'Unlimited' ? 'text-white bg-white/10 px-2 md:px-3 py-1 rounded-full' : ''}
-                              `}>
-                                {val}
-                              </span>
-                            )}
-                          </div>
+                            key={`${category.name}-${plan.key}-spacer`}
+                            className={plan.isPopular ? 'bg-violet-500/[0.04]' : ''}
+                          />
                         ))}
                       </div>
-                    ))}
-                  </div>
-                ))}
+
+                      {category.rows.map((row) => (
+                        <div
+                          key={row.name}
+                          className="grid group transition-colors hover:bg-white/[0.015] border-b border-white/[0.03] last:border-b-0"
+                          style={gridStyle}
+                        >
+                          <div className="px-5 md:px-8 py-3.5 md:py-4 flex items-center border-r border-white/5 sticky left-0 z-10 bg-[#0a0a0a] group-hover:bg-[#111] transition-colors">
+                            <span className="text-[11px] md:text-sm font-medium text-white/70 group-hover:text-white transition-colors leading-snug">
+                              {row.name}
+                            </span>
+                          </div>
+                          {row.values.map((value, idx) => (
+                            <ValueCell
+                              key={`${row.name}-${plans[idx].key}`}
+                              value={value}
+                              valueType={row.valueTypes?.[idx]}
+                              isPopular={plans[idx].isPopular}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
-        {/* Trust Footer */}
         <div className="mt-12 text-center">
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
             <Info className="h-4 w-4 text-primary" />
-            All transactions are secure and encrypted. Prices are exclusive of applicable taxes.
+            All transactions are secure and encrypted. Prices are exclusive of applicable taxes unless noted.
           </p>
         </div>
       </div>
     </section>
+  )
+}
+
+function PlanHeaderCell({ plan }: { plan: Plan }) {
+  const cta = resolvePlanCta(plan)
+  const periodLabel = resolvePlanPeriodLabel(plan)
+
+  return (
+    <div
+      className={`p-5 md:p-6 flex flex-col items-center text-center relative min-h-[260px] ${plan.isPopular ? 'bg-violet-500/[0.06]' : ''}`}
+    >
+      {plan.isPopular && (
+        <>
+          <div className="absolute top-0 inset-x-0 h-0.5 animated-gradient-bg" />
+          <span className="animated-gradient-bg text-white text-[9px] md:text-[10px] uppercase font-black tracking-widest px-2.5 py-0.5 rounded-full shadow-lg mb-3 mt-1">
+            Most Popular
+          </span>
+        </>
+      )}
+
+      <h3 className="text-sm md:text-lg font-bold mb-1 tracking-tight leading-tight">{plan.title}</h3>
+
+      <div className="flex items-baseline justify-center gap-1 mb-1">
+        <span className="text-xl md:text-2xl font-bold text-white">{resolvePlanPriceDisplay(plan)}</span>
+        {periodLabel && (
+          <span className="text-muted-foreground text-[10px] md:text-xs">{periodLabel}</span>
+        )}
+      </div>
+
+      <PlanGstNote plan={plan} className="text-center mb-2" />
+
+      {plan.description && (
+        <p className="text-[10px] md:text-xs text-muted-foreground mb-4 line-clamp-2 min-h-[2rem]">
+          {plan.description}
+        </p>
+      )}
+
+      <Link href={cta.href} className="w-full mt-auto">
+        <Button
+          variant={plan.isPopular ? 'default' : 'outline'}
+          className={`w-full h-9 md:h-10 text-xs md:text-sm rounded-xl font-semibold transition-all duration-300 ${
+            plan.isPopular
+              ? 'animated-gradient-bg border-0 text-white shadow-[0_0_16px_rgba(132,0,215,0.25)]'
+              : 'hover:bg-white border-white/10 hover:text-black'
+          }`}
+        >
+          {cta.label}
+        </Button>
+      </Link>
+    </div>
+  )
+}
+
+function ValueCell({
+  value,
+  valueType,
+  isPopular,
+}: {
+  value: string | boolean
+  valueType?: 'badge-green' | 'badge-orange' | 'pill' | 'check'
+  isPopular?: boolean
+}) {
+  return (
+    <div
+      className={`px-3 md:px-4 py-3.5 md:py-4 flex items-center justify-center text-center border-r border-white/[0.03] last:border-r-0 ${
+        isPopular ? 'bg-violet-500/[0.04]' : ''
+      }`}
+    >
+      {typeof value === 'boolean' || valueType === 'check' ? (
+        <div
+          className={`flex items-center justify-center h-7 w-7 md:h-8 md:w-8 rounded-full ${
+            value ? 'bg-emerald-500/10' : 'bg-white/5'
+          }`}
+        >
+          {value ? (
+            <Check className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-500" strokeWidth={3} />
+          ) : (
+            <X className="h-3.5 w-3.5 md:h-4 md:w-4 text-white/15" strokeWidth={3} />
+          )}
+        </div>
+      ) : (
+        <span
+          className={`text-[11px] md:text-sm font-semibold tracking-tight whitespace-nowrap
+            ${valueType === 'badge-green' ? 'bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20' : ''}
+            ${valueType === 'badge-orange' ? 'bg-orange-500/10 text-orange-400 px-2.5 py-1 rounded-full border border-orange-500/20' : ''}
+            ${valueType === 'pill' && value === 'Unlimited' ? 'text-white bg-white/10 px-2.5 py-1 rounded-full' : ''}
+            ${valueType === 'pill' && value !== 'Unlimited' ? 'text-white/85' : ''}
+          `}
+        >
+          {value}
+        </span>
+      )}
+    </div>
   )
 }

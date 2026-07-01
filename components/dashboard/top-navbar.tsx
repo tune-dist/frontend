@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Settings, LogOut, User as UserIcon, ChevronDown, Upload, Zap, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ export default function TopNavbar() {
   const { user, logout } = useAuth()
   const { openUpgradeModal, isMobileMenuOpen, toggleMobileMenu } = useUI()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const router = useRouter()
 
   return (
     <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-border/50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 px-4 lg:px-6">
@@ -125,7 +127,10 @@ export default function TopNavbar() {
                     <Button
                       variant="ghost"
                       className="w-full justify-start gap-3 px-3 py-2.5 h-auto text-sm font-medium hover:bg-primary/10 hover:text-primary transition-all duration-200 rounded-xl group"
-                      onClick={() => setShowUserMenu(false)}
+                      onClick={() => {
+                        setShowUserMenu(false)
+                        router.push('/dashboard/profile')
+                      }}
                     >
                       <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-muted group-hover:bg-primary/20 transition-colors">
                         <Settings className="h-4 w-4 text-muted-foreground group-hover:text-primary" />

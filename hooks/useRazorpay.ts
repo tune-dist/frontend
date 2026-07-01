@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { createPaymentOrder, upgradePlan, verifyPayment, CreateOrderResponse, PaymentResult } from '@/lib/api/payments';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '@/lib/get-error-message';
 
 // Razorpay script URL
 const RAZORPAY_SCRIPT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -221,13 +222,12 @@ export function useRazorpay(): UseRazorpayReturn {
                     toast('Payment cancelled', { icon: '❌' });
                 } else if (error.response?.data?.code === 'RAZORPAY_PLAN_NOT_CONFIGURED') {
                     toast.error(
-                        error.response?.data?.message ||
-                            'This plan is not ready for subscription yet. Please contact support.',
+                        getErrorMessage(error, 'This plan is not ready for subscription yet. Please contact support.'),
                         { duration: 6000 },
                     );
                 } else {
                     console.error('Payment error:', error);
-                    toast.error(error.response?.data?.message || error.message || 'Payment failed');
+                    toast.error(getErrorMessage(error, 'Payment failed'));
                 }
                 return null;
             } finally {

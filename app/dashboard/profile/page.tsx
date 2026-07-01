@@ -13,9 +13,9 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { User as UserIcon, Mail, CreditCard, Loader2, Save, Phone, MapPin, FileText, Shield, CheckCircle2, UploadCloud } from 'lucide-react'
+import { User as UserIcon, Mail, CreditCard, Loader2, Save, MapPin, FileText, Shield, CheckCircle2, UploadCloud } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { updateUserProfile, sendPhoneOTP, verifyPhoneOTP, updateAddress } from '@/lib/api/users'
+import { updateUserProfile, updateAddress } from '@/lib/api/users'
 import {
   getVerificationRequests,
   submitVerificationRequest,
@@ -27,6 +27,7 @@ import { uploadFileDirectly } from '@/lib/upload/chunk-uploader'
 import { getDisplayUrl } from '@/lib/api/s3'
 import { isAllowedVerificationFile, VERIFICATION_FILE_ACCEPT, VERIFICATION_FILE_HINT } from '@/lib/verification-document'
 import { API_URL } from '@/lib/config'
+import { getErrorMessage } from '@/lib/get-error-message'
 import { hasPermission } from '@/lib/permissions'
 import { formatPlanDisplayName } from '@/lib/utils'
 import { S3Image } from '@/components/ui/s3-image'
@@ -63,12 +64,13 @@ export default function ProfilePage() {
   const { user, refreshUser, loading } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState('')
+  // Phone verification — disabled for now
+  // const [phoneNumber, setPhoneNumber] = useState('')
   const [address, setAddress] = useState('')
-  const [isSendingOTP, setIsSendingOTP] = useState(false)
-  const [showOTPModal, setShowOTPModal] = useState(false)
-  const [otp, setOtp] = useState('')
-  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false)
+  // const [isSendingOTP, setIsSendingOTP] = useState(false)
+  // const [showOTPModal, setShowOTPModal] = useState(false)
+  // const [otp, setOtp] = useState('')
+  // const [isVerifyingOTP, setIsVerifyingOTP] = useState(false)
 
   const [showVerifyModal, setShowVerifyModal] = useState(false)
   const [uploadDocType, setUploadDocType] = useState<VerificationDocumentType | null>(null)
@@ -88,10 +90,10 @@ export default function ProfilePage() {
     }
   }, [user, loading, router]);
 
-  // Initialize phone and address from user data
+  // Initialize address from user data
   useEffect(() => {
     if (user) {
-      setPhoneNumber(user.phoneNumber || '');
+      // setPhoneNumber(user.phoneNumber || '');
       setAddress(user.address || '');
     }
   }, [user]);
@@ -149,7 +151,7 @@ export default function ProfilePage() {
       setUploadDocType(null);
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to upload verification document');
+      toast.error(getErrorMessage(error, 'Failed to upload verification document'));
     } finally {
       setIsVerifyingProfile(false);
     }
@@ -157,6 +159,7 @@ export default function ProfilePage() {
 
   /* Selfie + passport flow — disabled for now */
 
+  /* Phone verification — disabled for now
   const handleSendOTP = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
       toast.error('Please enter a valid phone number');
@@ -171,7 +174,7 @@ export default function ProfilePage() {
         : 'OTP sent to your phone number. Please check console logs.');
       setShowOTPModal(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send OTP');
+      toast.error(getErrorMessage(error, 'Failed to send OTP'));
     } finally {
       setIsSendingOTP(false);
     }
@@ -191,11 +194,12 @@ export default function ProfilePage() {
       setOtp('');
       await refreshUser();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Invalid OTP');
+      toast.error(getErrorMessage(error, 'Invalid OTP'));
     } finally {
       setIsVerifyingOTP(false);
     }
   };
+  */
 
   const handleUpdateAddress = async () => {
     setIsLoading(true);
@@ -208,7 +212,7 @@ export default function ProfilePage() {
       toast.success('Address updated successfully');
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update address');
+      toast.error(getErrorMessage(error, 'Failed to update address'));
     } finally {
       setIsLoading(false);
     }
@@ -254,7 +258,7 @@ export default function ProfilePage() {
       }, 1000);
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to upload profile picture');
+      toast.error(getErrorMessage(error, 'Failed to upload profile picture'));
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -278,7 +282,7 @@ export default function ProfilePage() {
       await refreshUser()
       toast.success('Profile updated successfully')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile')
+      toast.error(getErrorMessage(error, 'Failed to update profile'))
     } finally {
       setIsLoading(false)
     }
@@ -489,7 +493,7 @@ export default function ProfilePage() {
           </Card>
         </motion.div>
 
-        {/* Phone Verification */}
+        {/* Phone Verification — disabled for now
         <motion.div variants={itemVariants}>
           <Card className="glass-card">
             <CardHeader>
@@ -548,6 +552,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </motion.div>
+        */}
 
         {/* Address Information */}
         <motion.div variants={itemVariants}>
@@ -719,7 +724,7 @@ export default function ProfilePage() {
         </motion.div>
       </motion.div>
 
-      {/* OTP Verification Modal */}
+      {/* OTP Verification Modal — disabled for now
       <Dialog open={showOTPModal} onOpenChange={setShowOTPModal}>
         <DialogContent>
           <DialogHeader>
@@ -770,6 +775,7 @@ export default function ProfilePage() {
           </div>
         </DialogContent>
       </Dialog>
+      */}
 
       {/* Verify Profile Modal */}
       <Dialog

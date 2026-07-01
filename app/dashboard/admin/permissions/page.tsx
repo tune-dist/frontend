@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Plus, RefreshCcw, Lock } from "lucide-react";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/get-error-message";
 import {
     getPermissions,
     createPermission,
@@ -112,7 +113,7 @@ export default function PermissionsPage() {
             setRoles(rolesData);
         } catch (error) {
             console.error(error);
-            toast.error("Failed to fetch data");
+            toast.error(getErrorMessage(error, "Failed to fetch data"));
         } finally {
             setLoading(false);
         }
@@ -130,7 +131,7 @@ export default function PermissionsPage() {
             toast.success("Permissions refreshed");
         } catch (error) {
             console.error(error);
-            toast.error("Failed to refresh data");
+            toast.error(getErrorMessage(error, "Failed to refresh data"));
         } finally {
             setIsRefreshing(false);
         }
@@ -147,7 +148,7 @@ export default function PermissionsPage() {
             setUsers(usersData.users || []);
         } catch (error) {
             console.error(error);
-            toast.error("Failed to fetch users");
+            toast.error(getErrorMessage(error, "Failed to fetch users"));
         } finally {
             setUsersLoading(false);
         }
@@ -194,7 +195,7 @@ export default function PermissionsPage() {
             toast.success("Permissions updated");
         } catch (error) {
             console.error(error);
-            toast.error("Failed to update permissions");
+            toast.error(getErrorMessage(error, "Failed to update permissions"));
             fetchData();
         } finally {
             setPendingToggles((prev) => ({ ...prev, [toggleKey]: false }));
@@ -215,7 +216,7 @@ export default function PermissionsPage() {
             fetchData();
         } catch (error: any) {
             console.error(error);
-            toast.error(error.response?.data?.message || "Failed to create permission");
+            toast.error(getErrorMessage(error, "Failed to create permission"));
         } finally {
             setCreating(false);
         }
@@ -244,7 +245,7 @@ export default function PermissionsPage() {
             toast.success("User permissions updated");
         } catch (error) {
             console.error(error);
-            toast.error("Failed to update user permissions");
+            toast.error(getErrorMessage(error, "Failed to update user permissions"));
             fetchUsers();
         } finally {
             setPendingToggles((prev) => ({ ...prev, [toggleKey]: false }));

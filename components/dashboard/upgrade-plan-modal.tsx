@@ -12,6 +12,7 @@ import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/get-error-message'
 
 interface UpgradePlanModalProps {
     isOpen: boolean
@@ -68,7 +69,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                     }
                 } catch (error) {
                     console.error('Failed to fetch plans:', error)
-                    toast.error('Failed to load plans')
+                    toast.error(getErrorMessage(error, 'Failed to load plans'))
                 } finally {
                     setLoading(false)
                 }
@@ -184,7 +185,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                         transition={{ duration: 0.2 }}
                         className="relative z-50 flex w-full max-w-[min(1200px,95vw)] max-h-[min(90vh,calc(100dvh-2rem))] flex-col"
                     >
-                        <div className="bg-[#0f172a] border border-border shadow-2xl relative flex flex-col overflow-hidden rounded-xl max-h-full min-h-0">
+                        <div className="bg-[#0f172a] border border-border shadow-2xl relative flex flex-col overflow-hidden rounded-xl max-h-full min-h-0" data-lenis-prevent>
                             {/* Header and Close Button */}
                             <div className="p-6 pb-2 shrink-0 border-b border-border/40">
                                 <button

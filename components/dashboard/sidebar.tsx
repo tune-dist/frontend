@@ -20,6 +20,7 @@ import {
   Quote,
   Shield,
   Wallet,
+  MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Finance', href: '/dashboard/finance', icon: Wallet, permission: 'VIEW_BILLING' },
   { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles, permission: 'MANAGE_PROMOTION' },
   { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote, permission: 'MANAGE_TESTIMONIALS' },
+  { name: 'Inquiries', href: '/dashboard/admin/inquiries', icon: MessageSquare, permission: 'VIEW_CONTACT_INQUIRIES' },
   { name: 'Profile', href: '/dashboard/profile', icon: User, permission: 'PROFILE' },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube, permission: 'USE_YOUTUBE_SERVICE' },
   { name: 'Verifications', href: '/dashboard/verifications', icon: Shield, permission: 'APPROVE_RELEASE' },
@@ -125,7 +127,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto scrollbar-thin" data-lenis-prevent="true">
             {navigation
               .filter((item) => {
                 if (item.href === '/dashboard/youtube-service') {
@@ -200,6 +202,7 @@ export default function Sidebar() {
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-muted-foreground truncate">
                         {user?.role === 'super_admin' ? 'Super Admin' :
+                          user?.role === 'admin' ? 'Admin' :
                           user?.role === 'release_manager' ? 'Release Manager' : 'Artist'}
                       </p>
                     </div>

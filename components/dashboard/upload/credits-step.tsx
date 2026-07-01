@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UploadFormData, Songwriter, Track } from "./types";
 import { useFormContext, useFieldArray, Controller } from "react-hook-form";
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
 import { Music, Pencil, Trash2, Info } from "lucide-react";
 import {
   getGenres,
@@ -16,23 +16,38 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
 import WaveformTrimmer from "./WaveformTrimmer";
+import { isTrackEligibleForCrbt } from "./crbt-validation";
+import { LEGAL_PERSON_NAME_HINT } from "@/lib/validation/legal-person-name";
+import { useResolvedCrbtPlayback } from "@/lib/upload/audio-playback";
 import {
   INSTRUMENTAL_LANGUAGE,
+  filterGenresForInstrumentalChoice,
   isInstrumentalPrimaryGenre,
   isInstrumentalRelease,
+  isInstrumentalSelection,
   LANGUAGE_OPTIONS,
+  resolveInstrumentalPrimaryGenre,
 } from "./genre-language";
 
 const LanguageSelect = memo(function LanguageSelect({
   control,
-  primaryGenre,
+  isNoLyricsTrack,
   hasError,
 }: {
   control: ReturnType<typeof useFormContext<UploadFormData>>["control"];
-  primaryGenre: string;
+  isNoLyricsTrack: boolean;
   hasError: boolean;
 }) {
-  const isInstrumental = isInstrumentalPrimaryGenre(primaryGenre);
+  const { setValue, clearErrors } = useFormContext<UploadFormData>();
+  const languageOptions = isNoLyricsTrack
+    ? [INSTRUMENTAL_LANGUAGE]
+    : LANGUAGE_OPTIONS.filter((lang) => lang !== INSTRUMENTAL_LANGUAGE);
+
+  useEffect(() => {
+    if (!isNoLyricsTrack) return;
+    setValue("language", INSTRUMENTAL_LANGUAGE, { shouldValidate: true });
+    clearErrors("language");
+  }, [isNoLyricsTrack, setValue, clearErrors]);
 
   return (
     <Controller
@@ -42,11 +57,11 @@ const LanguageSelect = memo(function LanguageSelect({
         <select
           id="language"
           className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${hasError ? "border-red-500" : ""
-            } ${isInstrumental ? "opacity-80 cursor-not-allowed" : ""}`}
-          disabled={isInstrumental}
-          value={isInstrumental ? INSTRUMENTAL_LANGUAGE : (field.value ?? "")}
+            } ${isNoLyricsTrack ? "opacity-80 cursor-not-allowed" : ""}`}
+          disabled={isNoLyricsTrack}
+          value={isNoLyricsTrack ? INSTRUMENTAL_LANGUAGE : (field.value ?? "")}
           onChange={(e) => {
-            if (!isInstrumental) {
+            if (!isNoLyricsTrack) {
               field.onChange(e.target.value);
             }
           }}
@@ -54,14 +69,132 @@ const LanguageSelect = memo(function LanguageSelect({
           name={field.name}
           ref={field.ref}
         >
-          <option value="">Select a language</option>
-          {LANGUAGE_OPTIONS.map((lang) => (
+          {!isNoLyricsTrack && <option value="">Select a language</option>}
+          {languageOptions.map((lang) => (
             <option key={lang} value={lang}>
               {lang}
             </option>
           ))}
         </select>
       )}
+    />
+  );
+});
+
+/** Controlled select — keeps form values visible after step remount + async option load */
+const PrimaryGenreSelect = memo(function PrimaryGenreSelect({
+  control,
+  genres,
+  genresLoading,
+  hasError,
+  onGenreChange,
+}: {
+  control: ReturnType<typeof useFormContext<UploadFormData>>["control"];
+  genres: Genre[];
+  genresLoading: boolean;
+  hasError: boolean;
+  onGenreChange: () => void;
+}) {
+  return (
+    <Controller
+      name="primaryGenre"
+      control={control}
+      render={({ field }) => {
+        const savedValue = field.value ?? "";
+        const hasSavedOption =
+          !savedValue || genres.some((genre) => genre.name === savedValue);
+
+        return (
+          <select
+            id="primaryGenre"
+            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${hasError ? "border-red-500" : ""
+              }`}
+            value={savedValue}
+            onChange={(e) => {
+              field.onChange(e.target.value);
+              onGenreChange();
+            }}
+            onBlur={field.onBlur}
+            name={field.name}
+            ref={field.ref}
+          >
+            <option value="">Select a genre</option>
+            {genresLoading ? (
+              <option disabled>Loading genres...</option>
+            ) : (
+              <>
+                {!hasSavedOption && savedValue && (
+                  <option value={savedValue}>{savedValue}</option>
+                )}
+                {genres.map((genre) => (
+                  <option key={genre._id} value={genre.name}>
+                    {genre.name}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+        );
+      }}
+    />
+  );
+});
+
+const SecondaryGenreSelect = memo(function SecondaryGenreSelect({
+  control,
+  primaryGenre,
+  subGenres,
+  subGenresLoading,
+  hasError,
+}: {
+  control: ReturnType<typeof useFormContext<UploadFormData>>["control"];
+  primaryGenre: string;
+  subGenres: SubGenre[];
+  subGenresLoading: boolean;
+  hasError: boolean;
+}) {
+  return (
+    <Controller
+      name="secondaryGenre"
+      control={control}
+      render={({ field }) => {
+        const savedValue = field.value ?? "";
+        const hasSavedOption =
+          !savedValue || subGenres.some((subGenre) => subGenre.name === savedValue);
+
+        return (
+          <select
+            id="secondaryGenre"
+            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${hasError ? "border-red-500" : ""
+              }`}
+            value={savedValue}
+            onChange={(e) => field.onChange(e.target.value)}
+            onBlur={field.onBlur}
+            name={field.name}
+            ref={field.ref}
+            disabled={
+              !primaryGenre ||
+              (subGenresLoading && subGenres.length === 0 && !savedValue)
+            }
+          >
+            <option value="">
+              {!primaryGenre
+                ? "Select a genre first"
+                : subGenresLoading && subGenres.length === 0 && !savedValue
+                  ? "Loading sub-genres..."
+                  : "Select a sub-genre"}
+            </option>
+            {!hasSavedOption && savedValue && (
+              <option value={savedValue}>{savedValue}</option>
+            )}
+            {subGenres.map((subGenre) => (
+              <option key={subGenre._id} value={subGenre.name}>
+                {subGenre.name}
+              </option>
+            ))}
+          </select>
+        );
+      }}
     />
   );
 });
@@ -94,18 +227,60 @@ export default function CreditsStep({
     control,
     watch,
     setValue,
+    clearErrors,
     formState: { errors },
   } = useFormContext<UploadFormData>();
 
   const format = watch("format");
   const tracks = watch("tracks") || [];
+  const audioFiles = watch("audioFiles") || [];
+  const audioFileData = watch("audioFile");
+  const previewClipStartTime = watch("previewClipStartTime");
+  const {
+    hasAudio: hasCrbtAudio,
+    playbackSource,
+    isResolving: isResolvingCrbtAudio,
+    resolveError: crbtAudioError,
+    trackDurationSec,
+  } = useResolvedCrbtPlayback(audioFileData, audioFiles, tracks);
+  const isCrbtEligible = isTrackEligibleForCrbt(trackDurationSec);
+  const handlePreviewClipChange = useCallback(
+    (time: string) => {
+      setValue("previewClipStartTime", time, { shouldValidate: true });
+      if (format === "single" && tracks.length > 0) {
+        const updatedTracks = tracks.map((track, index) =>
+          index === 0 ? { ...track, previewClipStartTime: time } : track,
+        );
+        setValue("tracks", updatedTracks, { shouldValidate: true });
+      }
+    },
+    [format, setValue, tracks],
+  );
   const isSingle = format === "single";
   const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false;
   const instrumentalValue = watch("instrumental");
 
-  // ISRC State
-  const [showIsrc, setShowIsrc] = useState(false);
+  // ISRC State — restore checkbox when returning to this step with a saved ISRC
+  const isrcValue = watch("isrc");
+  const [showIsrc, setShowIsrc] = useState(() => !!isrcValue);
+  useEffect(() => {
+    if (isrcValue) {
+      setShowIsrc(true);
+    }
+  }, [isrcValue]);
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (!isCrbtEligible && previewClipStartTime) {
+      setValue("previewClipStartTime", "", { shouldValidate: true });
+      if (format === "single" && tracks.length > 0) {
+        const updatedTracks = tracks.map((track, index) =>
+          index === 0 ? { ...track, previewClipStartTime: "" } : track,
+        );
+        setValue("tracks", updatedTracks, { shouldValidate: true });
+      }
+    }
+  }, [format, isCrbtEligible, previewClipStartTime, setValue, tracks]);
 
   // Genres state
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -143,6 +318,10 @@ export default function CreditsStep({
   const subGenreRequestRef = useRef(0);
   const primaryGenre = watch("primaryGenre");
   const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumentalValue);
+  const availableGenres = useMemo(
+    () => filterGenresForInstrumentalChoice(genres, instrumentalValue),
+    [genres, instrumentalValue],
+  );
 
   const loadSubGenres = useCallback(
     async (genreName: string) => {
@@ -206,14 +385,68 @@ export default function CreditsStep({
     name: "composers",
   });
 
-  // Instrumental genre → auto-mark as no-lyrics track
+  const handleInstrumentalChange = useCallback(
+    (value: "yes" | "no") => {
+      setValue("instrumental", value, { shouldValidate: true });
+
+      if (value === "yes") {
+        setValue("language", INSTRUMENTAL_LANGUAGE, { shouldValidate: true });
+        clearErrors("language");
+        const instrumentalGenre = resolveInstrumentalPrimaryGenre(genres);
+        if (instrumentalGenre) {
+          setValue("primaryGenre", instrumentalGenre, { shouldValidate: true });
+          setValue("secondaryGenre", "");
+        } else if (primaryGenre && !isInstrumentalPrimaryGenre(primaryGenre)) {
+          setValue("primaryGenre", "");
+          setValue("secondaryGenre", "");
+        }
+        return;
+      }
+
+      const currentLanguage = watch("language");
+      if (currentLanguage === INSTRUMENTAL_LANGUAGE) {
+        setValue("language", "");
+      }
+      if (primaryGenre && isInstrumentalPrimaryGenre(primaryGenre)) {
+        setValue("primaryGenre", "");
+        setValue("secondaryGenre", "");
+      }
+    },
+    [genres, primaryGenre, setValue, watch, clearErrors],
+  );
+
   useEffect(() => {
-    if (!isInstrumentalPrimaryGenre(primaryGenre)) {
+    if (isInstrumentalPrimaryGenre(primaryGenre)) {
+      setValue("instrumental", "yes");
+      setValue("language", INSTRUMENTAL_LANGUAGE, { shouldValidate: true });
+      clearErrors("language");
+    }
+  }, [primaryGenre, setValue, clearErrors]);
+
+  useEffect(() => {
+    if (isInstrumentalSelection(instrumentalValue)) {
+      setValue("language", INSTRUMENTAL_LANGUAGE, { shouldValidate: true });
+      clearErrors("language");
+    }
+  }, [instrumentalValue, setValue, clearErrors]);
+
+  useEffect(() => {
+    if (
+      !isInstrumentalSelection(instrumentalValue) ||
+      genresLoading ||
+      genres.length === 0
+    ) {
       return;
     }
-    setValue("instrumental", "yes");
-    setValue("language", INSTRUMENTAL_LANGUAGE);
-  }, [primaryGenre, setValue]);
+
+    const instrumentalGenre = resolveInstrumentalPrimaryGenre(genres);
+    if (!instrumentalGenre) return;
+
+    if (!primaryGenre || !isInstrumentalPrimaryGenre(primaryGenre)) {
+      setValue("primaryGenre", instrumentalGenre, { shouldValidate: true });
+      setValue("secondaryGenre", "");
+    }
+  }, [instrumentalValue, genres, genresLoading, primaryGenre, setValue]);
 
   // No-lyrics track → clear lyric-related fields
   useEffect(() => {
@@ -246,10 +479,18 @@ export default function CreditsStep({
     appendComposer("");
   };
 
+  const handlePrimaryGenreChange = useCallback(() => {
+    setValue("secondaryGenre", "", { shouldDirty: true });
+  }, [setValue]);
 
   return (
     <>
       <div className="space-y-4">
+        {errors.tracks?.message && (
+          <p className="text-sm text-red-500 rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2">
+            {String(errors.tracks.message)}
+          </p>
+        )}
 
         <h3 className="text-xl font-semibold">Credits & Metadata</h3>
         <p className="text-muted-foreground">Give credit to everyone involved</p>
@@ -263,16 +504,25 @@ export default function CreditsStep({
             <p className="text-sm text-muted-foreground">
               iTunes and Amazon (USD)
             </p>
-            <select
-              id="trackPrice"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              {...register("trackPrice")}
-              defaultValue="0.99"
-            >
-              <option value="0.69">$0.69</option>
-              <option value="0.99">$0.99</option>
-              <option value="1.29">$1.29</option>
-            </select>
+            <Controller
+              name="trackPrice"
+              control={control}
+              render={({ field }) => (
+                <select
+                  id="trackPrice"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={field.value ?? "0.99"}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                >
+                  <option value="0.69">$0.69</option>
+                  <option value="0.99">$0.99</option>
+                  <option value="1.29">$1.29</option>
+                </select>
+              )}
+            />
             <p className="text-xs text-muted-foreground">
               Tracks over 10 minutes long will be priced higher.
             </p>
@@ -349,6 +599,52 @@ export default function CreditsStep({
           {/* Show these fields only for Singles */}
           {isSingle && (
             <>
+              {/* Instrumental — first so genre & language follow this choice */}
+              <div className="space-y-3 pt-6 border-t border-border">
+                <Label className="text-lg font-semibold">Is Instrumental?</Label>
+                <p className="text-sm text-muted-foreground">
+                  Choose first — genre and language options below will update based on your answer.
+                </p>
+
+                <Controller
+                  name="instrumental"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="instrumentalNo"
+                          value="no"
+                          checked={field.value === "no"}
+                          onChange={() => handleInstrumentalChange("no")}
+                          onBlur={field.onBlur}
+                          className="h-4 w-4"
+                        />
+                        <Label htmlFor="instrumentalNo" className="font-normal cursor-pointer">
+                          This song contains lyrics
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="instrumentalYes"
+                          value="yes"
+                          checked={field.value === "yes"}
+                          onChange={() => handleInstrumentalChange("yes")}
+                          onBlur={field.onBlur}
+                          className="h-4 w-4"
+                        />
+                        <Label htmlFor="instrumentalYes" className="font-normal cursor-pointer">
+                          This song is instrumental and contains no lyrics
+                        </Label>
+                      </div>
+                    </div>
+                  )}
+                />
+              </div>
+
               {/* ISRC Logic for Single */}
               <div className="space-y-4 pt-6 border-t border-border">
                 <div className="flex flex-col space-y-2">
@@ -419,50 +715,6 @@ export default function CreditsStep({
                 )}
               </div>
 
-              {/* Previously Released */}
-              <div className="space-y-3 pt-6 border-t border-border">
-                <Label className="text-lg font-semibold">
-                  Has this single been previously released?<span className="text-red-500 ml-1">*</span>
-                </Label>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="previouslyReleased-no"
-                      value="no"
-                      {...register("previouslyReleased")}
-                      className="h-4 w-4 border-primary text-primary focus:ring-primary"
-                    />
-                    <Label
-                      htmlFor="previouslyReleased-no"
-                      className="font-normal cursor-pointer"
-                    >
-                      No
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="previouslyReleased-yes"
-                      value="yes"
-                      {...register("previouslyReleased")}
-                      className="h-4 w-4 border-primary text-primary focus:ring-primary"
-                    />
-                    <Label
-                      htmlFor="previouslyReleased-yes"
-                      className="font-normal cursor-pointer"
-                    >
-                      Yes
-                    </Label>
-                  </div>
-                </div>
-                {errors.previouslyReleased && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {String(errors.previouslyReleased.message)}
-                  </p>
-                )}
-              </div>
-
               {/* Genres */}
               <div className="space-y-4 mt-6">
                 <div className="space-y-3">
@@ -472,27 +724,13 @@ export default function CreditsStep({
                       <span className="text-red-500 ml-1">*</span>
                     )}
                   </Label>
-                  <select
-                    id="primaryGenre"
-                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.primaryGenre ? "border-red-500" : ""
-                      }`}
-                    {...register("primaryGenre", {
-                      onChange: () => {
-                        setValue("secondaryGenre", "", { shouldDirty: true });
-                      },
-                    })}
-                  >
-                    <option value="">Select a genre</option>
-                    {genresLoading ? (
-                      <option disabled>Loading genres...</option>
-                    ) : (
-                      genres.map((genre) => (
-                        <option key={genre._id} value={genre.name}>
-                          {genre.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
+                  <PrimaryGenreSelect
+                    control={control}
+                    genres={availableGenres}
+                    genresLoading={genresLoading}
+                    hasError={!!errors.primaryGenre}
+                    onGenreChange={handlePrimaryGenreChange}
+                  />
                   {errors.primaryGenre && (
                     <p className="text-xs text-red-500 mt-1">
                       {String(errors.primaryGenre.message)}
@@ -510,29 +748,13 @@ export default function CreditsStep({
                       <span className="text-red-500 ml-1">*</span>
                     )}
                   </Label>
-                  <select
-                    id="secondaryGenre"
-                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.secondaryGenre ? "border-red-500" : ""
-                      }`}
-                    {...register("secondaryGenre")}
-                    disabled={
-                      !primaryGenre ||
-                      (subGenresLoading && subGenres.length === 0)
-                    }
-                  >
-                    <option value="">
-                      {!primaryGenre
-                        ? "Select a genre first"
-                        : subGenresLoading && subGenres.length === 0
-                          ? "Loading sub-genres..."
-                          : "Select a sub-genre"}
-                    </option>
-                    {subGenres.map((subGenre) => (
-                      <option key={subGenre._id} value={subGenre.name}>
-                        {subGenre.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SecondaryGenreSelect
+                    control={control}
+                    primaryGenre={primaryGenre ?? ""}
+                    subGenres={subGenres}
+                    subGenresLoading={subGenresLoading}
+                    hasError={!!errors.secondaryGenre}
+                  />
                   {errors.secondaryGenre && (
                     <p className="text-xs text-red-500 mt-1">
                       {String(errors.secondaryGenre.message)}
@@ -547,31 +769,41 @@ export default function CreditsStep({
                   <Label htmlFor="mood" className="text-lg font-semibold">
                     Vibe<span className="text-red-500 ml-1">*</span>
                   </Label>
-                  <select
-                    id="mood"
-                    className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.mood ? "border-red-500" : ""
-                      }`}
-                    {...register("mood")}
-                  >
-                    <option value="">Select a mood</option>
-                    <option value="Romantic">Romantic</option>
-                    <option value="Happy">Happy</option>
-                    <option value="Sad">Sad</option>
-                    <option value="Dance">Dance</option>
-                    <option value="Bhangra">Bhangra</option>
-                    <option value="Patriotic">Patriotic</option>
-                    <option value="Nostalgic">Nostalgic</option>
-                    <option value="Inspirational">Inspirational</option>
-                    <option value="Enthusiastic">Enthusiastic</option>
-                    <option value="Optimistic">Optimistic</option>
-                    <option value="Passion">Passion</option>
-                    <option value="Pessimistic">Pessimistic</option>
-                    <option value="Spiritual">Spiritual</option>
-                    <option value="Peppy">Peppy</option>
-                    <option value="Philosophical">Philosophical</option>
-                    <option value="Mellow">Mellow</option>
-                    <option value="Calm">Calm</option>
-                  </select>
+                  <Controller
+                    name="mood"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        id="mood"
+                        className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${errors.mood ? "border-red-500" : ""
+                          }`}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      >
+                        <option value="">Select a mood</option>
+                        <option value="Romantic">Romantic</option>
+                        <option value="Happy">Happy</option>
+                        <option value="Sad">Sad</option>
+                        <option value="Dance">Dance</option>
+                        <option value="Bhangra">Bhangra</option>
+                        <option value="Patriotic">Patriotic</option>
+                        <option value="Nostalgic">Nostalgic</option>
+                        <option value="Inspirational">Inspirational</option>
+                        <option value="Enthusiastic">Enthusiastic</option>
+                        <option value="Optimistic">Optimistic</option>
+                        <option value="Passion">Passion</option>
+                        <option value="Pessimistic">Pessimistic</option>
+                        <option value="Spiritual">Spiritual</option>
+                        <option value="Peppy">Peppy</option>
+                        <option value="Philosophical">Philosophical</option>
+                        <option value="Mellow">Mellow</option>
+                        <option value="Calm">Calm</option>
+                      </select>
+                    )}
+                  />
                   {errors.mood && (
                     <p className="text-xs text-red-500 mt-1">
                       {String(errors.mood.message)}
@@ -588,9 +820,14 @@ export default function CreditsStep({
                   </Label>
                   <LanguageSelect
                     control={control}
-                    primaryGenre={primaryGenre ?? ""}
+                    isNoLyricsTrack={isNoLyricsTrack}
                     hasError={!!errors.language}
                   />
+                  {isNoLyricsTrack && (
+                    <p className="text-xs text-muted-foreground">
+                      Language is set to Instrumental for tracks without lyrics.
+                    </p>
+                  )}
                   {errors.language && (
                     <p className="text-xs text-red-500 mt-1">
                       {String(errors.language.message)}
@@ -624,50 +861,6 @@ export default function CreditsStep({
                 </div>
               </div>
 
-              {/* Instrumental */}
-              <div className="space-y-3 pt-6 border-t border-border">
-                <Label className="text-lg font-semibold">Is Instrumental?</Label>
-
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="instrumentalNo"
-                      value="no"
-                      disabled={isNoLyricsTrack}
-                      {...register("instrumental")}
-                      className="h-4 w-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    <Label
-                      htmlFor="instrumentalNo"
-                      className={`font-normal ${
-                        isNoLyricsTrack
-                          ? "opacity-50 cursor-not-allowed"
-                          : "cursor-pointer"
-                      }`}
-                    >
-                      This song contains lyrics
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="instrumentalYes"
-                      value="yes"
-                      {...register("instrumental")}
-                      className="h-4 w-4"
-                    />
-                    <Label
-                      htmlFor="instrumentalYes"
-                      className="font-normal cursor-pointer"
-                    >
-                      This song is instrumental and contains no lyrics
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
               {/* Writers - Hidden when instrumental is yes */}
               {fieldRules.songwriters?.allow !== false && !isNoLyricsTrack && (
                 <div className="space-y-4 pt-6 border-t border-border">
@@ -679,7 +872,7 @@ export default function CreditsStep({
                       )}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.
+                      Real names, not stage names. {LEGAL_PERSON_NAME_HINT}
                     </p>
                   </div>
 
@@ -690,7 +883,7 @@ export default function CreditsStep({
                     >
                       <div className="grid grid-cols-1 gap-1">
                         <Input
-                          placeholder={`Enter Firstname Lastname ${fieldRules.songwriters?.required !== false ? "*" : ""
+                          placeholder={`Legal full name ${fieldRules.songwriters?.required !== false ? "*" : ""
                             }`}
                           {...register(`writers.${index}` as const)}
                           className="text-sm"
@@ -738,7 +931,7 @@ export default function CreditsStep({
                       )}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.
+                      Real names, not stage names. {LEGAL_PERSON_NAME_HINT}
                     </p>
                   </div>
 
@@ -749,7 +942,7 @@ export default function CreditsStep({
                     >
                       <div className="grid grid-cols-1 gap-1">
                         <Input
-                          placeholder={`Enter Firstname Lastname ${fieldRules.composers?.required !== false ? "*" : ""
+                          placeholder={`Legal full name ${fieldRules.composers?.required !== false ? "*" : ""
                             }`}
                           {...register(`composers.${index}` as const)}
                           className="text-sm"
@@ -796,43 +989,49 @@ export default function CreditsStep({
                   </span>
                 </Label>
 
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="isExplicitNo"
-                      value="false"
-                      {...register("isExplicit", {
-                        setValueAs: (v) => v === 'true'
-                      })}
-                      className="h-4 w-4"
-                    />
-                    <Label
-                      htmlFor="isExplicitNo"
-                      className="font-normal cursor-pointer"
-                    >
-                      No - Clean content
-                    </Label>
-                  </div>
+                <Controller
+                  name="isExplicit"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="isExplicitNo"
+                          value="false"
+                          checked={field.value === false}
+                          onChange={() => field.onChange(false)}
+                          onBlur={field.onBlur}
+                          className="h-4 w-4"
+                        />
+                        <Label
+                          htmlFor="isExplicitNo"
+                          className="font-normal cursor-pointer"
+                        >
+                          No - Clean content
+                        </Label>
+                      </div>
 
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="isExplicitYes"
-                      value="true"
-                      {...register("isExplicit", {
-                        setValueAs: (v) => v === 'true'
-                      })}
-                      className="h-4 w-4"
-                    />
-                    <Label
-                      htmlFor="isExplicitYes"
-                      className="font-normal cursor-pointer"
-                    >
-                      Yes - Contains explicit content
-                    </Label>
-                  </div>
-                </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="isExplicitYes"
+                          value="true"
+                          checked={field.value === true}
+                          onChange={() => field.onChange(true)}
+                          onBlur={field.onBlur}
+                          className="h-4 w-4"
+                        />
+                        <Label
+                          htmlFor="isExplicitYes"
+                          className="font-normal cursor-pointer"
+                        >
+                          Yes - Contains explicit content
+                        </Label>
+                      </div>
+                    </div>
+                  )}
+                />
               </div>
               )}
 
@@ -848,11 +1047,33 @@ export default function CreditsStep({
                 </Label>
 
                 <div className="mt-4">
-                  <WaveformTrimmer
-                    audioFile={watch("audioFile")?.file}
-                    initialStartTime={watch("previewClipStartTime")}
-                    onTimeChange={(time) => setValue("previewClipStartTime", time, { shouldValidate: true })}
-                  />
+                  {!hasCrbtAudio ? (
+                    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+                      <p className="text-sm text-amber-200/90">
+                        Upload or load the audio file first to choose a song highlight clip.
+                      </p>
+                    </div>
+                  ) : isResolvingCrbtAudio ? (
+                    <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-8 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Loading audio waveform...
+                      </p>
+                    </div>
+                  ) : crbtAudioError ? (
+                    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
+                      <p className="text-sm text-red-200/90">{crbtAudioError}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Go back to the Audio step and confirm the file is validated, then return here.
+                      </p>
+                    </div>
+                  ) : playbackSource ? (
+                    <WaveformTrimmer
+                      audioFile={playbackSource}
+                      trackDurationSec={trackDurationSec}
+                      initialStartTime={previewClipStartTime}
+                      onTimeChange={handlePreviewClipChange}
+                    />
+                  ) : null}
                   {errors.previewClipStartTime && (
                     <p className="text-xs text-red-500 mt-2">
                       {errors.previewClipStartTime.message}

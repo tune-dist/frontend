@@ -272,7 +272,7 @@ function AuthContent() {
         data.email,
         data.password,
         data.fullName,
-        'artist',
+        undefined,
         googleId,
         spotifyId,
         avatar,
@@ -474,7 +474,7 @@ function AuthContent() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <Button
                         type="button"
                         variant="outline"
@@ -491,6 +491,7 @@ function AuthContent() {
                         )}
                         Google
                       </Button>
+                      {/* <spotify-oauth-button />
                       <Button
                         type="button"
                         variant="outline"
@@ -507,6 +508,7 @@ function AuthContent() {
                         )}
                         Spotify
                       </Button>
+                      */}
                     </div>
                   </form>
                 )}
@@ -660,7 +662,7 @@ function AuthContent() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <Button
                       type="button"
                       variant="outline"
@@ -677,6 +679,7 @@ function AuthContent() {
                       )}
                       Google
                     </Button>
+                    {/* <spotify-oauth-button />
                     <Button
                       type="button"
                       variant="outline"
@@ -693,6 +696,7 @@ function AuthContent() {
                       )}
                       Spotify
                     </Button>
+                    */}
                   </div>
                 </form>
               </TabsContent>

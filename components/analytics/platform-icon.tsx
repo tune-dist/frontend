@@ -102,8 +102,8 @@ export function PlatformFilterButton({
         <Image
           src={platform.logo}
           alt={platform.label}
-          width={36}
-          height={36}
+          width={50}
+          height={50}
           className={cn(
             "h-8 w-auto max-w-[5.5rem] object-contain",
             isActive && "brightness-0 invert",
@@ -113,7 +113,7 @@ export function PlatformFilterButton({
         <PlatformLogo
           dsp={platform.key}
           label={platform.label}
-          size={32}
+          size={50}
           active={isActive}
         />
       )}
@@ -128,26 +128,15 @@ interface PlatformLegendItemProps {
 }
 
 export function PlatformLegendItem({ dsp, label, className }: PlatformLegendItemProps) {
-  const logo = getPlatformLogo(dsp);
+  const color = getPlatformColor(dsp);
 
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      {logo ? (
-        <div className="h-9 w-9 rounded-lg bg-white/95 flex items-center justify-center shrink-0 p-1.5">
-          <Image
-            src={logo}
-            alt={label}
-            width={28}
-            height={28}
-            className="h-6 w-auto max-w-full object-contain"
-          />
-        </div>
-      ) : (
-        <div
-          className="h-3.5 w-3.5 rounded-full shrink-0"
-          style={{ backgroundColor: getPlatformColor(dsp) }}
-        />
-      )}
+      <div
+        className="h-9 w-9 rounded-lg shrink-0 shadow-sm"
+        style={{ backgroundColor: color }}
+        title={label}
+      />
     </div>
   );
 }

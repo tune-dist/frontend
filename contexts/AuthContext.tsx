@@ -5,7 +5,6 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { User, login as apiLogin, register as apiRegister, getMe, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword, verifyOtp as apiVerifyOtp, resendOtp as apiResendOtp, LoginResponse } from '@/lib/api/auth';
 import { config } from '@/lib/config';
-import { getErrorMessage } from '@/lib/api-client';
 import { AUTH_USER_UPDATED_EVENT } from '@/lib/auth-session';
 
 interface AuthContextType {
@@ -100,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       return response;
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, [router]);
 
@@ -128,13 +127,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(response.user);
       router.push(redirectUrl || '/dashboard');
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, [router]);
 
-  const register = React.useCallback(async (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string, verificationToken?: string) => {
+  const register = React.useCallback(async (email: string, password: string, fullName: string, _role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string, verificationToken?: string) => {
     try {
-      const response = await apiRegister({ email, password, fullName, role, googleId, spotifyId, avatar, verificationToken });
+      const response = await apiRegister({ email, password, fullName, googleId, spotifyId, avatar, verificationToken });
 
       // If registration returns tokens, log the user in directly (skipping OTP)
       if (response.access_token && response.refresh_token) {
@@ -162,7 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await login(email, password, redirectUrl);
       }
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, [login, router]);
 
@@ -209,7 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userData);
       router.push('/dashboard');
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, [router]);
 
@@ -217,7 +216,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await apiResendOtp({ email });
     } catch (error) {
-      throw new Error(getErrorMessage(error));
+      throw error;
     }
   }, []);
 

@@ -169,27 +169,5 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 
-// Helper to handle API errors
-export const getErrorMessage = (error: unknown): string => {
-  console.log('getErrorDebug:', error); // Debug log
-  if (axios.isAxiosError(error)) {
-    console.log('Is Axios Error:', true);
-    const axiosError = error as AxiosError<{ message?: string; error?: string }>;
-
-    // Handle specific network errors
-    if (!axiosError.response) {
-      if (axiosError.code === 'ERR_NETWORK') {
-        return 'Network connection error. Please check if the backend server is running.';
-      }
-      return axiosError.message || 'Unable to connect to the server. Please try again later.';
-    }
-
-    return axiosError.response?.data?.message ||
-      axiosError.response?.data?.error ||
-      axiosError.message ||
-      'An error occurred';
-  }
-  console.log('Is Axios Error:', false);
-  return 'An unexpected error occurred';
-};
+export { getErrorMessage } from './get-error-message';
 

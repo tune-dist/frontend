@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "@/lib/get-error-message";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPromotionByReleaseId } from "@/lib/api/promotions";
@@ -74,7 +75,7 @@ export default function PromotionListingPage() {
             );
             setPromotions(promoMap);
         } catch (error) {
-            toast.error("Failed to fetch releases");
+            toast.error(getErrorMessage(error, "Failed to fetch releases"));
             console.error(error);
         } finally {
             setLoading(false);

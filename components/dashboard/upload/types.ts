@@ -1,12 +1,15 @@
 import { z } from 'zod'
+import {
+    isValidLegalPersonName,
+    LEGAL_PERSON_NAME_HINT,
+} from '@/lib/validation/legal-person-name'
 
 export const songwriterSchema = z.string()
     .refine((val) => {
         if (!val || val.trim() === '') return true;
-        // Strict regex: "^[a-zA-Z]{3,} [a-zA-Z]{3,}$"
-        return /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/.test(val.trim());
+        return isValidLegalPersonName(val);
     }, {
-        message: 'Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.'
+        message: LEGAL_PERSON_NAME_HINT,
     });
 
 export type Songwriter = string;
@@ -19,6 +22,7 @@ export const audioFileSchema = z.object({
     size: z.number().optional(),
     // Fields from Chunk Upload response
     path: z.string().optional(),
+    playbackUrl: z.string().optional(),
     duration: z.number().optional(),
     resolution: z.object({
         width: z.number().optional(),
@@ -87,8 +91,10 @@ export const uploadFormSchema = z.object({
     title: z.string().min(1, 'Title is required'),
     version: z.string().optional(),
     artistName: z.string().min(1, 'Artist Name is required'),
+    cosmosArtistId: z.string().optional(),
     artists: z.array(z.object({
         name: z.string().min(1, 'Artist name is required'),
+        cosmosArtistId: z.string().optional(),
         spotifyProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
         appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
         youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
@@ -141,6 +147,9 @@ export const uploadFormSchema = z.object({
     coverArtConsent: z.boolean().default(false),
     coverArtValidationStatus: z.string().optional(),
     coverArtValidationIssues: z.array(z.any()).default([]),
+    coverArtMetadataStale: z.boolean().default(false),
+    /** True only after the user uploads/replaces cover art in this session. */
+    coverArtChanged: z.boolean().default(false),
     audioConsent: z.boolean().default(false),
     audioDuplicateDetected: z.boolean().default(false),
     audioWarningMessage: z.string().optional(),

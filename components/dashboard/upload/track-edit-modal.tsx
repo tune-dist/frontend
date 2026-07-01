@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Track, Songwriter } from './types'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Music, X, Loader2, Plus, Info, UserCheck } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/lib/api/genres'
@@ -12,13 +12,19 @@ import { useAuth } from '@/contexts/AuthContext'
 import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
 import WaveformTrimmer from './WaveformTrimmer'
+import { getCrbtIneligibilityMessage, isTrackEligibleForCrbt } from './crbt-validation'
+import { getLegalPersonNameError, LEGAL_PERSON_NAME_HINT } from '@/lib/validation/legal-person-name'
 import {
     INSTRUMENTAL_LANGUAGE,
+    filterGenresForInstrumentalChoice,
     isInstrumentalPrimaryGenre,
     isInstrumentalRelease,
+    isInstrumentalSelection,
     LANGUAGE_OPTIONS,
+    resolveInstrumentalPrimaryGenre,
     resolveLanguage,
 } from './genre-language'
+import { searchArtistProfiles, emptySearchResults } from '@/lib/integrations/artist-search.util'
 
 interface TrackEditModalProps {
     isOpen: boolean
@@ -33,7 +39,6 @@ interface TrackEditModalProps {
     mainArtistProfiles?: {
         spotify?: any
         apple?: any
-        youtube?: any
         instagram?: string
         facebook?: string
     }
@@ -68,7 +73,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [isrc, setIsrc] = useState(track?.isrc || '')
     const [isrcError, setIsrcError] = useState('')
     const [showIsrc, setShowIsrc] = useState(!!track?.isrc)
-    const [previouslyReleased, setPreviouslyReleased] = useState(track?.previouslyReleased || 'no')
     const [primaryGenre, setPrimaryGenre] = useState(track?.primaryGenre || '')
     const [secondaryGenre, setSecondaryGenre] = useState(track?.secondaryGenre || '')
     const [previewClipStartTime, setPreviewClipStartTime] = useState(track?.previewClipStartTime || '')
@@ -78,6 +82,14 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [modalFeaturingArtist, setModalFeaturingArtist] = useState(track?.featuringArtist || '')
     const [mood, setMood] = useState(track?.mood || '')
 
+    const linkedAudioFile = useMemo(
+        () => audioFiles.find((af) => af.id === track?.audioFileId),
+        [audioFiles, track?.audioFileId],
+    )
+    const trackDurationSec =
+        typeof linkedAudioFile?.duration === 'number' ? linkedAudioFile.duration : null
+    const isCrbtEligible = isTrackEligibleForCrbt(trackDurationSec)
+
     const areFeaturedArtistsAllowed = (fieldRules || {}).featuredArtists?.allow !== false
 
     // Local state for modal editing
@@ -85,7 +97,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [isSearching, setIsSearching] = useState(false)
     const [creatingNewArtist, setCreatingNewArtist] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
-    const [searchResults, setSearchResults] = useState<{ spotify: any[]; apple: any[]; youtube: any[] }>({ spotify: [], apple: [], youtube: [] })
+    const [searchResults, setSearchResults] = useState(emptySearchResults())
     const searchTimeout = useRef<NodeJS.Timeout>()
 
     const [modalWriters, setModalWriters] = useState<string[]>(
@@ -99,7 +111,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
     const [modalSpotifyProfile, setModalSpotifyProfile] = useState(track?.spotifyProfile || '')
     const [modalAppleMusicProfile, setModalAppleMusicProfile] = useState(track?.appleMusicProfile || '')
-    const [modalYoutubeProfile, setModalYoutubeProfile] = useState(track?.youtubeMusicProfile || '')
     const [instagramStatus, setInstagramStatus] = useState(track?.instagramProfile ? 'yes' : 'no')
     const [facebookStatus, setFacebookStatus] = useState(track?.facebookProfile ? 'yes' : 'no')
     const [instagramUrl, setInstagramUrl] = useState(track?.instagramProfile || '')
@@ -172,15 +183,70 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         void loadSubGenres(primaryGenre)
     }, [primaryGenre, genresLoading, loadSubGenres])
 
-    const isInstrumentalGenre = isInstrumentalPrimaryGenre(primaryGenre)
     const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumental)
+    const availableGenres = useMemo(
+        () => filterGenresForInstrumentalChoice(genres, instrumental),
+        [genres, instrumental],
+    )
+    const languageOptions = isNoLyricsTrack
+        ? [INSTRUMENTAL_LANGUAGE]
+        : LANGUAGE_OPTIONS.filter((lang) => lang !== INSTRUMENTAL_LANGUAGE)
+
+    const handleInstrumentalChange = useCallback((value: 'yes' | 'no') => {
+        setInstrumental(value)
+
+        if (value === 'yes') {
+            setLanguage(INSTRUMENTAL_LANGUAGE)
+            const instrumentalGenre = resolveInstrumentalPrimaryGenre(genres)
+            if (instrumentalGenre) {
+                setPrimaryGenre(instrumentalGenre)
+                setSecondaryGenre('')
+            } else if (primaryGenre && !isInstrumentalPrimaryGenre(primaryGenre)) {
+                setPrimaryGenre('')
+                setSecondaryGenre('')
+            }
+            return
+        }
+
+        if (language === INSTRUMENTAL_LANGUAGE) {
+            setLanguage('')
+        }
+        if (primaryGenre && isInstrumentalPrimaryGenre(primaryGenre)) {
+            setPrimaryGenre('')
+            setSecondaryGenre('')
+        }
+    }, [genres, language, primaryGenre])
 
     useEffect(() => {
-        if (isInstrumentalGenre) {
+        if (isInstrumentalPrimaryGenre(primaryGenre)) {
             setInstrumental('yes')
             setLanguage(INSTRUMENTAL_LANGUAGE)
         }
-    }, [isInstrumentalGenre])
+    }, [primaryGenre])
+
+    useEffect(() => {
+        if (isInstrumentalSelection(instrumental)) {
+            setLanguage(INSTRUMENTAL_LANGUAGE)
+        }
+    }, [instrumental])
+
+    useEffect(() => {
+        if (
+            !isInstrumentalSelection(instrumental) ||
+            genresLoading ||
+            genres.length === 0
+        ) {
+            return
+        }
+
+        const instrumentalGenre = resolveInstrumentalPrimaryGenre(genres)
+        if (!instrumentalGenre) return
+
+        if (!primaryGenre || !isInstrumentalPrimaryGenre(primaryGenre)) {
+            setPrimaryGenre(instrumentalGenre)
+            setSecondaryGenre('')
+        }
+    }, [instrumental, genres, genresLoading, primaryGenre])
 
     useEffect(() => {
         if (isNoLyricsTrack) {
@@ -190,6 +256,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         }
     }, [isNoLyricsTrack])
 
+    useEffect(() => {
+        if (!isCrbtEligible && previewClipStartTime) {
+            setPreviewClipStartTime('')
+        }
+    }, [isCrbtEligible, previewClipStartTime])
+
     // Update state when track changes (switching between different tracks)
     useEffect(() => {
         if (track) {
@@ -197,7 +269,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setLanguage(track.language || '')
             setIsrc(track.isrc || '')
             setShowIsrc(!!track.isrc)
-            setPreviouslyReleased(track.previouslyReleased || 'no')
             setPrimaryGenre(track.primaryGenre || '')
             setSecondaryGenre(track.secondaryGenre || '')
             setPreviewClipStartTime(track.previewClipStartTime || '')
@@ -215,7 +286,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 if (mainArtistProfiles) {
                     setModalSpotifyProfile(mainArtistProfiles.spotify?.id || mainArtistProfiles.spotify || '')
                     setModalAppleMusicProfile(mainArtistProfiles.apple?.id || mainArtistProfiles.apple || '')
-                    setModalYoutubeProfile(mainArtistProfiles.youtube?.id || mainArtistProfiles.youtube || '')
 
                     // Socials Logic (Main Artist)
                     let instaUrl = ''
@@ -254,7 +324,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 setModalArtistSearch(track.artistName || '')
                 setModalSpotifyProfile(track.spotifyProfile || '')
                 setModalAppleMusicProfile(track.appleMusicProfile || '')
-                setModalYoutubeProfile(track.youtubeMusicProfile || '')
 
                 setInstagramStatus(track.instagramProfile ? 'yes' : 'no')
                 setFacebookStatus(track.facebookProfile ? 'yes' : 'no')
@@ -271,7 +340,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setModalComposers(track.composers && track.composers.length > 0 ? track.composers : [''])
             setComposerErrors([])
 
-            setSearchResults({ spotify: [], apple: [], youtube: [] })
+            setSearchResults(emptySearchResults())
             setHasSearched(false)
         } else if (isOpen) {
             // New track or empty state
@@ -290,7 +359,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     if (mainArtistProfiles) {
                         if (mainArtistProfiles.spotify) setModalSpotifyProfile(mainArtistProfiles.spotify.id || mainArtistProfiles.spotify);
                         if (mainArtistProfiles.apple) setModalAppleMusicProfile(mainArtistProfiles.apple.id || mainArtistProfiles.apple);
-                        if (mainArtistProfiles.youtube) setModalYoutubeProfile(mainArtistProfiles.youtube.id || mainArtistProfiles.youtube);
 
                         // Handle Socials
                         if (mainArtistProfiles.instagram) {
@@ -349,32 +417,22 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setIsSearching(true)
             searchTimeout.current = setTimeout(async () => {
                 try {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-                    const [spotifyResponse, appleResponse, youtubeResponse] = await Promise.all([
-                        fetch(`${apiUrl}/integrations/spotify/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null),
-                        fetch(`${apiUrl}/integrations/apple/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null),
-                        fetch(`${apiUrl}/integrations/youtube/search?q=${encodeURIComponent(name)}&limit=5`).catch(() => null)
-                    ])
-
-                    const spotifyArtists = spotifyResponse?.ok ? await spotifyResponse.json() : []
-                    const appleArtists = appleResponse?.ok ? await appleResponse.json() : []
-                    const youtubeChannels = youtubeResponse?.ok ? await youtubeResponse.json() : []
-
-                    setSearchResults({
-                        spotify: spotifyArtists,
-                        apple: appleArtists,
-                        youtube: youtubeChannels
+                    const results = await searchArtistProfiles(name, {
+                        spotifyLimit: 5,
+                        appleLimit: 5,
+                        cosmosLimit: 10,
                     })
+                    setSearchResults(results)
                 } catch (error) {
                     console.error('Search error:', error)
-                    setSearchResults({ spotify: [], apple: [], youtube: [] })
+                    setSearchResults(emptySearchResults())
                 } finally {
                     setIsSearching(false)
                     setHasSearched(true)
                 }
             }, 500)
         } else {
-            setSearchResults({ spotify: [], apple: [], youtube: [] })
+            setSearchResults(emptySearchResults())
             setIsSearching(false)
             setHasSearched(false)
         }
@@ -401,15 +459,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     }
 
     const validateName = (name: string): string => {
-        if (!name.trim()) {
-            return ''
-        }
-        // Strict validation: First Name (3+ letters) + Space + Last Name (3+ letters)
-        const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
-        if (!nameRegex.test(name.trim())) {
-            return 'Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.'
-        }
-        return ''
+        return getLegalPersonNameError(name) ?? ''
     }
 
     const handleSave = () => {
@@ -446,17 +496,17 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 return
             }
 
+            if (previewClipStartTime && !isCrbtEligible) {
+                toast.error(getCrbtIneligibilityMessage(trackDurationSec))
+                return
+            }
+
             // Featured Artist validation
             if ((fieldRules as any).featuredArtists?.required && !modalFeaturingArtist?.trim()) {
                 toast.error('Featuring artist is required')
                 return
             }
 
-            // Strict Songwriter/Composer Validation Regex
-            // First Name (3+ letters) + Space + Last Name (3+ letters)
-            const nameRegex = /^[a-zA-Z]{3,} [a-zA-Z]{3,}$/
-
-            // Filter out empty entries before validation
             const filteredWriters = modalWriters.filter(w => w?.trim())
             const filteredComposers = modalComposers.filter(c => c?.trim())
             const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumental)
@@ -469,8 +519,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             }
 
             for (const sw of filteredWriters) {
-                if (!nameRegex.test(sw.trim())) {
-                    toast.error(`Invalid Writer name: "${sw}". Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.`)
+                const writerError = getLegalPersonNameError(sw.trim())
+                if (writerError) {
+                    toast.error(`Invalid Writer name: "${sw}". ${writerError}`)
                     return
                 }
             }
@@ -478,8 +529,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
             // Validate Composers (if provided, must be valid)
             for (const comp of filteredComposers) {
-                if (!nameRegex.test(comp.trim())) {
-                    toast.error(`Invalid Composer name: "${comp}". Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.`)
+                const composerError = getLegalPersonNameError(comp.trim())
+                if (composerError) {
+                    toast.error(`Invalid Composer name: "${comp}". ${composerError}`)
                     return
                 }
             }
@@ -551,20 +603,19 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 title: trackTitle,
                 artistName: modalArtistSearch,
                 language: (() => {
-                    const lang = resolveLanguage(primaryGenre, language)
+                    const lang = resolveLanguage(primaryGenre, language, instrumental)
                     return lang
                         ? lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()
                         : ''
                 })(),
                 isrc,
-                previouslyReleased,
                 primaryGenre,
                 secondaryGenre,
-                previewClipStartTime,
+                previewClipStartTime: isCrbtEligible ? previewClipStartTime : '',
                 version,
                 spotifyProfile: modalSpotifyProfile,
                 appleMusicProfile: modalAppleMusicProfile,
-                youtubeMusicProfile: modalYoutubeProfile,
+                youtubeMusicProfile: '',
                 instagramProfile: instagramUrl,
                 facebookProfile: facebookUrl,
                 isExplicit: isNoLyricsTrack ? false : isExplicit,
@@ -620,14 +671,13 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         <div className="flex items-center justify-between">
                             <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Track Artist</Label>
                             {/* If an artist is selected and we want to change it */}
-                            {(!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) && planLimits.artistLimit !== 1 && (
+                            {(!!modalSpotifyProfile || !!modalAppleMusicProfile) && planLimits.artistLimit !== 1 && (
                                 <button
                                     type="button"
                                     onClick={() => {
                                         handleModalArtistSearch('')
                                         setModalSpotifyProfile('')
                                         setModalAppleMusicProfile('')
-                                        setModalYoutubeProfile('')
                                         setInstagramStatus('no')
                                         setFacebookStatus('no')
                                         setInstagramUrl('')
@@ -642,7 +692,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                         <div className="relative space-y-2">
                             {/* Select from Roster */}
-                            {usedArtists.length > 0 && !(!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) && (
+                            {usedArtists.length > 0 && !(!!modalSpotifyProfile || !!modalAppleMusicProfile) && (
                                 <Select
                                     value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch) ? modalArtistSearch : (creatingNewArtist ? 'new' : '')}
                                     onValueChange={(val) => {
@@ -650,7 +700,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                             handleModalArtistSearch('')
                                             setModalSpotifyProfile('')
                                             setModalAppleMusicProfile('')
-                                            setModalYoutubeProfile('')
                                             setCreatingNewArtist(true)
                                         } else {
                                             const selectedArtist = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === val)
@@ -662,7 +711,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                                 if (typeof selectedArtist === 'object') {
                                                     if (selectedArtist.spotifyProfile) setModalSpotifyProfile(selectedArtist.spotifyProfile)
                                                     if (selectedArtist.appleMusicProfile) setModalAppleMusicProfile(selectedArtist.appleMusicProfile)
-                                                    if (selectedArtist.youtubeMusicProfile) setModalYoutubeProfile(selectedArtist.youtubeMusicProfile)
 
                                                     if (selectedArtist.instagramProfile) {
                                                         if (typeof selectedArtist.instagramProfile === 'string' && selectedArtist.instagramProfile.startsWith('http')) {
@@ -712,17 +760,17 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             )}
 
                             {/* Manual Search Input (only if no roster selection or creating new) */}
-                            {(!usedArtists.length || creatingNewArtist || (modalArtistSearch !== '' && !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch)) || (!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile)) && (
+                            {(!usedArtists.length || creatingNewArtist || (modalArtistSearch !== '' && !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch)) || (!!modalSpotifyProfile || !!modalAppleMusicProfile)) && (
                                 <div className="relative">
                                     <Input
                                         id="track-artist"
                                         placeholder="Search for artist..."
                                         value={modalArtistSearch}
                                         onChange={(e) => handleModalArtistSearch(e.target.value)}
-                                        className={`${isSearching ? 'pr-10' : ''} ${(planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
-                                        readOnly={planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile}
+                                        className={`${isSearching ? 'pr-10' : ''} ${(planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
+                                        readOnly={planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile}
                                     />
-                                    {isSearching && !(!!modalSpotifyProfile || !!modalAppleMusicProfile || !!modalYoutubeProfile) && (
+                                    {isSearching && !(!!modalSpotifyProfile || !!modalAppleMusicProfile) && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                         </div>
@@ -731,11 +779,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             )}
                         </div>
 
-                        {/* Artist Not Found Message */}
+                        {/* Legacy artist-not-found message */}
                         {hasSearched && !isSearching &&
                             searchResults.spotify.length === 0 &&
                             searchResults.apple.length === 0 &&
-                            searchResults.youtube.length === 0 &&
                             modalArtistSearch.length > 2 && (
                                 <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
                                     <p className="text-sm text-yellow-600 dark:text-yellow-400">
@@ -744,8 +791,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                 </div>
                             )}
 
-                        {/* Rich Search Results */}
-                        {modalArtistSearch && modalArtistSearch.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || searchResults.youtube.length > 0 || modalSpotifyProfile || modalAppleMusicProfile || modalYoutubeProfile) && (
+                        {/* Legacy platform search UI — disabled while testing COSMOS-only flow */}
+                        {modalArtistSearch && modalArtistSearch.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || modalSpotifyProfile || modalAppleMusicProfile) && (
                             <div className="space-y-6 pt-4 border-t border-border/50">
                                 <div className="flex items-center justify-between">
                                     <h4 className="font-semibold text-sm text-foreground">
@@ -753,7 +800,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     </h4>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* Spotify Results */}
                                     {(searchResults.spotify.length > 0 || modalSpotifyProfile) && (
                                         <div className="space-y-3 flex flex-col h-full">
@@ -1133,193 +1180,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                         </div>
                                     )}
 
-                                    {/* YouTube Section */}
-                                    {(searchResults.youtube.length > 0 || modalYoutubeProfile) && (
-                                        <div className="space-y-3 flex flex-col h-full">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <svg className="h-5 w-5 text-[#FF0000] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                                                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                                                    </svg>
-                                                    <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">YouTube Music</span>
-                                                </div>
-                                            </div>
-
-                                            {!modalYoutubeProfile ? (
-                                                <>
-                                                    {searchResults.youtube.map((profile: any) => (
-                                                        <div
-                                                            key={profile.id}
-                                                            className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
-                                                            onClick={() => setModalYoutubeProfile(profile.id)}
-                                                        >
-                                                            <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                                <div className="h-2 w-2 rounded-full hidden" />
-                                                            </div>
-                                                            {profile.image ? (
-                                                                <img src={profile.image} alt={profile.name} className="h-10 w-10 rounded-full object-cover" />
-                                                            ) : (
-                                                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                                    <Music className="h-5 w-5 text-muted-foreground" />
-                                                                </div>
-                                                            )}
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-foreground">{profile.name}</p>
-                                                                <p className="text-sm text-muted-foreground">{profile.track || 'YouTube Channel'}</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-
-                                                    <div className="space-y-2 mt-4">
-                                                        <div
-                                                            className="flex items-center gap-3 p-3 rounded-md hover:bg-accent cursor-pointer transition-colors"
-                                                            onClick={() => setModalYoutubeProfile('new')}
-                                                        >
-                                                            <div className="h-10 w-10 rounded-full border border-dashed border-primary flex items-center justify-center bg-primary/5">
-                                                                <Plus className="h-5 w-5 text-primary" />
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-foreground">Create New Channel</p>
-                                                                <p className="text-sm text-muted-foreground">Create a new YouTube Music channel for <strong>{modalArtistSearch}</strong></p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="bg-primary/10 border border-primary rounded-md p-3">
-                                                    {modalYoutubeProfile === 'new' ? (
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-10 w-10 rounded-full border border-dashed border-primary flex items-center justify-center bg-primary/5">
-                                                                <Plus className="h-5 w-5 text-primary" />
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-primary">New YouTube Channel</p>
-                                                                <p className="text-sm text-muted-foreground">Creating a new channel for {modalArtistSearch}</p>
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                                {!['free', 'solo'].includes(user?.plan || '') && (
-                                                                    <button
-                                                                        onClick={() => setModalYoutubeProfile('')}
-                                                                        className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500 font-medium"
-                                                                        type="button"
-                                                                    >
-                                                                        Change
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        (() => {
-                                                            let selected: any = null;
-
-                                                            if (typeof modalYoutubeProfile === 'object' && modalYoutubeProfile !== null) {
-                                                                selected = modalYoutubeProfile;
-                                                            }
-
-                                                            if (!selected && typeof modalYoutubeProfile === 'string' && modalYoutubeProfile.length > 0 && modalYoutubeProfile !== 'new') {
-                                                                selected = searchResults.youtube.find(a => a.id === modalYoutubeProfile || a.channelUrl === modalYoutubeProfile || a.url === modalYoutubeProfile);
-
-                                                                if (!selected && modalArtistSearch === mainArtistName && mainArtistProfiles?.youtube) {
-                                                                    if (typeof mainArtistProfiles.youtube === 'object' && (mainArtistProfiles.youtube.id === modalYoutubeProfile || mainArtistProfiles.youtube.url === modalYoutubeProfile || mainArtistProfiles.youtube.externalUrl === modalYoutubeProfile || mainArtistProfiles.youtube.channelUrl === modalYoutubeProfile)) {
-                                                                        selected = mainArtistProfiles.youtube;
-                                                                    }
-                                                                }
-
-                                                                if (!selected && usedArtists && usedArtists.length > 0) {
-                                                                    const ua = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch);
-                                                                    if (ua && typeof ua === 'object' && typeof ua.youtubeMusicProfile === 'object' && ua.youtubeMusicProfile !== null) {
-                                                                        if (ua.youtubeMusicProfile.id === modalYoutubeProfile || ua.youtubeMusicProfile.url === modalYoutubeProfile || ua.youtubeMusicProfile.channelUrl === modalYoutubeProfile) {
-                                                                            selected = ua.youtubeMusicProfile;
-                                                                        }
-                                                                    }
-                                                                }
-
-                                                                if (!selected) {
-                                                                    selected = modalYoutubeProfile;
-                                                                }
-                                                            }
-
-                                                            if (!selected) return null;
-
-                                                            if (typeof selected === 'string') {
-                                                                return (
-                                                                    <div className="flex items-center gap-3">
-                                                                        <a
-                                                                            href={selected.startsWith('http') ? selected : undefined}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                                                                            style={{ cursor: selected.startsWith('http') ? 'pointer' : 'default' }}
-                                                                        >
-                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                                                                <svg className="h-5 w-5 text-[#FF0000]" viewBox="0 0 24 24" fill="currentColor">
-                                                                                    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-                                                                                </svg>
-                                                                            </div>
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <p className="font-medium text-primary hover:underline">{modalArtistSearch || 'Profile Linked'}</p>
-                                                                                <p className="text-sm text-muted-foreground truncate" title={selected}>Profile Linked: {selected}</p>
-                                                                            </div>
-                                                                        </a>
-                                                                        <div className="flex items-center gap-1 shrink-0">
-                                                                            <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                                            {!['free', 'solo'].includes(user?.plan || '') && (
-                                                                                <button
-                                                                                    onClick={() => setModalYoutubeProfile('')}
-                                                                                    className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500 font-medium"
-                                                                                    type="button"
-                                                                                >
-                                                                                    Change
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            const profileUrl = selected.externalUrl || selected.url || selected.channelUrl;
-                                                            return (
-                                                                <div className="flex items-center gap-3">
-                                                                    <a
-                                                                        href={profileUrl || undefined}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                                                                        style={{ cursor: profileUrl ? 'pointer' : 'default' }}
-                                                                    >
-                                                                        {selected.image ? (
-                                                                            <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
-                                                                        ) : (
-                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                                                                <Music className="h-5 w-5 text-muted-foreground" />
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <p className={`font-medium text-primary ${profileUrl ? 'hover:underline' : ''} truncate`}>{selected.name}</p>
-                                                                            <p className="text-sm text-muted-foreground truncate">{selected.track || 'YouTube Channel'}</p>
-                                                                        </div>
-                                                                    </a>
-                                                                    <div className="flex items-center gap-1 shrink-0">
-                                                                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                                        {!['free', 'solo'].includes(user?.plan || '') && (
-                                                                            <button
-                                                                                onClick={() => setModalYoutubeProfile('')}
-                                                                                className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500 font-medium"
-                                                                                type="button"
-                                                                            >
-                                                                                Change
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            )
-                                                        })()
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}
@@ -1356,32 +1216,48 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             </div>
                         </div>
                     </div>
-                    {/* Language */}
-                    <div className="space-y-2">
-                        <Label htmlFor="track-language">Language</Label>
-                        <select
-                            id="track-language"
-                            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${isInstrumentalGenre ? 'opacity-80 cursor-not-allowed' : ''}`}
-                            value={isInstrumentalGenre ? INSTRUMENTAL_LANGUAGE : language}
-                            disabled={isInstrumentalGenre}
-                            onChange={(e) => {
-                                if (!isInstrumentalGenre) {
-                                    setLanguage(e.target.value)
-                                }
-                            }}
-                        >
-                            <option value="">Select a language</option>
-                            {LANGUAGE_OPTIONS.map((lang) => (
-                                <option key={lang} value={lang}>
-                                    {lang}
-                                </option>
-                            ))}
-                        </select>
+                    {/* Instrumental — first so genre & language follow this choice */}
+                    <div className="space-y-3 pt-4 border-t border-border">
+                        <Label className="text-lg font-semibold">Is Instrumental?</Label>
+                        <p className="text-sm text-muted-foreground">
+                            Choose first — genre and language options below will update based on your answer.
+                        </p>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-instrumental-no"
+                                    name="track-instrumental"
+                                    value="no"
+                                    checked={instrumental === 'no'}
+                                    onChange={() => handleInstrumentalChange('no')}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="track-instrumental-no" className="font-normal cursor-pointer">
+                                    This song contains lyrics
+                                </Label>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="track-instrumental-yes"
+                                    name="track-instrumental"
+                                    value="yes"
+                                    checked={instrumental === 'yes'}
+                                    onChange={() => handleInstrumentalChange('yes')}
+                                    className="h-4 w-4"
+                                />
+                                <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
+                                    This song is instrumental and contains no lyrics
+                                </Label>
+                            </div>
+                        </div>
                     </div>
 
-
                     {/* ISRC */}
-                    <div className="space-y-4 pt-4 border-t border-border">
+                    <div className="space-y-4 pt-6 border-t border-border">
                         <div className="flex flex-col space-y-2">
                             <Label className="text-lg font-semibold">ISRC</Label>
                             <div className="flex items-center space-x-2">
@@ -1393,10 +1269,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                         const checked = e.target.checked
                                         setShowIsrc(checked)
                                         if (checked) {
-                                            // Pre-fill with default from env if empty
-                                            // if (!isrc) {
-                                            //     setIsrc(process.env.NEXT_PUBLIC_DEFAULT_ISRC || "QZ-K6P-25-00001")
-                                            // }
+                                            if (!isrc) {
+                                                setIsrc(process.env.NEXT_PUBLIC_DEFAULT_ISRC || '')
+                                            }
                                         } else {
                                             setIsrc('')
                                             setIsrcError('')
@@ -1438,35 +1313,6 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         )}
                     </div>
 
-                    {/* Previously Released */}
-                    <div className="space-y-3">
-                        <Label className="text-lg font-semibold">Has this track been previously released?</Label>
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-prev-no"
-                                    name="track-previously-released"
-                                    value="no"
-                                    checked={previouslyReleased === 'no'}
-                                    onChange={() => setPreviouslyReleased('no')}
-                                />
-                                <Label htmlFor="track-prev-no">No</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-prev-yes"
-                                    name="track-previously-released"
-                                    value="yes"
-                                    checked={previouslyReleased === 'yes'}
-                                    onChange={() => setPreviouslyReleased('yes')}
-                                />
-                                <Label htmlFor="track-prev-yes">Yes</Label>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Primary Genre */}
                     <div className="space-y-2">
                         <Label htmlFor="track-genre">Primary Genre <span className="text-red-500">*</span></Label>
@@ -1483,7 +1329,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             {genresLoading ? (
                                 <option disabled>Loading genres...</option>
                             ) : (
-                                genres.map((genre) => (
+                                availableGenres.map((genre) => (
                                     <option key={genre._id} value={genre.name}>
                                         {genre.name}
                                     </option>
@@ -1550,48 +1396,37 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </select>
                     </div>
 
-                    {/* Instrumental */}
-                    <div className="space-y-3 pt-4 border-t">
-                        <Label className="text-lg font-semibold">Is Instrumental?</Label>
-
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-instrumental-no"
-                                    name="track-instrumental"
-                                    value="no"
-                                    checked={instrumental === 'no'}
-                                    disabled={isNoLyricsTrack}
-                                    onChange={() => setInstrumental('no')}
-                                    className="h-4 w-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                                <Label
-                                    htmlFor="track-instrumental-no"
-                                    className={`font-normal ${
-                                        isNoLyricsTrack
-                                            ? "opacity-50 cursor-not-allowed"
-                                            : "cursor-pointer"
-                                    }`}
-                                >
-                                    This song contains lyrics
-                                </Label>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="radio"
-                                    id="track-instrumental-yes"
-                                    name="track-instrumental"
-                                    value="yes"
-                                    checked={instrumental === 'yes'}
-                                    onChange={() => setInstrumental('yes')}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
-                                    This song is instrumental and contains no lyrics
-                                </Label>
-                            </div>
+                    {/* Language */}
+                    <div className="space-y-4 pt-6 border-t border-border">
+                        <div className="space-y-3">
+                            <Label htmlFor="track-language" className="text-lg font-semibold">
+                                Language <span className="text-red-500">*</span>
+                            </Label>
+                            <select
+                                id="track-language"
+                                className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${isNoLyricsTrack ? 'opacity-80 cursor-not-allowed' : ''}`}
+                                value={isNoLyricsTrack ? INSTRUMENTAL_LANGUAGE : language}
+                                disabled={isNoLyricsTrack}
+                                onChange={(e) => {
+                                    if (!isNoLyricsTrack) {
+                                        setLanguage(e.target.value)
+                                    }
+                                }}
+                            >
+                                <option value="">
+                                    {isNoLyricsTrack ? INSTRUMENTAL_LANGUAGE : 'Select a language'}
+                                </option>
+                                {languageOptions.map((lang) => (
+                                    <option key={lang} value={lang}>
+                                        {lang}
+                                    </option>
+                                ))}
+                            </select>
+                            {isNoLyricsTrack && (
+                                <p className="text-xs text-muted-foreground">
+                                    Language is set to Instrumental for tracks without lyrics.
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -1600,12 +1435,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         <div className="space-y-3 pt-4 border-t">
                             <div>
                                 <Label className="text-lg font-semibold">Writer/Author <span className="text-red-500">*</span></Label>
-                                <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.</p>
+                                <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. {LEGAL_PERSON_NAME_HINT}</p>
                             </div>
                             {modalWriters.map((writer, idx) => (
                                 <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
                                     <Input
-                                        placeholder="Enter Firstname Lastname *"
+                                        placeholder="Legal full name *"
                                         value={writer}
                                         onChange={(e) => {
                                             const updated = [...modalWriters]
@@ -1657,12 +1492,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     <div className="space-y-3 pt-4 border-t">
                         <div>
                             <Label className="text-lg font-semibold">Composer</Label>
-                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. Must be "Firstname Lastname" (letters only). First and Last names must be at least 3 characters each.</p>
+                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. {LEGAL_PERSON_NAME_HINT}</p>
                         </div>
                         {modalComposers.map((composer, idx) => (
                             <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
                                 <Input
-                                    placeholder="Enter Firstname Lastname"
+                                    placeholder="Legal full name"
                                     value={composer}
                                     onChange={(e) => {
                                         const updated = [...modalComposers]
@@ -1784,7 +1619,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                         <div className="mt-4">
                             <WaveformTrimmer
-                                audioFile={audioFiles.find(af => af.id === track?.audioFileId)?.file}
+                                audioFile={linkedAudioFile?.playbackUrl ?? linkedAudioFile?.file ?? null}
+                                trackDurationSec={trackDurationSec}
                                 initialStartTime={previewClipStartTime}
                                 onTimeChange={(time) => setPreviewClipStartTime(time)}
                             />
