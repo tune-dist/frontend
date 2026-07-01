@@ -11,8 +11,7 @@ import { getAllPlans, Plan } from '@/lib/api/plans'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import Cookies from 'js-cookie'
-import { config } from '@/lib/config'
-import { isEnterprisePlan, resolvePlanCta } from '@/lib/plans-display'
+import ElectricBorder from '@/components/ElectricBorder'
 
 export default function Pricing() {
   const [plans, setPlans] = useState<Plan[]>([])
@@ -38,7 +37,7 @@ export default function Pricing() {
 
   const handlePlanSelect = async (plan: Plan) => {
     // Check if user is logged in
-    const token = Cookies.get(config.tokenKey)
+    const token = Cookies.get('token')
 
     if (!token) {
       // Redirect to auth page with plan info
@@ -106,7 +105,6 @@ export default function Pricing() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-[1600px] mx-auto items-stretch pt-6">
           {plans.map((plan, index) => {
             const isProcessing = processingPlan === plan.key || (paymentLoading && processingPlan === plan.key)
-            const cta = resolvePlanCta(plan)
 
             return (
               <motion.div
@@ -150,34 +148,15 @@ export default function Pricing() {
                       </ul>
                     </CardContent>
                     <CardFooter className="mt-auto pt-4">
-                      {isEnterprisePlan(plan) ? (
-                        <Link href={cta.href} className="w-full">
-                          <Button
-                            variant="default"
-                            className="w-full animated-gradient-bg border-0 text-white"
-                            size="default"
-                          >
-                            {cta.label}
-                          </Button>
-                        </Link>
-                      ) : (
+                      <Link href={`/contact?plan=${encodeURIComponent(plan.title)}`} className="w-full">
                         <Button
                           variant="default"
                           className="w-full animated-gradient-bg border-0 text-white"
                           size="default"
-                          onClick={() => handlePlanSelect(plan)}
-                          disabled={isProcessing}
                         >
-                          {isProcessing ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            cta.label
-                          )}
+                          Contact Us
                         </Button>
-                      )}
+                      </Link>
                     </CardFooter>
                   </Card>
                 ) : (
@@ -206,34 +185,15 @@ export default function Pricing() {
                       </ul>
                     </CardContent>
                     <CardFooter className="mt-auto pt-4">
-                      {isEnterprisePlan(plan) ? (
-                        <Link href={cta.href} className="w-full">
-                          <Button
-                            variant="outline"
-                            className="w-full animated-gradient-bg-hover"
-                            size="default"
-                          >
-                            {cta.label}
-                          </Button>
-                        </Link>
-                      ) : (
+                      <Link href={`/contact?plan=${encodeURIComponent(plan.title)}`} className="w-full">
                         <Button
                           variant="outline"
                           className="w-full animated-gradient-bg-hover"
                           size="default"
-                          onClick={() => handlePlanSelect(plan)}
-                          disabled={isProcessing}
                         >
-                          {isProcessing ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            cta.label
-                          )}
+                          Contact Us
                         </Button>
-                      )}
+                      </Link>
                     </CardFooter>
                   </Card>
                 )}
