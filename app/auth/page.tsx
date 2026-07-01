@@ -491,6 +491,7 @@ function AuthContent() {
                         )}
                         Google
                       </Button>
+                      {/* Spotify login temporarily disabled
                       <Button
                         type="button"
                         variant="outline"
@@ -507,6 +508,7 @@ function AuthContent() {
                         )}
                         Spotify
                       </Button>
+                      */}
                     </div>
                   </form>
                 )}
@@ -677,6 +679,7 @@ function AuthContent() {
                       )}
                       Google
                     </Button>
+                    {/* Spotify login temporarily disabled
                     <Button
                       type="button"
                       variant="outline"
@@ -693,6 +696,7 @@ function AuthContent() {
                       )}
                       Spotify
                     </Button>
+                    */}
                   </div>
                 </form>
               </TabsContent>
