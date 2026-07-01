@@ -491,7 +491,6 @@ function AuthContent() {
                         )}
                         Google
                       </Button>
-                      {/* <spotify-oauth-button />
                       <Button
                         type="button"
                         variant="outline"
@@ -508,7 +507,6 @@ function AuthContent() {
                         )}
                         Spotify
                       </Button>
-                      */}
                     </div>
                   </form>
                 )}
@@ -679,7 +677,6 @@ function AuthContent() {
                       )}
                       Google
                     </Button>
-                    {/* <spotify-oauth-button />
                     <Button
                       type="button"
                       variant="outline"
@@ -696,7 +693,6 @@ function AuthContent() {
                       )}
                       Spotify
                     </Button>
-                    */}
                   </div>
                 </form>
               </TabsContent>

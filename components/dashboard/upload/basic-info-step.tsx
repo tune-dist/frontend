@@ -269,21 +269,18 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         handleSearch(name, index)
     }
 
-    // Prefill artistName Logic - ONLY if artistLimit is exactly 1
-    // Also attempts to hydrate legacy URL profiles by matching them with search results
+    // Prefill main artist from roster when available (default to first artist, not "Create New")
     useEffect(() => {
         const checkAndPrefillArtist = () => {
-            // Don't prefill if plan limits haven't loaded yet
-            if (!planLimits) return
+            if (!planLimits || creatingNewMain) return
 
             // If explicit artist name is already set and we are not in the middle of hydration check, skip
             // Note: We might want to re-run this if artistName matches usedArtists[0] but profiles are missing
-            if (artistName && artistName !== (typeof usedArtists[0] === 'string' ? usedArtists[0] : usedArtists[0]?.name)) return
+            if (artistName && artistName !== rosterArtistName(usedArtists[0])) return
 
-            // ONLY prefill if plan allows exactly 1 artist AND we have a used artist
-            if (planLimits.artistLimit  === 1 && usedArtists.length > 0) {
+            if (usedArtists.length > 0) {
                 const previousArtistObj = usedArtists[0];
-                const artistNameStr = typeof previousArtistObj === 'string' ? previousArtistObj : previousArtistObj.name;
+                const artistNameStr = rosterArtistName(previousArtistObj);
 
                 if (artistNameStr && artistNameStr !== artistName) {
                     setValue('artistName', artistNameStr, { shouldValidate: true })
@@ -303,7 +300,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
         if (user && planLimits) {
             checkAndPrefillArtist()
         }
-    }, [user, setValue, planLimits, usedArtists, handleSearch]) // Removed artistName to avoid loops, handled inside
+    }, [user, setValue, planLimits, usedArtists, handleSearch, creatingNewMain, artistName])
 
     // Hydrate lean profiles (id/url only) from search results — same as track-edit modal
     useEffect(() => {
@@ -544,11 +541,11 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         {/* Main Artist Field */}
                         <div className="relative flex items-center gap-2">
                             <div className="flex-1 relative space-y-2">
-                                {/* Artist Selection Dropdown - Show if we have used artists */}
-                                {usedArtists.length > 0 && !creatingNewMain && (artistName === '' || usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artistName)) && (
+                                {/* Artist Selection Dropdown — always shown until user picks "Create New Artist" */}
+                                {!creatingNewMain && (artistName === '' || usedArtists.some(a => rosterArtistName(a) === artistName)) && (
                                     <div className="relative">
                                         <Select
-                                            value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === artistName) ? artistName : (isArtistLocked ? '' : 'new')}
+                                            value={usedArtists.find(a => rosterArtistName(a) === artistName) ? artistName : ''}
                                             onValueChange={(val) => {
                                                 if (val === 'new') {
                                                     if (isArtistLocked) {
@@ -614,7 +611,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                     </div>
                                 )}
 
-                                {(!usedArtists.length || creatingNewMain || (artistName !== '' && !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artistName))) && (
+                                {(creatingNewMain || (artistName !== '' && !usedArtists.some(a => rosterArtistName(a) === artistName))) && (
                                     <div className="relative flex items-center gap-2">
                                         <div className="relative flex-1">
                                             <Input
@@ -629,7 +626,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 readOnly={isArtistLocked || !!spotifyProfile || !!appleMusicProfile}
                                                 className={`${errors.artistName ? 'border-red-500' : ''} ${(isArtistLocked || !!spotifyProfile || !!appleMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''} ${(usedArtists.length > 0 || !!spotifyProfile || !!appleMusicProfile) && !isArtistLocked ? 'pr-24' : ''}`}
                                             />
-                                            {(usedArtists.length > 0 || !!spotifyProfile || !!appleMusicProfile) && !isArtistLocked && (
+                                            {(usedArtists.length > 0 || creatingNewMain || !!spotifyProfile || !!appleMusicProfile) && !isArtistLocked && (
                                                 <button
                                                     type="button"
                                                     onClick={() => {
@@ -721,10 +718,10 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                     </Button>
                                 </div>
                                 <div className="relative space-y-2">
-                                    {usedArtists.length > 0 && !creatingNewSecondary[index] && (!artist.name || usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artist.name)) && (
+                                    {!creatingNewSecondary[index] && (!artist.name || usedArtists.some(a => rosterArtistName(a) === artist.name)) && (
                                         <div className="relative">
                                             <Select
-                                                value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === artist.name) ? artist.name : (artist.name ? 'new' : '')}
+                                                value={usedArtists.find(a => rosterArtistName(a) === artist.name) ? artist.name : ''}
                                                 onValueChange={(val) => {
                                                     if (val === 'new') {
                                                         const currentArtists = [...(artists || [])]
@@ -775,7 +772,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                         </div>
                                     )}
 
-                                    {(!usedArtists.length || creatingNewSecondary[index] || (artist.name && !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artist.name))) && (
+                                    {(creatingNewSecondary[index] || (artist.name && !usedArtists.some(a => rosterArtistName(a) === artist.name))) && (
                                         <div className="relative flex items-center gap-2 w-full">
                                             <div className="relative flex-1">
                                                 <Input
@@ -785,7 +782,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                     className={`w-full ${usedArtists.length > 0 ? 'pr-24' : 'pr-10'}`}
                                                     onFocus={() => setActiveSearchIndex(index)}
                                                 />
-                                                {usedArtists.length > 0 && (
+                                                {(usedArtists.length > 0 || creatingNewSecondary[index]) && (
                                                     <button
                                                         type="button"
                                                         onClick={() => {

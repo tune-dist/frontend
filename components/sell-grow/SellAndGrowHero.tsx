@@ -32,7 +32,7 @@ export default function SellAndGrowHero() {
 
           <div className="flex flex-col sm:flex-row gap-4 pt-0 md:pt-4">
             <a
-              href="/contact"
+              href="/auth?tab=signup"
               className="group inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl animated-gradient-bg text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-xl"
             >
               Release Now

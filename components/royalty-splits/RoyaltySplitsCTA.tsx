@@ -17,13 +17,13 @@ export default function RoyaltySplitsCTA() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
           <a
-            href="/contact"
+            href="/auth?tab=signup"
             className="group inline-flex items-center justify-center px-8 py-3.5 rounded-xl animated-gradient-bg text-white font-semibold text-md hover:opacity-90 transition-opacity shadow-xl min-w-[200px] w-full md:w-auto"
           >
             Create Your First Split
           </a>
           <a
-            href="/contact"
+            href="/auth?tab=signup"
             className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl bg-muted/20 hover:bg-white hover:text-black text-white font-semibold text-md transition-colors border border-white/5 min-w-[200px] w-full md:w-auto"
           >
             Schedule a Demo

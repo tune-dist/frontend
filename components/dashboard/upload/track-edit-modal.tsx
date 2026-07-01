@@ -691,10 +691,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </div>
 
                         <div className="relative space-y-2">
-                            {/* Select from Roster */}
-                            {usedArtists.length > 0 && !(!!modalSpotifyProfile || !!modalAppleMusicProfile) && (
+                            {/* Select from Roster — always shown until user picks "Create New Artist" */}
+                            {!(!!modalSpotifyProfile || !!modalAppleMusicProfile) && !creatingNewArtist && (modalArtistSearch === '' || usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch)) && (
                                 <Select
-                                    value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch) ? modalArtistSearch : (creatingNewArtist ? 'new' : '')}
+                                    value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch) ? modalArtistSearch : ''}
                                     onValueChange={(val) => {
                                         if (val === 'new') {
                                             handleModalArtistSearch('')
@@ -759,8 +759,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                 </Select>
                             )}
 
-                            {/* Manual Search Input (only if no roster selection or creating new) */}
-                            {(!usedArtists.length || creatingNewArtist || (modalArtistSearch !== '' && !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch)) || (!!modalSpotifyProfile || !!modalAppleMusicProfile)) && (
+                            {/* Manual Search Input (only after user selects "Create New Artist" or enters a custom name) */}
+                            {(creatingNewArtist || (modalArtistSearch !== '' && !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch)) || (!!modalSpotifyProfile || !!modalAppleMusicProfile)) && (
                                 <div className="relative">
                                     <Input
                                         id="track-artist"
