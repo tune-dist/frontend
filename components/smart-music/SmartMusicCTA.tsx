@@ -38,14 +38,14 @@ export default function SmartMusicCTA() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-0 md:mb-10">
             <a
-              href="/contact"
+              href="/auth?tab=signup"
               className="group inline-flex items-center gap-2 px-10 py-4 rounded-xl animated-gradient-bg text-white font-bold text-base hover:opacity-90 transition-opacity shadow-2xl w-full md:w-auto justify-center"
             >
               Create Account
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </a>
             <a
-              href="/contact"
+              href="/auth?tab=signup"
               className="inline-flex items-center gap-2 px-10 py-4 rounded-xl border border-border/60 bg-muted/30 text-foreground font-bold text-base hover:bg-muted/60 transition-colors w-full md:w-auto justify-center"
             >
               Start Distribution

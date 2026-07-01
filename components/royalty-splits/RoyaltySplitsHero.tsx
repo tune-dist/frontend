@@ -48,13 +48,13 @@ export default function RoyaltySplitsHero() {
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
           <a
-            href="/contact"
+            href="/auth?tab=signup"
             className="group inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl animated-gradient-bg text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-xl min-w-[220px] w-full md:w-auto"
           >
             Start managing splits smarter
           </a>
           <a
-            href="/contact"
+            href="/auth?tab=signup"
             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-muted/30 hover:bg-white hover:text-black text-white font-semibold text-sm transition-colors border border-white/10 min-w-[220px] w-full md:w-auto"
           >
             Start with Kratolib
