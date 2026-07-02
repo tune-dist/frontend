@@ -36,10 +36,12 @@ export function resolveEarningsBadgeClass(plan: Plan): string {
 }
 
 export function resolvePlanCta(plan: Plan): { label: string; href: string } {
+  const contactHref = `/contact?plan=${encodeURIComponent(plan.title)}`;
+
   if (plan.ctaLabel?.trim()) {
     const label = plan.ctaLabel.trim();
-    if (isEnterprisePlan(plan)) {
-      return { label, href: `/contact?plan=${encodeURIComponent(plan.title)}` };
+    if (isEnterprisePlan(plan) || label.toLowerCase() === 'contact us') {
+      return { label, href: contactHref };
     }
     return { label, href: `/auth?plan=${encodeURIComponent(plan.key)}` };
   }
@@ -65,12 +67,48 @@ export function formatReleaseLimit(maxPendingReleases: number): string {
   return `${maxPendingReleases} / year`;
 }
 
+/** Compact homepage line, e.g. "1 artist · 2 releases/year". */
+export function resolvePlanLimitsSummary(plan: Plan): string {
+  const maxArtists = plan.limits?.maxArtists ?? 0;
+  const maxReleases = plan.limits?.maxPendingReleases ?? 0;
+  const unlimitedArtists = maxArtists >= 9999 || maxArtists <= 0;
+
+  if (unlimitedArtists) {
+    return 'Unlimited artists';
+  }
+
+  const artistLabel = `${maxArtists} artist${maxArtists === 1 ? '' : 's'}`;
+  const releaseLabel =
+    maxReleases >= 9999 || maxReleases <= 0
+      ? 'Unlimited releases'
+      : `${maxReleases} releases/year`;
+
+  return `${artistLabel} · ${releaseLabel}`;
+}
+
+export function resolveSupportBadgeLabel(plan: Plan): string {
+  const raw = plan.supportResponse?.trim();
+  if (!raw) return 'Standard support';
+  if (/support/i.test(raw)) return raw;
+  if (/same.?day|priority/i.test(raw)) {
+    return raw.toLowerCase().includes('support') ? raw : 'Same-day priority support';
+  }
+  return `Support within ${raw}`;
+}
+
 export function resolvePlanPeriodLabel(plan: Plan): string | null {
+  if (plan.period?.trim()) return plan.period.trim();
   return derivePeriodLabel(plan);
 }
 
+/** Respect API order; sort by displayOrder when present (backend source of truth). */
 export function sortActivePlans(plans: Plan[]): Plan[] {
   return [...plans]
     .filter((plan) => plan.isActive !== false)
-    .sort((a, b) => a.pricePerYear - b.pricePerYear);
+    .sort((a, b) => {
+      const orderA = a.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.pricePerYear - b.pricePerYear;
+    });
 }
