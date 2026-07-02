@@ -38,6 +38,10 @@ export interface Plan {
   features?: string[];
   ctaLabel?: string;
   isPopular?: boolean;
+  /** Sort order on pricing pages (lower = first). Set by backend/seeder. */
+  displayOrder?: number;
+  /** Display-only support SLA (e.g. "72 hours", "7 days"). */
+  supportResponse?: string;
   /** Linked Razorpay billing plan for auto-renew (amount incl. GST). */
   razorpayPlanId?: string;
   razorpayPlanSyncedAt?: string;
