@@ -9,7 +9,7 @@ import Hero from '@/components/hero'
 import Features from '@/components/features'
 import HowItWorks from '@/components/how-it-works'
 import Testimonials from '@/components/testimonials'
-import Pricing from '@/components/pricing'
+import StaticPricing2 from '@/components/StaticPricing2'
 import Contact from '@/components/contact'
 import FaqSection from '@/components/faq-section'
 import Footer from '@/components/footer'
@@ -43,7 +43,7 @@ export default function HomePage() {
       <Features />
       <HowItWorks />
       <Testimonials />
-      <Pricing />
+      <StaticPricing2 />
       <FaqSection />
       <Suspense fallback={<div className="min-h-[600px] w-full" />}>
         <Contact />
