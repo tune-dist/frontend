@@ -99,6 +99,7 @@ const PrimaryGenreSelect = memo(function PrimaryGenreSelect({
     <Controller
       name="primaryGenre"
       control={control}
+      rules={{ required: 'Primary genre is required' }}
       render={({ field }) => {
         const savedValue = field.value ?? "";
         const hasSavedOption =
@@ -157,6 +158,7 @@ const SecondaryGenreSelect = memo(function SecondaryGenreSelect({
     <Controller
       name="secondaryGenre"
       control={control}
+      rules={{ required: 'Sub-genre is required' }}
       render={({ field }) => {
         const savedValue = field.value ?? "";
         const hasSavedOption =
@@ -720,9 +722,7 @@ export default function CreditsStep({
                 <div className="space-y-3">
                   <Label htmlFor="primaryGenre" className="text-lg font-semibold">
                     Primary genre
-                    {fieldRules.genres?.required === true && (
-                      <span className="text-red-500 ml-1">*</span>
-                    )}
+                    <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <PrimaryGenreSelect
                     control={control}
@@ -744,9 +744,7 @@ export default function CreditsStep({
                     className="text-lg font-semibold"
                   >
                     Sub-genre
-                    {fieldRules.subGenre?.required === true && (
-                      <span className="text-red-500 ml-1">*</span>
-                    )}
+                    <span className="text-red-500 ml-1">*</span>
                   </Label>
                   <SecondaryGenreSelect
                     control={control}

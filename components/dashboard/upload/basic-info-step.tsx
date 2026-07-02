@@ -599,19 +599,21 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                         </SelectItem>
                                                     )
                                                 })}
+                                                {!isArtistLocked && (
                                                 <SelectItem value="new">
                                                     <div className="flex items-center gap-2 text-muted-foreground">
                                                         <Plus className="h-4 w-4" />
                                                         <span>Create New Artist</span>
                                                     </div>
                                                 </SelectItem>
+                                                )}
                                             </SelectContent>
                                         </Select>
                                         {/* Removed Change Artist button for roster selection as per user feedback */}
                                     </div>
                                 )}
 
-                                {(creatingNewMain || (artistName !== '' && !usedArtists.some(a => rosterArtistName(a) === artistName))) && (
+                                {(creatingNewMain || (artistName !== '' && !usedArtists.some(a => rosterArtistName(a) === artistName))) && !isArtistLocked && (
                                     <div className="relative flex items-center gap-2">
                                         <div className="relative flex-1">
                                             <Input

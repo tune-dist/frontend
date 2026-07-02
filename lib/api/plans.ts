@@ -38,6 +38,8 @@ export interface Plan {
   features?: string[];
   ctaLabel?: string;
   isPopular?: boolean;
+  /** Display-only support SLA (e.g. "72 hours", "7 days"). */
+  supportResponse?: string;
   /** Linked Razorpay billing plan for auto-renew (amount incl. GST). */
   razorpayPlanId?: string;
   razorpayPlanSyncedAt?: string;

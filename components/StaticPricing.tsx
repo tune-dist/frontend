@@ -73,6 +73,11 @@ function buildCategories(plans: Plan[]): ComparisonCategory[] {
             resolveArtistKeepPercent(plan) >= 100 ? 'badge-green' : 'badge-orange',
           ),
         },
+        {
+          name: 'Support response',
+          values: plans.map((plan) => plan.supportResponse?.trim() || '—'),
+          valueTypes: plans.map(() => 'pill' as const),
+        },
       ],
     },
   ]
@@ -133,7 +138,7 @@ export default function StaticPricing() {
         >
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight">
             Music Distribution Pricing <br />
-            <span className="animated-gradient">Simple plans for every artist</span>
+            <span className="animated-gradient">₹999/Year with 100% Earnings | Free Starter Plan</span>
           </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
             Choose the plan that fits your needs. All plans include global distribution,
