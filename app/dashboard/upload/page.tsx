@@ -521,15 +521,13 @@ export default function UploadPage() {
           // Validate required fields in Credits step
           if (formData.format === "single") {
             // For singles, validate genre and credits metadata
-            // Also validate songwriters and composers based on fieldRules
             const fieldsToValidate = [
               "primaryGenre",
               "secondaryGenre",
               "language",
             ];
-            // Manual validation for primaryGenre (check fieldRules - database uses 'genres' key)
-            const primaryGenreRequired = fieldRules.genres?.required === true;
-            if (primaryGenreRequired && (!formData.primaryGenre || formData.primaryGenre.trim() === "")) {
+
+            if (!formData.primaryGenre?.trim()) {
               form.setError("primaryGenre", {
                 type: "required",
                 message: "Primary genre is required",
@@ -537,9 +535,7 @@ export default function UploadPage() {
               isValid = false;
             }
 
-            // Manual validation for secondaryGenre (check fieldRules - database uses 'subGenre' key)
-            const secondaryGenreRequired = fieldRules.subGenre?.required === true;
-            if (secondaryGenreRequired && (!formData.secondaryGenre || formData.secondaryGenre.trim() === "")) {
+            if (!formData.secondaryGenre?.trim()) {
               form.setError("secondaryGenre", {
                 type: "required",
                 message: "Sub-genre is required",
