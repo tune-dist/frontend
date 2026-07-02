@@ -44,7 +44,7 @@ export function isPromotableRelease(status: string): boolean {
   );
 }
 
-export const RM_EDITABLE_RELEASE_STATUSES: ReleaseStatus[] = ['In Process'];
+export const RM_EDITABLE_RELEASE_STATUSES: ReleaseStatus[] = ['Draft', 'In Process'];
 
 export function isRmEditableRelease(status: string): boolean {
   return RM_EDITABLE_RELEASE_STATUSES.includes(status as ReleaseStatus);

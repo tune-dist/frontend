@@ -39,7 +39,7 @@ export interface DraftArtists {
 
 export interface DraftGenre {
   primary: string;
-  secondary?: string;
+  secondary: string;
 }
 
 export interface DraftMediaAsset {
