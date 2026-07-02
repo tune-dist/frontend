@@ -131,9 +131,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [router]);
 
-  const register = React.useCallback(async (email: string, password: string, fullName: string, role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string, verificationToken?: string) => {
+  const register = React.useCallback(async (email: string, password: string, fullName: string, _role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string, verificationToken?: string) => {
     try {
-      const response = await apiRegister({ email, password, fullName, role, googleId, spotifyId, avatar, verificationToken });
+      const response = await apiRegister({ email, password, fullName, googleId, spotifyId, avatar, verificationToken });
 
       // If registration returns tokens, log the user in directly (skipping OTP)
       if (response.access_token && response.refresh_token) {

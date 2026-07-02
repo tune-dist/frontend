@@ -11,6 +11,7 @@ import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
+import { selectPlan as apiSelectPlan } from '@/lib/api/payments'
 import toast from 'react-hot-toast'
 import { getErrorMessage } from '@/lib/get-error-message'
 
@@ -30,6 +31,8 @@ interface UpgradePlanModalProps {
     subscriptionStatus?: 'active' | 'cancelled'
     /** Called after a successful payment so the parent can refetch subscription data. */
     onPaymentSuccess?: () => void | Promise<void>
+    /** When true, user must pick a plan — modal cannot be dismissed. */
+    requireSelection?: boolean
 }
 
 // Helper to normalize keys for comparison
@@ -38,7 +41,7 @@ const normalizeKey = (key?: string) => key?.toLowerCase().replace(/_/g, '-') || 
 const ENTERPRISE_PLAN_KEY = 'enterprise'
 const isEnterprisePlan = (plan: Plan) => normalizeKey(plan.key) === ENTERPRISE_PLAN_KEY
 
-export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'free', targetPlanKey, title, subtitle, hasActiveSubscription = false, subscriptionStatus, onPaymentSuccess }: UpgradePlanModalProps) {
+export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'free', targetPlanKey, title, subtitle, hasActiveSubscription = false, subscriptionStatus, onPaymentSuccess, requireSelection = false }: UpgradePlanModalProps) {
     const [plans, setPlans] = useState<Plan[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
@@ -79,6 +82,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
     }, [isOpen, currentPlanKey, targetPlanKey])
 
     const isCurrentPlan = (plan: Plan) => {
+        if (requireSelection) return false
         return normalizeKey(plan.key) === normalizeKey(currentPlanKey)
     }
 
@@ -117,9 +121,28 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
             return
         }
 
-        // Free plan just needs navigation
+        // Free plan — confirm selection (signup) or already on free
         if (plan.pricePerYear === 0) {
-            toast('You are already on the free plan')
+            if (requireSelection) {
+                setSelectedPlan(plan.key)
+                try {
+                    await apiSelectPlan(plan.key)
+                    toast.success('Free plan activated!')
+                    await refreshUser()
+                    await onPaymentSuccess?.()
+                    onClose()
+                } catch (error) {
+                    console.error('Plan selection error:', error)
+                    toast.error(getErrorMessage(error, 'Failed to select plan'))
+                } finally {
+                    setSelectedPlan(null)
+                }
+                return
+            }
+            if (isCurrentPlan(plan)) {
+                toast('You are already on the free plan')
+                return
+            }
             return
         }
 
@@ -163,8 +186,13 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
         if (isCurrentPlanLocked(plan)) return 'Current Plan'
         if (isEnterprisePlan(plan)) return plan.ctaLabel || 'Contact Us'
         if (isPlanDowngrade(plan)) return 'Contact support to downgrade'
-        if (plan.pricePerYear === 0) return 'Free'
+        if (plan.pricePerYear === 0) return requireSelection ? (plan.ctaLabel || 'Get Started Free') : 'Free'
         return plan.ctaLabel || 'Upgrade'
+    }
+
+    const handleClose = () => {
+        if (requireSelection || paymentLoading) return
+        onClose()
     }
 
     return (
@@ -175,7 +203,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                     />
                     <motion.div
@@ -188,19 +216,21 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                         <div className="bg-[#0f172a] border border-border shadow-2xl relative flex flex-col overflow-hidden rounded-xl max-h-full min-h-0" data-lenis-prevent>
                             {/* Header and Close Button */}
                             <div className="p-6 pb-2 shrink-0 border-b border-border/40">
-                                <button
-                                    onClick={onClose}
-                                    disabled={paymentLoading}
-                                    className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
-                                >
-                                    <X className="h-4 w-4" />
-                                    <span className="sr-only">Close</span>
-                                </button>
+                                {!requireSelection && (
+                                    <button
+                                        onClick={handleClose}
+                                        disabled={paymentLoading}
+                                        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+                                    >
+                                        <X className="h-4 w-4" />
+                                        <span className="sr-only">Close</span>
+                                    </button>
+                                )}
 
                                 <div className="text-center">
-                                    <h2 className="text-2xl font-bold tracking-tight mb-2">{title || 'Upgrade Your Plan'}</h2>
+                                    <h2 className="text-2xl font-bold tracking-tight mb-2">{title || (requireSelection ? 'Choose Your Plan' : 'Upgrade Your Plan')}</h2>
                                     <p className="text-muted-foreground text-sm">
-                                        {subtitle || 'Choose the plan that fits your needs.'}
+                                        {subtitle || (requireSelection ? 'Select a plan to get started. You can begin with the free plan or upgrade for more features.' : 'Choose the plan that fits your needs.')}
                                     </p>
                                 </div>
                             </div>

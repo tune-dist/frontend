@@ -13,7 +13,8 @@ import { useState, useEffect } from 'react'
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { isUpgradeModalOpen, closeUpgradeModal, isSidebarCollapsed } = useUI()
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
+  const needsPlanSelection = user?.planSelected === false
   const [isPlanExpiredModalOpen, setIsPlanExpiredModalOpen] = useState(false)
   const [isExpiringSoonBannerOpen, setIsExpiringSoonBannerOpen] = useState(false)
   const [daysRemaining, setDaysRemaining] = useState(0)
@@ -78,16 +79,21 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       </div>
 
       <UpgradePlanModal
-        isOpen={isUpgradeModalOpen}
-        onClose={closeUpgradeModal}
-        currentPlanKey={user?.plan}
+        isOpen={needsPlanSelection || isUpgradeModalOpen}
+        onClose={needsPlanSelection ? () => {} : closeUpgradeModal}
+        requireSelection={needsPlanSelection}
+        currentPlanKey={needsPlanSelection ? undefined : user?.plan}
         hasActiveSubscription={
+          !needsPlanSelection &&
           !!user?.plan &&
           user.plan !== 'free' &&
           user.subscriptionStatus !== 'cancelled' &&
           user.isSubscriptionActive !== false
         }
         subscriptionStatus={user?.subscriptionStatus === 'cancelled' ? 'cancelled' : user?.subscriptionStatus === 'active' ? 'active' : undefined}
+        onPaymentSuccess={refreshUser}
+        title={needsPlanSelection ? 'Choose Your Plan' : undefined}
+        subtitle={needsPlanSelection ? 'Select a plan to get started. You can begin with the free plan or upgrade for more features.' : undefined}
       />
       <PlanExpiredModal
         isOpen={isPlanExpiredModalOpen}

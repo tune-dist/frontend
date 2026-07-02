@@ -7,14 +7,26 @@ import { toast } from 'react-hot-toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { isReleaseNoLyrics, isTrackNoLyrics } from './genre-language'
+import {
+    getRequiredMandatoryCheckKeys,
+    needsCapitalizationConfirmation,
+} from '@/lib/upload/mandatory-checks-validation'
 
 interface ReviewStepProps {
     formData: UploadFormData
     mandatoryChecks: MandatoryChecks
     setMandatoryChecks: (checks: MandatoryChecks) => void
+    showMandatoryCheckErrors?: boolean
+    legalConfirmationsLocked?: boolean
 }
 
-export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChecks }: ReviewStepProps) {
+export default function ReviewStep({
+    formData,
+    mandatoryChecks,
+    setMandatoryChecks,
+    showMandatoryCheckErrors = false,
+    legalConfirmationsLocked = false,
+}: ReviewStepProps) {
     const { setValue, watch } = useFormContext<UploadFormData>()
     const tracks = watch('tracks') || []
     const audioFiles = watch('audioFiles') || []
@@ -34,12 +46,14 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
     const [selectedTrackId, setSelectedTrackId] = useState<string | null>(tracks.length > 0 ? tracks[0].id : null)
     const [showCoverArt, setShowCoverArt] = useState(false)
 
-    const hasIrregularCapitalization = (text: string) => {
-        if (!text) return false
-        return /[a-z][A-Z]/.test(text) || (text === text.toUpperCase() && text.length > 3)
-    }
+    const needsCapitalizationCheck = needsCapitalizationConfirmation(
+        formData.title,
+        formData.artistName,
+    )
+    const requiredCheckKeys = getRequiredMandatoryCheckKeys(formData.title, formData.artistName)
 
-    const needsCapitalizationCheck = hasIrregularCapitalization(formData.title) || hasIrregularCapitalization(formData.artistName)
+    const isCheckMissing = (id: keyof MandatoryChecks) =>
+        showMandatoryCheckErrors && requiredCheckKeys.includes(id as any) && !mandatoryChecks[id]
 
     const handleLinkAudio = (trackId: string, audioId: string) => {
         const updatedTracks = tracks.map(t => {
@@ -259,10 +273,30 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
                     </Card>
 
                     {/* Final Mandatory Checks */}
-                    <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+                    <div
+                        id="legal-confirmations"
+                        className={cn(
+                            "bg-card border rounded-xl p-6 space-y-6",
+                            showMandatoryCheckErrors &&
+                                requiredCheckKeys.some((key) => !mandatoryChecks[key])
+                                ? "border-red-500/50"
+                                : "border-border",
+                        )}
+                    >
                         <h3 className="text-lg font-semibold flex items-center gap-2">
                             Legal Confirmations
                         </h3>
+                        {legalConfirmationsLocked && (
+                            <p className="text-sm text-muted-foreground">
+                                These confirmations were accepted when this release was submitted and cannot be changed during edit.
+                            </p>
+                        )}
+                        {showMandatoryCheckErrors &&
+                            requiredCheckKeys.some((key) => !mandatoryChecks[key]) && (
+                            <p className="text-sm text-red-500">
+                                Please accept all required confirmations before submitting.
+                            </p>
+                        )}
 
                         {/* Capitalization Warning */}
                         {needsCapitalizationCheck && (
@@ -274,15 +308,32 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
                                 <p className="text-xs text-muted-foreground">
                                     We detected unusual capitalization. Ensure it&apos;s correct as per store guidelines.
                                 </p>
-                                <div className="flex items-start space-x-3 pt-1">
+                                <div className={cn(
+                                    "flex items-start space-x-3 pt-1",
+                                    isCheckMissing("capitalizationConfirmation") && "rounded-lg border border-red-500/40 bg-red-500/5 p-2",
+                                )}>
                                     <input
                                         type="checkbox"
                                         id="capitalizationConfirmation"
                                         checked={mandatoryChecks.capitalizationConfirmation}
+                                        disabled={legalConfirmationsLocked}
                                         onChange={(e) => setMandatoryChecks({ ...mandatoryChecks, capitalizationConfirmation: e.target.checked })}
-                                        className="h-4 w-4 mt-1 rounded border-input text-primary focus:ring-2 focus:ring-primary cursor-pointer"
+                                        className={cn(
+                                            "h-4 w-4 mt-1 rounded border-input text-primary focus:ring-2 focus:ring-primary",
+                                            legalConfirmationsLocked
+                                                ? "cursor-not-allowed opacity-70"
+                                                : "cursor-pointer",
+                                        )}
                                     />
-                                    <Label htmlFor="capitalizationConfirmation" className="text-xs leading-relaxed cursor-pointer font-medium">
+                                    <Label
+                                        htmlFor="capitalizationConfirmation"
+                                        className={cn(
+                                            "text-xs leading-relaxed font-medium",
+                                            legalConfirmationsLocked
+                                                ? "cursor-not-allowed text-muted-foreground"
+                                                : "cursor-pointer",
+                                        )}
+                                    >
                                         I confirm that the capitalization is intentional and strictly correct.
                                     </Label>
                                 </div>
@@ -297,15 +348,36 @@ export default function ReviewStep({ formData, mandatoryChecks, setMandatoryChec
                                 { id: 'nameUsage', text: "I will not use another artist's name or a famous band name without permission." },
                                 { id: 'termsAgreement', text: 'I have read and agree to the Terms of Service and Privacy Policy.' }
                             ].map((check) => (
-                                <div key={check.id} className="flex items-start space-x-3 p-2 hover:bg-muted/20 rounded-lg transition-colors group">
+                                <div
+                                    key={check.id}
+                                    className={cn(
+                                        "flex items-start space-x-3 p-2 hover:bg-muted/20 rounded-lg transition-colors group",
+                                        isCheckMissing(check.id as keyof MandatoryChecks) &&
+                                            "border border-red-500/40 bg-red-500/5",
+                                    )}
+                                >
                                     <input
                                         type="checkbox"
                                         id={check.id}
                                         checked={(mandatoryChecks as any)[check.id]}
+                                        disabled={legalConfirmationsLocked}
                                         onChange={(e) => setMandatoryChecks({ ...mandatoryChecks, [check.id]: e.target.checked })}
-                                        className="h-4 w-4 mt-1 rounded border-input text-primary focus:ring-2 focus:ring-primary cursor-pointer"
+                                        className={cn(
+                                            "h-4 w-4 mt-1 rounded border-input text-primary focus:ring-2 focus:ring-primary",
+                                            legalConfirmationsLocked
+                                                ? "cursor-not-allowed opacity-70"
+                                                : "cursor-pointer",
+                                        )}
                                     />
-                                    <Label htmlFor={check.id} className="text-sm leading-relaxed cursor-pointer group-hover:text-foreground transition-colors">
+                                    <Label
+                                        htmlFor={check.id}
+                                        className={cn(
+                                            "text-sm leading-relaxed transition-colors",
+                                            legalConfirmationsLocked
+                                                ? "cursor-not-allowed text-muted-foreground"
+                                                : "cursor-pointer group-hover:text-foreground",
+                                        )}
+                                    >
                                         {check.text}
                                     </Label>
                                 </div>

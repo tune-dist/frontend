@@ -207,7 +207,7 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <Link href="/contact" className=' w-full sm:w-auto'>
+              <Link href="/auth" className=' w-full sm:w-auto'>
                 <Button className="text-sm w-full sm:w-auto px-6 py-6 group animated-gradient-bg text-white border-0">
                   Start for Free
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />

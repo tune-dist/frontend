@@ -1,10 +1,98 @@
+import apiClient from '@/lib/api-client';
+
 export interface CoverArtFieldRules {
   allowedFileTypes?: string[];
   maxFileSizeMB?: number;
 }
 
+export interface CoverArtMetadata {
+  artistName: string;
+  trackTitle: string;
+  featuredArtists?: string[];
+  isExplicit?: boolean;
+  releaseYear?: string;
+  recordLabel?: string;
+}
+
+export type CoverArtValidationStatus = 'approved' | 'rejected' | 'warned' | 'warning';
+
+export interface CoverArtValidationError {
+  code: string;
+  message: string;
+  field?: string;
+  severity?: 'error' | 'warning';
+}
+
+export interface CoverArtValidationResponse {
+  status: CoverArtValidationStatus;
+  issues?: CoverArtValidationError[];
+  errors: CoverArtValidationError[];
+}
+
 export function getCoverArtMaxSizeMB(rules?: CoverArtFieldRules): number {
   return rules?.maxFileSizeMB ?? 10;
+}
+
+export const COVER_ART_MIN_DIMENSION_PX = 3000;
+
+export function isExistingUnchangedCoverArt(
+  coverArt: unknown,
+  coverArtChanged?: boolean,
+): boolean {
+  if (coverArtChanged) return false;
+  const data = coverArt as { path?: string } | null | undefined;
+  return Boolean(data?.path?.trim());
+}
+
+export function validateCoverArtDimensions(
+  width: number,
+  height: number,
+  minPx: number = COVER_ART_MIN_DIMENSION_PX,
+): { valid: true } | { valid: false; message: string } {
+  if (width < minPx || height < minPx) {
+    return {
+      valid: false,
+      message: `Image resolution too low. Minimum ${minPx}x${minPx}px required. Current: ${width}x${height}px`,
+    };
+  }
+
+  return { valid: true };
+}
+
+export function loadCoverArtImage(
+  file: File,
+): Promise<{ width: number; height: number; previewDataUrl: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => {
+      reject(new Error('Failed to read image file.'));
+    };
+
+    reader.onloadend = () => {
+      const img = new Image();
+
+      img.onerror = () => {
+        reject(
+          new Error(
+            'Failed to load image. If you are using a phone, please ensure it is a standard JPG or PNG file.',
+          ),
+        );
+      };
+
+      img.onload = () => {
+        resolve({
+          width: img.width,
+          height: img.height,
+          previewDataUrl: reader.result as string,
+        });
+      };
+
+      img.src = reader.result as string;
+    };
+
+    reader.readAsDataURL(file);
+  });
 }
 
 export function validateCoverArtFile(
@@ -62,4 +150,26 @@ export function validateCoverArtSize(
     valid: false,
     message: `File size (${fileSizeMB.toFixed(2)}MB) exceeds the maximum allowed size of ${maxSizeMB}MB.`,
   };
+}
+
+/** Server-side cover art validation (OCR, NSFW, metadata rules). */
+export async function validateCoverArt(
+  file: File,
+  metadata: CoverArtMetadata,
+): Promise<CoverArtValidationResponse> {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('metadata', JSON.stringify(metadata));
+
+  const response = await apiClient.post<CoverArtValidationResponse>(
+    '/cover-art-validation/validate',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  );
+
+  return response.data;
 }

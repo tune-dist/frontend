@@ -1,0 +1,25 @@
+/** Legal writer/composer names: 2–4 Roman words, min 3 chars each. */
+export const LEGAL_PERSON_NAME_MIN_WORDS = 2;
+export const LEGAL_PERSON_NAME_MAX_WORDS = 4;
+export const LEGAL_PERSON_NAME_MIN_CHARS_PER_WORD = 3;
+export const LEGAL_PERSON_NAME_MAX_LENGTH = 80;
+
+export const LEGAL_PERSON_NAME_REGEX = /^[a-zA-Z]{3,}(?: [a-zA-Z]{3,}){1,3}$/;
+
+export const LEGAL_PERSON_NAME_HINT =
+  'Must be 2–4 words (letters A–Z only). Each part must be at least 3 characters.';
+
+export function isValidLegalPersonName(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > LEGAL_PERSON_NAME_MAX_LENGTH) {
+    return false;
+  }
+  return LEGAL_PERSON_NAME_REGEX.test(trimmed);
+}
+
+export function getLegalPersonNameError(value: string): string | null {
+  if (!value.trim()) {
+    return null;
+  }
+  return isValidLegalPersonName(value) ? null : LEGAL_PERSON_NAME_HINT;
+}

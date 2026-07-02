@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import { getErrorMessage } from "@/lib/get-error-message";
+import { getErrorMessage, extractApiFieldErrors, type ApiFieldError } from "@/lib/get-error-message";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import PageLoading from "@/components/dashboard/page-loading";
@@ -48,6 +48,7 @@ import {
   Music,
   Ban,
   UploadCloud,
+  Pencil,
 } from "lucide-react";
 import {
   getReleases,
@@ -71,7 +72,8 @@ import {
   canManageReleases,
   formatReleaseStatus,
   getReleaseStatusColor,
-  sanitizeReleaseError,
+  isRmEditableRelease,
+  isReleaseStaff,
 } from "@/lib/release-status";
 import { formatReleaseCodeDisplay } from "@/lib/release-codes";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
@@ -118,6 +120,11 @@ export default function ReleasesPage() {
   >(null);
   const [rejectDialog, setRejectDialog] = useState<{ id: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [validationErrorDialog, setValidationErrorDialog] = useState<{
+    title: string;
+    summary: string;
+    issues: ApiFieldError[];
+  } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -238,12 +245,38 @@ export default function ReleasesPage() {
       setConfirmDialog(null);
       fetchReleases();
     } catch (error: any) {
-      const messages = {
-        delete: "Failed to delete release",
-        approve: sanitizeReleaseError(error.message, "Failed to submit release for processing"),
-        distribute: sanitizeReleaseError(error.message, "Failed to distribute to platforms"),
-      };
-      toast.error(messages[type]);
+      const issues = extractApiFieldErrors(error);
+      if (issues.length > 0) {
+        setConfirmDialog(null);
+        setValidationErrorDialog({
+          title:
+            type === "approve"
+              ? "Cannot submit to PDL"
+              : type === "distribute"
+                ? "Cannot distribute release"
+                : "Action blocked",
+          summary: getErrorMessage(
+            error,
+            type === "approve"
+              ? "This release cannot be submitted for processing yet."
+              : type === "distribute"
+                ? "This release cannot be distributed yet."
+                : "This action could not be completed.",
+          ),
+          issues,
+        });
+      } else {
+        toast.error(
+          getErrorMessage(
+            error,
+            type === "delete"
+              ? "Failed to delete release"
+              : type === "approve"
+                ? "Failed to submit release for processing"
+                : "Failed to distribute to platforms",
+          ),
+        );
+      }
     } finally {
       setActionLoading(null);
     }
@@ -314,7 +347,7 @@ export default function ReleasesPage() {
             <h1 className="text-3xl font-bold mb-2">My <span className="animated-gradient">Releases</span></h1>
             <p className="text-muted-foreground">Manage all your music releases in one place</p>
           </div>
-          {user?.role !== "release_manager" && (statusFilter === "all" || statusFilter === "In Process") && (
+          {!isReleaseStaff(user) && (statusFilter === "all" || statusFilter === "In Process") && (
             <Link href="/dashboard/upload">
               <Button size="lg" className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -408,7 +441,6 @@ export default function ReleasesPage() {
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Artist</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Release ID</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Status</TableHead>
-                        <TableHead className="font-bold uppercase tracking-wider text-[10px]">Reviewed By</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">WorldWide DSP</TableHead>
                         <TableHead className="text-right pr-6 font-bold uppercase tracking-wider text-[10px]">Actions</TableHead>
                       </TableRow>
@@ -416,7 +448,7 @@ export default function ReleasesPage() {
                     <TableBody>
                       {releases.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground py-24">
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-24">
                             <div className="flex flex-col items-center gap-4">
                               <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-2">
                                 <Music className="h-10 w-10 text-primary/30" />
@@ -425,7 +457,7 @@ export default function ReleasesPage() {
                                 <p className="text-xl font-bold text-foreground">No releases found</p>
                                 <p className="text-sm">Try adjusting your filters or create a new release.</p>
                               </div>
-                              {user?.role !== "release_manager" && (
+                              {!isReleaseStaff(user) && (
                                 <Link href="/dashboard/upload" className="mt-2">
                                   <Button className="rounded-xl px-6 h-11 gap-2 shadow-lg shadow-primary/20">
                                     <Plus className="h-5 w-5" />
@@ -469,12 +501,6 @@ export default function ReleasesPage() {
                               </span>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm font-medium">
-                              {typeof release.approvedBy === 'object' && release.approvedBy?.fullName
-                                ? release.approvedBy.fullName
-                                : "-"
-                              }
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm font-medium">
                               {release.pdlAlbumId ? "Yes" : "-"}
                             </TableCell>
                             <TableCell className="text-right pr-6">
@@ -484,6 +510,19 @@ export default function ReleasesPage() {
                                     <Eye className="h-4 w-4" />
                                   </Button>
                                 </Link>
+
+                                {canManage && isRmEditableRelease(release.status) && (
+                                  <Link href={`/dashboard/upload?edit=${release._id}`}>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-9 w-9 rounded-xl hover:bg-amber-500/20 hover:text-amber-500 transition-all"
+                                      title="Edit in-process release"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                )}
 
                                  {release.status === "Draft" && (
                                    <Button variant="ghost" size="sm" onClick={() => openDeleteDialog(release._id)} disabled={actionLoading === release._id} className="text-red-500 hover:bg-red-500/10" title="Delete">
@@ -631,6 +670,36 @@ export default function ReleasesPage() {
                   "Confirm"
                 )}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={validationErrorDialog !== null}
+          onOpenChange={(open) => {
+            if (!open) setValidationErrorDialog(null);
+          }}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{validationErrorDialog?.title}</DialogTitle>
+              <DialogDescription>{validationErrorDialog?.summary}</DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[50vh] overflow-y-auto space-y-3 pr-1">
+              {validationErrorDialog?.issues.map((issue, index) => (
+                <div
+                  key={`${issue.code || issue.field}-${index}`}
+                  className="rounded-lg border border-border/60 bg-muted/20 p-3"
+                >
+                  <p className="text-sm font-medium text-foreground">{issue.message}</p>
+                  {issue.action ? (
+                    <p className="mt-1 text-sm text-muted-foreground">{issue.action}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setValidationErrorDialog(null)}>Got it</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

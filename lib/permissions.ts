@@ -1,10 +1,16 @@
 import type { User } from '@/lib/api/auth';
 
 export const STAFF_ROLES = ['super_admin', 'admin', 'release_manager'] as const;
+export const RELEASE_STAFF_ROLES = STAFF_ROLES;
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
 type PermissionUser = Pick<User, 'role' | 'permissions'> | null | undefined;
+
+export function isReleaseStaff(user: PermissionUser): boolean {
+  if (!user?.role) return false;
+  return (RELEASE_STAFF_ROLES as readonly string[]).includes(user.role);
+}
 
 export function hasPermission(user: PermissionUser, permission: string): boolean {
   if (!user) return false;
@@ -13,7 +19,7 @@ export function hasPermission(user: PermissionUser, permission: string): boolean
 }
 
 export function isStaffUser(user: PermissionUser): boolean {
-  return hasPermission(user, 'APPROVE_RELEASE');
+  return isReleaseStaff(user) || hasPermission(user, 'APPROVE_RELEASE');
 }
 
 export function canAccessYouTubeService(user: PermissionUser): boolean {
@@ -21,7 +27,7 @@ export function canAccessYouTubeService(user: PermissionUser): boolean {
 }
 
 export function canManageReleases(user: PermissionUser): boolean {
-  return hasPermission(user, 'APPROVE_RELEASE');
+  return isReleaseStaff(user) || hasPermission(user, 'APPROVE_RELEASE');
 }
 
 export function canManageUsers(user: PermissionUser): boolean {

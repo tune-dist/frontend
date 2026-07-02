@@ -1,6 +1,11 @@
 
 import { useState } from 'react'
 import { validateAudioOnBackend } from '@/lib/upload/chunk-uploader'
+import {
+    isAllowedWavBitDepth,
+    formatAllowedBitDepths,
+    WAV_SAMPLE_RATE_HZ,
+} from '@/lib/upload/audio-format'
 import { isPlanInactiveError } from '@/lib/plan-inactive'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
@@ -23,12 +28,9 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
     const [isUploading, setIsUploading] = useState(false)
     const [activeFileId, setActiveFileId] = useState<string | null>(null)
-
-    // console.log('values', getValues())
     const format = watch('format')
     const audioFile = watch('audioFile')
     const audioFileName = getValues('title')
-    console.log(audioFileName, 'audioFileName')
     const audioFiles = watch('audioFiles') || []
     const tracks = watch('tracks') || []
 
@@ -87,12 +89,12 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 const { sampleRate, bitDepth } = await parseWavHeader(file);
                 toast.dismiss(parsingToastId)
 
-                if (sampleRate !== 44100) {
-                    toast.error(`Invalid Sample Rate for ${file.name}: ${sampleRate}Hz. File must be 44,100Hz.`)
+                if (sampleRate !== WAV_SAMPLE_RATE_HZ) {
+                    toast.error(`Invalid Sample Rate for ${file.name}: ${sampleRate}Hz. File must be ${WAV_SAMPLE_RATE_HZ.toLocaleString()}Hz.`)
                     continue
                 }
-                if (bitDepth !== 16) {
-                    toast.error(`Invalid Bit Depth for ${file.name}: ${bitDepth}-bit. File must be 16-bit.`)
+                if (!isAllowedWavBitDepth(bitDepth)) {
+                    toast.error(`Invalid Bit Depth for ${file.name}: ${bitDepth}-bit. File must be ${formatAllowedBitDepths()}.`)
                     continue
                 }
             } catch (error) {
@@ -246,7 +248,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 {/* Audio File Upload */}
                 <div className="space-y-3 pt-6 border-t border-border">
                     <h4 className="text-base font-semibold">
-                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV only)</span>
+                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV, 44.1kHz, 16- or 24-bit)</span>
                     </h4>
                     {/* <p className="text-sm text-primary">
                         <a href="#" className="underline">Already have an ISRC code?</a>

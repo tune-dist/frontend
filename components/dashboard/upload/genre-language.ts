@@ -82,12 +82,46 @@ export function isTrackNoLyrics(
   });
 }
 
-/** Language shown/stored for a release — Instrumental when genre requires it. */
+/** Pick the default instrumental primary genre from the catalog. */
+export function resolveInstrumentalPrimaryGenre<T extends { name: string }>(
+  genres: T[],
+): string | undefined {
+  const instrumentalGenres = genres.filter((g) =>
+    isInstrumentalPrimaryGenre(g.name),
+  );
+  if (instrumentalGenres.length === 0) return undefined;
+
+  const exact = instrumentalGenres.find(
+    (g) => g.name.trim().toLowerCase() === 'instrumental',
+  );
+  return (exact ?? instrumentalGenres[0]).name;
+}
+
+/** Genres shown based on instrumental vs lyrical selection. */
+export function filterGenresForInstrumentalChoice<T extends { name: string }>(
+  genres: T[],
+  instrumental?: string | boolean,
+): T[] {
+  const isInstrumental = isInstrumentalSelection(instrumental);
+  if (isInstrumental) {
+    const instrumentalGenres = genres.filter((g) =>
+      isInstrumentalPrimaryGenre(g.name),
+    );
+    return instrumentalGenres.length > 0 ? instrumentalGenres : genres;
+  }
+  const lyricalGenres = genres.filter(
+    (g) => !isInstrumentalPrimaryGenre(g.name),
+  );
+  return lyricalGenres.length > 0 ? lyricalGenres : genres;
+}
+
+/** Language shown/stored for a release — Instrumental when track has no lyrics. */
 export function resolveLanguage(
   primaryGenre: string | undefined,
   language: string | undefined,
+  instrumental?: string | boolean,
 ): string {
-  if (isInstrumentalPrimaryGenre(primaryGenre)) {
+  if (isInstrumentalRelease(primaryGenre, instrumental)) {
     return INSTRUMENTAL_LANGUAGE;
   }
   return language?.trim() ?? '';

@@ -272,7 +272,7 @@ function AuthContent() {
         data.email,
         data.password,
         data.fullName,
-        'artist',
+        undefined,
         googleId,
         spotifyId,
         avatar,
@@ -491,7 +491,7 @@ function AuthContent() {
                         )}
                         Google
                       </Button>
-                      {/* <spotify-oauth-button />
+                      {/* Spotify login temporarily disabled
                       <Button
                         type="button"
                         variant="outline"
@@ -679,7 +679,7 @@ function AuthContent() {
                       )}
                       Google
                     </Button>
-                    {/* <spotify-oauth-button />
+                    {/* Spotify login temporarily disabled
                     <Button
                       type="button"
                       variant="outline"

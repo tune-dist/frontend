@@ -36,6 +36,7 @@ export const PERMISSIONS = {
   VIEW_ANALYTICS: 'VIEW_ANALYTICS',
   MANAGE_PROMOTION: 'MANAGE_PROMOTION',
   MANAGE_TESTIMONIALS: 'MANAGE_TESTIMONIALS',
+  VIEW_CONTACT_INQUIRIES: 'VIEW_CONTACT_INQUIRIES',
   USE_YOUTUBE_SERVICE: 'USE_YOUTUBE_SERVICE',
   PROFILE: 'PROFILE',
 } as const;
@@ -45,6 +46,7 @@ export type PermissionSlug = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 /** Optional display overrides (API/DB may still store longer names). */
 export const PERMISSION_LABELS: Partial<Record<PermissionSlug, string>> = {
   USE_YOUTUBE_SERVICE: 'YouTube Service',
+  VIEW_CONTACT_INQUIRIES: 'Contact Inquiries',
 };
 
 export function formatPermissionLabel(

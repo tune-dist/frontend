@@ -140,7 +140,12 @@ export default function Navbar() {
 
             {/* Auth Buttons - Desktop Right */}
             <div className="hidden md:flex md:items-center md:space-x-3 flex-shrink-0">
-              <Link href="/contact">
+              <Link href="/auth?tab=login">
+                <Button variant="outline" size="default" className="border-white/20 text-white hover:bg-white hover:text-black transition-all duration-300">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/auth?tab=signup">
                 <Button size="default" className="animated-gradient-bg text-white transition-all duration-300">
                   Get Started <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 ml-1" />
                 </Button>
@@ -259,8 +264,13 @@ export default function Navbar() {
               </div>
 
               {/* Drawer Footer CTA */}
-              <div className="px-4 pb-8 pt-4 border-t border-white/10">
-                <Link href="/contact" onClick={closeMenu} className="block">
+              <div className="px-4 pb-8 pt-4 border-t border-white/10 space-y-2">
+                <Link href="/auth?tab=login" onClick={closeMenu} className="block">
+                  <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white hover:text-black">
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/auth?tab=signup" onClick={closeMenu} className="block">
                   <Button className="w-full animated-gradient-bg text-white font-semibold">
                     Get Started <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
