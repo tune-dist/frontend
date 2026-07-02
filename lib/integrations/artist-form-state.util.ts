@@ -29,8 +29,10 @@ export type RosterArtist =
       facebookProfile?: unknown;
     };
 
-export function rosterArtistName(artist: RosterArtist): string {
-  return typeof artist === 'string' ? artist : artist.name;
+export function rosterArtistName(artist: RosterArtist | null | undefined): string {
+  if (artist == null) return '';
+  if (typeof artist === 'string') return artist.trim();
+  return typeof artist.name === 'string' ? artist.name.trim() : '';
 }
 
 /** Apply roster artist profiles onto main form after fields were cleared. */

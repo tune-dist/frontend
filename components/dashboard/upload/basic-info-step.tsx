@@ -276,23 +276,24 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
 
             // If explicit artist name is already set and we are not in the middle of hydration check, skip
             // Note: We might want to re-run this if artistName matches usedArtists[0] but profiles are missing
-            if (artistName && artistName !== rosterArtistName(usedArtists[0])) return
+            const firstRosterArtist = usedArtists.find((artist) => rosterArtistName(artist));
+            if (artistName && artistName !== rosterArtistName(firstRosterArtist)) return
 
-            if (usedArtists.length > 0) {
-                const previousArtistObj = usedArtists[0];
-                const artistNameStr = rosterArtistName(previousArtistObj);
+            const previousArtistObj = firstRosterArtist;
+            if (!previousArtistObj) return
 
-                if (artistNameStr && artistNameStr !== artistName) {
-                    setValue('artistName', artistNameStr, { shouldValidate: true })
-                    handleSearch(artistNameStr, 'main')
-                }
+            const artistNameStr = rosterArtistName(previousArtistObj);
 
-                // Set profiles if available (even if legacy string, useful for hydration matching)
-                if (typeof previousArtistObj === 'object') {
-                    applyRosterArtistToMainForm(setValue, previousArtistObj)
-                    if (rosterArtistHasPendingProfiles(previousArtistObj)) {
-                        setPendingProfileNotice(true)
-                    }
+            if (artistNameStr && artistNameStr !== artistName) {
+                setValue('artistName', artistNameStr, { shouldValidate: true })
+                handleSearch(artistNameStr, 'main')
+            }
+
+            // Set profiles if available (even if legacy string, useful for hydration matching)
+            if (typeof previousArtistObj === 'object') {
+                applyRosterArtistToMainForm(setValue, previousArtistObj)
+                if (rosterArtistHasPendingProfiles(previousArtistObj)) {
+                    setPendingProfileNotice(true)
                 }
             }
         }
@@ -578,10 +579,10 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                             </SelectTrigger>
                                             <SelectContent className="z-[999]">
                                                 {usedArtists.filter(ua => {
-                                                    const name = typeof ua === 'string' ? ua : ua.name;
-                                                    return name === artistName || !artists.some(a => a.name === name);
+                                                    const name = rosterArtistName(ua);
+                                                    return name && (name === artistName || !artists.some(a => a.name === name));
                                                 }).map((artist, i) => {
-                                                    const name = typeof artist === 'string' ? artist : artist.name;
+                                                    const name = rosterArtistName(artist);
                                                     const pending =
                                                         typeof artist === 'object' &&
                                                         rosterArtistHasPendingProfiles(artist);
@@ -749,11 +750,11 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                                 </SelectTrigger>
                                                 <SelectContent className="z-[999]">
                                                     {usedArtists.filter(ua => {
-                                                        const name = typeof ua === 'string' ? ua : ua.name;
-                                                        if (name === artistName) return false;
+                                                        const name = rosterArtistName(ua);
+                                                        if (!name || name === artistName) return false;
                                                         return name === artist.name || !artists.some((a, idx) => idx !== index && a.name === name);
                                                     }).map((ua, i) => {
-                                                        const name = typeof ua === 'string' ? ua : ua.name;
+                                                        const name = rosterArtistName(ua);
                                                         return (
                                                             <SelectItem key={i} value={name}>
                                                                 <div className="flex items-center gap-2">
