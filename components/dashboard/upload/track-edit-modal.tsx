@@ -25,6 +25,7 @@ import {
     resolveLanguage,
 } from './genre-language'
 import { searchArtistProfiles, emptySearchResults } from '@/lib/integrations/artist-search.util'
+import { rosterArtistName } from '@/lib/integrations/artist-form-state.util'
 
 interface TrackEditModalProps {
     isOpen: boolean
@@ -739,7 +740,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     </SelectTrigger>
                                     <SelectContent className="z-[999]">
                                         {usedArtists.map((artist, i) => {
-                                            const name = typeof artist === 'string' ? artist : artist.name
+                                            const name = rosterArtistName(artist)
+                                            if (!name) return null
                                             return (
                                                 <SelectItem key={i} value={name}>
                                                     <div className="flex items-center gap-2">

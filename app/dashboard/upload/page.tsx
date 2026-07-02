@@ -227,7 +227,7 @@ export default function UploadPage() {
         if (cancelled) return;
 
         if (!isRmEditableRelease(release.status)) {
-          toast.error("Only in-process releases can be edited.");
+          toast.error("Only draft and in-process releases can be edited.");
           router.push("/dashboard/releases");
           return;
         }
@@ -332,7 +332,15 @@ export default function UploadPage() {
     if (user) {
       // Fetch artists
       getArtistUsage()
-        .then((data) => setUsedArtists(data.artists))
+        .then((data) =>
+          setUsedArtists(
+            (data.artists || []).filter((artist) => {
+              if (artist == null) return false;
+              if (typeof artist === 'string') return artist.trim().length > 0;
+              return typeof artist.name === 'string' && artist.name.trim().length > 0;
+            }),
+          ),
+        )
         .catch((err) => console.error("Failed to fetch artist usage", err));
 
       // Fetch field rules
