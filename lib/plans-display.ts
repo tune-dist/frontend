@@ -36,10 +36,12 @@ export function resolveEarningsBadgeClass(plan: Plan): string {
 }
 
 export function resolvePlanCta(plan: Plan): { label: string; href: string } {
+  const contactHref = `/contact?plan=${encodeURIComponent(plan.title)}`;
+
   if (plan.ctaLabel?.trim()) {
     const label = plan.ctaLabel.trim();
-    if (isEnterprisePlan(plan)) {
-      return { label, href: `/contact?plan=${encodeURIComponent(plan.title)}` };
+    if (isEnterprisePlan(plan) || label.toLowerCase() === 'contact us') {
+      return { label, href: contactHref };
     }
     return { label, href: `/auth?plan=${encodeURIComponent(plan.key)}` };
   }

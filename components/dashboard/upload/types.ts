@@ -50,8 +50,8 @@ export const trackSchema = z.object({
     }),
     previouslyReleased: z.string().optional(),
     originalReleaseDate: z.string().optional(),
-    primaryGenre: z.string().optional(),
-    secondaryGenre: z.string().optional(),
+    primaryGenre: z.string().min(1, 'Primary genre is required'),
+    secondaryGenre: z.string().min(1, 'Sub-genre is required'),
     writers: z.array(songwriterSchema).optional(),
     composers: z.array(songwriterSchema).optional(),
     isInstrumental: z.string().optional(),
@@ -198,6 +198,23 @@ export const uploadFormSchema = z.object({
             message: 'Vibe is required',
             path: ['mood'],
         });
+    }
+
+    if (data.format === 'single') {
+        if (!data.primaryGenre?.trim()) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Primary genre is required',
+                path: ['primaryGenre'],
+            });
+        }
+        if (!data.secondaryGenre?.trim()) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Sub-genre is required',
+                path: ['secondaryGenre'],
+            });
+        }
     }
 })
 
