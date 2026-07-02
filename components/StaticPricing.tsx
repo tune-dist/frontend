@@ -14,6 +14,7 @@ import {
   resolvePlanCta,
   resolvePlanPeriodLabel,
   resolvePlanPriceDisplay,
+  resolveSupportBadgeLabel,
   sortActivePlans,
 } from '@/lib/plans-display'
 
@@ -75,7 +76,7 @@ function buildCategories(plans: Plan[]): ComparisonCategory[] {
         },
         {
           name: 'Support response',
-          values: plans.map((plan) => plan.supportResponse?.trim() || '—'),
+          values: plans.map((plan) => resolveSupportBadgeLabel(plan)),
           valueTypes: plans.map(() => 'pill' as const),
         },
       ],

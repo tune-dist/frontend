@@ -97,11 +97,18 @@ export function resolveSupportBadgeLabel(plan: Plan): string {
 }
 
 export function resolvePlanPeriodLabel(plan: Plan): string | null {
+  if (plan.period?.trim()) return plan.period.trim();
   return derivePeriodLabel(plan);
 }
 
+/** Respect API order; sort by displayOrder when present (backend source of truth). */
 export function sortActivePlans(plans: Plan[]): Plan[] {
   return [...plans]
     .filter((plan) => plan.isActive !== false)
-    .sort((a, b) => a.pricePerYear - b.pricePerYear);
+    .sort((a, b) => {
+      const orderA = a.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.pricePerYear - b.pricePerYear;
+    });
 }
