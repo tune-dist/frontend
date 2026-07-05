@@ -124,7 +124,7 @@ export const LandingPagePreview = ({
                         >
                             {/* Template Background Layer */}
                             <div
-                                className="absolute inset-0 bg-cover bg-center"
+                                className="absolute inset-0 bg-cover bg-center w-full"
                                 style={{
                                     backgroundImage: finalBgUrl ? `url(${finalBgUrl})` : 'none',
                                     transform: `scale(${backgroundOverride.scale || 1.1}) translate(${(backgroundOverride.position?.x || 50) - 50}%, ${(backgroundOverride.position?.y || 50) - 50}%)`,
@@ -142,28 +142,21 @@ export const LandingPagePreview = ({
                                     const renderable: any[] = [];
                                     activeTemplate.elements.forEach((element: any) => {
                                         if (element.type === 'image' && element.source === 'platform_logo') {
-                                            const selectedBadges = elementOverrides.logo?.selectedBadges || ['spotify', 'apple-music', 'youtube-music'];
-                                            const gap = 50;
-                                            const badgeBoxSize = 200;
-                                            const step = badgeBoxSize + gap;
-                                            const totalRowWidth = (selectedBadges.length * badgeBoxSize) + ((selectedBadges.length - 1) * gap);
-                                            const centerX = activeTemplate.canvas.width / 2;
-                                            const startX = centerX - (totalRowWidth / 2);
-
-                                            selectedBadges.forEach((badgeId: string, index: number) => {
-                                                renderable.push({
-                                                    ...element,
-                                                    id: `logo-${badgeId}`,
-                                                    source: 'platform_badge_single',
-                                                    badgeId: badgeId,
-                                                    size: { width: badgeBoxSize, height: badgeBoxSize },
-                                                    defaultX: startX + (index * step),
-                                                    defaultY: activeTemplate.canvas.height - 300
-                                                });
-                                            });
+                                            // Ignore old platform logos
                                         } else {
                                             renderable.push(element);
                                         }
+                                    });
+
+                                    // Add static logos - smaller for post format to avoid overlap
+                                    const isStory = activeTemplate.format === 'story';
+                                    renderable.push({
+                                        id: 'static_logos_fixed',
+                                        type: 'image',
+                                        source: 'static_promotion_logos',
+                                        defaultX: 0,
+                                        defaultY: isStory ? activeTemplate.canvas.height - 300 : activeTemplate.canvas.height - 80,
+                                        size: { width: '100%', height: isStory ? 280 : 70 }
                                     });
 
                                     return renderable.map((element: any) => {
@@ -173,7 +166,7 @@ export const LandingPagePreview = ({
 
                                         const x = defaultX + (override.x || 0);
                                         const y = defaultY + (override.y || 0);
-                                        const width = override.sizeWidth || element.size?.width || 'auto';
+                                        const width = element.type === 'text' ? activeTemplate.canvas.width : (override.sizeWidth || element.size?.width || 'auto');
                                         const height = override.sizeHeight || element.size?.height || 'auto';
 
                                         const getTextContent = () => {
@@ -191,12 +184,13 @@ export const LandingPagePreview = ({
                                                 key={`${activeTemplate.id}-${element.id}`}
                                                 style={{
                                                     position: 'absolute',
-                                                    left: x,
+                                                    left: element.source === 'static_promotion_logos' ? 0 : x,
                                                     top: y,
                                                     width: width,
                                                     height: height,
-                                                    zIndex: 10,
-                                                    transformOrigin: 'center'
+                                                    zIndex: element.source === 'static_promotion_logos' ? 50 : 10,
+                                                    transformOrigin: 'center',
+                                                    transform: element.type === 'text' ? 'translateX(-50%)' : 'none'
                                                 }}
                                             >
                                                 <div className="w-full h-full relative flex items-center justify-center">
@@ -209,19 +203,13 @@ export const LandingPagePreview = ({
                                                         />
                                                     )}
 
-                                                    {element.source === 'platform_badge_single' && (
-                                                        <div className="flex justify-center items-center h-full">
-                                                            {(() => {
-                                                                const badge = PLATFORM_BADGES.find(b => b.id === element.badgeId);
-                                                                if (!badge) return null;
-                                                                return (
-                                                                    <img
-                                                                        src={badge.logoUrl}
-                                                                        alt={badge.name}
-                                                                        className="h-24 w-auto object-contain filter drop-shadow-2xl brightness-200"
-                                                                    />
-                                                                );
-                                                            })()}
+                                                    {element.source === 'static_promotion_logos' && (
+                                                        <div className="flex justify-center items-center h-full w-full">
+                                                            <img
+                                                                src="/assets/images/promotion-sociallogo-group.png"
+                                                                alt="Platforms"
+                                                                className="h-full w-full object-contain filter drop-shadow-2xl"
+                                                            />
                                                         </div>
                                                     )}
 
@@ -272,7 +260,7 @@ export const LandingPagePreview = ({
                                                 b.id.toLowerCase() === link.platform.toLowerCase().replace(/\s+/g, '-')
                                             );
                                             return badge ? (
-                                                <div className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shadow-lg">
+                                                <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-gray-700 p-1 flex items-center justify-center shadow-lg">
                                                     <img
                                                         src={badge.logoUrl}
                                                         alt={badge.name}
@@ -288,7 +276,7 @@ export const LandingPagePreview = ({
                                         <span className="font-bold text-white tracking-tight text-xs">{link.platform}</span>
                                     </div>
                                     <div className="p-2 rounded-full bg-primary text-black">
-                                        <Play className="h-2 w-2 fill-current ml-0.5" />
+                                        <Play className="h-2 w-2 fill-current ml-0.5 cursor-pointer" />
                                     </div>
                                 </div>
                             ))}
@@ -299,7 +287,7 @@ export const LandingPagePreview = ({
                 {/* Footer */}
                 <div className="text-center pb-6">
                     <p className="text-white/10 text-[8px] font-black uppercase tracking-[0.3em]">
-                        &copy; 2026 KratoLib
+                        &copy; {new Date().getFullYear()} KratoLib
                     </p>
                 </div>
             </div>
