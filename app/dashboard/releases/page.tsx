@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { getErrorMessage, extractApiFieldErrors, type ApiFieldError } from "@/lib/get-error-message";
+import { isPlanInactiveError } from "@/lib/plan-inactive";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import PageLoading from "@/components/dashboard/page-loading";
@@ -245,25 +246,37 @@ export default function ReleasesPage() {
       setConfirmDialog(null);
       fetchReleases();
     } catch (error: any) {
+      // Clear spinners immediately so row actions / confirm button don't stay stuck
+      // while error dialogs or toasts are shown.
+      setActionLoading(null);
+
+      if (isPlanInactiveError(error)) {
+        setConfirmDialog(null);
+        return;
+      }
+
       const issues = extractApiFieldErrors(error);
       if (issues.length > 0) {
+        const summary = getErrorMessage(
+          error,
+          type === "approve"
+            ? "This release cannot be submitted for processing yet."
+            : type === "distribute"
+              ? "This release cannot be distributed yet."
+              : "This action could not be completed.",
+        );
+        const distinctIssues = issues.filter((issue) => issue.message !== summary);
+
         setConfirmDialog(null);
         setValidationErrorDialog({
           title:
             type === "approve"
-              ? "Cannot submit to PDL"
+              ? "Cannot submit release"
               : type === "distribute"
                 ? "Cannot distribute release"
                 : "Action blocked",
-          summary: getErrorMessage(
-            error,
-            type === "approve"
-              ? "This release cannot be submitted for processing yet."
-              : type === "distribute"
-                ? "This release cannot be distributed yet."
-                : "This action could not be completed.",
-          ),
-          issues,
+          summary,
+          issues: distinctIssues,
         });
       } else {
         toast.error(
@@ -685,19 +698,21 @@ export default function ReleasesPage() {
               <DialogTitle>{validationErrorDialog?.title}</DialogTitle>
               <DialogDescription>{validationErrorDialog?.summary}</DialogDescription>
             </DialogHeader>
-            <div className="max-h-[50vh] overflow-y-auto space-y-3 pr-1">
-              {validationErrorDialog?.issues.map((issue, index) => (
-                <div
-                  key={`${issue.code || issue.field}-${index}`}
-                  className="rounded-lg border border-border/60 bg-muted/20 p-3"
-                >
-                  <p className="text-sm font-medium text-foreground">{issue.message}</p>
-                  {issue.action ? (
-                    <p className="mt-1 text-sm text-muted-foreground">{issue.action}</p>
-                  ) : null}
-                </div>
-              ))}
-            </div>
+            {(validationErrorDialog?.issues.length ?? 0) > 0 ? (
+              <div className="max-h-[50vh] overflow-y-auto space-y-3 pr-1">
+                {validationErrorDialog?.issues.map((issue, index) => (
+                  <div
+                    key={`${issue.code || issue.field}-${index}`}
+                    className="rounded-lg border border-border/60 bg-muted/20 p-3"
+                  >
+                    <p className="text-sm font-medium text-foreground">{issue.message}</p>
+                    {issue.action ? (
+                      <p className="mt-1 text-sm text-muted-foreground">{issue.action}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
             <DialogFooter>
               <Button onClick={() => setValidationErrorDialog(null)}>Got it</Button>
             </DialogFooter>

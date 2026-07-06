@@ -15,6 +15,51 @@ export type ApiFieldError = {
   action?: string;
 };
 
+const INTERNAL_PROVIDER_PATTERN =
+  /\b(pdl|cosmos|signed_url|album\/add|album\/verify|token|signed_albums)\b/i;
+
+const RELEASE_SUBMIT_FALLBACK =
+  'We could not complete this step right now. Please review the release and try again, or contact support if it continues.';
+
+function sanitizeUserFacingMessage(
+  message: string,
+  fallback = RELEASE_SUBMIT_FALLBACK,
+): string {
+  const trimmed = message.trim();
+  if (!trimmed) return fallback;
+
+  const cleaned = trimmed
+    .replace(/\bfor PDL submission\b/gi, 'for distribution')
+    .replace(/\bsubmitting to PDL\b/gi, 'submitting for processing')
+    .replace(/\bsubmitted to PDL\b/gi, 'submitted for processing')
+    .replace(/\bPDL does not support\b/gi, 'is not supported for distribution')
+    .replace(/\bnot supported by Cosmos\b/gi, 'is not available in our genre catalog')
+    .replace(/\bCosmos\b/gi, 'our catalog')
+    .replace(/\bCOSMOS\b/g, 'our catalog')
+    .replace(/\bPDL\b/g, 'distribution')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  if (!cleaned || INTERNAL_PROVIDER_PATTERN.test(cleaned)) {
+    return fallback;
+  }
+
+  return cleaned;
+}
+
+function sanitizeApiFieldError(
+  item: ApiFieldError,
+  fallback = RELEASE_SUBMIT_FALLBACK,
+): ApiFieldError {
+  return {
+    ...item,
+    message: sanitizeUserFacingMessage(item.message, fallback),
+    action: item.action
+      ? sanitizeUserFacingMessage(item.action, 'Review the release details and try again.')
+      : undefined,
+  };
+}
+
 function collectStructuredErrors(value: unknown): ApiFieldError[] {
   if (!Array.isArray(value)) {
     return [];
@@ -93,17 +138,23 @@ export function extractApiFieldErrors(error: unknown): ApiFieldError[] {
   }
 
   if (axios.isAxiosError(error)) {
-    return extractErrorsFromApiBody(error.response?.data as ApiErrorBody | undefined);
+    return extractErrorsFromApiBody(error.response?.data as ApiErrorBody | undefined).map(
+      (item) => sanitizeApiFieldError(item),
+    );
   }
 
   if (error instanceof Error) {
     const message = error.message?.trim();
-    return message ? [{ field: 'global', message }] : [];
+    return message
+      ? [sanitizeApiFieldError({ field: 'global', message })]
+      : [];
   }
 
   if (typeof error === 'string') {
     const trimmed = error.trim();
-    return trimmed ? [{ field: 'global', message: trimmed }] : [];
+    return trimmed
+      ? [sanitizeApiFieldError({ field: 'global', message: trimmed })]
+      : [];
   }
 
   return [];
@@ -239,7 +290,12 @@ export function getErrorMessage(
     }
 
     const fromBody = extractFromApiBody(axiosError.response.data);
-    if (fromBody) return sanitizeErrorMessage(fromBody, fallback);
+    if (fromBody) {
+      return sanitizeErrorMessage(
+        sanitizeUserFacingMessage(fromBody, fallback),
+        fallback,
+      );
+    }
 
     const status = axiosError.response.status;
     if (status === 401) return 'Session expired. Please sign in again.';
