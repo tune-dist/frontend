@@ -50,8 +50,11 @@ export const trackSchema = z.object({
     }),
     previouslyReleased: z.string().optional(),
     originalReleaseDate: z.string().optional(),
-    primaryGenre: z.string().min(1, 'Primary genre is required'),
-    secondaryGenre: z.string().min(1, 'Sub-genre is required'),
+    // Genres are filled per-track via the track edit modal (albums/EPs); tracks
+    // start as placeholders without them. Enforcement happens in the modal save
+    // handler, the album step validation, and the backend DraftGenreDto.
+    primaryGenre: z.string().optional(),
+    secondaryGenre: z.string().optional(),
     writers: z.array(songwriterSchema).optional(),
     composers: z.array(songwriterSchema).optional(),
     isInstrumental: z.string().optional(),

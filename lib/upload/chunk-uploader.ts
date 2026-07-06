@@ -17,10 +17,7 @@ interface UploadCompleteResponse {
         hash?: string;
         fingerprint?: string;
         size?: number;
-    };
-    issues?: Array<{ code: string; message: string; severity?: string }>;
-    errors?: Array<{ code: string; message: string; severity?: string }>;
-    canOverride?: boolean;
+    }
 }
 
 export const uploadFileInChunks = async (
@@ -30,9 +27,7 @@ export const uploadFileInChunks = async (
     type?: string,
     artistName?: string,
     trackTitle?: string,
-    consent?: boolean,
-    validateOnly?: boolean,
-    metadata?: string,
+    consent?: boolean
 ): Promise<UploadCompleteResponse> => {
 
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -52,8 +47,6 @@ export const uploadFileInChunks = async (
         if (artistName) formData.append('artistName', artistName);
         if (trackTitle) formData.append('trackTitle', trackTitle);
         if (consent) formData.append('consent', 'true');
-        if (validateOnly) formData.append('validateOnly', 'true');
-        if (metadata) formData.append('metadata', metadata);
 
         try {
             const response = await apiClient.post('/chunk_files/upload', formData, {
@@ -107,9 +100,9 @@ export const uploadFileInChunks = async (
     }
 
     // The last chunk response should contain the final data
-    if (result && (result.path || result.status)) {
+    if (result && result.path) {
         return {
-            path: result.path || '',
+            path: result.path,
             status: result.status,
             message: result.message,
             metaData: {
@@ -118,10 +111,7 @@ export const uploadFileInChunks = async (
                 hash: result.metaData?.hash,
                 fingerprint: result.metaData?.fingerprint,
                 size: result.metaData?.size
-            },
-            issues: result.issues,
-            errors: result.errors,
-            canOverride: result.canOverride,
+            }
         };
     }
 
@@ -180,19 +170,30 @@ export const validateAudioOnBackend = async (
     trackTitle?: string,
     consent?: boolean
 ): Promise<UploadCompleteResponse> => {
-    const result = await uploadFileInChunks(
-        file,
-        accessToken,
-        undefined,
-        'audio',
-        undefined,
-        trackTitle,
-        consent,
-        true,
-    );
+    const formData = new FormData();
+    formData.append('file', file);
+    if (trackTitle) formData.append('trackTitle', trackTitle);
+    if (consent) formData.append('consent', 'true');
 
-    if (result.status) {
-        return result;
+    const response = await apiClient.post('/chunk_files/validate-audio', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        }
+    });
+
+    if (response.data && response.data.status) {
+        return {
+            path: response.data.path || '',
+            status: response.data.status,
+            message: response.data.message,
+            metaData: {
+                duration: response.data.metaData?.duration,
+                resolution: response.data.metaData?.resolution,
+                hash: response.data.metaData?.hash,
+                fingerprint: response.data.metaData?.fingerprint,
+                size: response.data.metaData?.size
+            }
+        };
     }
 
     throw new Error('Validation completed but no status returned.');
