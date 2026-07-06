@@ -1,4 +1,4 @@
-import apiClient from '@/lib/api-client';
+import { uploadFileInChunks } from '@/lib/upload/chunk-uploader';
 
 export interface CoverArtFieldRules {
   allowedFileTypes?: string[];
@@ -157,19 +157,21 @@ export async function validateCoverArt(
   file: File,
   metadata: CoverArtMetadata,
 ): Promise<CoverArtValidationResponse> {
-  const formData = new FormData();
-  formData.append('image', file);
-  formData.append('metadata', JSON.stringify(metadata));
-
-  const response = await apiClient.post<CoverArtValidationResponse>(
-    '/cover-art-validation/validate',
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    },
+  const result = await uploadFileInChunks(
+    file,
+    '',
+    undefined,
+    'coverart',
+    metadata.artistName,
+    metadata.trackTitle,
+    false,
+    true,
+    JSON.stringify(metadata),
   );
 
-  return response.data;
+  return {
+    status: (result.status as CoverArtValidationStatus) || 'rejected',
+    issues: result.issues as CoverArtValidationError[] | undefined,
+    errors: (result.errors || result.issues || []) as CoverArtValidationError[],
+  };
 }

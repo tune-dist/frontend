@@ -431,8 +431,8 @@ export default function UploadPage() {
 
 
           if (isValid) {
-            // Check Artist Limits
-            if (limits.artistLimit < Infinity) {
+            // Check Artist Limits (skip for unlimited plans)
+            if (limits.artistLimit < 9999) {
               const currentArtists = [
                 formData.artistName,
                 ...(formData.artists || []).map((a: any) => a.name),
@@ -766,7 +766,7 @@ export default function UploadPage() {
             const planKey = (user?.plan as string) || "free";
             const limits = await getPlanLimits(planKey);
 
-            if (limits.artistLimit < Infinity) {
+            if (limits.artistLimit < 9999) {
               // Collect all unique artists in this release
               const releaseArtists: string[] = [];
 

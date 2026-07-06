@@ -251,7 +251,7 @@ export default function ReleasesPage() {
         setValidationErrorDialog({
           title:
             type === "approve"
-              ? "Cannot submit to PDL"
+              ? "Cannot submit"
               : type === "distribute"
                 ? "Cannot distribute release"
                 : "Action blocked",
