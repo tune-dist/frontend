@@ -209,7 +209,9 @@ export default function ReleaseDetailsPage() {
                       <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                         <span className="text-[10px] font-bold text-white">P</span>
                       </div>
-                      <p className="text-sm text-white/80 font-medium leading-relaxed">{release?.producers?.[0] || "N/A"}</p>
+                      <p className="text-sm text-white/80 font-medium leading-relaxed">
+                        {release.publisher || release.producers?.[0] || release.labelName || "N/A"}
+                      </p>
                     </div>
                   </div>
                 </div>

@@ -14,6 +14,7 @@ import type {
   ReleaseType,
 } from './types';
 import { buildProfilesFromFlatFields, toPlatformRef } from './platform-ref.util';
+import { getDefaultLabelName } from '@/lib/validation/label-name';
 
 type FormAudioFile = {
   id?: string;
@@ -361,19 +362,27 @@ export async function buildDraftPayload(
     form.mandatoryChecks?.ownershipConfirmation === true ||
     form.rightsAccepted === true;
 
+  const defaultLabel = getDefaultLabelName();
+  const publisher =
+    form.producers?.[0]?.trim() ||
+    form.publisher?.trim() ||
+    form.copyright?.trim() ||
+    form.labelName?.trim() ||
+    defaultLabel;
+
   return {
     release: {
       title: form.title,
       version: form.version || null,
       type: releaseType,
-      labelName: form.labelName || 'KratoLib',
+      labelName: form.labelName || defaultLabel,
       releaseDate: form.releaseDate || new Date().toISOString().slice(0, 10),
       originalReleaseDate: form.originalReleaseDate || null,
       previouslyReleased: yesNo(form.previouslyReleased),
       distributionTerritories: form.distributionTerritories || ['Worldwide'],
       upc: form.upc || null,
       copyright: form.copyright || null,
-      publisher: null,
+      publisher,
       recordingYear:
         typeof form.recordingYear === 'number'
           ? form.recordingYear
