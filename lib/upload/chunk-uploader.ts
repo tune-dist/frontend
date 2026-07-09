@@ -1,9 +1,7 @@
-import axios from 'axios';
 import apiClient from '@/lib/api-client';
 import { isPlanInactiveError } from '@/lib/plan-inactive';
 
-const CHUNK_SIZE = 1024 * 1024; // 1MB
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const CHUNK_SIZE = 512 * 1024; // 512KB — stays under typical nginx client_max_body_size (1MB)
 
 interface UploadProgressCallback {
     (progress: number): void;
@@ -177,7 +175,6 @@ export const validateAudioOnBackend = async (
     if (trackTitle) formData.append('trackTitle', trackTitle);
     if (consent) formData.append('consent', 'true');
 
-    // Use apiClient instead of direct axios to ensure prefix/baseURL consistency
     const response = await apiClient.post('/chunk_files/validate-audio', formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
@@ -186,7 +183,7 @@ export const validateAudioOnBackend = async (
 
     if (response.data && response.data.status) {
         return {
-            path: response.data.path || '', // path might be empty for validation
+            path: response.data.path || '',
             status: response.data.status,
             message: response.data.message,
             metaData: {

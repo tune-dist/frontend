@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TrackPlayButton } from "@/components/releases/track-play-button";
+import { useReleaseTrackPlayback } from "@/lib/releases/use-release-track-playback";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import {
   ArrowLeft,
   Calendar,
@@ -39,6 +42,13 @@ export default function ReleaseDetailsPage() {
   const [release, setRelease] = useState<Release | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const {
+    audioRef,
+    playingTrackIndex,
+    loadingTrackIndex,
+    toggleTrackPlayback,
+    stopPlayback,
+  } = useReleaseTrackPlayback();
 
   useEffect(() => {
     const fetchRelease = async () => {
@@ -56,6 +66,10 @@ export default function ReleaseDetailsPage() {
 
     fetchRelease();
   }, [params.id]);
+
+  useEffect(() => {
+    return () => stopPlayback();
+  }, [stopPlayback]);
 
   const getStatusColor = getReleaseStatusColor;
   const formatStatus = formatReleaseStatus;
@@ -96,6 +110,12 @@ export default function ReleaseDetailsPage() {
 
   return (
       <div className="space-y-8 pb-24">
+        <audio
+          ref={audioRef}
+          onEnded={stopPlayback}
+          preload="none"
+          className="hidden"
+        />
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative">
           <div className="flex items-center gap-6">
@@ -209,7 +229,9 @@ export default function ReleaseDetailsPage() {
                       <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                         <span className="text-[10px] font-bold text-white">P</span>
                       </div>
-                      <p className="text-sm text-white/80 font-medium leading-relaxed">{release?.producers?.[0] || "N/A"}</p>
+                      <p className="text-sm text-white/80 font-medium leading-relaxed">
+                        {release.publisher || release.producers?.[0] || release.labelName || "N/A"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -274,15 +296,29 @@ export default function ReleaseDetailsPage() {
                         </div>
                         <div className="flex items-center gap-3 opacity-50 group-hover:opacity-100 transition-opacity">
                           {track.audioFile && (
-                            <a
-                              href={track.audioFile.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-primary hover:text-black text-white text-xs font-bold tracking-wide transition-all flex items-center gap-2"
-                            >
-                              <AudioWaveform className="w-3.5 h-3.5" />
-                              Download
-                            </a>
+                            <>
+                              <TrackPlayButton
+                                isPlaying={playingTrackIndex === index}
+                                loading={loadingTrackIndex === index}
+                                onClick={() => {
+                                  void toggleTrackPlayback(
+                                    index,
+                                    track.audioFile!.url,
+                                  ).catch(() => {
+                                    toast.error("Could not play this track");
+                                  });
+                                }}
+                              />
+                              <a
+                                href={track.audioFile.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-primary hover:text-black text-white text-xs font-bold tracking-wide transition-all flex items-center gap-2"
+                              >
+                                <AudioWaveform className="w-3.5 h-3.5" />
+                                Download
+                              </a>
+                            </>
                           )}
                         </div>
                       </div>

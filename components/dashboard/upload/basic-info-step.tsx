@@ -128,7 +128,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     }, [isLabelNameAllowed, labelNameValue, defaultLabelName, setValue])
 
     // Check if main artist name should be locked (Limit reached, including any purchased add-on slots)
-    const isArtistLocked = !!planLimits && usedArtists.length >= (planLimits.artistLimit + extraSlots);
+    const isArtistLocked = !!planLimits && planLimits.artistLimit < 9999 && usedArtists.length >= (planLimits.artistLimit + extraSlots);
 
     // Check if current artist is from the roster
     const isArtistFromRoster = usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artistName);
@@ -517,7 +517,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     <div className="flex items-center justify-between">
                         <div className="flex items-center justify-between w-full">
                             <Label htmlFor="artistName">Artist Name <span className="text-red-500">*</span></Label>
-                            {planLimits && planLimits.artistLimit < Infinity && (() => {
+                            {planLimits && planLimits.artistLimit < 9999 && (() => {
                                 const effectiveLimit = planLimits.artistLimit + extraSlots
                                 return (
                                     <div className="flex items-center gap-1 text-xs text-muted-foreground">

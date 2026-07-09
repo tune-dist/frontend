@@ -440,8 +440,8 @@ export default function UploadPage() {
 
 
           if (isValid) {
-            // Check Artist Limits
-            if (limits.artistLimit < Infinity) {
+            // Check Artist Limits (skip for unlimited plans)
+            if (limits.artistLimit < 9999) {
               const currentArtists = [
                 formData.artistName,
                 ...(formData.artists || []).map((a: any) => a.name),
@@ -737,15 +737,15 @@ export default function UploadPage() {
                 }
 
                 if (!isNoLyricsTrack) {
-                for (const sw of filledWriters) {
-                  if (getLegalPersonNameError(sw.trim())) {
-                    toast.error(
-                      `Track ${i + 1}: Invalid writer name "${sw}". ${nameErrorHint}`
-                    );
-                    hasError = true;
-                    break;
+                  for (const sw of filledWriters) {
+                    if (getLegalPersonNameError(sw.trim())) {
+                      toast.error(
+                        `Track ${i + 1}: Invalid writer name "${sw}". ${nameErrorHint}`
+                      );
+                      hasError = true;
+                      break;
+                    }
                   }
-                }
                 }
 
                 if (hasError) break;
@@ -775,7 +775,7 @@ export default function UploadPage() {
             const planKey = (user?.plan as string) || "free";
             const limits = await getPlanLimits(planKey);
 
-            if (limits.artistLimit < Infinity) {
+            if (limits.artistLimit < 9999) {
               // Collect all unique artists in this release
               const releaseArtists: string[] = [];
 
@@ -898,26 +898,26 @@ export default function UploadPage() {
                 toast.error("Cover art must be validated before continuing.");
                 isValid = false;
               } else {
-              const status = formData.coverArtValidationStatus;
-              const issues = formData.coverArtValidationIssues || [];
-              const hasIssues =
-                formData.coverArtChanged &&
-                ((status && status !== "approved") || issues.length > 0);
+                const status = formData.coverArtValidationStatus;
+                const issues = formData.coverArtValidationIssues || [];
+                const hasIssues =
+                  formData.coverArtChanged &&
+                  ((status && status !== "approved") || issues.length > 0);
 
-              if (hasIssues && !formData.coverArtConsent) {
-                form.setError("coverArtConsent", {
-                  type: "manual",
-                  message:
-                    "Please provide consent to proceed with current cover art.",
-                });
-                toast.error(
-                  "Please confirm you want to proceed with the cover art warnings",
-                );
-                isValid = false;
-              } else {
-                form.clearErrors("coverArtConsent");
-                isValid = true;
-              }
+                if (hasIssues && !formData.coverArtConsent) {
+                  form.setError("coverArtConsent", {
+                    type: "manual",
+                    message:
+                      "Please provide consent to proceed with current cover art.",
+                  });
+                  toast.error(
+                    "Please confirm you want to proceed with the cover art warnings",
+                  );
+                  isValid = false;
+                } else {
+                  form.clearErrors("coverArtConsent");
+                  isValid = true;
+                }
               }
             }
           }
@@ -1185,33 +1185,33 @@ export default function UploadPage() {
 
   if (!isEditMode && !canUpload) {
     return (
-        <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
-          <div className="bg-yellow-500/10 p-6 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
-            <Info className="h-10 w-10 text-yellow-500" />
-          </div>
-          <h1 className="text-3xl font-bold">Release Limit Reached</h1>
-          <p className="text-muted-foreground text-lg max-w-lg mx-auto">
-            You are on the <strong>{planInfo?.title || "Free Plan"}</strong>,
-            which allows only one active release at a time. You currently have a
-            release that is <strong>In Process</strong>.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Please wait for your current release to be distributed or rejected
-            before uploading deeper.
-          </p>
-
-          <div className="pt-6 flex gap-4 justify-center">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/dashboard/releases")}
-            >
-              View My Releases
-            </Button>
-            <Button onClick={() => (window.location.href = "/pricing")}>
-              Upgrade to Premium
-            </Button>
-          </div>
+      <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
+        <div className="bg-yellow-500/10 p-6 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+          <Info className="h-10 w-10 text-yellow-500" />
         </div>
+        <h1 className="text-3xl font-bold">Release Limit Reached</h1>
+        <p className="text-muted-foreground text-lg max-w-lg mx-auto">
+          You are on the <strong>{planInfo?.title || "Free Plan"}</strong>,
+          which allows only one active release at a time. You currently have a
+          release that is <strong>In Process</strong>.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Please wait for your current release to be distributed or rejected
+          before uploading deeper.
+        </p>
+
+        <div className="pt-6 flex gap-4 justify-center">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/releases")}
+          >
+            View My Releases
+          </Button>
+          <Button onClick={() => (window.location.href = "/pricing")}>
+            Upgrade to Premium
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -1521,7 +1521,7 @@ export default function UploadPage() {
 
       {isSubmitting && (
         <div
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm px-6"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm p-4"
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="submit-loading-title"
@@ -1531,8 +1531,8 @@ export default function UploadPage() {
           <p id="submit-loading-title" className="mt-5 text-lg font-semibold text-center">
             {isEditMode ? "Saving your release…" : "Submitting your release…"}
           </p>
-          <p id="submit-loading-desc" className="mt-2 text-sm text-muted-foreground text-center max-w-md">
-            {submitProgress.label || "Uploading assets and saving your release. Please do not close this page."}
+          <p id="submit-loading-desc" className="mt-2 text-sm text-muted-foreground text-center">
+            Uploading assets and sending to stores. Please do not close this page.
           </p>
           <div className="mt-6 w-full max-w-sm space-y-2">
             <div className="flex justify-between items-center text-sm font-medium">
