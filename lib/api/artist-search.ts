@@ -1,4 +1,4 @@
-import { config } from '@/lib/config';
+import apiClient from '@/lib/api-client';
 
 export type ArtistSearchSource = 'cosmos';
 
@@ -20,14 +20,6 @@ export interface ArtistSearchResponse {
   apple: PlatformArtistSearchHit[];
 }
 
-async function parseJson<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Request failed (${response.status})`);
-  }
-  return response.json() as Promise<T>;
-}
-
 /** Unified upload UI artist search (COSMOS catalog). */
 export async function searchArtists(
   query: string,
@@ -37,17 +29,15 @@ export async function searchArtists(
     cosmosLimit?: number;
   },
 ): Promise<ArtistSearchResponse> {
-  const params = new URLSearchParams({
-    q: query.trim(),
-    spotifyLimit: String(options?.spotifyLimit ?? 10),
-    appleLimit: String(options?.appleLimit ?? 15),
-    cosmosLimit: String(options?.cosmosLimit ?? 15),
+  const response = await apiClient.get<ArtistSearchResponse>('/integrations/artists/search', {
+    params: {
+      q: query.trim(),
+      spotifyLimit: options?.spotifyLimit ?? 10,
+      appleLimit: options?.appleLimit ?? 15,
+      cosmosLimit: options?.cosmosLimit ?? 15,
+    },
   });
-
-  const response = await fetch(
-    `${config.apiUrl}/integrations/artists/search?${params.toString()}`,
-  );
-  return parseJson<ArtistSearchResponse>(response);
+  return response.data;
 }
 
 export interface ArtistEnrichmentResponse {
@@ -69,13 +59,12 @@ export async function enrichArtistProfile(input: {
   appleId?: string;
   appleUrl?: string;
 }): Promise<ArtistEnrichmentResponse> {
-  const params = new URLSearchParams();
-  if (input.spotifyId) params.set('spotifyId', input.spotifyId);
-  if (input.appleId) params.set('appleId', input.appleId);
-  if (input.appleUrl) params.set('appleUrl', input.appleUrl);
-
-  const response = await fetch(
-    `${config.apiUrl}/integrations/artists/enrich?${params.toString()}`,
-  );
-  return parseJson<ArtistEnrichmentResponse>(response);
+  const response = await apiClient.get<ArtistEnrichmentResponse>('/integrations/artists/enrich', {
+    params: {
+      spotifyId: input.spotifyId,
+      appleId: input.appleId,
+      appleUrl: input.appleUrl,
+    },
+  });
+  return response.data;
 }
