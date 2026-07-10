@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { TrackPlayButton } from "@/components/releases/track-play-button";
+import { useEffect, useState, type ReactNode } from "react";
+import { TrackAudioPlayer } from "@/components/releases/track-audio-player";
 import { useReleaseTrackPlayback } from "@/lib/releases/use-release-track-playback";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -44,9 +44,15 @@ export default function ReleaseDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const {
     audioRef,
-    playingTrackIndex,
+    activeTrackIndex,
+    isPlaying,
     loadingTrackIndex,
+    currentTime,
+    duration,
     toggleTrackPlayback,
+    seekTo,
+    beginSeek,
+    endSeek,
     stopPlayback,
   } = useReleaseTrackPlayback();
 
@@ -74,48 +80,40 @@ export default function ReleaseDetailsPage() {
   const getStatusColor = getReleaseStatusColor;
   const formatStatus = formatReleaseStatus;
 
+  let content: ReactNode;
+
   if (loading) {
-    return <PageLoading />;
-  }
-
-  if (error || !release) {
-    return (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <h2 className="text-2xl font-bold text-destructive mb-2">
-            Error Loading Release
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            {error || "Release not found"}
-          </p>
-          <Button onClick={() => router.push("/dashboard/releases")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Releases
-          </Button>
-        </div>
+    content = <PageLoading />;
+  } else if (error || !release) {
+    content = (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <h2 className="text-2xl font-bold text-destructive mb-2">
+          Error Loading Release
+        </h2>
+        <p className="text-muted-foreground mb-6">
+          {error || "Release not found"}
+        </p>
+        <Button onClick={() => router.push("/dashboard/releases")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Releases
+        </Button>
+      </div>
     );
-  }
+  } else {
+    const releaseAny = release as any;
+    const releaseNoLyrics = isReleaseNoLyrics({
+      primaryGenre: releaseAny.primaryGenre,
+      language: release.language,
+      instrumental: releaseAny.instrumental,
+      isInstrumentalFlag: releaseAny.isInstrumentalFlag,
+    });
+    const writersDisplay =
+      !releaseNoLyrics && release.writers?.filter((w) => w?.trim()).length
+        ? release.writers.filter((w) => w?.trim()).join(", ")
+        : null;
 
-  // Cast to any to access potential extra fields not in interface
-  const releaseAny = release as any;
-  const releaseNoLyrics = isReleaseNoLyrics({
-    primaryGenre: releaseAny.primaryGenre,
-    language: release.language,
-    instrumental: releaseAny.instrumental,
-    isInstrumentalFlag: releaseAny.isInstrumentalFlag,
-  });
-  const writersDisplay =
-    !releaseNoLyrics && release.writers?.filter((w) => w?.trim()).length
-      ? release.writers.filter((w) => w?.trim()).join(", ")
-      : null;
-
-  return (
+    content = (
       <div className="space-y-8 pb-24">
-        <audio
-          ref={audioRef}
-          onEnded={stopPlayback}
-          preload="none"
-          className="hidden"
-        />
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative">
           <div className="flex items-center gap-6">
@@ -273,54 +271,67 @@ export default function ReleaseDetailsPage() {
                     {release.tracks.map((track: TrackPayload, index: number) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-4 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-colors group"
+                        className="p-4 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-colors group space-y-4"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-2xl bg-white/5 group-hover:bg-primary/20 transition-colors flex items-center justify-center text-white/50 group-hover:text-primary font-black text-sm shadow-inner">
-                            {index + 1}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="h-10 w-10 rounded-2xl bg-white/5 group-hover:bg-primary/20 transition-colors flex items-center justify-center text-white/50 group-hover:text-primary font-black text-sm shadow-inner shrink-0">
+                              {index + 1}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-white text-base flex items-center gap-2">
+                                {track.title}
+                                {track.isExplicit && (
+                                  <span className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[9px] font-black tracking-widest leading-none">
+                                    E
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-sm text-white/40">{track.artistName}</p>
+                              <p className="text-[10px] font-mono text-white/30 mt-1">
+                                ISRC: {getTrackIsrcDisplay(track, release)}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-white text-base flex items-center gap-2">
-                              {track.title}
-                              {track.isExplicit && (
-                                <span className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[9px] font-black tracking-widest leading-none">
-                                  E
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-sm text-white/40">{track.artistName}</p>
-                            <p className="text-[10px] font-mono text-white/30 mt-1">
-                              ISRC: {getTrackIsrcDisplay(track, release)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 opacity-50 group-hover:opacity-100 transition-opacity">
                           {track.audioFile && (
-                            <>
-                              <TrackPlayButton
-                                isPlaying={playingTrackIndex === index}
-                                loading={loadingTrackIndex === index}
-                                onClick={() => {
-                                  void toggleTrackPlayback(
-                                    index,
-                                    track.audioFile!.url,
-                                  ).catch(() => {
-                                    toast.error("Could not play this track");
-                                  });
-                                }}
-                              />
-                              <a
-                                href={track.audioFile.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-primary hover:text-black text-white text-xs font-bold tracking-wide transition-all flex items-center gap-2"
-                              >
-                                <AudioWaveform className="w-3.5 h-3.5" />
-                                Download
-                              </a>
-                            </>
+                            <a
+                              href={track.audioFile.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-primary hover:text-black text-white text-xs font-bold tracking-wide transition-all flex items-center gap-2 shrink-0 opacity-80 group-hover:opacity-100"
+                            >
+                              <AudioWaveform className="w-3.5 h-3.5" />
+                              Download
+                            </a>
                           )}
                         </div>
+
+                        {track.audioFile && (
+                          <TrackAudioPlayer
+                            isActive={activeTrackIndex === index}
+                            isPlaying={activeTrackIndex === index && isPlaying}
+                            loading={loadingTrackIndex === index}
+                            currentTime={currentTime}
+                            duration={duration}
+                            durationHint={track.audioFile.duration}
+                            onToggle={() => {
+                              void toggleTrackPlayback(index, track.audioFile!.url).catch(() => {
+                                toast.error("Could not play this track");
+                              });
+                            }}
+                            onSeekStart={beginSeek}
+                            onSeek={(time) => {
+                              if (activeTrackIndex === index) {
+                                seekTo(time);
+                              }
+                            }}
+                            onSeekEnd={(time) => {
+                              if (activeTrackIndex === index) {
+                                endSeek(time);
+                              }
+                            }}
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -330,5 +341,18 @@ export default function ReleaseDetailsPage() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <>
+      <audio
+        ref={audioRef}
+        onEnded={stopPlayback}
+        preload="none"
+        className="hidden"
+      />
+      {content}
+    </>
   );
 }
