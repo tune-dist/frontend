@@ -35,9 +35,32 @@ export interface User {
     totalStreams: number;
     revenueEarned: number;
   };
-  // Number of additional artist slots the user has purchased via the ₹500 add-on.
   // Backend is the source of truth; effective limit = plan.maxArtists + extraArtistSlots.
   extraArtistSlots?: number;
+  effectiveLimits?: {
+    maxArtists: number;
+    extraArtistSlots: number;
+    planKey: string;
+    planTitle: string;
+    isActive: boolean;
+  } | null;
+  addonEligibility?: {
+    canBuyArtistAddon: boolean;
+    reason?: string | null;
+    suggestedAction?: 'upgrade' | 'renew' | 'contact_support' | null;
+    suggestedPlanKey?: string | null;
+    addonPlanKey: string;
+    addonPriceInr: number;
+    addonPriceWithGstInr: number;
+    addonTotalInPaise: number;
+    addonGstPercent: number;
+    addonGstIncluded: boolean;
+  };
+  artistUsage?: {
+    used: number;
+    limit: number;
+    canAddMore: boolean;
+  };
   isEmailVerified: boolean;
   isActive: boolean;
   isSuspended: boolean;

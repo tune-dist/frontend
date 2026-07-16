@@ -7,6 +7,7 @@ import { X, Check, Loader2, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAllPlans, Plan, currencySymbol, derivePeriodLabel } from '@/lib/api/plans'
+import { isPublicPricingPlan } from '@/lib/plan-keys'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
 import { useRazorpay } from '@/hooks/useRazorpay'
@@ -65,7 +66,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                         // Default mode: show ALL active plans from the database, sorted by price.
                         // The current plan is highlighted (and its CTA disabled) inside the card.
                         const displayPlans = [...data]
-                            .filter(p => p.isActive !== false)
+                            .filter(p => p.isActive !== false && isPublicPricingPlan(p.key))
                             .sort((a, b) => a.pricePerYear - b.pricePerYear)
 
                         setPlans(displayPlans)

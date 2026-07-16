@@ -94,7 +94,6 @@ function applyCancelToLocalState(
 }
 
 const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
-const ARTIST_ADDON_PRICE_INR = 500
 const ENTERPRISE_CONTACT_EMAIL = 'sales@iguru.com' // TODO: replace with the real sales inbox
 
 export default function SubscriptionPage() {
@@ -311,16 +310,18 @@ export default function SubscriptionPage() {
     const planPriceInPaise = Math.round(
         getPlanTotalWithGst(resolvedPlanDetails ?? { pricePerYear: 0 }) * 100,
     )
-    const addonsTotalInPaise = extraArtistSlots * ARTIST_ADDON_PRICE_INR * 100
+    const addonEligibility = profile?.addonEligibility ?? user?.addonEligibility
+    const addonPriceInr = addonEligibility?.addonPriceInr ?? 499
+    const addonPriceWithGstInr = addonEligibility?.addonPriceWithGstInr ?? addonPriceInr
+    const addonTotalInPaise =
+        addonEligibility?.addonTotalInPaise ?? Math.round(addonPriceWithGstInr * 100)
+    const addonsTotalInPaise = extraArtistSlots * addonTotalInPaise
     const billedTotalInPaise = planPriceInPaise + addonsTotalInPaise
 
-    // Artist add-on is only offered on the tier directly below the top one
-    // (e.g. "Label MX"). Free / mid tiers must upgrade; the top tier doesn't need it.
-    const sortedPlans = [...allPlans].sort((a, b) => a.pricePerYear - b.pricePerYear)
-    const currentPlanIdx = sortedPlans.findIndex((p) => p.key === planKey)
-    const isSecondToLastTier =
-        sortedPlans.length >= 2 && currentPlanIdx === sortedPlans.length - 2
-    const canBuyArtistAddon = !isFreePlan && !isExpired && isSecondToLastTier
+    const canBuyArtistAddon =
+        profile?.addonEligibility?.canBuyArtistAddon ??
+        user?.addonEligibility?.canBuyArtistAddon ??
+        false
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -490,7 +491,7 @@ export default function SubscriptionPage() {
                                                     Processing…
                                                 </>
                                             )
-                                            : `Add 1 more artist (₹${ARTIST_ADDON_PRICE_INR})`}
+                                            : `Add 1 more artist (₹${addonPriceWithGstInr.toFixed(2)} incl. GST)`}
                                     </Button>
                                 )}
                             </div>

@@ -50,6 +50,7 @@ import {
   Ban,
   UploadCloud,
   Pencil,
+  Flag,
 } from "lucide-react";
 import {
   getReleases,
@@ -78,6 +79,11 @@ import {
 } from "@/lib/release-status";
 import { formatReleaseCodeDisplay } from "@/lib/release-codes";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
+import {
+  hasActiveReportedIssue,
+  getReportedIssueLabel,
+  type ReportedIssue,
+} from "@/lib/reported-issue";
 
 // Animation variants
 const containerVariants = {
@@ -125,6 +131,10 @@ export default function ReleasesPage() {
     title: string;
     summary: string;
     issues: ApiFieldError[];
+  } | null>(null);
+  const [reportedIssueDialog, setReportedIssueDialog] = useState<{
+    title: string;
+    issue: ReportedIssue;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -508,10 +518,29 @@ export default function ReleasesPage() {
                               </span>
                             </TableCell>
                             <TableCell>
-                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}>
-                                <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
-                                {formatStatus(release.status)}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}>
+                                  <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
+                                  {formatStatus(release.status)}
+                                </span>
+                                {hasActiveReportedIssue(release.status, release.reportedIssue) && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
+                                    title="View reported issue"
+                                    onClick={() =>
+                                      setReportedIssueDialog({
+                                        title: release.title,
+                                        issue: release.reportedIssue!,
+                                      })
+                                    }
+                                  >
+                                    <Flag className="h-4 w-4 fill-current" />
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm font-medium">
                               {release.pdlAlbumId ? "Yes" : "-"}
@@ -715,6 +744,35 @@ export default function ReleasesPage() {
             ) : null}
             <DialogFooter>
               <Button onClick={() => setValidationErrorDialog(null)}>Got it</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={reportedIssueDialog !== null}
+          onOpenChange={(open) => {
+            if (!open) setReportedIssueDialog(null);
+          }}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Flag className="h-5 w-5 text-amber-500" />
+                Reported Issue
+              </DialogTitle>
+              <DialogDescription>
+                {reportedIssueDialog?.title
+                  ? `COSMOS reported an issue for "${reportedIssueDialog.title}".`
+                  : "COSMOS reported an issue for this release."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+              <p className="whitespace-pre-wrap text-sm text-foreground">
+                {getReportedIssueLabel(reportedIssueDialog?.issue)}
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setReportedIssueDialog(null)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

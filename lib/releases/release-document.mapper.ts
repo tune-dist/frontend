@@ -276,6 +276,7 @@ export function mapMongoReleaseToDetail(document: MongoReleaseDocument): Release
       riskScore: document.riskScore,
       riskStatus: (document.riskStatus as ReleaseDetailResponse['workflow']['riskStatus']) || 'Safe',
     },
+    reportedIssue: document.reportedIssue,
   };
 }
 
@@ -304,6 +305,7 @@ export function mapListItemToFlatRelease(item: ReleaseListItem): Record<string, 
     releaseDate: item.releaseDate,
     upc: item.upc,
     pdlAlbumId: item.pdlAlbumId,
+    reportedIssue: item.reportedIssue,
     createdAt: item.createdAt,
     language: '',
     primaryGenre: '',
@@ -418,6 +420,7 @@ export function mapDetailToFlatRelease(detail: ReleaseDetailResponse): Record<st
     submittedAt: detail.workflow.submittedAt,
     approvedAt: detail.workflow.approvedAt,
     rejectionReason: detail.workflow.rejectionReason,
+    reportedIssue: detail.reportedIssue,
     createdAt: detail.createdAt,
     updatedAt: detail.updatedAt,
   };

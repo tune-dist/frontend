@@ -206,6 +206,12 @@ export interface Release {
   };
   /** Set after initial platform processing (metadata + assets upload) succeeds */
   pdlAlbumId?: string;
+  reportedIssue?: {
+    reportComment?: string;
+    isResolved?: boolean;
+    isAllIssueOfAlbumResolved?: boolean;
+    syncedAt?: string;
+  };
   previewClipStartTime?: string;
 }
 

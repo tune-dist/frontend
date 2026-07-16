@@ -9,6 +9,13 @@ export type ReleaseStatus =
 
 export type ReleaseType = 'single' | 'ep' | 'album' | 'remix' | 'compilation';
 
+export interface ReportedIssue {
+  reportComment?: string;
+  isResolved?: boolean;
+  isAllIssueOfAlbumResolved?: boolean;
+  syncedAt?: string;
+}
+
 export interface PlatformRef {
   id?: string;
   url?: string;
@@ -177,6 +184,7 @@ export interface ReleaseDetailResponse {
   rights: DraftRights;
   distribution: DraftDistribution;
   workflow: DraftWorkflow;
+  reportedIssue?: ReportedIssue;
 }
 
 /** GET /releases list item */
@@ -192,6 +200,7 @@ export interface ReleaseListItem {
   releaseDate?: string;
   upc?: string;
   pdlAlbumId?: string;
+  reportedIssue?: ReportedIssue;
   createdAt?: string;
 }
 
@@ -235,6 +244,7 @@ export interface MongoReleaseDocument {
   pdlAlbumId?: string;
   pdlSubmittedAt?: string;
   pdlPlatformsToRelease?: string;
+  reportedIssue?: ReportedIssue;
   submittedAt?: string;
   approvedAt?: string;
   approvedBy?: string;

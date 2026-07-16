@@ -30,11 +30,32 @@ export interface EffectiveLimits extends PlanLimits {
   isActive: boolean;
 }
 
+export interface AddonEligibility {
+  canBuyArtistAddon: boolean;
+  reason?: string | null;
+  suggestedAction?: 'upgrade' | 'renew' | 'contact_support' | null;
+  suggestedPlanKey?: string | null;
+  addonPlanKey: string;
+  addonPriceInr: number;
+  addonPriceWithGstInr: number;
+  addonTotalInPaise: number;
+  addonGstPercent: number;
+  addonGstIncluded: boolean;
+}
+
+export interface ArtistUsage {
+  used: number;
+  limit: number;
+  canAddMore: boolean;
+}
+
 export interface ProfileWithPlan extends User {
   planDetails: Plan | null;
   activePlanMapping: UserPlanMapping | null;
   activeAddons: UserPlanMapping[];
   effectiveLimits: EffectiveLimits | null;
+  addonEligibility?: AddonEligibility;
+  artistUsage?: ArtistUsage;
 }
 
 export interface UsageStats {

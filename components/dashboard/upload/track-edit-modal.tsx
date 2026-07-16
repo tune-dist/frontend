@@ -66,7 +66,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     }, [user?.plan])
 
     // Calculate total allowed artists
-    const totalAllowedArtists = planLimits.artistLimit + (user?.extraArtistSlots || 0);
+    const totalAllowedArtists =
+        user?.effectiveLimits?.maxArtists ??
+        planLimits.artistLimit + (user?.extraArtistSlots || 0);
 
     // Local state for track metadata fields
     const [trackTitle, setTrackTitle] = useState(track?.title || '')

@@ -114,12 +114,14 @@ export default function BillingPage() {
             ? profile.activePlanMapping.priceInPaise / 100
             : 0);
 
-    const ARTIST_ADDON_PRICE_INR = 500;
+    const addonEligibility = profile?.addonEligibility;
+    const addonPriceInr = addonEligibility?.addonPriceInr ?? 499;
+    const addonPriceWithGstInr = addonEligibility?.addonPriceWithGstInr ?? addonPriceInr;
     const activeAddonCount =
         profile?.effectiveLimits?.extraArtistSlots ??
         profile?.activeAddons?.length ??
         0;
-    const addonsTotal = activeAddonCount * ARTIST_ADDON_PRICE_INR;
+    const addonsTotal = activeAddonCount * addonPriceWithGstInr;
     const totalRecurringPrice = currentPlanPrice + addonsTotal;
 
     const activeMapping = profile?.activePlanMapping;
