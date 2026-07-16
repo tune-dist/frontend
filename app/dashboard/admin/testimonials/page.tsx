@@ -127,6 +127,13 @@ export default function TestimonialsAdminPage() {
     };
 
     const handleCropComplete = async (croppedBlob: Blob) => {
+        const artistName = currentTestimonial.name?.trim();
+        if (!artistName) {
+            toast.error('Enter artist name before uploading image');
+            setSelectedImage(null);
+            return;
+        }
+
         try {
             setSelectedImage(null);
             setIsUploading(true);
@@ -135,7 +142,7 @@ export default function TestimonialsAdminPage() {
             // Convert Blob to File
             const file = new File([croppedBlob], 'testimonial-image.jpg', { type: 'image/jpeg' });
 
-            const response = await testimonialsApi.uploadImage(file);
+            const response = await testimonialsApi.uploadImage(file, artistName);
             setCurrentTestimonial({ ...currentTestimonial, image: response.path });
             toast.success('Image cropped and uploaded successfully');
         } catch (error) {

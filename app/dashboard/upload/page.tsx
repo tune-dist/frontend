@@ -117,6 +117,7 @@ export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState({ percent: 0, label: "" });
   const [isLoadingEdit, setIsLoadingEdit] = useState(isEditMode);
   const [showCancelEditDialog, setShowCancelEditDialog] = useState(false);
   const isHydratingRef = useRef(false);
@@ -994,28 +995,40 @@ export default function UploadPage() {
       return;
     }
     setIsSubmitting(true);
+    setSubmitProgress({ percent: 0, label: "Preparing…" });
+    let submitSucceeded = false;
+    const reportSubmitProgress = (update: { percent: number; label: string }) => {
+      setSubmitProgress(update);
+    };
     try {
       if (isEditMode && editReleaseId) {
-        const result = await submitReleaseUpdate(editReleaseId, {
-          ...data,
-          mandatoryChecks: mandatoryChecks,
-        } as any);
+        const result = await submitReleaseUpdate(
+          editReleaseId,
+          {
+            ...data,
+            mandatoryChecks: mandatoryChecks,
+          } as any,
+          { onProgress: reportSubmitProgress },
+        );
         toast.success(
           result?.pdlSynced
             ? "Release updated and synced to PDL."
             : "Release updated successfully!",
         );
       } else {
-        await submitNewRelease({
-          ...data,
-          mandatoryChecks: mandatoryChecks,
-        } as any);
+        await submitNewRelease(
+          {
+            ...data,
+            mandatoryChecks: mandatoryChecks,
+          } as any,
+          { onProgress: reportSubmitProgress },
+        );
         toast.success("Release submitted successfully!");
       }
+      submitSucceeded = true;
       router.push("/dashboard/releases");
     } catch (error: any) {
       console.error("Submission error:", error);
-      setIsSubmitting(false);
       // The plan-inactive modal already explains the block — skip the toast.
       if (!isPlanInactiveError(error)) {
         const { fieldErrors, globalErrors, targetStep } = applyUploadApiErrors(
@@ -1040,6 +1053,11 @@ export default function UploadPage() {
 
         // Wait for step navigation + error UI to render before scrolling.
         setTimeout(() => scrollToError(), targetStep !== null ? 250 : 100);
+      }
+    } finally {
+      if (!submitSucceeded) {
+        setIsSubmitting(false);
+        setSubmitProgress({ percent: 0, label: "" });
       }
     }
   };
@@ -1510,12 +1528,26 @@ export default function UploadPage() {
           aria-describedby="submit-loading-desc"
         >
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p id="submit-loading-title" className="mt-5 text-lg font-semibold">
-            Submitting your release…
+          <p id="submit-loading-title" className="mt-5 text-lg font-semibold text-center">
+            {isEditMode ? "Saving your release…" : "Submitting your release…"}
           </p>
           <p id="submit-loading-desc" className="mt-2 text-sm text-muted-foreground text-center">
             Uploading assets and sending to stores. Please do not close this page.
           </p>
+          <div className="mt-6 w-full max-w-sm space-y-2">
+            <div className="flex justify-between items-center text-sm font-medium">
+              <span className="text-primary">Progress</span>
+              <span className="text-primary tabular-nums">{submitProgress.percent}%</span>
+            </div>
+            <div className="w-full h-3 bg-primary/10 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-primary"
+                initial={{ width: 0 }}
+                animate={{ width: `${submitProgress.percent}%` }}
+                transition={{ duration: 0.25 }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </>

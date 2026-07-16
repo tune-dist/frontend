@@ -5,6 +5,10 @@ import { isTrackEligibleForCrbt } from '@/components/dashboard/upload/crbt-valid
 import { resolveAudioUploadTitle } from '@/lib/upload/audio-upload-title';
 import { uploadFileInChunks } from '@/lib/upload/chunk-uploader';
 import { getImageMetadata } from '@/lib/upload/media-metadata';
+import {
+  createSubmitProgressTracker,
+  type SubmitProgressCallback,
+} from '@/lib/upload/submit-progress';
 import type {
   CreateReleaseDraftRequest,
   DraftArtist,
@@ -54,11 +58,69 @@ function yesNo(value?: string | boolean): boolean {
   return value === 'yes';
 }
 
+function needsCoverArtUpload(
+  form: BuildDraftPayloadInput,
+  coverArtData: BuildDraftPayloadInput['coverArt'],
+): boolean {
+  if (!coverArtData) return false;
+
+  const coverMeta =
+    typeof coverArtData === 'object' && !(coverArtData instanceof File)
+      ? (coverArtData as Record<string, unknown>)
+      : {};
+
+  if (typeof coverMeta.path === 'string' && coverMeta.path.trim()) return false;
+  if (typeof coverMeta.storageKey === 'string' && coverMeta.storageKey.trim()) {
+    return false;
+  }
+  if (
+    typeof coverMeta.url === 'string' &&
+    coverMeta.url.trim() &&
+    !coverMeta.url.startsWith('http')
+  ) {
+    return false;
+  }
+
+  return form.coverArt instanceof File || coverMeta.file instanceof File;
+}
+
+function countPendingUploads(
+  form: BuildDraftPayloadInput,
+  audioFiles: FormAudioFile[],
+  isSingle: boolean,
+  rootAudio?: FormAudioFile,
+): number {
+  let count = 0;
+
+  for (const af of audioFiles) {
+    if (af.file instanceof File && !af.path) count += 1;
+  }
+
+  if (isSingle && rootAudio?.file instanceof File && !rootAudio.path) {
+    const alreadyCounted = audioFiles.some(
+      (af) => af.file === rootAudio.file && !af.path,
+    );
+    if (!alreadyCounted) count += 1;
+  }
+
+  if (needsCoverArtUpload(form, form.coverArt)) {
+    count += 1;
+  }
+
+  return count;
+}
+
+type FileUploadRunner = (
+  label: string,
+  upload: (onFileProgress: (percent: number) => void) => Promise<void>,
+) => Promise<void>;
+
 async function ensureAudioUploaded(
   audioFiles: FormAudioFile[],
   tracks: UploadFormData['tracks'],
   form: BuildDraftPayloadInput,
   token: string,
+  runUpload: FileUploadRunner,
 ): Promise<Map<string, FormAudioFile>> {
   const map = new Map<string, FormAudioFile>();
 
@@ -66,19 +128,22 @@ async function ensureAudioUploaded(
     const af = audioFiles[i];
     if (af.file instanceof File && !af.path) {
       const uploadTitle = resolveAudioUploadTitle(af, tracks, i, form.title);
-      const result = await uploadFileInChunks(
-        af.file,
-        token,
-        undefined,
-        'audio',
-        form.artistName,
-        uploadTitle,
-        form.audioConsent,
+      await runUpload(`Uploading ${uploadTitle}…`, (onFileProgress) =>
+        uploadFileInChunks(
+          af.file!,
+          token,
+          onFileProgress,
+          'audio',
+          form.artistName,
+          uploadTitle,
+          form.audioConsent,
+        ).then((result) => {
+          af.path = result.path;
+          af.duration = result.metaData?.duration;
+          af.hash = result.metaData?.hash;
+          af.fingerprint = result.metaData?.fingerprint;
+        }),
       );
-      af.path = result.path;
-      af.duration = result.metaData?.duration;
-      af.hash = result.metaData?.hash;
-      af.fingerprint = result.metaData?.fingerprint;
     }
     if (af.id) map.set(af.id, af);
   }
@@ -143,7 +208,11 @@ function buildArtists(form: BuildDraftPayloadInput): CreateReleaseDraftRequest['
   return { main, featured };
 }
 
-async function resolveCoverArt(form: BuildDraftPayloadInput, token: string): Promise<DraftCoverArt> {
+async function resolveCoverArt(
+  form: BuildDraftPayloadInput,
+  token: string,
+  runUpload: FileUploadRunner,
+): Promise<DraftCoverArt> {
   const coverArtData = form.coverArt as Record<string, unknown> | File | null | undefined;
   if (!coverArtData) {
     throw new Error('Cover art is missing or invalid. Please check the Cover Art step.');
@@ -171,23 +240,28 @@ async function resolveCoverArt(form: BuildDraftPayloadInput, token: string): Pro
   } else if (form.coverArt instanceof File || coverMeta.file instanceof File) {
     const fileToUpload =
       form.coverArt instanceof File ? form.coverArt : (coverMeta.file as File);
-    const result = await uploadFileInChunks(
-      fileToUpload,
-      token,
-      undefined,
-      'coverart',
-      form.artistName,
-      form.title,
-      form.coverArtConsent,
+    let uploadedKey = '';
+    await runUpload('Uploading cover art…', (onFileProgress) =>
+      uploadFileInChunks(
+        fileToUpload,
+        token,
+        onFileProgress,
+        'coverart',
+        form.artistName,
+        form.title,
+        form.coverArtConsent,
+      ).then((result) => {
+        uploadedKey = result.path;
+        if (result.metaData) {
+          if (result.metaData.size) coverMeta.size = result.metaData.size;
+          if (result.metaData.resolution) {
+            coverMeta.dimensions = result.metaData.resolution;
+            coverMeta.format = 'jpeg';
+          }
+        }
+      }),
     );
-    storageKey = result.path;
-    if (result.metaData) {
-      if (result.metaData.size) coverMeta.size = result.metaData.size;
-      if (result.metaData.resolution) {
-        coverMeta.dimensions = result.metaData.resolution;
-        coverMeta.format = 'jpeg';
-      }
-    }
+    storageKey = uploadedKey;
   } else {
     throw new Error('Invalid cover art data. Please re-upload your cover art.');
   }
@@ -232,11 +306,20 @@ async function resolveCoverArt(form: BuildDraftPayloadInput, token: string): Pro
 export async function buildDraftPayload(
   form: BuildDraftPayloadInput,
   token: string,
+  onProgress?: SubmitProgressCallback,
 ): Promise<CreateReleaseDraftRequest> {
   const releaseType = (form.format || form.releaseType || 'single') as ReleaseType;
   const isSingle = releaseType === 'single';
   const audioFiles = (form.audioFiles || []) as FormAudioFile[];
-  const audioMap = await ensureAudioUploaded(audioFiles, form.tracks || [], form, token);
+  const rootAudio = isSingle ? (form.audioFile as FormAudioFile | undefined) : undefined;
+  const progress = createSubmitProgressTracker(
+    countPendingUploads(form, audioFiles, isSingle, rootAudio),
+    onProgress,
+  );
+  progress.start();
+  const runUpload = progress.wrapFileUpload;
+
+  const audioMap = await ensureAudioUploaded(audioFiles, form.tracks || [], form, token, runUpload);
 
   const releaseNoLyrics = isInstrumentalRelease(form.primaryGenre, form.instrumental);
 
@@ -273,23 +356,26 @@ export async function buildDraftPayload(
     let linked = track.audioFileId ? audioMap.get(track.audioFileId) : undefined;
 
     if (!linked && isSingle && index === 0 && form.audioFile) {
-      const rootAudio = form.audioFile as FormAudioFile;
-      if (rootAudio.file instanceof File && !rootAudio.path) {
-        const result = await uploadFileInChunks(
-          rootAudio.file,
-          token,
-          undefined,
-          'audio',
-          form.artistName,
-          form.title,
-          form.audioConsent,
+      const rootAudioFile = form.audioFile as FormAudioFile;
+      if (rootAudioFile.file instanceof File && !rootAudioFile.path) {
+        await runUpload(`Uploading ${form.title || 'audio'}…`, (onFileProgress) =>
+          uploadFileInChunks(
+            rootAudioFile.file!,
+            token,
+            onFileProgress,
+            'audio',
+            form.artistName,
+            form.title,
+            form.audioConsent,
+          ).then((result) => {
+            rootAudioFile.path = result.path;
+            rootAudioFile.duration = result.metaData?.duration;
+            rootAudioFile.hash = result.metaData?.hash;
+            rootAudioFile.fingerprint = result.metaData?.fingerprint;
+          }),
         );
-        rootAudio.path = result.path;
-        rootAudio.duration = result.metaData?.duration;
-        rootAudio.hash = result.metaData?.hash;
-        rootAudio.fingerprint = result.metaData?.fingerprint;
       }
-      linked = rootAudio;
+      linked = rootAudioFile;
     }
 
     const audio = linked ? toDraftMediaAsset(linked, track.title) : null;
@@ -355,7 +441,8 @@ export async function buildDraftPayload(
     });
   }
 
-  const coverArt = await resolveCoverArt(form, token);
+  const coverArt = await resolveCoverArt(form, token, runUpload);
+  progress.uploadsFinished();
 
   const rightsAccepted =
     form.mandatoryChecks?.rightsAuthorization === true ||
