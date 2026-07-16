@@ -229,7 +229,12 @@ export function mapMongoReleaseToDetail(document: MongoReleaseDocument): Release
       distributionTerritories: document.distributionTerritories || ['Worldwide'],
       upc: document.upc || document.barcode || null,
       copyright: document.copyright || null,
-      publisher: document.publisher || null,
+      publisher:
+        document.publisher ||
+        document.producers?.[0] ||
+        document.copyright ||
+        document.labelName ||
+        null,
       recordingYear: document.recordingYear,
     },
     artists: {
@@ -347,6 +352,7 @@ export function mapDetailToFlatRelease(detail: ReleaseDetailResponse): Record<st
     catalogNumber: detail.distribution.catalogNumber,
     copyright: detail.release.copyright,
     publisher: detail.release.publisher,
+    producers: detail.release.publisher ? [detail.release.publisher] : undefined,
     recordingYear: detail.release.recordingYear,
     featuredArtists: detail.artists.featured,
     primaryArtists: detail.artists.main.map((artist) => ({

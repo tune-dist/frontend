@@ -9,6 +9,11 @@ import {
   mapListItemToFlatRelease,
 } from "@/lib/releases";
 import type { CreateReleaseDraftRequest } from "@/lib/releases";
+import type { SubmitProgressCallback } from "@/lib/upload/submit-progress";
+
+export type SubmitReleaseOptions = {
+  onProgress?: SubmitProgressCallback;
+};
 
 export interface ReleaseFormData {
   title: string;
@@ -228,8 +233,13 @@ export interface GetReleasesParams {
 export const buildCreateReleaseData = async (
   formData: ReleaseFormData,
   token: string,
+  onProgress?: SubmitProgressCallback,
 ): Promise<CreateReleaseDraftRequest> => {
-  return buildDraftPayload(formData as Parameters<typeof buildDraftPayload>[0], token);
+  return buildDraftPayload(
+    formData as Parameters<typeof buildDraftPayload>[0],
+    token,
+    onProgress,
+  );
 };
 
 // Helper to normalize release data from backend
@@ -243,12 +253,19 @@ export const normalizeRelease = (release: any): Release => {
 
 
 // Process and submit new release with file uploads
-export const submitNewRelease = async (formData: ReleaseFormData) => {
+export const submitNewRelease = async (
+  formData: ReleaseFormData,
+  options?: SubmitReleaseOptions,
+) => {
   const token = Cookies.get(config.tokenKey) || "";
+  const onProgress = options?.onProgress;
 
   try {
-    const releaseData = await buildCreateReleaseData(formData, token);
-    return await createRelease(releaseData);
+    const releaseData = await buildCreateReleaseData(formData, token, onProgress);
+    onProgress?.({ percent: 92, label: "Saving release…" });
+    const result = await createRelease(releaseData);
+    onProgress?.({ percent: 100, label: "Complete" });
+    return result;
   } catch (error: any) {
     console.error("Release submission failed:", error);
     throw error;
@@ -256,12 +273,20 @@ export const submitNewRelease = async (formData: ReleaseFormData) => {
 };
 
 // Update an existing draft release (release manager only)
-export const submitReleaseUpdate = async (id: string, formData: ReleaseFormData) => {
+export const submitReleaseUpdate = async (
+  id: string,
+  formData: ReleaseFormData,
+  options?: SubmitReleaseOptions,
+) => {
   const token = Cookies.get(config.tokenKey) || "";
+  const onProgress = options?.onProgress;
 
   try {
-    const releaseData = await buildCreateReleaseData(formData, token);
-    return await updateRelease(id, releaseData);
+    const releaseData = await buildCreateReleaseData(formData, token, onProgress);
+    onProgress?.({ percent: 92, label: "Saving release…" });
+    const result = await updateRelease(id, releaseData);
+    onProgress?.({ percent: 100, label: "Complete" });
+    return result;
   } catch (error: any) {
     console.error("Release update failed:", error);
     throw error;

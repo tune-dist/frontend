@@ -1,20 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+export const RECAPTCHA_ACTION = 'contact_submit';
 
 type Grecaptcha = {
-  render: (
-    container: HTMLElement,
-    options: {
-      sitekey: string;
-      callback?: (token: string) => void;
-      'expired-callback'?: () => void;
-    },
-  ) => number;
-  getResponse: (widgetId?: number) => string;
-  reset: (widgetId?: number) => void;
+  ready: (callback: () => void) => void;
+  execute: (siteKey: string, options: { action: string }) => Promise<string>;
 };
 
 function loadRecaptchaScript(): Promise<Grecaptcha> {
@@ -23,15 +14,19 @@ function loadRecaptchaScript(): Promise<Grecaptcha> {
     ___kratolibRecaptchaOnLoad?: () => void;
   };
 
-  if (win.grecaptcha?.render) {
+  if (win.grecaptcha?.execute) {
     return Promise.resolve(win.grecaptcha);
+  }
+
+  if (!SITE_KEY) {
+    return Promise.reject(new Error('reCAPTCHA is not configured'));
   }
 
   return new Promise((resolve, reject) => {
     const existing = document.querySelector('script[src*="recaptcha/api.js"]');
     if (existing) {
       const interval = window.setInterval(() => {
-        if (win.grecaptcha?.render) {
+        if (win.grecaptcha?.execute) {
           window.clearInterval(interval);
           resolve(win.grecaptcha);
         }
@@ -48,7 +43,7 @@ function loadRecaptchaScript(): Promise<Grecaptcha> {
     };
 
     const script = document.createElement('script');
-    script.src = 'https://www.google.com/recaptcha/api.js?onload=___kratolibRecaptchaOnLoad&render=explicit';
+    script.src = `https://www.google.com/recaptcha/api.js?render=${SITE_KEY}`;
     script.async = true;
     script.defer = true;
     script.onerror = () => reject(new Error('Failed to load reCAPTCHA'));
@@ -56,70 +51,51 @@ function loadRecaptchaScript(): Promise<Grecaptcha> {
   });
 }
 
-export type ContactRecaptchaHandle = {
-  getToken: () => string | null;
-  reset: () => void;
-};
+export async function executeRecaptcha(action = RECAPTCHA_ACTION): Promise<string> {
+  if (!SITE_KEY) {
+    throw new Error('reCAPTCHA is not configured');
+  }
 
-type ContactRecaptchaProps = {
-  onTokenChange?: (token: string | null) => void;
-  recaptchaRef?: React.MutableRefObject<ContactRecaptchaHandle | null>;
-};
+  const grecaptcha = await loadRecaptchaScript();
 
-export default function ContactRecaptcha({ onTokenChange, recaptchaRef }: ContactRecaptchaProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<number | null>(null);
-  const grecaptchaRef = useRef<Grecaptcha | null>(null);
-
-  useEffect(() => {
-    if (!SITE_KEY || !containerRef.current) return;
-
-    let cancelled = false;
-
-    loadRecaptchaScript()
-      .then((grecaptcha) => {
-        if (cancelled || !containerRef.current || widgetIdRef.current !== null) return;
-
-        grecaptchaRef.current = grecaptcha;
-        widgetIdRef.current = grecaptcha.render(containerRef.current, {
-          sitekey: SITE_KEY,
-          callback: (token) => onTokenChange?.(token),
-          'expired-callback': () => onTokenChange?.(null),
-        });
-      })
-      .catch(() => onTokenChange?.(null));
-
-    return () => {
-      cancelled = true;
-    };
-  }, [onTokenChange]);
-
-  useEffect(() => {
-    if (!recaptchaRef) return;
-
-    recaptchaRef.current = {
-      getToken: () => {
-        if (!grecaptchaRef.current || widgetIdRef.current === null) return null;
-        const token = grecaptchaRef.current.getResponse(widgetIdRef.current);
-        return token || null;
-      },
-      reset: () => {
-        if (!grecaptchaRef.current || widgetIdRef.current === null) return;
-        grecaptchaRef.current.reset(widgetIdRef.current);
-        onTokenChange?.(null);
-      },
-    };
-
-    return () => {
-      recaptchaRef.current = null;
-    };
-  }, [recaptchaRef, onTokenChange]);
-
-  if (!SITE_KEY) return null;
-
-  return <div ref={containerRef} className="flex justify-start" />;
+  return new Promise((resolve, reject) => {
+    grecaptcha.ready(() => {
+      grecaptcha
+        .execute(SITE_KEY, { action })
+        .then(resolve)
+        .catch(reject);
+    });
+  });
 }
 
 export function isRecaptchaConfigured() {
   return Boolean(SITE_KEY);
+}
+
+export function ContactRecaptchaNotice() {
+  if (!SITE_KEY) return null;
+
+  return (
+    <p className="text-xs text-muted-foreground">
+      This site is protected by reCAPTCHA and the Google{' '}
+      <a
+        href="https://policies.google.com/privacy"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-foreground"
+      >
+        Privacy Policy
+      </a>{' '}
+      and{' '}
+      <a
+        href="https://policies.google.com/terms"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-foreground"
+      >
+        Terms of Service
+      </a>{' '}
+      apply.
+    </p>
+  );
 }

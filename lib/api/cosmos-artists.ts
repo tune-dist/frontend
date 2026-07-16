@@ -1,4 +1,4 @@
-import { config } from '@/lib/config';
+import apiClient from '@/lib/api-client';
 
 export interface CosmosArtistResult {
   cosmosId: string;
@@ -30,19 +30,16 @@ export async function searchCosmosArtists(
   query: string,
   options?: { page?: number; limit?: number; enrich?: boolean },
 ): Promise<CosmosArtistSearchResponse> {
-  const params = new URLSearchParams({
-    q: query.trim(),
-    page: String(options?.page ?? 1),
-    limit: String(options?.limit ?? 15),
-    enrich: String(options?.enrich ?? true),
-  });
-
-  const response = await fetch(
-    `${config.apiUrl}/integrations/cosmos/artists/search?${params.toString()}`,
+  const response = await apiClient.get<CosmosArtistSearchResponse>(
+    '/integrations/cosmos/artists/search',
+    {
+      params: {
+        q: query.trim(),
+        page: options?.page ?? 1,
+        limit: options?.limit ?? 15,
+        enrich: options?.enrich ?? true,
+      },
+    },
   );
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(text || `Request failed (${response.status})`);
-  }
-  return response.json() as Promise<CosmosArtistSearchResponse>;
+  return response.data;
 }
