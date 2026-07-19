@@ -166,14 +166,13 @@ export const uploadFormSchema = z.object({
     releaseDate: z.string().min(1, 'Release date is required').refine((val) => {
         if (!val) return false;
         const minDate = new Date();
-        minDate.setDate(minDate.getDate() + 2);
         const yyyy = minDate.getFullYear();
         const mm = String(minDate.getMonth() + 1).padStart(2, '0');
         const dd = String(minDate.getDate()).padStart(2, '0');
         const minStr = `${yyyy}-${mm}-${dd}`;
         return val >= minStr;
     }, {
-        message: 'Release date must be at least 2 days from today'
+        message: 'Release date cannot be in the past'
     }),
     labelName: z.string().min(1, 'Label name is required'),
     distributionTerritories: z.array(z.string()).default(['Worldwide']),

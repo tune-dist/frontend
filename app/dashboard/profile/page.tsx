@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,21 +12,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { User as UserIcon, Mail, CreditCard, Loader2, Save, MapPin, FileText, Shield, CheckCircle2, UploadCloud } from 'lucide-react'
+import { User as UserIcon, Mail, CreditCard, Loader2, Save, MapPin, Shield, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { updateUserProfile, updateAddress } from '@/lib/api/users'
-import {
-  getVerificationRequests,
-  submitVerificationRequest,
-  ProfileVerificationRequest,
-  VerificationDocumentType,
-  VerificationRequestStatus,
-} from '@/lib/api/profile-verifications'
+import { updateUserProfile } from '@/lib/api/users'
+import { beginDigilockerVerification } from '@/lib/digilocker-flow'
 import { uploadFileDirectly } from '@/lib/upload/chunk-uploader'
-import { getDisplayUrl } from '@/lib/api/s3'
-import { isAllowedVerificationFile, VERIFICATION_FILE_ACCEPT, VERIFICATION_FILE_HINT } from '@/lib/verification-document'
-import { API_URL } from '@/lib/config'
 import { getErrorMessage } from '@/lib/get-error-message'
 import { hasPermission } from '@/lib/permissions'
 import { formatPlanDisplayName } from '@/lib/utils'
@@ -72,14 +62,7 @@ export default function ProfilePage() {
   // const [otp, setOtp] = useState('')
   // const [isVerifyingOTP, setIsVerifyingOTP] = useState(false)
 
-  const [showVerifyModal, setShowVerifyModal] = useState(false)
-  const [uploadDocType, setUploadDocType] = useState<VerificationDocumentType | null>(null)
-  const [docFile, setDocFile] = useState<File | null>(null)
-  const [verificationRequests, setVerificationRequests] = useState<ProfileVerificationRequest[]>([])
-  // const [passportFile, setPassportFile] = useState<File | null>(null)
-  // const [selfieFile, setSelfieFile] = useState<File | null>(null)
-  const [isVerifyingProfile, setIsVerifyingProfile] = useState(false)
-  const [openingVerifyDoc, setOpeningVerifyDoc] = useState<string | null>(null)
+  const [isStartingDigilocker, setIsStartingDigilocker] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   useEffect(() => {
@@ -98,62 +81,13 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (user?.role === 'artist') {
-      getVerificationRequests()
-        .then(setVerificationRequests)
-        .catch(() => {});
-    }
-  }, [user?.role]);
-
-  const getLatestRequest = (type: VerificationDocumentType) =>
-    verificationRequests.find((request) => request.documentType === type);
-
-  const openUploadModal = (type: VerificationDocumentType) => {
-    setUploadDocType(type);
-    setDocFile(null);
-    setShowVerifyModal(true);
-  };
-
-  const handleVerifySubmit = async () => {
-    if (!uploadDocType || !docFile) {
-      toast.error('Please select a document to upload');
-      return;
-    }
-
-    if (!isAllowedVerificationFile(docFile)) {
-      toast.error('Please upload an image (JPG, PNG, WEBP) or PDF file');
-      return;
-    }
-
-    setIsVerifyingProfile(true);
+  const handleStartDigilocker = async () => {
+    setIsStartingDigilocker(true);
     try {
-      const uploadType = uploadDocType === VerificationDocumentType.PAN ? 'pan' : 'aadhar';
-      const uploadResult = await uploadFileDirectly(docFile, '', undefined, uploadType);
-
-      const documentData = {
-        url: uploadResult.path,
-        filename: docFile.name,
-        uploadedAt: new Date().toISOString(),
-      };
-
-      await submitVerificationRequest({
-        documentType: uploadDocType,
-        document: documentData,
-      });
-
-      await refreshUser();
-      const requests = await getVerificationRequests();
-      setVerificationRequests(requests);
-      toast.success(`${uploadDocType === VerificationDocumentType.PAN ? 'PAN' : 'Aadhar'} submitted for verification`);
-      setShowVerifyModal(false);
-      setDocFile(null);
-      setUploadDocType(null);
+      await beginDigilockerVerification();
     } catch (error) {
-      console.error(error);
-      toast.error(getErrorMessage(error, 'Failed to upload verification document'));
-    } finally {
-      setIsVerifyingProfile(false);
+      toast.error(getErrorMessage(error, 'Failed to start DigiLocker verification'));
+      setIsStartingDigilocker(false);
     }
   };
 
@@ -217,19 +151,6 @@ export default function ProfilePage() {
       setIsLoading(false);
     }
   };
-
-  const handleViewVerifyDoc = async (url: string | undefined, type: string) => {
-    if (!url) return;
-    setOpeningVerifyDoc(type);
-    try {
-      const signedUrl = await getDisplayUrl(url);
-      window.open(signedUrl, '_blank', 'noopener,noreferrer');
-    } catch (error) {
-      toast.error('Failed to open document');
-    } finally {
-      setOpeningVerifyDoc(null);
-    }
-  };
   
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -287,60 +208,6 @@ export default function ProfilePage() {
       setIsLoading(false)
     }
   }
-
-  const renderVerificationDocCard = (
-    type: VerificationDocumentType,
-    label: string,
-    document?: { url: string; filename: string; uploadedAt: string },
-    isVerified?: boolean,
-  ) => {
-    const latestRequest = getLatestRequest(type);
-    const isPending = latestRequest?.status === VerificationRequestStatus.PENDING;
-    const isRejected = latestRequest?.status === VerificationRequestStatus.REJECTED;
-
-    return (
-      <div className="flex-1 p-4 border border-border/80 rounded-lg bg-muted/30 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-medium">{label}</span>
-          {isVerified ? (
-            <span className="text-xs font-medium text-green-500 flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Verified
-            </span>
-          ) : isPending ? (
-            <span className="text-xs font-medium text-amber-500">Pending review</span>
-          ) : isRejected ? (
-            <span className="text-xs font-medium text-destructive">Rejected</span>
-          ) : (
-            <span className="text-xs font-medium text-muted-foreground">Not uploaded</span>
-          )}
-        </div>
-
-        {document ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleViewVerifyDoc(document.url, type)}
-            disabled={openingVerifyDoc === type}
-          >
-            {openingVerifyDoc === type ? <Loader2 className="h-3 w-3 animate-spin mx-4" /> : 'View'}
-          </Button>
-        ) : null}
-
-        {isRejected && latestRequest?.rejectionReason ? (
-          <p className="text-xs text-destructive bg-destructive/10 p-2 rounded">
-            {latestRequest.rejectionReason}
-          </p>
-        ) : null}
-
-        {!isVerified ? (
-          <Button size="sm" onClick={() => openUploadModal(type)} className="w-full sm:w-auto">
-            <UploadCloud className="mr-2 h-4 w-4" />
-            {document ? 'Re-upload' : 'Upload'}
-          </Button>
-        ) : null}
-      </div>
-    );
-  };
 
   const formatDate = (date?: string) => {
     if (!date) return 'N/A'
@@ -608,40 +475,43 @@ export default function ProfilePage() {
                 Profile Verification
               </CardTitle>
               <CardDescription>
-                Upload your PAN and Aadhar card (image or PDF) for identity verification. Our team will review your documents manually.
+                Verify your identity with DigiLocker to complete PAN and Aadhaar verification.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {user?.isProfileVerified ? (
+              {user?.isKyc || user?.isProfileVerified ? (
                 <p className="text-sm font-medium text-green-500 flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4" /> Your profile is fully verified
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Complete PAN and Aadhar verification to get your profile verified badge.
+                  Complete DigiLocker verification to get your profile verified badge.
                 </p>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                {renderVerificationDocCard(
-                  VerificationDocumentType.PAN,
-                  'PAN Card',
-                  user?.pan,
-                  user?.isPanVerified,
-                )}
-                {renderVerificationDocCard(
-                  VerificationDocumentType.AADHAR,
-                  'Aadhar Card',
-                  user?.aadhar,
-                  user?.isAadharVerified,
-                )}
+              <div className="flex flex-wrap gap-3 text-sm">
+                <span className={user?.isPanVerified ? 'text-green-500' : 'text-muted-foreground'}>
+                  PAN: {user?.isPanVerified ? 'Verified' : 'Pending'}
+                </span>
+                <span className={user?.isAadharVerified ? 'text-green-500' : 'text-muted-foreground'}>
+                  Aadhaar: {user?.isAadharVerified ? 'Verified' : 'Pending'}
+                </span>
               </div>
 
-              {/* Selfie with uploaded document — disabled for now
-              <div className="flex-1 p-3 border border-border/80 rounded-md bg-muted/50">
-                ...
-              </div>
-              */}
+              {!user?.isKyc && !user?.isProfileVerified ? (
+                <Button
+                  onClick={handleStartDigilocker}
+                  disabled={isStartingDigilocker}
+                  className="w-full sm:w-auto"
+                >
+                  {isStartingDigilocker ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Shield className="mr-2 h-4 w-4" />
+                  )}
+                  Verify with DigiLocker
+                </Button>
+              ) : null}
             </CardContent>
           </Card>
         </motion.div>
@@ -776,119 +646,6 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
       */}
-
-      {/* Verify Profile Modal */}
-      <Dialog
-        open={showVerifyModal}
-        onOpenChange={(open) => {
-          setShowVerifyModal(open);
-          if (!open) {
-            setDocFile(null);
-            setUploadDocType(null);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Upload {uploadDocType === VerificationDocumentType.PAN ? 'PAN Card' : 'Aadhar Card'}
-            </DialogTitle>
-            <DialogDescription>
-              Upload a clear {uploadDocType === VerificationDocumentType.PAN ? 'PAN' : 'Aadhar'} card as an image or PDF. Our team will review it manually.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>{uploadDocType === VerificationDocumentType.PAN ? 'PAN Card' : 'Aadhar Card'}</Label>
-              <div
-                className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300 cursor-pointer 
-                  ${docFile ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-card/20'}`}
-                onClick={() => document.getElementById('verificationDocUpload')?.click()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const file = e.dataTransfer.files?.[0];
-                  if (!file) return;
-                  if (!isAllowedVerificationFile(file)) {
-                    toast.error('Please upload an image (JPG, PNG, WEBP) or PDF file');
-                    return;
-                  }
-                  setDocFile(file);
-                }}
-                onDragOver={(e) => e.preventDefault()}
-              >
-                <input
-                  id="verificationDocUpload"
-                  type="file"
-                  className="hidden"
-                  accept={VERIFICATION_FILE_ACCEPT}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (!isAllowedVerificationFile(file)) {
-                      toast.error('Please upload an image (JPG, PNG, WEBP) or PDF file');
-                      e.target.value = '';
-                      return;
-                    }
-                    setDocFile(file);
-                  }}
-                />
-                <div className="flex flex-col items-center gap-2">
-                  <div className="p-3 rounded-full bg-primary/10 text-primary">
-                    <UploadCloud className="h-6 w-6" />
-                  </div>
-                  {docFile ? (
-                    <div className="space-y-1">
-                      <p className="font-medium text-sm text-primary">{docFile.name}</p>
-                      <p className="text-xs text-muted-foreground">Click or drag to change</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <p className="font-medium text-sm">Drag & drop your document</p>
-                      <p className="text-xs text-muted-foreground">{VERIFICATION_FILE_HINT}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Selfie with uploaded document — disabled for now
-            <div className="space-y-2">
-              <Label>Selfie with uploaded document</Label>
-              ...
-            </div>
-            */}
-
-            <div className="flex gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowVerifyModal(false);
-                  setDocFile(null);
-                  setUploadDocType(null);
-                }}
-                className="flex-1"
-                disabled={isVerifyingProfile}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleVerifySubmit}
-                disabled={isVerifyingProfile || !docFile}
-                className="flex-1"
-              >
-                {isVerifyingProfile ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  'Submit for Review'
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

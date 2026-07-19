@@ -921,7 +921,6 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         type="date"
                         min={(() => {
                             const d = new Date();
-                            d.setDate(d.getDate() + 2);
                             const yyyy = d.getFullYear();
                             const mm = String(d.getMonth() + 1).padStart(2, '0');
                             const dd = String(d.getDate()).padStart(2, '0');
@@ -932,7 +931,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                         className={errors.releaseDate ? 'border-red-500' : ''}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                        Release date must be at least 2 days from today.
+                        Release date can be today or any future date.
                     </p>
                     {errors.releaseDate && <p className="text-xs text-red-500 mt-1">{errors.releaseDate.message}</p>}
                 </div>
