@@ -267,8 +267,11 @@ export default function UploadPage() {
 
         if (release.coverArt?.url) {
           try {
-            const previewUrl = await getSignedUrl(release.coverArt.url);
-            if (!cancelled) {
+            const coverKey = release.coverArt.url;
+            const previewUrl = /^https?:\/\//i.test(coverKey)
+              ? coverKey
+              : await getSignedUrl(coverKey);
+            if (!cancelled && previewUrl) {
               form.setValue("coverArtPreview", previewUrl, { shouldValidate: true });
             }
           } catch (error) {

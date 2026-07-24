@@ -1,4 +1,4 @@
-import type { ReleaseStatus } from './types';
+import type { ReleaseStatus } from './releases/types';
 
 export interface ReportedIssue {
   reportComment?: string;

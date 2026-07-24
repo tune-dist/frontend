@@ -373,7 +373,8 @@ export function mapDetailToFlatRelease(detail: ReleaseDetailResponse): Record<st
     facebookProfile: social.facebookProfile,
     facebookProfileUrl: social.facebookProfileUrl,
     coverArt: {
-      url: detail.coverArt.storageKey,
+      // Durable key for edit/save; getSignedUrl accepts raw keys (and passthrough for http).
+      url: detail.coverArt.storageKey || detail.coverArt.url,
       filename: detail.coverArt.filename,
       size: detail.coverArt.size,
       dimensions: detail.coverArt.dimensions,
