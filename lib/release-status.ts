@@ -1,6 +1,6 @@
 import { ReleaseStatus } from '@/lib/api/releases';
 
-export { canManageReleases, isStaffUser, hasPermission, isReleaseStaff } from '@/lib/permissions';
+export { canManageReleases, canEditReleases, isStaffUser, hasPermission, isReleaseStaff } from '@/lib/permissions';
 
 /** Legacy DB value — display only, not a filter option */
 const LEGACY_APPROVED = 'Approved';

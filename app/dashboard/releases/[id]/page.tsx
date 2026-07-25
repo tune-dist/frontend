@@ -48,6 +48,7 @@ import {
   hasActiveReportedIssue,
   getReportedIssueLabel,
 } from "@/lib/reported-issue";
+import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
 
 export default function ReleaseDetailsPage() {
   const params = useParams();
@@ -165,6 +166,19 @@ export default function ReleaseDetailsPage() {
               <p className="text-base text-white/50 flex items-center gap-2 font-medium">
                 <User className="h-4 w-4" /> {release.artistName}
               </p>
+              {release.status === "Released" &&
+                Array.isArray(release.releasedOn?.platforms) &&
+                release.releasedOn.platforms.length > 0 && (
+                  <div className="mt-4 flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                      Live on
+                    </span>
+                    <PlatformReleaseIcons
+                      platforms={release.releasedOn.platforms}
+                      iconClassName="h-8 w-8"
+                    />
+                  </div>
+                )}
             </div>
           </div>
         </div>

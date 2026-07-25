@@ -16,6 +16,17 @@ export interface ReportedIssue {
   syncedAt?: string;
 }
 
+/** DSP display data — present only when the release is Released. */
+export interface ReleasedOn {
+  syncedAt?: string;
+  platforms: Array<{
+    name: string;
+    key: string;
+    liveLink?: string;
+    openUrl?: string;
+  }>;
+}
+
 export interface PlatformRef {
   id?: string;
   url?: string;
@@ -185,6 +196,7 @@ export interface ReleaseDetailResponse {
   distribution: DraftDistribution;
   workflow: DraftWorkflow;
   reportedIssue?: ReportedIssue;
+  releasedOn?: ReleasedOn;
 }
 
 /** GET /releases list item */
@@ -201,6 +213,7 @@ export interface ReleaseListItem {
   upc?: string;
   pdlAlbumId?: string;
   reportedIssue?: ReportedIssue;
+  releasedOn?: ReleasedOn;
   createdAt?: string;
 }
 
@@ -245,6 +258,7 @@ export interface MongoReleaseDocument {
   pdlSubmittedAt?: string;
   pdlPlatformsToRelease?: string;
   reportedIssue?: ReportedIssue;
+  releasedOn?: ReleasedOn;
   submittedAt?: string;
   approvedAt?: string;
   approvedBy?: string;

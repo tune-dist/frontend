@@ -72,6 +72,7 @@ import {
 import { S3Image } from "@/components/ui/s3-image";
 import {
   canManageReleases,
+  canEditReleases,
   formatReleaseStatus,
   getReleaseStatusColor,
   isRmEditableRelease,
@@ -84,6 +85,7 @@ import {
   getReportedIssueLabel,
   type ReportedIssue,
 } from "@/lib/reported-issue";
+import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
 
 // Animation variants
 const containerVariants = {
@@ -143,6 +145,7 @@ export default function ReleasesPage() {
   const router = useRouter();
 
   const canManage = canManageReleases(user);
+  const canEdit = canEditReleases(user);
 
   const fetchReleases = async () => {
     try {
@@ -543,7 +546,20 @@ export default function ReleasesPage() {
                               </div>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm font-medium">
-                              {release.pdlAlbumId ? "Yes" : "-"}
+                              {release.status === "Released" &&
+                              Array.isArray(release.releasedOn?.platforms) &&
+                              release.releasedOn.platforms.length > 0 ? (
+                                <PlatformReleaseIcons
+                                  platforms={release.releasedOn.platforms}
+                                  className="flex items-center gap-1.5 flex-wrap max-w-[180px]"
+                                  iconsOnly
+                                  emptyFallback={release.pdlAlbumId ? "Yes" : "-"}
+                                />
+                              ) : release.pdlAlbumId ? (
+                                "Yes"
+                              ) : (
+                                "-"
+                              )}
                             </TableCell>
                             <TableCell className="text-right pr-6">
                               <div className="flex items-center justify-end gap-2">
@@ -553,13 +569,13 @@ export default function ReleasesPage() {
                                   </Button>
                                 </Link>
 
-                                {canManage && isRmEditableRelease(release.status) && (
+                                {canEdit && isRmEditableRelease(release.status) && (
                                   <Link href={`/dashboard/upload?edit=${release._id}`}>
                                     <Button
                                       variant="ghost"
                                       size="icon"
                                       className="h-9 w-9 rounded-xl hover:bg-amber-500/20 hover:text-amber-500 transition-all"
-                                      title="Edit in-process release"
+                                      title="Edit release"
                                     >
                                       <Pencil className="h-4 w-4" />
                                     </Button>
