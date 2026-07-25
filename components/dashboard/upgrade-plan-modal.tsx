@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Loader2, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { getAllPlans, Plan, currencySymbol, derivePeriodLabel } from '@/lib/api/plans'
-import { isEnterprisePlan, resolvePlanPriceDisplay } from '@/lib/plans-display'
+import { getAllPlans, Plan } from '@/lib/api/plans'
+import { isEnterprisePlan, resolvePlanPriceDisplay, resolvePlanPeriodLabel } from '@/lib/plans-display'
 import { isPublicPricingPlan } from '@/lib/plan-keys'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
@@ -246,8 +246,8 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                             <div className="flex justify-between items-center pb-4 border-b border-border/50">
                                                 <div>
                                                     <span className="font-bold text-xl">{confirmingPlan.title}</span>
-                                                    {confirmingPlan.period && (
-                                                        <span className="text-muted-foreground text-sm ml-2">{confirmingPlan.period}</span>
+                                                    {resolvePlanPeriodLabel(confirmingPlan) && (
+                                                        <span className="text-muted-foreground text-sm ml-2">{resolvePlanPeriodLabel(confirmingPlan)}</span>
                                                     )}
                                                 </div>
                                                 <span className="text-2xl font-black text-primary">{resolvePlanPriceDisplay(confirmingPlan)}</span>
@@ -327,7 +327,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                     </div>
                                                     {(() => {
                                                         if (isEnterprisePlan(plan)) return null
-                                                        const label = derivePeriodLabel(plan)
+                                                        const label = resolvePlanPeriodLabel(plan)
                                                         return label ? (
                                                             <span className="text-muted-foreground text-xs">{label}</span>
                                                         ) : null

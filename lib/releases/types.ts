@@ -16,15 +16,21 @@ export interface ReportedIssue {
   syncedAt?: string;
 }
 
+/** One DSP a release went live on (Release.releasedOn.platforms). */
+export interface ReleasedOnPlatform {
+  /** Platform display name from COSMOS platform list (e.g. "Spotify"). */
+  name: string;
+  /** Frontend badge key (spotify, apple-music, …). */
+  key: string;
+  liveLink?: string;
+  /** liveLink when present, otherwise the artist/release profile fallback. */
+  openUrl?: string;
+}
+
 /** DSP display data — present only when the release is Released. */
 export interface ReleasedOn {
   syncedAt?: string;
-  platforms: Array<{
-    name: string;
-    key: string;
-    liveLink?: string;
-    openUrl?: string;
-  }>;
+  platforms: ReleasedOnPlatform[];
 }
 
 export interface PlatformRef {

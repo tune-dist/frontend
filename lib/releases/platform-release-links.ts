@@ -1,19 +1,5 @@
 import { PLATFORM_BADGES } from '@/config/platform-badges';
-
-/** One DSP entry from release.releasedOn.platforms (Released only). */
-export interface ReleasedOnPlatform {
-  /** Platform display name from COSMOS platform list (e.g. "Spotify"). */
-  name: string;
-  /** Frontend badge key (spotify, apple-music, …). */
-  key: string;
-  liveLink?: string;
-  openUrl?: string;
-}
-
-export interface ReleasedOn {
-  syncedAt?: string;
-  platforms: ReleasedOnPlatform[];
-}
+import type { ReleasedOnPlatform } from '@/lib/releases/types';
 
 /** Resolve badge asset for a COSMOS-synced platform key. */
 export function getPlatformBadge(platformKey: string) {

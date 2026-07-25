@@ -38,8 +38,8 @@ function formatPlanFormatLabel(format: string) {
 }
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAllPlans, Plan, currencySymbol, derivePeriodLabel, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans';
-import { isEnterprisePlan, resolvePlanPriceDisplay } from '@/lib/plans-display';
+import { getAllPlans, Plan, currencySymbol, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans';
+import { isEnterprisePlan, resolvePlanPriceDisplay, resolvePlanPeriodLabel } from '@/lib/plans-display';
 import { PlanGstNote } from '@/components/plans/plan-gst-note';
 import { BillingTypeToggle } from '@/components/plans/billing-type-toggle';
 import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users';
@@ -243,7 +243,7 @@ export default function BillingPage() {
                                         ) : (
                                             <>
                                                 ({currencySymbol(currentPlan?.currency)}{totalRecurringPrice.toFixed(2)}
-                                                {currentPlan ? (derivePeriodLabel(currentPlan) ?? '/yr') : '/yr'})
+                                                {currentPlan ? (resolvePlanPeriodLabel(currentPlan) ?? '/yr') : '/yr'})
                                             </>
                                         )}
                                     </span>
@@ -369,7 +369,7 @@ export default function BillingPage() {
                                                         {currencySymbol(plan.currency)}{plan.pricePerYear.toFixed(0)}
                                                     </span>
                                                     <span className="text-[10px] text-muted-foreground">
-                                                        {derivePeriodLabel(plan) ?? '/yr'}
+                                                        {resolvePlanPeriodLabel(plan) ?? '/yr'}
                                                     </span>
                                                     <PlanGstNote plan={plan} className="mt-1" />
                                                 </div>
@@ -439,7 +439,7 @@ export default function BillingPage() {
                                                                     {currencySymbol(plan.currency)}{plan.pricePerYear.toFixed(2)}
                                                                 </div>
                                                                 <div className="text-xs text-muted-foreground font-medium mt-1">
-                                                                    Charged {derivePeriodLabel(plan) ? derivePeriodLabel(plan)?.replace('/', '') : 'yearly'}
+                                                                    Charged {(resolvePlanPeriodLabel(plan) ?? '/yr').replace('/', '')}
                                                                 </div>
                                                                 <PlanGstNote plan={plan} showTotal className="mt-2 text-left sm:text-right" />
                                                             </>

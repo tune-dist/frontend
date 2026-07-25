@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import {
   getPlatformBadge,
   getPlatformOpenUrl,
-  type ReleasedOnPlatform,
 } from "@/lib/releases/platform-release-links";
+import type { ReleasedOnPlatform } from "@/lib/releases/types";
 
 interface PlatformReleaseIconsProps {
   platforms?: ReleasedOnPlatform[] | null;

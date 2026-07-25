@@ -12,7 +12,7 @@ import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
-import { isEnterprisePlan, resolvePlanCta, resolvePlanPriceDisplay } from '@/lib/plans-display'
+import { isEnterprisePlan, resolvePlanCta, resolvePlanPriceDisplay, resolvePlanPeriodLabel } from '@/lib/plans-display'
 
 export default function Pricing() {
   const [plans, setPlans] = useState<Plan[]>([])
@@ -130,8 +130,8 @@ export default function Pricing() {
                       <CardTitle className="text-xl mb-2">{plan.title}</CardTitle>
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-3xl font-bold">{resolvePlanPriceDisplay(plan)}</span>
-                        {plan.period && (
-                          <span className="text-muted-foreground text-sm">{plan.period}</span>
+                        {resolvePlanPeriodLabel(plan) && (
+                          <span className="text-muted-foreground text-sm">{resolvePlanPeriodLabel(plan)}</span>
                         )}
                       </div>
                       <PlanGstNote plan={plan} className="text-center mt-1" />
@@ -186,8 +186,8 @@ export default function Pricing() {
                       <CardTitle className="text-xl mb-2">{plan.title}</CardTitle>
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-3xl font-bold">{resolvePlanPriceDisplay(plan)}</span>
-                        {plan.period && (
-                          <span className="text-muted-foreground text-sm">{plan.period}</span>
+                        {resolvePlanPeriodLabel(plan) && (
+                          <span className="text-muted-foreground text-sm">{resolvePlanPeriodLabel(plan)}</span>
                         )}
                       </div>
                       <PlanGstNote plan={plan} className="text-center mt-1" />
