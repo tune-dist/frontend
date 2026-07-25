@@ -71,7 +71,6 @@ export interface User {
   isPhoneNumberVerified?: boolean;
   isPanVerified?: boolean;
   isAadharVerified?: boolean;
-  isKyc?: boolean;
   isProfileVerified?: boolean;
   phoneOtpExpiresAt?: string;
   address?: string;
@@ -94,18 +93,11 @@ export interface User {
     url: string;
     filename: string;
     uploadedAt: string;
-    number?: string;
-    fullName?: string;
   };
   aadhar?: {
     url: string;
     filename: string;
     uploadedAt: string;
-    name?: string;
-    dateOfBirth?: string;
-    gender?: string;
-    maskedNumber?: string;
-    phone?: string;
   };
   avatar?: string;
   avatarUrl?: string;
