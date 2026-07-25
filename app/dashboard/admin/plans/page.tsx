@@ -297,6 +297,23 @@ export default function PlanManagementPage() {
             growthPercent,
             ...planUpdates
         } = editForm;
+
+        // If price became paid but display still says "Custom", derive a normal label.
+        const priceValue = planUpdates.pricePerYear ?? 0;
+        const displayRaw = (planUpdates.priceDisplay || '').trim();
+        if (priceValue > 0 && displayRaw.toLowerCase() === 'custom') {
+            planUpdates.priceDisplay = `${getCurrencySymbol(planUpdates.currency || 'INR')}${priceValue.toLocaleString('en-IN')}`;
+        }
+        if (priceValue > 0 && (!(planUpdates.period || '').trim() || (planUpdates.period || '').trim() === 'pricing')) {
+            const PERIOD_FROM_BILLING: Record<string, string> = {
+                daily: '/day',
+                weekly: '/week',
+                monthly: '/month',
+                yearly: '/year',
+            };
+            planUpdates.period = PERIOD_FROM_BILLING[planUpdates.billingPeriod ?? 'yearly'] ?? '/year';
+        }
+
         try {
             setIsSaving(true);
             console.log('Sending update:', planUpdates);
@@ -410,11 +427,13 @@ export default function PlanManagementPage() {
                             </div>
 
                             <div className="text-4xl font-black mb-8">
-                                {plan.priceDisplay?.trim().toLowerCase() === 'custom' ? (
+                                {plan.pricePerYear <= 0 && plan.priceDisplay?.trim().toLowerCase() === 'custom' ? (
                                     plan.priceDisplay
                                 ) : (
                                     <>
-                                        {plan.priceDisplay?.trim() || `${currencySymbol(plan.currency)}${plan.pricePerYear}`}
+                                        {plan.priceDisplay?.trim() && plan.priceDisplay.trim().toLowerCase() !== 'custom'
+                                            ? plan.priceDisplay.trim()
+                                            : `${currencySymbol(plan.currency)}${plan.pricePerYear.toLocaleString('en-IN')}`}
                                         <span className="text-lg text-muted-foreground font-normal">
                                             {derivePeriodLabel(plan) ?? '/yr'}
                                         </span>
@@ -701,33 +720,55 @@ export default function PlanManagementPage() {
 
                             {/* Sticky Save Footer-ish */}
                             <div className="p-6 rounded-3xl bg-primary/5 border border-primary/20 mt-8 space-y-4">
-                                {selectedPlan && selectedPlan.pricePerYear > 0 && (
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-primary/10">
-                                        <div className="text-xs text-muted-foreground space-y-1">
-                                            <p>
-                                                Razorpay charge:{' '}
-                                                <span className="text-foreground font-semibold">
+                                {(editForm.pricePerYear ?? selectedPlan?.pricePerYear ?? 0) > 0 && selectedPlan && (
+                                    <div className="rounded-2xl border border-border/50 bg-background/60 p-4 space-y-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0 space-y-1">
+                                                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                                    Razorpay Billing
+                                                </p>
+                                                <p className="text-sm font-semibold text-foreground">
                                                     {formatRazorpayCharge(editForm as Plan)}
-                                                </span>
-                                            </p>
-                                            <p>
-                                                Linked plan:{' '}
+                                                </p>
                                                 {editForm.razorpayPlanId ? (
-                                                    <span className="text-emerald-400 font-mono">{editForm.razorpayPlanId}</span>
+                                                    <p className="text-xs text-muted-foreground truncate font-mono" title={editForm.razorpayPlanId}>
+                                                        {editForm.razorpayPlanId}
+                                                    </p>
                                                 ) : (
-                                                    <span className="text-amber-400 font-semibold">Not linked — sync required after price/GST changes</span>
+                                                    <p className="text-xs text-amber-500 font-medium">
+                                                        Not linked — sync before users can subscribe
+                                                    </p>
                                                 )}
-                                            </p>
+                                            </div>
+                                            <Badge
+                                                variant="secondary"
+                                                className={
+                                                    editForm.razorpayPlanId
+                                                        ? 'shrink-0 bg-emerald-500/15 text-emerald-500 border-0'
+                                                        : 'shrink-0 bg-amber-500/15 text-amber-500 border-0'
+                                                }
+                                            >
+                                                {editForm.razorpayPlanId ? 'Linked' : 'Needs sync'}
+                                            </Badge>
                                         </div>
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            size="sm"
-                                            className="rounded-lg"
+                                            className="w-full rounded-xl h-11 font-semibold border-border/60 hover:bg-muted/40"
                                             disabled={isSyncingRazorpay}
                                             onClick={() => handleSyncRazorpay(selectedPlan.key)}
                                         >
-                                            {isSyncingRazorpay ? 'Syncing…' : 'Sync Razorpay Plan'}
+                                            {isSyncingRazorpay ? (
+                                                <span className="inline-flex items-center gap-2">
+                                                    <span className="h-4 w-4 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
+                                                    Syncing…
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-2">
+                                                    <Zap className="h-4 w-4" />
+                                                    Sync Razorpay Plan
+                                                </span>
+                                            )}
                                         </Button>
                                     </div>
                                 )}
