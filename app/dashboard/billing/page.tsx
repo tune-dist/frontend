@@ -366,7 +366,7 @@ export default function BillingPage() {
                                             ) : (
                                                 <div className="flex flex-col">
                                                     <span className="font-extrabold text-base text-foreground">
-                                                        {currencySymbol(plan.currency)}{plan.pricePerYear.toFixed(0)}
+                                                        {resolvePlanPriceDisplay(plan)}
                                                     </span>
                                                     <span className="text-[10px] text-muted-foreground">
                                                         {resolvePlanPeriodLabel(plan) ?? '/yr'}
@@ -436,7 +436,7 @@ export default function BillingPage() {
                                                         ) : (
                                                             <>
                                                                 <div className="text-3xl font-black text-foreground">
-                                                                    {currencySymbol(plan.currency)}{plan.pricePerYear.toFixed(2)}
+                                                                    {resolvePlanPriceDisplay(plan)}
                                                                 </div>
                                                                 <div className="text-xs text-muted-foreground font-medium mt-1">
                                                                     Charged {(resolvePlanPeriodLabel(plan) ?? '/yr').replace('/', '')}
