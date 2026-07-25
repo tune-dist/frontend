@@ -20,9 +20,6 @@ import {
     Disc3,
 } from 'lucide-react';
 
-const ENTERPRISE_PLAN_KEY = 'enterprise';
-const isEnterprisePlanKey = (key?: string | null) => key === ENTERPRISE_PLAN_KEY;
-
 function formatLimitValue(value?: number) {
     if (value === -1) return 'Unlimited';
     if (value === undefined || value === null) return 'N/A';
@@ -41,7 +38,8 @@ function formatPlanFormatLabel(format: string) {
 }
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAllPlans, Plan, currencySymbol, derivePeriodLabel, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans';
+import { getAllPlans, Plan, currencySymbol, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans';
+import { isEnterprisePlan, resolvePlanPriceDisplay, resolvePlanPeriodLabel } from '@/lib/plans-display';
 import { PlanGstNote } from '@/components/plans/plan-gst-note';
 import { BillingTypeToggle } from '@/components/plans/billing-type-toggle';
 import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users';
@@ -238,12 +236,12 @@ export default function BillingPage() {
                                 <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                                     {currentPlanTitle}
                                     <span className="text-sm font-normal text-muted-foreground">
-                                        {isEnterprisePlanKey(currentPlanKey) ? (
+                                        {currentPlan && isEnterprisePlan(currentPlan) ? (
                                             '(Custom Plan)'
                                         ) : (
                                             <>
                                                 ({currencySymbol(currentPlan?.currency)}{totalRecurringPrice.toFixed(2)}
-                                                {currentPlan ? (derivePeriodLabel(currentPlan) ?? '/yr') : '/yr'})
+                                                {currentPlan ? (resolvePlanPeriodLabel(currentPlan) ?? '/yr') : '/yr'})
                                             </>
                                         )}
                                     </span>
@@ -315,7 +313,7 @@ export default function BillingPage() {
                                 const isCurrent = plan.key === currentPlanKey;
                                 const isLocked = isCurrentPlanLocked(plan.key);
                                 const isRenewable = isCurrentPlanRenewable(plan.key);
-                                const isEnterprise = isEnterprisePlanKey(plan.key);
+                                const isContactSales = isEnterprisePlan(plan);
                                 const isSelected = selectedPlanKey === plan.key;
                                 return (
                                     <button
@@ -361,15 +359,15 @@ export default function BillingPage() {
                                         </div>
 
                                         <div className="text-right flex-shrink-0">
-                                            {isEnterprise ? (
-                                                <span className="font-extrabold text-sm text-foreground">{plan.priceDisplay || 'Custom'}</span>
+                                            {isContactSales ? (
+                                                <span className="font-extrabold text-sm text-foreground">{resolvePlanPriceDisplay(plan)}</span>
                                             ) : (
                                                 <div className="flex flex-col">
                                                     <span className="font-extrabold text-base text-foreground">
-                                                        {currencySymbol(plan.currency)}{plan.pricePerYear.toFixed(0)}
+                                                        {resolvePlanPriceDisplay(plan)}
                                                     </span>
                                                     <span className="text-[10px] text-muted-foreground">
-                                                        {derivePeriodLabel(plan) ?? '/yr'}
+                                                        {resolvePlanPeriodLabel(plan) ?? '/yr'}
                                                     </span>
                                                     <PlanGstNote plan={plan} className="mt-1" />
                                                 </div>
@@ -393,8 +391,8 @@ export default function BillingPage() {
                                 const isCurrent = plan.key === currentPlanKey;
                                 const isLocked = isCurrentPlanLocked(plan.key);
                                 const isRenewable = isCurrentPlanRenewable(plan.key);
-                                const isEnterprise = isEnterprisePlanKey(plan.key);
-                                const isDowngrade = !isLocked && !isRenewable && !isEnterprise && plan.pricePerYear < currentPlanPrice;
+                                const isContactSales = isEnterprisePlan(plan);
+                                const isDowngrade = !isLocked && !isRenewable && !isContactSales && plan.pricePerYear < currentPlanPrice;
 
                                 return (
                                     <motion.div
@@ -431,15 +429,15 @@ export default function BillingPage() {
                                                         <p className="text-sm text-muted-foreground leading-relaxed">{plan.description}</p>
                                                     </div>
                                                     <div className="text-left sm:text-right flex-shrink-0">
-                                                        {isEnterprise ? (
-                                                            <div className="text-3xl font-black text-foreground">{plan.priceDisplay || 'Custom'}</div>
+                                                        {isContactSales ? (
+                                                            <div className="text-3xl font-black text-foreground">{resolvePlanPriceDisplay(plan)}</div>
                                                         ) : (
                                                             <>
                                                                 <div className="text-3xl font-black text-foreground">
-                                                                    {currencySymbol(plan.currency)}{plan.pricePerYear.toFixed(2)}
+                                                                    {resolvePlanPriceDisplay(plan)}
                                                                 </div>
                                                                 <div className="text-xs text-muted-foreground font-medium mt-1">
-                                                                    Charged {derivePeriodLabel(plan) ? derivePeriodLabel(plan)?.replace('/', '') : 'yearly'}
+                                                                    Charged {(resolvePlanPeriodLabel(plan) ?? '/yr').replace('/', '')}
                                                                 </div>
                                                                 <PlanGstNote plan={plan} showTotal className="mt-2 text-left sm:text-right" />
                                                             </>
@@ -523,7 +521,7 @@ export default function BillingPage() {
 
                                                 {/* Action Buttons */}
                                                 <div className="pt-4 border-t border-border/30 space-y-4">
-                                                    {!isLocked && !isEnterprise && plan.pricePerYear > 0 && (
+                                                    {!isLocked && !isContactSales && plan.pricePerYear > 0 && (
                                                         <BillingTypeToggle
                                                             isAutoPay={isAutoPay}
                                                             onChange={setIsAutoPay}
@@ -548,7 +546,7 @@ export default function BillingPage() {
                                                                 'Renew Plan'
                                                             )}
                                                         </Button>
-                                                    ) : isEnterprise ? (
+                                                    ) : isContactSales ? (
                                                         <Button
                                                             onClick={() => router.push('/contact')}
                                                             className="w-full rounded-xl py-6 font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white transition-all duration-200"

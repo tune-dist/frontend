@@ -6,18 +6,28 @@ import {
 } from '@/lib/api/plans';
 
 export function resolvePlanPriceDisplay(plan: Plan): string {
-  const custom = plan.priceDisplay?.trim();
-  if (custom) return custom;
-  if (plan.pricePerYear <= 0) return `${currencySymbol(plan.currency)}0`;
+  const raw = plan.priceDisplay?.trim();
+  const isCustomLabel = raw?.toLowerCase() === 'custom';
+  // Stale "Custom" label should not override a real paid price from admin.
+  if (raw && !isCustomLabel) return raw;
+  if (plan.pricePerYear <= 0) {
+    return isCustomLabel ? 'Custom' : `${currencySymbol(plan.currency)}0`;
+  }
   return `${currencySymbol(plan.currency)}${plan.pricePerYear.toLocaleString('en-IN')}`;
 }
 
+/** Unpaid custom-quote plans (contact sales). Paid Enterprise is a normal plan. */
 export function isCustomPricingPlan(plan: Plan): boolean {
-  return plan.priceDisplay?.trim().toLowerCase() === 'custom';
+  if (plan.pricePerYear > 0) return false;
+  return (
+    plan.priceDisplay?.trim().toLowerCase() === 'custom' ||
+    normalizePlanKey(plan.key) === 'enterprise'
+  );
 }
 
+/** Contact-sales UX — only when Enterprise/custom is still unpaid. */
 export function isEnterprisePlan(plan: Plan): boolean {
-  return normalizePlanKey(plan.key) === 'enterprise' || isCustomPricingPlan(plan);
+  return isCustomPricingPlan(plan);
 }
 
 export function resolveArtistKeepPercent(plan: Plan): number {
@@ -40,7 +50,8 @@ export function resolvePlanCta(plan: Plan): { label: string; href: string } {
 
   if (plan.ctaLabel?.trim()) {
     const label = plan.ctaLabel.trim();
-    if (isEnterprisePlan(plan) || label.toLowerCase() === 'contact us') {
+    const contactLike = /contact\s*(us|sales)?/i.test(label);
+    if (isEnterprisePlan(plan) || (contactLike && plan.pricePerYear <= 0)) {
       return { label, href: contactHref };
     }
     return { label, href: `/auth?plan=${encodeURIComponent(plan.key)}` };
@@ -97,7 +108,9 @@ export function resolveSupportBadgeLabel(plan: Plan): string {
 }
 
 export function resolvePlanPeriodLabel(plan: Plan): string | null {
-  if (plan.period?.trim()) return plan.period.trim();
+  const raw = plan.period?.trim();
+  // Ignore stale custom-quote leftovers like " pricing"
+  if (raw && !/^pricing$/i.test(raw)) return raw;
   return derivePeriodLabel(plan);
 }
 

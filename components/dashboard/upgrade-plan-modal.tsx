@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Loader2, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { getAllPlans, Plan, currencySymbol, derivePeriodLabel } from '@/lib/api/plans'
+import { getAllPlans, Plan } from '@/lib/api/plans'
+import { isEnterprisePlan, resolvePlanPriceDisplay, resolvePlanPeriodLabel } from '@/lib/plans-display'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
 import { useRazorpay } from '@/hooks/useRazorpay'
@@ -37,9 +38,6 @@ interface UpgradePlanModalProps {
 
 // Helper to normalize keys for comparison
 const normalizeKey = (key?: string) => key?.toLowerCase().replace(/_/g, '-') || ''
-
-const ENTERPRISE_PLAN_KEY = 'enterprise'
-const isEnterprisePlan = (plan: Plan) => normalizeKey(plan.key) === ENTERPRISE_PLAN_KEY
 
 export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'free', targetPlanKey, title, subtitle, hasActiveSubscription = false, subscriptionStatus, onPaymentSuccess, requireSelection = false }: UpgradePlanModalProps) {
     const [plans, setPlans] = useState<Plan[]>([])
@@ -251,7 +249,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                         <span className="text-muted-foreground text-sm ml-2">{confirmingPlan.period}</span>
                                                     )}
                                                 </div>
-                                                <span className="text-2xl font-black text-primary">{confirmingPlan.priceDisplay}</span>
+                                                <span className="text-2xl font-black text-primary">{resolvePlanPriceDisplay(confirmingPlan)}</span>
                                             </div>
                                             <PlanGstNote plan={confirmingPlan} showTotal className="mt-3" />
 
@@ -323,13 +321,12 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                                     <CardTitle className="text-lg mb-1">{plan.title}</CardTitle>
                                                     <div className="flex items-baseline justify-center gap-1">
                                                         <span className="text-2xl font-bold">
-                                                            {plan.priceDisplay?.trim() || `${currencySymbol(plan.currency)}${plan.pricePerYear}`}
+                                                            {resolvePlanPriceDisplay(plan)}
                                                         </span>
                                                     </div>
                                                     {(() => {
-                                                        const isCustom = plan.priceDisplay?.trim().toLowerCase() === 'custom'
-                                                        if (isCustom) return null
-                                                        const label = derivePeriodLabel(plan)
+                                                        if (isEnterprisePlan(plan)) return null
+                                                        const label = resolvePlanPeriodLabel(plan)
                                                         return label ? (
                                                             <span className="text-muted-foreground text-xs">{label}</span>
                                                         ) : null
