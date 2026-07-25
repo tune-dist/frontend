@@ -86,28 +86,21 @@ export const ThumbnailPreview = ({
                             const renderable: any[] = [];
                             template.elements.forEach(element => {
                                 if (element.type === 'image' && element.source === 'platform_logo') {
-                                    const selectedBadges = elementOverrides.logo?.selectedBadges || ['spotify', 'apple-music', 'youtube-music'];
-                                    const gap = 50;
-                                    const badgeBoxSize = 200;
-                                    const step = badgeBoxSize + gap;
-                                    const totalRowWidth = (selectedBadges.length * badgeBoxSize) + ((selectedBadges.length - 1) * gap);
-                                    const centerX = template.canvas.width / 2;
-                                    const startX = centerX - (totalRowWidth / 2);
-
-                                    selectedBadges.forEach((badgeId: string, index: number) => {
-                                        renderable.push({
-                                            ...element,
-                                            id: `logo-${badgeId}`,
-                                            source: 'platform_badge_single',
-                                            badgeId: badgeId,
-                                            size: { width: badgeBoxSize, height: badgeBoxSize },
-                                            defaultX: startX + (index * step),
-                                            defaultY: template.canvas.height - 300
-                                        });
-                                    });
+                                    // Ignore old platform logos
                                 } else {
                                     renderable.push(element);
                                 }
+                            });
+
+                            // Add static logos - smaller for post format to avoid overlap
+                            const isStory = template.format === 'story';
+                            renderable.push({
+                                id: 'static_logos_fixed',
+                                type: 'image',
+                                source: 'static_promotion_logos',
+                                defaultX: 0,
+                                defaultY: isStory ? template.canvas.height - 300 : template.canvas.height - 80,
+                                size: { width: '100%', height: isStory ? 280 : 70 }
                             });
                             return renderable;
                         };
@@ -120,7 +113,7 @@ export const ThumbnailPreview = ({
 
                             const x = defaultX + (override.x || 0);
                             const y = defaultY + (override.y || 0);
-                            const width = override.sizeWidth || element.size?.width || 'auto';
+                            const width = element.type === 'text' ? template.canvas.width : (override.sizeWidth || element.size?.width || 'auto');
                             const height = override.sizeHeight || element.size?.height || 'auto';
 
                             const getTextContent = () => {
@@ -138,11 +131,12 @@ export const ThumbnailPreview = ({
                                     key={element.id}
                                     style={{
                                         position: 'absolute',
-                                        left: x,
+                                        left: element.source === 'static_promotion_logos' ? 0 : x,
                                         top: y,
                                         width: width,
                                         height: height,
-                                        zIndex: 10,
+                                        zIndex: element.source === 'static_promotion_logos' ? 50 : 10,
+                                        transform: element.type === 'text' ? 'translateX(-50%)' : 'none',
                                     }}
                                 >
                                     <div className="w-full h-full relative flex items-center justify-center">
@@ -155,20 +149,13 @@ export const ThumbnailPreview = ({
                                             />
                                         )}
 
-                                        {element.source === 'platform_badge_single' && (
-                                            <div className="flex justify-center items-center h-full">
-                                                {(() => {
-                                                    const badge = PLATFORM_BADGES.find(b => b.id === element.badgeId);
-                                                    if (!badge) return null;
-                                                    return (
-                                                        <img
-                                                            src={badge.logoUrl}
-                                                            alt={badge.name}
-                                                            className="h-full w-auto object-contain filter drop-shadow-lg brightness-200"
-                                                            style={{ maxHeight: '80%' }}
-                                                        />
-                                                    );
-                                                })()}
+                                        {element.source === 'static_promotion_logos' && (
+                                            <div className="flex justify-center items-center h-full w-full">
+                                                <img
+                                                    src="/assets/images/promotion-sociallogo-group.png"
+                                                    alt="Platforms"
+                                                    className="h-full w-full object-contain filter drop-shadow-2xl"
+                                                />
                                             </div>
                                         )}
 

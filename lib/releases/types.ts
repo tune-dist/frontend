@@ -39,7 +39,12 @@ export interface DraftArtists {
 
 export interface DraftGenre {
   primary: string;
-  secondary: string;
+  /**
+   * Optional on the frontend: legacy release documents may lack a sub-genre
+   * when hydrated for display/edit. The backend DraftGenreDto still requires
+   * a non-empty value on create/update, enforced server-side.
+   */
+  secondary?: string;
 }
 
 export interface DraftMediaAsset {

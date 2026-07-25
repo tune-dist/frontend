@@ -117,6 +117,7 @@ export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState({ percent: 0, label: "" });
   const [isLoadingEdit, setIsLoadingEdit] = useState(isEditMode);
   const [showCancelEditDialog, setShowCancelEditDialog] = useState(false);
   const isHydratingRef = useRef(false);
@@ -439,8 +440,8 @@ export default function UploadPage() {
 
 
           if (isValid) {
-            // Check Artist Limits
-            if (limits.artistLimit < Infinity) {
+            // Check Artist Limits (skip for unlimited plans)
+            if (limits.artistLimit < 9999) {
               const currentArtists = [
                 formData.artistName,
                 ...(formData.artists || []).map((a: any) => a.name),
@@ -736,15 +737,15 @@ export default function UploadPage() {
                 }
 
                 if (!isNoLyricsTrack) {
-                for (const sw of filledWriters) {
-                  if (getLegalPersonNameError(sw.trim())) {
-                    toast.error(
-                      `Track ${i + 1}: Invalid writer name "${sw}". ${nameErrorHint}`
-                    );
-                    hasError = true;
-                    break;
+                  for (const sw of filledWriters) {
+                    if (getLegalPersonNameError(sw.trim())) {
+                      toast.error(
+                        `Track ${i + 1}: Invalid writer name "${sw}". ${nameErrorHint}`
+                      );
+                      hasError = true;
+                      break;
+                    }
                   }
-                }
                 }
 
                 if (hasError) break;
@@ -774,7 +775,7 @@ export default function UploadPage() {
             const planKey = (user?.plan as string) || "free";
             const limits = await getPlanLimits(planKey);
 
-            if (limits.artistLimit < Infinity) {
+            if (limits.artistLimit < 9999) {
               // Collect all unique artists in this release
               const releaseArtists: string[] = [];
 
@@ -897,26 +898,26 @@ export default function UploadPage() {
                 toast.error("Cover art must be validated before continuing.");
                 isValid = false;
               } else {
-              const status = formData.coverArtValidationStatus;
-              const issues = formData.coverArtValidationIssues || [];
-              const hasIssues =
-                formData.coverArtChanged &&
-                ((status && status !== "approved") || issues.length > 0);
+                const status = formData.coverArtValidationStatus;
+                const issues = formData.coverArtValidationIssues || [];
+                const hasIssues =
+                  formData.coverArtChanged &&
+                  ((status && status !== "approved") || issues.length > 0);
 
-              if (hasIssues && !formData.coverArtConsent) {
-                form.setError("coverArtConsent", {
-                  type: "manual",
-                  message:
-                    "Please provide consent to proceed with current cover art.",
-                });
-                toast.error(
-                  "Please confirm you want to proceed with the cover art warnings",
-                );
-                isValid = false;
-              } else {
-                form.clearErrors("coverArtConsent");
-                isValid = true;
-              }
+                if (hasIssues && !formData.coverArtConsent) {
+                  form.setError("coverArtConsent", {
+                    type: "manual",
+                    message:
+                      "Please provide consent to proceed with current cover art.",
+                  });
+                  toast.error(
+                    "Please confirm you want to proceed with the cover art warnings",
+                  );
+                  isValid = false;
+                } else {
+                  form.clearErrors("coverArtConsent");
+                  isValid = true;
+                }
               }
             }
           }
@@ -994,28 +995,40 @@ export default function UploadPage() {
       return;
     }
     setIsSubmitting(true);
+    setSubmitProgress({ percent: 0, label: "Preparing…" });
+    let submitSucceeded = false;
+    const reportSubmitProgress = (update: { percent: number; label: string }) => {
+      setSubmitProgress(update);
+    };
     try {
       if (isEditMode && editReleaseId) {
-        const result = await submitReleaseUpdate(editReleaseId, {
-          ...data,
-          mandatoryChecks: mandatoryChecks,
-        } as any);
+        const result = await submitReleaseUpdate(
+          editReleaseId,
+          {
+            ...data,
+            mandatoryChecks: mandatoryChecks,
+          } as any,
+          { onProgress: reportSubmitProgress },
+        );
         toast.success(
           result?.pdlSynced
             ? "Release updated and synced to PDL."
             : "Release updated successfully!",
         );
       } else {
-        await submitNewRelease({
-          ...data,
-          mandatoryChecks: mandatoryChecks,
-        } as any);
+        await submitNewRelease(
+          {
+            ...data,
+            mandatoryChecks: mandatoryChecks,
+          } as any,
+          { onProgress: reportSubmitProgress },
+        );
         toast.success("Release submitted successfully!");
       }
+      submitSucceeded = true;
       router.push("/dashboard/releases");
     } catch (error: any) {
       console.error("Submission error:", error);
-      setIsSubmitting(false);
       // The plan-inactive modal already explains the block — skip the toast.
       if (!isPlanInactiveError(error)) {
         const { fieldErrors, globalErrors, targetStep } = applyUploadApiErrors(
@@ -1040,6 +1053,11 @@ export default function UploadPage() {
 
         // Wait for step navigation + error UI to render before scrolling.
         setTimeout(() => scrollToError(), targetStep !== null ? 250 : 100);
+      }
+    } finally {
+      if (!submitSucceeded) {
+        setIsSubmitting(false);
+        setSubmitProgress({ percent: 0, label: "" });
       }
     }
   };
@@ -1167,33 +1185,33 @@ export default function UploadPage() {
 
   if (!isEditMode && !canUpload) {
     return (
-        <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
-          <div className="bg-yellow-500/10 p-6 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
-            <Info className="h-10 w-10 text-yellow-500" />
-          </div>
-          <h1 className="text-3xl font-bold">Release Limit Reached</h1>
-          <p className="text-muted-foreground text-lg max-w-lg mx-auto">
-            You are on the <strong>{planInfo?.title || "Free Plan"}</strong>,
-            which allows only one active release at a time. You currently have a
-            release that is <strong>In Process</strong>.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Please wait for your current release to be distributed or rejected
-            before uploading deeper.
-          </p>
-
-          <div className="pt-6 flex gap-4 justify-center">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/dashboard/releases")}
-            >
-              View My Releases
-            </Button>
-            <Button onClick={() => (window.location.href = "/pricing")}>
-              Upgrade to Premium
-            </Button>
-          </div>
+      <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
+        <div className="bg-yellow-500/10 p-6 rounded-full w-20 h-20 mx-auto flex items-center justify-center">
+          <Info className="h-10 w-10 text-yellow-500" />
         </div>
+        <h1 className="text-3xl font-bold">Release Limit Reached</h1>
+        <p className="text-muted-foreground text-lg max-w-lg mx-auto">
+          You are on the <strong>{planInfo?.title || "Free Plan"}</strong>,
+          which allows only one active release at a time. You currently have a
+          release that is <strong>In Process</strong>.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Please wait for your current release to be distributed or rejected
+          before uploading deeper.
+        </p>
+
+        <div className="pt-6 flex gap-4 justify-center">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/releases")}
+          >
+            View My Releases
+          </Button>
+          <Button onClick={() => (window.location.href = "/pricing")}>
+            Upgrade to Premium
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -1503,19 +1521,33 @@ export default function UploadPage() {
 
       {isSubmitting && (
         <div
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm p-4"
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="submit-loading-title"
           aria-describedby="submit-loading-desc"
         >
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p id="submit-loading-title" className="mt-5 text-lg font-semibold">
-            Submitting your release…
+          <p id="submit-loading-title" className="mt-5 text-lg font-semibold text-center">
+            {isEditMode ? "Saving your release…" : "Submitting your release…"}
           </p>
-          <p id="submit-loading-desc" className="mt-2 text-sm text-muted-foreground">
+          <p id="submit-loading-desc" className="mt-2 text-sm text-muted-foreground text-center">
             Uploading assets and sending to stores. Please do not close this page.
           </p>
+          <div className="mt-6 w-full max-w-sm space-y-2">
+            <div className="flex justify-between items-center text-sm font-medium">
+              <span className="text-primary">Progress</span>
+              <span className="text-primary tabular-nums">{submitProgress.percent}%</span>
+            </div>
+            <div className="w-full h-3 bg-primary/10 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-primary"
+                initial={{ width: 0 }}
+                animate={{ width: `${submitProgress.percent}%` }}
+                transition={{ duration: 0.25 }}
+              />
+            </div>
+          </div>
         </div>
       )}
     </>
