@@ -206,6 +206,22 @@ export interface Release {
   };
   /** Set after initial platform processing (metadata + assets upload) succeeds */
   pdlAlbumId?: string;
+  reportedIssue?: {
+    reportComment?: string;
+    isResolved?: boolean;
+    isAllIssueOfAlbumResolved?: boolean;
+    syncedAt?: string;
+  };
+  /** Present only when the release is Released — DSP display data. */
+  releasedOn?: {
+    syncedAt?: string;
+    platforms: Array<{
+      name: string;
+      key: string;
+      liveLink?: string;
+      openUrl?: string;
+    }>;
+  };
   previewClipStartTime?: string;
 }
 
@@ -272,7 +288,7 @@ export const submitNewRelease = async (
   }
 };
 
-// Update an existing draft release (release manager only)
+// Update an existing Draft / In Process release (PUT; backend diffs changed fields)
 export const submitReleaseUpdate = async (
   id: string,
   formData: ReleaseFormData,

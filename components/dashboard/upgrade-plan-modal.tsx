@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAllPlans, Plan } from '@/lib/api/plans'
 import { isEnterprisePlan, resolvePlanPriceDisplay, resolvePlanPeriodLabel } from '@/lib/plans-display'
+import { isPublicPricingPlan } from '@/lib/plan-keys'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
 import { useRazorpay } from '@/hooks/useRazorpay'
@@ -63,7 +64,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                         // Default mode: show ALL active plans from the database, sorted by price.
                         // The current plan is highlighted (and its CTA disabled) inside the card.
                         const displayPlans = [...data]
-                            .filter(p => p.isActive !== false)
+                            .filter(p => p.isActive !== false && isPublicPricingPlan(p.key))
                             .sort((a, b) => a.pricePerYear - b.pricePerYear)
 
                         setPlans(displayPlans)
@@ -245,8 +246,8 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                             <div className="flex justify-between items-center pb-4 border-b border-border/50">
                                                 <div>
                                                     <span className="font-bold text-xl">{confirmingPlan.title}</span>
-                                                    {confirmingPlan.period && (
-                                                        <span className="text-muted-foreground text-sm ml-2">{confirmingPlan.period}</span>
+                                                    {resolvePlanPeriodLabel(confirmingPlan) && (
+                                                        <span className="text-muted-foreground text-sm ml-2">{resolvePlanPeriodLabel(confirmingPlan)}</span>
                                                     )}
                                                 </div>
                                                 <span className="text-2xl font-black text-primary">{resolvePlanPriceDisplay(confirmingPlan)}</span>

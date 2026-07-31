@@ -26,8 +26,14 @@ export function canAccessYouTubeService(user: PermissionUser): boolean {
   return hasPermission(user, 'USE_YOUTUBE_SERVICE');
 }
 
+/** Staff-only: approve / reject / distribute / cross-user release admin. */
 export function canManageReleases(user: PermissionUser): boolean {
   return isReleaseStaff(user) || hasPermission(user, 'APPROVE_RELEASE');
+}
+
+/** Default for artists (EDIT_RELEASE): edit own Draft / In Process releases. */
+export function canEditReleases(user: PermissionUser): boolean {
+  return hasPermission(user, 'EDIT_RELEASE');
 }
 
 export function canManageUsers(user: PermissionUser): boolean {

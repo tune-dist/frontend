@@ -9,6 +9,30 @@ export type ReleaseStatus =
 
 export type ReleaseType = 'single' | 'ep' | 'album' | 'remix' | 'compilation';
 
+export interface ReportedIssue {
+  reportComment?: string;
+  isResolved?: boolean;
+  isAllIssueOfAlbumResolved?: boolean;
+  syncedAt?: string;
+}
+
+/** One DSP a release went live on (Release.releasedOn.platforms). */
+export interface ReleasedOnPlatform {
+  /** Platform display name from COSMOS platform list (e.g. "Spotify"). */
+  name: string;
+  /** Frontend badge key (spotify, apple-music, …). */
+  key: string;
+  liveLink?: string;
+  /** liveLink when present, otherwise the artist/release profile fallback. */
+  openUrl?: string;
+}
+
+/** DSP display data — present only when the release is Released. */
+export interface ReleasedOn {
+  syncedAt?: string;
+  platforms: ReleasedOnPlatform[];
+}
+
 export interface PlatformRef {
   id?: string;
   url?: string;
@@ -177,6 +201,8 @@ export interface ReleaseDetailResponse {
   rights: DraftRights;
   distribution: DraftDistribution;
   workflow: DraftWorkflow;
+  reportedIssue?: ReportedIssue;
+  releasedOn?: ReleasedOn;
 }
 
 /** GET /releases list item */
@@ -192,6 +218,8 @@ export interface ReleaseListItem {
   releaseDate?: string;
   upc?: string;
   pdlAlbumId?: string;
+  reportedIssue?: ReportedIssue;
+  releasedOn?: ReleasedOn;
   createdAt?: string;
 }
 
@@ -235,6 +263,8 @@ export interface MongoReleaseDocument {
   pdlAlbumId?: string;
   pdlSubmittedAt?: string;
   pdlPlatformsToRelease?: string;
+  reportedIssue?: ReportedIssue;
+  releasedOn?: ReleasedOn;
   submittedAt?: string;
   approvedAt?: string;
   approvedBy?: string;

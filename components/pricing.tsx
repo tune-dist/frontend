@@ -130,8 +130,8 @@ export default function Pricing() {
                       <CardTitle className="text-xl mb-2">{plan.title}</CardTitle>
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-3xl font-bold">{resolvePlanPriceDisplay(plan)}</span>
-                        {(resolvePlanPeriodLabel(plan) || plan.period) && (
-                          <span className="text-muted-foreground text-sm">{resolvePlanPeriodLabel(plan) || plan.period}</span>
+                        {resolvePlanPeriodLabel(plan) && (
+                          <span className="text-muted-foreground text-sm">{resolvePlanPeriodLabel(plan)}</span>
                         )}
                       </div>
                       <PlanGstNote plan={plan} className="text-center mt-1" />
@@ -186,8 +186,8 @@ export default function Pricing() {
                       <CardTitle className="text-xl mb-2">{plan.title}</CardTitle>
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-3xl font-bold">{resolvePlanPriceDisplay(plan)}</span>
-                        {(resolvePlanPeriodLabel(plan) || plan.period) && (
-                          <span className="text-muted-foreground text-sm">{resolvePlanPeriodLabel(plan) || plan.period}</span>
+                        {resolvePlanPeriodLabel(plan) && (
+                          <span className="text-muted-foreground text-sm">{resolvePlanPeriodLabel(plan)}</span>
                         )}
                       </div>
                       <PlanGstNote plan={plan} className="text-center mt-1" />

@@ -297,6 +297,23 @@ export default function PlanManagementPage() {
             growthPercent,
             ...planUpdates
         } = editForm;
+
+        // If price became paid but display still says "Custom", derive a normal label.
+        const priceValue = planUpdates.pricePerYear ?? 0;
+        const displayRaw = (planUpdates.priceDisplay || '').trim();
+        if (priceValue > 0 && displayRaw.toLowerCase() === 'custom') {
+            planUpdates.priceDisplay = `${getCurrencySymbol(planUpdates.currency || 'INR')}${priceValue.toLocaleString('en-IN')}`;
+        }
+        if (priceValue > 0 && (!(planUpdates.period || '').trim() || (planUpdates.period || '').trim() === 'pricing')) {
+            const PERIOD_FROM_BILLING: Record<string, string> = {
+                daily: '/day',
+                weekly: '/week',
+                monthly: '/month',
+                yearly: '/year',
+            };
+            planUpdates.period = PERIOD_FROM_BILLING[planUpdates.billingPeriod ?? 'yearly'] ?? '/year';
+        }
+
         try {
             setIsSaving(true);
             console.log('Sending update:', planUpdates);

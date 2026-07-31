@@ -276,6 +276,8 @@ export function mapMongoReleaseToDetail(document: MongoReleaseDocument): Release
       riskScore: document.riskScore,
       riskStatus: (document.riskStatus as ReleaseDetailResponse['workflow']['riskStatus']) || 'Safe',
     },
+    reportedIssue: document.reportedIssue,
+    releasedOn: document.releasedOn,
   };
 }
 
@@ -304,6 +306,8 @@ export function mapListItemToFlatRelease(item: ReleaseListItem): Record<string, 
     releaseDate: item.releaseDate,
     upc: item.upc,
     pdlAlbumId: item.pdlAlbumId,
+    reportedIssue: item.reportedIssue,
+    releasedOn: item.releasedOn,
     createdAt: item.createdAt,
     language: '',
     primaryGenre: '',
@@ -371,7 +375,8 @@ export function mapDetailToFlatRelease(detail: ReleaseDetailResponse): Record<st
     facebookProfile: social.facebookProfile,
     facebookProfileUrl: social.facebookProfileUrl,
     coverArt: {
-      url: detail.coverArt.storageKey,
+      // Durable key for edit/save; getSignedUrl accepts raw keys (and passthrough for http).
+      url: detail.coverArt.storageKey || detail.coverArt.url,
       filename: detail.coverArt.filename,
       size: detail.coverArt.size,
       dimensions: detail.coverArt.dimensions,
@@ -418,7 +423,9 @@ export function mapDetailToFlatRelease(detail: ReleaseDetailResponse): Record<st
     submittedAt: detail.workflow.submittedAt,
     approvedAt: detail.workflow.approvedAt,
     rejectionReason: detail.workflow.rejectionReason,
+    reportedIssue: detail.reportedIssue,
     createdAt: detail.createdAt,
     updatedAt: detail.updatedAt,
+    releasedOn: detail.releasedOn,
   };
 }

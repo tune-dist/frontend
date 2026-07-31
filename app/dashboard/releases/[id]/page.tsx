@@ -17,6 +17,7 @@ import {
   Disc3,
   AudioWaveform,
   Hash,
+  Flag,
 } from "lucide-react";
 import { getRelease, Release, TrackPayload } from "@/lib/api/releases";
 import PageLoading from "@/components/dashboard/page-loading";
@@ -35,6 +36,19 @@ import {
   getTrackIsrcDisplay,
 } from "@/lib/release-codes";
 import { isReleaseNoLyrics } from "@/components/dashboard/upload/genre-language";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  hasActiveReportedIssue,
+  getReportedIssueLabel,
+} from "@/lib/reported-issue";
+import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
 
 export default function ReleaseDetailsPage() {
   const params = useParams();
@@ -42,6 +56,7 @@ export default function ReleaseDetailsPage() {
   const [release, setRelease] = useState<Release | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showReportedIssueDialog, setShowReportedIssueDialog] = useState(false);
   const {
     audioRef,
     activeTrackIndex,
@@ -135,10 +150,35 @@ export default function ReleaseDetailsPage() {
                   <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
                   {formatStatus(release.status)}
                 </span>
+                {hasActiveReportedIssue(release.status, release.reportedIssue) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
+                    title="View reported issue"
+                    onClick={() => setShowReportedIssueDialog(true)}
+                  >
+                    <Flag className="h-4 w-4 fill-current" />
+                  </Button>
+                )}
               </div>
               <p className="text-base text-white/50 flex items-center gap-2 font-medium">
                 <User className="h-4 w-4" /> {release.artistName}
               </p>
+              {release.status === "Released" &&
+                Array.isArray(release.releasedOn?.platforms) &&
+                release.releasedOn.platforms.length > 0 && (
+                  <div className="mt-4 flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                      Live on
+                    </span>
+                    <PlatformReleaseIcons
+                      platforms={release.releasedOn.platforms}
+                      iconClassName="h-8 w-8"
+                    />
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -353,6 +393,32 @@ export default function ReleaseDetailsPage() {
         className="hidden"
       />
       {content}
+      <Dialog
+        open={showReportedIssueDialog}
+        onOpenChange={setShowReportedIssueDialog}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Flag className="h-5 w-5 text-amber-500" />
+              Reported Issue
+            </DialogTitle>
+            <DialogDescription>
+              {release?.title
+                ? `COSMOS reported an issue for "${release.title}".`
+                : "COSMOS reported an issue for this release."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+            <p className="whitespace-pre-wrap text-sm text-foreground">
+              {getReportedIssueLabel(release?.reportedIssue)}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowReportedIssueDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

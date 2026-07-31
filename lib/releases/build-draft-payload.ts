@@ -58,6 +58,19 @@ function yesNo(value?: string | boolean): boolean {
   return value === 'yes';
 }
 
+/** Durable S3 key from a form path that may still hold a signed URL (legacy). */
+function toStorageKey(value?: string | null): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (!/^https?:\/\//i.test(trimmed)) return trimmed;
+  try {
+    const pathname = new URL(trimmed).pathname.replace(/^\/+/, '');
+    return pathname ? decodeURIComponent(pathname) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function needsCoverArtUpload(
   form: BuildDraftPayloadInput,
   coverArtData: BuildDraftPayloadInput['coverArt'],
@@ -69,14 +82,13 @@ function needsCoverArtUpload(
       ? (coverArtData as Record<string, unknown>)
       : {};
 
-  if (typeof coverMeta.path === 'string' && coverMeta.path.trim()) return false;
-  if (typeof coverMeta.storageKey === 'string' && coverMeta.storageKey.trim()) {
+  if (typeof coverMeta.path === 'string' && toStorageKey(coverMeta.path)) return false;
+  if (typeof coverMeta.storageKey === 'string' && toStorageKey(coverMeta.storageKey)) {
     return false;
   }
   if (
     typeof coverMeta.url === 'string' &&
-    coverMeta.url.trim() &&
-    !coverMeta.url.startsWith('http')
+    toStorageKey(coverMeta.url)
   ) {
     return false;
   }
@@ -152,9 +164,10 @@ async function ensureAudioUploaded(
 }
 
 function toDraftMediaAsset(af: FormAudioFile, fallbackName: string): DraftMediaAsset | null {
-  if (!af.path) return null;
+  const storageKey = toStorageKey(af.path);
+  if (!storageKey) return null;
   return {
-    storageKey: af.path,
+    storageKey,
     filename: af.fileName || fallbackName,
     size: af.size || 0,
     duration: af.duration || 0,
@@ -224,19 +237,18 @@ async function resolveCoverArt(
       ? coverArtData
       : {};
 
-  if (typeof coverMeta.path === 'string' && coverMeta.path.trim()) {
-    storageKey = coverMeta.path.trim();
+  if (typeof coverMeta.path === 'string' && toStorageKey(coverMeta.path)) {
+    storageKey = toStorageKey(coverMeta.path)!;
   } else if (
     typeof coverMeta.storageKey === 'string' &&
-    coverMeta.storageKey.trim()
+    toStorageKey(coverMeta.storageKey)
   ) {
-    storageKey = coverMeta.storageKey.trim();
+    storageKey = toStorageKey(coverMeta.storageKey)!;
   } else if (
     typeof coverMeta.url === 'string' &&
-    coverMeta.url.trim() &&
-    !coverMeta.url.startsWith('http')
+    toStorageKey(coverMeta.url)
   ) {
-    storageKey = coverMeta.url.trim();
+    storageKey = toStorageKey(coverMeta.url)!;
   } else if (form.coverArt instanceof File || coverMeta.file instanceof File) {
     const fileToUpload =
       form.coverArt instanceof File ? form.coverArt : (coverMeta.file as File);

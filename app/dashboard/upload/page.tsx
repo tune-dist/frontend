@@ -65,7 +65,7 @@ import {
   getPlanByKey,
   getPlanFieldRules,
 } from "@/lib/api/plans";
-import { canManageReleases, hasPermission } from "@/lib/permissions";
+import { canEditReleases, hasPermission } from "@/lib/permissions";
 import { isRmEditableRelease } from "@/lib/release-status";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -129,7 +129,7 @@ export default function UploadPage() {
     }
     if (!loading && user) {
       if (isEditMode) {
-        if (!canManageReleases(user)) {
+        if (!canEditReleases(user)) {
           router.push("/dashboard/releases");
         }
       } else if (!hasPermission(user, "UPLOAD_RELEASE")) {
@@ -217,7 +217,7 @@ export default function UploadPage() {
   } = form;
 
   useEffect(() => {
-    if (!isEditMode || !editReleaseId || !user || !canManageReleases(user)) return;
+    if (!isEditMode || !editReleaseId || !user || !canEditReleases(user)) return;
 
     let cancelled = false;
 
@@ -267,8 +267,11 @@ export default function UploadPage() {
 
         if (release.coverArt?.url) {
           try {
-            const previewUrl = await getSignedUrl(release.coverArt.url);
-            if (!cancelled) {
+            const coverKey = release.coverArt.url;
+            const previewUrl = /^https?:\/\//i.test(coverKey)
+              ? coverKey
+              : await getSignedUrl(coverKey);
+            if (!cancelled && previewUrl) {
               form.setValue("coverArtPreview", previewUrl, { shouldValidate: true });
             }
           } catch (error) {

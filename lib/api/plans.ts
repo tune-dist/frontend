@@ -1,4 +1,5 @@
 import apiClient from '../api-client';
+import { isPublicPricingPlan } from '../plan-keys';
 
 export interface PlanLimits {
   maxPendingReleases: number;
@@ -228,7 +229,7 @@ export async function getAllPlans(forceRefresh = false): Promise<Plan[]> {
   plansFetchPromise = (async () => {
     try {
       const response = await apiClient.get<Plan[]>('/plans');
-      plansCache = response.data;
+      plansCache = response.data.filter((plan) => isPublicPricingPlan(plan.key));
       plansCacheTimestamp = Date.now();
       planLimitsMapCache = null;
       return plansCache;

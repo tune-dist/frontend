@@ -47,9 +47,8 @@ import {
 import ArtistPlatformPicker from '@/components/dashboard/upload/artist-platform-picker'
 import { getDefaultLabelName } from '@/lib/validation/label-name'
 
-// Hardcoded artist add-on price (frontend display only — backend is source of truth)
+// Plan key for artist add-on checkout — price comes from profile.addonEligibility.
 const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
-const ARTIST_ADDON_PRICE_INR = 500
 
 type SearchIndex = number | 'main'
 
@@ -79,7 +78,13 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const [planLimits, setPlanLimits] = useState<{ artistLimit: number; allowConcurrent: boolean; allowedFormats: string[] } | null>(null)
     const [fieldRules, setFieldRules] = useState<Record<string, any>>({})
     const [allPlans, setAllPlans] = useState<Plan[]>([])
-    const extraSlots = user?.extraArtistSlots || 0
+    const extraSlots = user?.extraArtistSlots ?? user?.effectiveLimits?.extraArtistSlots ?? 0
+    const effectiveArtistLimit =
+        user?.effectiveLimits?.maxArtists ?? ((planLimits?.artistLimit ?? 1) + extraSlots)
+    const addonEligibility = user?.addonEligibility
+    const addonPriceInr = addonEligibility?.addonPriceInr ?? 499
+    const addonPriceWithGstInr = addonEligibility?.addonPriceWithGstInr ?? addonPriceInr
+    const addonGstPercent = addonEligibility?.addonGstPercent ?? 18
     const [isAddonAutoPay] = useState(true)
     const [creatingNewMain, setCreatingNewMain] = useState(false)
     const [pendingProfileNotice, setPendingProfileNotice] = useState(false)
@@ -111,7 +116,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     }, [planKey])
 
     // Check if user can add more artists based on plan + purchased add-on slots
-    const canAddMoreArtists = planLimits ? artists.length < (planLimits.artistLimit + extraSlots - 1) : false // -1 because main artist is separate field
+    const canAddMoreArtists = planLimits ? artists.length < (effectiveArtistLimit - 1) : false
 
     // Check if featured artists are allowed by plan fieldRules
     const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false
@@ -128,7 +133,7 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     }, [isLabelNameAllowed, labelNameValue, defaultLabelName, setValue])
 
     // Check if main artist name should be locked (Limit reached, including any purchased add-on slots)
-    const isArtistLocked = !!planLimits && planLimits.artistLimit < 9999 && usedArtists.length >= (planLimits.artistLimit + extraSlots);
+    const isArtistLocked = !!planLimits && planLimits.artistLimit < 9999 && usedArtists.length >= effectiveArtistLimit;
 
     // Check if current artist is from the roster
     const isArtistFromRoster = usedArtists.some(a => (typeof a === 'string' ? a : a.name) === artistName);
@@ -170,39 +175,33 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
     const [upgradeTargetPlanKey, setUpgradeTargetPlanKey] = useState<string | undefined>(undefined)
     const [isPurchasingAddon, setIsPurchasingAddon] = useState(false)
 
-    // Open the right "limit reached" UI based on the user's tier position.
-    // - Tiers below second-to-last: UpgradePlanModal targeting the immediate next plan
-    // - Second-to-last tier: ₹500 add-artist add-on dialog
-    // - Last tier: contact-support toast
+    // Open the right "limit reached" UI — driven by backend profile.addonEligibility.
     const openUpgradeFlowForArtistLimit = useCallback(() => {
-        const sorted = [...allPlans].sort((a, b) => a.pricePerYear - b.pricePerYear)
-        const currentIdx = sorted.findIndex(p => p.key === planKey)
-        const secondToLastIdx = sorted.length - 2
+        const eligibility = user?.addonEligibility
 
-        if (sorted.length === 0 || currentIdx === -1) {
-            setUpgradeTargetPlanKey(undefined)
-            setShowUpgradeModal(true)
-            return
-        }
-
-        if (currentIdx === secondToLastIdx) {
+        if (eligibility?.canBuyArtistAddon) {
             setShowAddonDialog(true)
             return
         }
 
-        if (currentIdx < secondToLastIdx) {
-            setUpgradeTargetPlanKey(sorted[currentIdx + 1].key)
+        if (eligibility?.suggestedAction === 'contact_support' || eligibility?.reason === 'TOP_TIER') {
+            toast('Please contact support to add more artists.')
+            return
+        }
+
+        if (eligibility?.suggestedPlanKey) {
+            setUpgradeTargetPlanKey(eligibility.suggestedPlanKey)
             setShowUpgradeModal(true)
             return
         }
 
-        toast('Please contact support to add more artists.')
-    }, [allPlans, planKey])
+        setUpgradeTargetPlanKey(undefined)
+        setShowUpgradeModal(true)
+    }, [user?.addonEligibility])
 
     // Handle adding a new artist
     const handleAddArtist = () => {
-        const baseLimit = planLimits?.artistLimit ?? 1 // Default to 1 (strictest) if not loaded
-        const effectiveLimit = baseLimit + extraSlots
+        const effectiveLimit = effectiveArtistLimit
         const blockedByFeatureRule = fieldRules.featuredArtists?.allow === false
         const blockedByCount = (1 + (artists?.length || 0)) >= effectiveLimit
 
@@ -1032,7 +1031,12 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                                     <p className="text-sm text-muted-foreground">Add one more artist to your current plan</p>
                                 </div>
                                 <div className="text-right">
-                                    <span className="font-bold text-lg">₹{ARTIST_ADDON_PRICE_INR}</span>
+                                    <span className="font-bold text-lg">₹{addonPriceWithGstInr.toFixed(2)}</span>
+                                    {addonGstPercent > 0 && !addonEligibility?.addonGstIncluded && (
+                                        <p className="text-[11px] text-muted-foreground">
+                                            ₹{addonPriceInr} + {addonGstPercent}% GST
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 

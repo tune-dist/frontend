@@ -39,7 +39,7 @@ function mapPlanToCard(plan: Plan): PricingCardPlan {
     key: plan.key,
     name: plan.title,
     price: resolvePlanPriceDisplay(plan),
-    period: periodLabel || plan.period || '/ year',
+    period: periodLabel || '/yr',
     details: resolvePlanLimitsSummary(plan),
     earnings: resolveEarningsLabel(plan),
     earningsColor: resolveEarningsBadgeClass(plan),

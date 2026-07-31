@@ -108,10 +108,15 @@ export function resolveSupportBadgeLabel(plan: Plan): string {
 }
 
 export function resolvePlanPeriodLabel(plan: Plan): string | null {
-  const raw = plan.period?.trim();
-  // Ignore stale custom-quote leftovers like " pricing"
-  if (raw && !/^pricing$/i.test(raw)) return raw;
-  return derivePeriodLabel(plan);
+  const label = derivePeriodLabel(plan)?.trim();
+  if (!label || /^pricing$/i.test(label)) {
+    return plan.pricePerYear > 0 ? '/yr' : null;
+  }
+  // Normalize yearly display variants to compact /yr
+  if (label === '/year' || label === '/ year' || /^\/?\s*years?$/i.test(label)) {
+    return '/yr';
+  }
+  return label;
 }
 
 /** Respect API order; sort by displayOrder when present (backend source of truth). */
