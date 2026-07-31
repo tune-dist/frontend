@@ -176,6 +176,7 @@ export default function ReleaseDetailsPage() {
                     <PlatformReleaseIcons
                       platforms={release.releasedOn.platforms}
                       iconClassName="h-8 w-8"
+                      iconsOnly
                     />
                   </div>
                 )}
