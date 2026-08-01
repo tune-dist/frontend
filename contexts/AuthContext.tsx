@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { User, login as apiLogin, register as apiRegister, getMe, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword, verifyOtp as apiVerifyOtp, resendOtp as apiResendOtp, LoginResponse } from '@/lib/api/auth';
 import { config } from '@/lib/config';
 import { AUTH_USER_UPDATED_EVENT } from '@/lib/auth-session';
@@ -28,6 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Check if user is authenticated on mount
   useEffect(() => {
@@ -45,6 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             Cookies.remove(config.tokenKey);
             Cookies.remove('refresh_token');
             setUser(null);
+            queryClient.clear();
           }
         }
       }
@@ -53,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     initAuth();
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     const onUserUpdated = (event: Event) => {
@@ -170,8 +173,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     Cookies.remove('refresh_token');
     Cookies.remove('user');
     setUser(null);
+    queryClient.clear();
     router.push('/auth');
-  }, [router]);
+  }, [queryClient, router]);
 
   const refreshUser = React.useCallback(async () => {
     try {

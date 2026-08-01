@@ -61,8 +61,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${manrope.variable} ${outfit.variable}`}>
-        <AuthProvider>
-          <QueryProvider>
+        <QueryProvider>
+          <AuthProvider>
           <PlanInactiveProvider>
             <SmoothScrollProvider>
               {/* <VersionNotifier /> */}
@@ -92,8 +92,8 @@ export default function RootLayout({
             />
             </SmoothScrollProvider>
           </PlanInactiveProvider>
-          </QueryProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   )
