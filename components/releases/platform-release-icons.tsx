@@ -11,9 +11,9 @@ interface PlatformReleaseIconsProps {
   platforms?: ReleasedOnPlatform[] | null;
   className?: string;
   iconClassName?: string;
-  /** When true, skip platforms without a known badge logo (cleaner list rows). */
+  /** @deprecated Logos are always filtered to known badge assets. */
   iconsOnly?: boolean;
-  /** Shown when iconsOnly filters everything out (list cells). */
+  /** Shown when no known-logo platforms remain (list cells). */
   emptyFallback?: ReactNode;
 }
 
@@ -22,16 +22,14 @@ export function PlatformReleaseIcons({
   platforms,
   className = "flex items-center gap-1.5 flex-wrap",
   iconClassName = "h-7 w-7",
-  iconsOnly = false,
   emptyFallback = null,
 }: PlatformReleaseIconsProps) {
   if (!Array.isArray(platforms) || platforms.length === 0) {
     return emptyFallback ?? null;
   }
 
-  const visible = iconsOnly
-    ? platforms.filter((platform) => !!getPlatformBadge(platform.key))
-    : platforms;
+  // Only platforms with a known logo — never letter fallbacks for unknown DSPs.
+  const visible = platforms.filter((platform) => !!getPlatformBadge(platform.key));
 
   if (visible.length === 0) {
     return emptyFallback ?? null;

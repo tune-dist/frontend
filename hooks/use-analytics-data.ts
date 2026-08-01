@@ -56,17 +56,18 @@ export function useAnalyticsData(
 ): UseAnalyticsDataResult {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const enabled = !!user;
+  const userId = user?._id ?? "";
+  const enabled = !!userId;
 
   const languagesQuery = useQuery({
-    queryKey: queryKeys.analytics.breakdown("language", languageLimit),
+    queryKey: queryKeys.analytics.breakdown(userId, "language", languageLimit),
     queryFn: () => getBreakdown("language", languageLimit),
     enabled,
     staleTime: ANALYTICS_BREAKDOWN_STALE_TIME_MS,
   });
 
   const genresQuery = useQuery({
-    queryKey: queryKeys.analytics.breakdown("genre", genreLimit),
+    queryKey: queryKeys.analytics.breakdown(userId, "genre", genreLimit),
     queryFn: () => getBreakdown("genre", genreLimit),
     enabled,
     staleTime: ANALYTICS_BREAKDOWN_STALE_TIME_MS,
@@ -74,6 +75,7 @@ export function useAnalyticsData(
 
   const trendsQuery = useQuery({
     queryKey: queryKeys.analytics.trends(
+      userId,
       trendFilters.period,
       trendFilters.dsp,
       trendFilters.startDate,
@@ -99,8 +101,10 @@ export function useAnalyticsData(
 
   const refreshTrends = useCallback(
     async (filters: TrendFilters) => {
+      if (!userId) return;
       await queryClient.fetchQuery({
         queryKey: queryKeys.analytics.trends(
+          userId,
           filters.period,
           filters.dsp,
           filters.startDate,
@@ -109,14 +113,15 @@ export function useAnalyticsData(
         queryFn: () => fetchTrends(filters),
       });
     },
-    [queryClient],
+    [queryClient, userId],
   );
 
   const refreshBreakdown = useCallback(
     async (dimension: BreakdownDimension, limit: number) => {
+      if (!userId) return null;
       try {
         return await queryClient.fetchQuery({
-          queryKey: queryKeys.analytics.breakdown(dimension, limit),
+          queryKey: queryKeys.analytics.breakdown(userId, dimension, limit),
           queryFn: () => getBreakdown(dimension, limit),
         });
       } catch (error) {
@@ -127,7 +132,7 @@ export function useAnalyticsData(
         return null;
       }
     },
-    [queryClient],
+    [queryClient, userId],
   );
 
   const loading =

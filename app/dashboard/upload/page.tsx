@@ -41,7 +41,7 @@ import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/u
 import { validateCoverArtSize, validateCoverArtDimensions, isExistingUnchangedCoverArt } from "@/components/dashboard/upload/cover-art-file-validation";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage, getReleases, getRelease, submitReleaseUpdate } from "@/lib/api/releases";
-import { hydrateDraftForm } from "@/lib/releases";
+import { hydrateDraftForm, releaseToWriteSnapshot, type ReleaseWriteSnapshot } from "@/lib/releases";
 import {
   attachSignedPlaybackUrl,
   attachSignedPlaybackUrls,
@@ -121,6 +121,7 @@ export default function UploadPage() {
   const [isLoadingEdit, setIsLoadingEdit] = useState(isEditMode);
   const [showCancelEditDialog, setShowCancelEditDialog] = useState(false);
   const isHydratingRef = useRef(false);
+  const editBaselineRef = useRef<ReleaseWriteSnapshot | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -234,6 +235,7 @@ export default function UploadPage() {
         }
 
         const formValues = hydrateDraftForm(release);
+        editBaselineRef.current = releaseToWriteSnapshot(release as unknown as Record<string, unknown>);
         isHydratingRef.current = true;
         form.reset({
           ...form.getValues(),
@@ -1011,8 +1013,14 @@ export default function UploadPage() {
             ...data,
             mandatoryChecks: mandatoryChecks,
           } as any,
-          { onProgress: reportSubmitProgress },
+          {
+            onProgress: reportSubmitProgress,
+            baseline: editBaselineRef.current ?? undefined,
+          },
         );
+        if (result.writeSnapshot) {
+          editBaselineRef.current = result.writeSnapshot;
+        }
         toast.success(
           result?.pdlSynced
             ? "Release updated and synced to PDL."

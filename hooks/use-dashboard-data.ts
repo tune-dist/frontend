@@ -28,22 +28,23 @@ export function useDashboardData(
   topTracksLimit = 4,
 ): UseDashboardDataResult {
   const { user } = useAuth();
-  const enabled = !!user;
+  const userId = user?._id ?? "";
+  const enabled = !!userId;
 
   const statsQuery = useQuery({
-    queryKey: queryKeys.dashboard.stats(),
+    queryKey: queryKeys.dashboard.stats(userId),
     queryFn: getDashboardStats,
     enabled,
   });
 
   const latestQuery = useQuery({
-    queryKey: queryKeys.dashboard.latestReleases(latestLimit),
+    queryKey: queryKeys.dashboard.latestReleases(userId, latestLimit),
     queryFn: () => getLatestReleases(latestLimit),
     enabled,
   });
 
   const topTracksQuery = useQuery({
-    queryKey: queryKeys.dashboard.topTracks(topTracksLimit),
+    queryKey: queryKeys.dashboard.topTracks(userId, topTracksLimit),
     queryFn: () => getTopTracks(topTracksLimit),
     enabled,
   });

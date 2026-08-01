@@ -12,11 +12,12 @@ import { queryKeys } from "@/lib/query-keys";
 export function useYouTubeRequests() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const userId = user?._id ?? "";
 
   const query = useQuery({
-    queryKey: queryKeys.youtube.requests(),
+    queryKey: queryKeys.youtube.requests(userId),
     queryFn: getYouTubeRequests,
-    enabled: !!user,
+    enabled: !!userId,
   });
 
   useEffect(() => {
@@ -27,11 +28,11 @@ export function useYouTubeRequests() {
   }, [query.isError, query.error]);
 
   const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.youtube.requests() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.youtube.requests(userId) });
 
   return {
     requests: query.data ?? [],
-    loading: !!user && query.isPending,
+    loading: !!userId && query.isPending,
     isFetching: query.isFetching,
     refetch: query.refetch,
     invalidate,
