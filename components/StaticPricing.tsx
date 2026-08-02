@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Info, Loader2, X } from 'lucide-react'
+import { Check, ChevronDown, Info, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { getAllPlans, Plan } from '@/lib/api/plans'
@@ -157,72 +157,78 @@ export default function StaticPricing() {
             <p>No plans available right now. Please check back soon.</p>
           </div>
         ) : (
-          <motion.div
-            className="w-full bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <div className="w-full overflow-x-auto scrollbar-hide">
-              <div style={{ minWidth: 240 + plans.length * 130 }}>
-                {/* Plan headers */}
-                <div className="grid border-b border-white/10" style={gridStyle}>
-                  <div className="p-5 md:p-8 flex items-end sticky left-0 z-20 bg-[#0a0a0a] border-r border-white/10">
-                    <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-[0.15em] md:tracking-[0.2em]">
-                      Compare plans
-                    </p>
+          <>
+            {/* ── Mobile & Tablet accordion — shown below lg ── */}
+            <MobilePricingAccordion plans={plans} allFeatures={collectUniqueFeatures(plans)} />
+
+            {/* ── Desktop comparison table — shown on lg and above ── */}
+            <motion.div
+              className="hidden lg:block w-full bg-white/[0.02] backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="w-full overflow-x-auto scrollbar-hide">
+                <div style={{ minWidth: 240 + plans.length * 130 }}>
+                  {/* Plan headers */}
+                  <div className="grid border-b border-white/10" style={gridStyle}>
+                    <div className="p-5 md:p-8 flex items-end sticky left-0 z-20 bg-[#0a0a0a] border-r border-white/10">
+                      <p className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-[0.15em] md:tracking-[0.2em]">
+                        Compare plans
+                      </p>
+                    </div>
+                    {plans.map((plan) => (
+                      <PlanHeaderCell key={plan.key} plan={plan} />
+                    ))}
                   </div>
-                  {plans.map((plan) => (
-                    <PlanHeaderCell key={plan.key} plan={plan} />
-                  ))}
-                </div>
 
-                {/* Comparison rows */}
-                <div className="pb-8">
-                  {categories.map((category) => (
-                    <div key={category.name}>
-                      <div className="grid bg-white/[0.02] border-y border-white/5" style={gridStyle}>
-                        <div className="sticky left-0 z-10 bg-[#0a0a0a] px-5 md:px-8 py-3 md:py-4 border-r border-white/5">
-                          <h4 className="text-[10px] md:text-xs font-black text-white/40 tracking-[0.15em] md:tracking-[0.25em] uppercase">
-                            {category.name}
-                          </h4>
-                        </div>
-                        {plans.map((plan) => (
-                          <div
-                            key={`${category.name}-${plan.key}-spacer`}
-                            className={plan.isPopular ? 'bg-violet-500/[0.04]' : ''}
-                          />
-                        ))}
-                      </div>
-
-                      {category.rows.map((row) => (
-                        <div
-                          key={row.name}
-                          className="grid group transition-colors hover:bg-white/[0.015] border-b border-white/[0.03] last:border-b-0"
-                          style={gridStyle}
-                        >
-                          <div className="px-5 md:px-8 py-3.5 md:py-4 flex items-center border-r border-white/5 sticky left-0 z-10 bg-[#0a0a0a] group-hover:bg-[#111] transition-colors">
-                            <span className="text-[11px] md:text-sm font-medium text-white/70 group-hover:text-white transition-colors leading-snug">
-                              {row.name}
-                            </span>
+                  {/* Comparison rows */}
+                  <div className="pb-8">
+                    {categories.map((category) => (
+                      <div key={category.name}>
+                        <div className="grid bg-white/[0.02] border-y border-white/5" style={gridStyle}>
+                          <div className="sticky left-0 z-10 bg-[#0a0a0a] px-5 md:px-8 py-3 md:py-4 border-r border-white/5">
+                            <h4 className="text-[10px] md:text-xs font-black text-white/40 tracking-[0.15em] md:tracking-[0.25em] uppercase">
+                              {category.name}
+                            </h4>
                           </div>
-                          {row.values.map((value, idx) => (
-                            <ValueCell
-                              key={`${row.name}-${plans[idx].key}`}
-                              value={value}
-                              valueType={row.valueTypes?.[idx]}
-                              isPopular={plans[idx].isPopular}
+                          {plans.map((plan) => (
+                            <div
+                              key={`${category.name}-${plan.key}-spacer`}
+                              className={plan.isPopular ? 'bg-violet-500/[0.04]' : ''}
                             />
                           ))}
                         </div>
-                      ))}
-                    </div>
-                  ))}
+
+                        {category.rows.map((row) => (
+                          <div
+                            key={row.name}
+                            className="grid group transition-colors hover:bg-white/[0.015] border-b border-white/[0.03] last:border-b-0"
+                            style={gridStyle}
+                          >
+                            <div className="px-5 md:px-8 py-3.5 md:py-4 flex items-center border-r border-white/5 sticky left-0 z-10 bg-[#0a0a0a] group-hover:bg-[#111] transition-colors">
+                              <span className="text-[11px] md:text-sm font-medium text-white/70 group-hover:text-white transition-colors leading-snug">
+                                {row.name}
+                              </span>
+                            </div>
+                            {row.values.map((value, idx) => (
+                              <ValueCell
+                                key={`${row.name}-${plans[idx].key}`}
+                                value={value}
+                                valueType={row.valueTypes?.[idx]}
+                                isPopular={plans[idx].isPopular}
+                              />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
 
         <div className="mt-12 text-center">
@@ -233,6 +239,183 @@ export default function StaticPricing() {
         </div>
       </div>
     </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
+// Mobile & Tablet accordion (below lg)
+// ─────────────────────────────────────────────────────────
+function MobilePricingAccordion({ plans, allFeatures }: { plans: Plan[]; allFeatures: string[] }) {
+  const defaultOpen = plans.findIndex((p) => p.isPopular)
+  const [openIndex, setOpenIndex] = useState(defaultOpen >= 0 ? defaultOpen : 0)
+  const toggle = (i: number) => setOpenIndex((prev) => (prev === i ? -1 : i))
+
+  return (
+    <div className="block lg:hidden pt-2 space-y-3">
+      {plans.map((plan, index) => {
+        const isOpen = openIndex === index
+        const cta = resolvePlanCta(plan)
+        const isPopular = plan.isPopular
+        const artists = formatArtistLimit(plan.limits?.maxArtists ?? 0)
+        const releases = formatReleaseLimit(plan.limits?.maxPendingReleases ?? 0)
+        const earningsKept = `${resolveArtistKeepPercent(plan)}%`
+        const isFullEarnings = resolveArtistKeepPercent(plan) >= 100
+        const support = resolveSupportBadgeLabel(plan)
+        // Build a Set of this plan's features for O(1) lookup
+        const planFeatureSet = new Set(
+          (plan.features ?? []).map((f) => f.trim().toLowerCase())
+        )
+
+        return (
+          <motion.div
+            key={plan.key}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: index * 0.07 }}
+            className={`rounded-2xl border overflow-hidden transition-shadow duration-300 ${
+              isPopular
+                ? 'border-violet-500/70 shadow-lg shadow-violet-500/15'
+                : 'border-white/10'
+            }`}
+          >
+            {/* ── Header (always visible) ── */}
+            <button
+              onClick={() => toggle(index)}
+              aria-expanded={isOpen}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-4 text-left transition-colors ${
+                isOpen
+                  ? isPopular
+                    ? 'bg-violet-500/[0.08]'
+                    : 'bg-white/[0.04]'
+                  : 'bg-[#0a0a0a] hover:bg-white/[0.03]'
+              }`}
+            >
+              <div className="flex flex-col gap-0.5 min-w-0">
+                {/* Plan name + popular badge */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-base tracking-tight leading-tight">
+                    {plan.title}
+                  </span>
+                  {isPopular && (
+                    <span className="animated-gradient-bg text-white text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full whitespace-nowrap">
+                      Most Popular
+                    </span>
+                  )}
+                </div>
+                {/* Price */}
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className={`font-bold text-xl leading-none ${isPopular ? 'text-violet-400' : 'text-white'}`}>
+                    {resolvePlanPriceDisplay(plan)}
+                  </span>
+                  {resolvePlanPeriodLabel(plan) && (
+                    <span className="text-white/40 text-xs">{resolvePlanPeriodLabel(plan)}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Animated chevron */}
+              <ChevronDown
+                className={`h-5 w-5 flex-shrink-0 text-white/40 transition-transform duration-300 ${
+                  isOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {/* ── Expandable body ── */}
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isOpen ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="bg-[#0d0d0d] px-4 pb-5 pt-3 space-y-4">
+                {/* Description */}
+                {plan.description && (
+                  <p className="text-sm text-white/50">{plan.description}</p>
+                )}
+
+                {/* GST note */}
+                <PlanGstNote plan={plan} className="mt-0" />
+
+                {/* Core limits */}
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.05] overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <span className="text-xs text-white/50 font-medium">Artists</span>
+                    <span className="text-xs font-bold text-white/80 bg-white/10 px-2.5 py-0.5 rounded-full">{artists}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <span className="text-xs text-white/50 font-medium">Releases</span>
+                    <span className="text-xs font-bold text-white/80 bg-white/10 px-2.5 py-0.5 rounded-full">{releases}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <span className="text-xs text-white/50 font-medium">Earnings kept</span>
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                      isFullEarnings
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                    }`}>{earningsKept}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <span className="text-xs text-white/50 font-medium">Support</span>
+                    <span className="text-xs font-bold text-white/80 bg-white/10 px-2.5 py-0.5 rounded-full">{support}</span>
+                  </div>
+                </div>
+
+                {/* Included features — full cross-plan checklist matching desktop table */}
+                {allFeatures.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-black text-white/40 tracking-[0.15em] uppercase mb-3">
+                      Included Features
+                    </p>
+                    <ul className="space-y-2.5">
+                      {allFeatures.map((feature) => {
+                        const included = planFeatureSet.has(feature.trim().toLowerCase())
+                        return (
+                          <li key={feature} className="flex items-start gap-2.5">
+                            <div
+                              className={`flex-shrink-0 mt-0.5 flex items-center justify-center h-5 w-5 rounded-full ${
+                                included ? 'bg-emerald-500/10' : 'bg-white/5'
+                              }`}
+                            >
+                              {included ? (
+                                <Check className="h-3 w-3 text-emerald-500" strokeWidth={3} />
+                              ) : (
+                                <X className="h-3 w-3 text-white/15" strokeWidth={3} />
+                              )}
+                            </div>
+                            <span className={`text-sm leading-tight ${
+                              included ? 'text-white/75' : 'text-white/25 line-through'
+                            }`}>
+                              {feature}
+                            </span>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {/* CTA */}
+                <div className="pt-1">
+                  <Link href={cta.href} className="w-full">
+                    <Button
+                      variant={isPopular ? 'default' : 'outline'}
+                      className={`w-full h-11 rounded-xl font-bold text-sm transition-all duration-300 ${
+                        isPopular
+                          ? 'animated-gradient-bg border-0 text-white shadow-[0_0_16px_rgba(132,0,215,0.25)]'
+                          : 'hover:bg-white border-white/10 hover:text-black'
+                      }`}
+                    >
+                      {cta.label}
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )
+      })}
+    </div>
   )
 }
 
