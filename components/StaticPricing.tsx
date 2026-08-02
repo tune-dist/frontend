@@ -273,23 +273,21 @@ function MobilePricingAccordion({ plans, allFeatures }: { plans: Plan[]; allFeat
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: index * 0.07 }}
-            className={`rounded-2xl border overflow-hidden transition-shadow duration-300 ${
-              isPopular
+            className={`rounded-2xl border overflow-hidden transition-shadow duration-300 ${isPopular
                 ? 'border-violet-500/70 shadow-lg shadow-violet-500/15'
                 : 'border-white/10'
-            }`}
+              }`}
           >
             {/* ── Header (always visible) ── */}
             <button
               onClick={() => toggle(index)}
               aria-expanded={isOpen}
-              className={`w-full flex items-center justify-between gap-3 px-4 py-4 text-left transition-colors ${
-                isOpen
+              className={`w-full flex items-center justify-between gap-3 px-4 py-4 text-left transition-colors ${isOpen
                   ? isPopular
                     ? 'bg-violet-500/[0.08]'
                     : 'bg-white/[0.04]'
                   : 'bg-[#0a0a0a] hover:bg-white/[0.03]'
-              }`}
+                }`}
             >
               <div className="flex flex-col gap-0.5 min-w-0">
                 {/* Plan name + popular badge */}
@@ -316,17 +314,15 @@ function MobilePricingAccordion({ plans, allFeatures }: { plans: Plan[]; allFeat
 
               {/* Animated chevron */}
               <ChevronDown
-                className={`h-5 w-5 flex-shrink-0 text-white/40 transition-transform duration-300 ${
-                  isOpen ? 'rotate-180' : ''
-                }`}
+                className={`h-5 w-5 flex-shrink-0 text-white/40 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''
+                  }`}
               />
             </button>
 
             {/* ── Expandable body ── */}
             <div
-              className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                isOpen ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
-              }`}
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
+                }`}
             >
               <div className="bg-[#0d0d0d] px-4 pb-5 pt-3 space-y-4">
                 {/* Description */}
@@ -349,11 +345,10 @@ function MobilePricingAccordion({ plans, allFeatures }: { plans: Plan[]; allFeat
                   </div>
                   <div className="flex items-center justify-between px-3 py-2.5">
                     <span className="text-xs text-white/50 font-medium">Earnings kept</span>
-                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-                      isFullEarnings
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${isFullEarnings
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                         : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                    }`}>{earningsKept}</span>
+                      }`}>{earningsKept}</span>
                   </div>
                   <div className="flex items-center justify-between px-3 py-2.5">
                     <span className="text-xs text-white/50 font-medium">Support</span>
@@ -368,29 +363,18 @@ function MobilePricingAccordion({ plans, allFeatures }: { plans: Plan[]; allFeat
                       Included Features
                     </p>
                     <ul className="space-y-2.5">
-                      {allFeatures.map((feature) => {
-                        const included = planFeatureSet.has(feature.trim().toLowerCase())
-                        return (
-                          <li key={feature} className="flex items-start gap-2.5">
-                            <div
-                              className={`flex-shrink-0 mt-0.5 flex items-center justify-center h-5 w-5 rounded-full ${
-                                included ? 'bg-emerald-500/10' : 'bg-white/5'
-                              }`}
-                            >
-                              {included ? (
-                                <Check className="h-3 w-3 text-emerald-500" strokeWidth={3} />
-                              ) : (
-                                <X className="h-3 w-3 text-white/15" strokeWidth={3} />
-                              )}
-                            </div>
-                            <span className={`text-sm leading-tight ${
-                              included ? 'text-white/75' : 'text-white/25 line-through'
-                            }`}>
-                              {feature}
-                            </span>
-                          </li>
-                        )
-                      })}
+                      {allFeatures.filter((feature) =>
+                        planFeatureSet.has(feature.trim().toLowerCase())
+                      ).map((feature) => (
+                        <li key={feature} className="flex items-start gap-2.5">
+                          <div className="flex-shrink-0 mt-0.5 flex items-center justify-center h-5 w-5 rounded-full bg-emerald-500/10">
+                            <Check className="h-3 w-3 text-emerald-500" strokeWidth={3} />
+                          </div>
+                          <span className="text-sm leading-tight text-white/75">
+                            {feature}
+                          </span>
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 )}
@@ -400,11 +384,10 @@ function MobilePricingAccordion({ plans, allFeatures }: { plans: Plan[]; allFeat
                   <Link href={cta.href} className="w-full">
                     <Button
                       variant={isPopular ? 'default' : 'outline'}
-                      className={`w-full h-11 rounded-xl font-bold text-sm transition-all duration-300 ${
-                        isPopular
+                      className={`w-full h-11 rounded-xl font-bold text-sm transition-all duration-300 ${isPopular
                           ? 'animated-gradient-bg border-0 text-white shadow-[0_0_16px_rgba(132,0,215,0.25)]'
                           : 'hover:bg-white border-white/10 hover:text-black'
-                      }`}
+                        }`}
                     >
                       {cta.label}
                     </Button>
@@ -456,11 +439,10 @@ function PlanHeaderCell({ plan }: { plan: Plan }) {
       <Link href={cta.href} className="w-full mt-auto">
         <Button
           variant={plan.isPopular ? 'default' : 'outline'}
-          className={`w-full h-9 md:h-10 text-xs md:text-sm rounded-xl font-semibold transition-all duration-300 ${
-            plan.isPopular
+          className={`w-full h-9 md:h-10 text-xs md:text-sm rounded-xl font-semibold transition-all duration-300 ${plan.isPopular
               ? 'animated-gradient-bg border-0 text-white shadow-[0_0_16px_rgba(132,0,215,0.25)]'
               : 'hover:bg-white border-white/10 hover:text-black'
-          }`}
+            }`}
         >
           {cta.label}
         </Button>
@@ -480,15 +462,13 @@ function ValueCell({
 }) {
   return (
     <div
-      className={`px-3 md:px-4 py-3.5 md:py-4 flex items-center justify-center text-center border-r border-white/[0.03] last:border-r-0 ${
-        isPopular ? 'bg-violet-500/[0.04]' : ''
-      }`}
+      className={`px-3 md:px-4 py-3.5 md:py-4 flex items-center justify-center text-center border-r border-white/[0.03] last:border-r-0 ${isPopular ? 'bg-violet-500/[0.04]' : ''
+        }`}
     >
       {typeof value === 'boolean' || valueType === 'check' ? (
         <div
-          className={`flex items-center justify-center h-7 w-7 md:h-8 md:w-8 rounded-full ${
-            value ? 'bg-emerald-500/10' : 'bg-white/5'
-          }`}
+          className={`flex items-center justify-center h-7 w-7 md:h-8 md:w-8 rounded-full ${value ? 'bg-emerald-500/10' : 'bg-white/5'
+            }`}
         >
           {value ? (
             <Check className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-500" strokeWidth={3} />
