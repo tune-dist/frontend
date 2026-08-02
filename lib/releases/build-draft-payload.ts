@@ -395,7 +395,16 @@ export async function buildDraftPayload(
       throw new Error(`Track "${track.title}" is missing an uploaded audio file.`);
     }
 
-    const primaryGenre = track.primaryGenre || (isSingle ? form.primaryGenre : '') || '';
+    // Singles: Credits edits form-level genre; prefer that over hydrated track values.
+    const primaryGenre =
+      (isSingle && index === 0 && form.primaryGenre) ||
+      track.primaryGenre ||
+      (isSingle ? form.primaryGenre : '') ||
+      '';
+    const secondaryGenre =
+      (isSingle && index === 0 && form.secondaryGenre) ||
+      track.secondaryGenre ||
+      (isSingle ? form.secondaryGenre : undefined);
     const trackNoLyrics = isInstrumentalRelease(primaryGenre, track.isInstrumental ?? form.instrumental);
 
     const writers =
@@ -431,7 +440,7 @@ export async function buildDraftPayload(
         ) || 'Hindi',
       genre: {
         primary: primaryGenre,
-        secondary: track.secondaryGenre || (isSingle ? form.secondaryGenre : undefined),
+        secondary: secondaryGenre,
       },
       mood,
       isExplicit: trackNoLyrics ? false : track.isExplicit === true,

@@ -59,9 +59,23 @@ export const PLATFORM_BADGES: Badge[] = [
     {
         id: "jiosaavn",
         name: "JioSaavn",
-        logoUrl: "https://www.jiosaavn.com/favicon.ico",
+        logoUrl: "/assets/images/platform-img/jiosaavan-logo.png",
         fallbackText: 'JS',
         color: '#2C99C9'
+    },
+    {
+        id: 'gaana',
+        name: 'Gaana',
+        logoUrl: '/assets/images/platform-img/gaana-logo.png',
+        fallbackText: 'GN',
+        color: '#E72C2C'
+    },
+    {
+        id: 'facebook',
+        name: 'Meta',
+        logoUrl: '/assets/images/platform-img/meta-logo.png',
+        fallbackText: 'FB',
+        color: '#0081FB'
     },
     {
         id: 'instagram',

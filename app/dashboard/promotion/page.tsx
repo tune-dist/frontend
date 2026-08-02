@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { getErrorMessage } from "@/lib/get-error-message";
 import Link from "next/link";
@@ -9,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getPromotionByReleaseId } from "@/lib/api/promotions";
 import { S3Image } from "@/components/ui/s3-image";
 import { PromotionWizardDialog } from "@/components/promotion/promotion-wizard-dialog";
-import { useRouter } from "next/navigation";
 import {
     Card,
     CardContent,
@@ -25,14 +23,19 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Loader2, Music, Sparkles, ExternalLink } from "lucide-react";
-import {
-  formatReleaseStatus,
-  getReleaseStatusColor,
-  isPromotableRelease,
-} from '@/lib/release-status';
+import { isPromotableRelease } from "@/lib/release-status";
+import { canManageReleases } from "@/lib/permissions";
 import { getReleases, Release } from "@/lib/api/releases";
+import { getUsers } from "@/lib/api/users";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 import { formatReleaseCodeDisplay } from "@/lib/release-codes";
 
@@ -43,23 +46,30 @@ export default function PromotionListingPage() {
     const [formatDialogOpen, setFormatDialogOpen] = useState(false);
     const [selectedReleaseForPromo, setSelectedReleaseForPromo] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedUserId, setSelectedUserId] = useState<string>("all");
+    const [users, setUsers] = useState<Array<{ _id: string; fullName?: string; email?: string }>>([]);
     const { user } = useAuth();
-    const router = useRouter();
+
+    const canManage = canManageReleases(user);
 
     const fetchReleases = async () => {
         try {
             setLoading(true);
-            // Only show released or approved releases for promotion
-            const response = await getReleases({
-                userId: user?._id,
-                // status: 'Released' // Maybe also Approved?
-            });
+            const params: { limit: number; userId?: string } = { limit: 100 };
+
+            // Artists: own releases only. Staff/super admin: all (or filter by user).
+            if (selectedUserId !== "all") {
+                params.userId = selectedUserId;
+            } else if (user?._id && !canManage) {
+                params.userId = user._id;
+            }
+
+            const response = await getReleases(params);
             const promoteable = response.releases.filter((r: Release) =>
                 isPromotableRelease(r.status)
             );
             setReleases(promoteable);
 
-            // Fetch promotions for these releases
             const promoMap = new Map();
             await Promise.all(
                 promoteable.map(async (release: Release) => {
@@ -68,8 +78,8 @@ export default function PromotionListingPage() {
                         if (promo) {
                             promoMap.set(release._id, promo);
                         }
-                    } catch (e) {
-                        // No promotion
+                    } catch {
+                        // No promotion yet
                     }
                 })
             );
@@ -83,10 +93,23 @@ export default function PromotionListingPage() {
     };
 
     useEffect(() => {
-        if (user?._id) {
-            fetchReleases();
-        }
-    }, [user?._id]);
+        if (!user?._id) return;
+        fetchReleases();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch when staff filter changes
+    }, [user?._id, canManage, selectedUserId]);
+
+    useEffect(() => {
+        if (!canManage) return;
+        const fetchUsersList = async () => {
+            try {
+                const response = await getUsers({ limit: 100 });
+                setUsers(response.users || []);
+            } catch (error) {
+                console.error("Failed to fetch users:", error);
+            }
+        };
+        fetchUsersList();
+    }, [canManage]);
 
     const handlePromoteClick = (releaseId: string) => {
         setSelectedReleaseForPromo(releaseId);
@@ -112,8 +135,6 @@ export default function PromotionListingPage() {
         });
     }, [releases, searchQuery]);
 
-
-
     return (
         <>
             <div className="space-y-6">
@@ -122,23 +143,47 @@ export default function PromotionListingPage() {
                         Release <span className="animated-gradient">Promotion</span>
                     </h1>
                     <p className="text-muted-foreground">
-                        Generate social media creatives and smart links for your music
+                        {canManage
+                            ? "Generate social media creatives and smart links for any release"
+                            : "Generate social media creatives and smart links for your music"}
                     </p>
                 </div>
 
                 <PageSearchSection>
-                    <PageSearchBar
-                        value={searchQuery}
-                        onChange={setSearchQuery}
-                        placeholder="Search by title, artist, or release ID..."
-                    />
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <PageSearchBar
+                            value={searchQuery}
+                            onChange={setSearchQuery}
+                            placeholder="Search by title, artist, or release ID..."
+                        />
+                        {canManage && (
+                            <div className="flex flex-col gap-1.5 min-w-[220px]">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                                    Filter by User
+                                </div>
+                                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                                    <SelectTrigger className="h-10 bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all rounded-xl">
+                                        <SelectValue placeholder="All Users" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
+                                        <SelectItem value="all">All Users</SelectItem>
+                                        {users.map((u) => (
+                                            <SelectItem key={u._id} value={u._id}>
+                                                {u.fullName || u.email}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </div>
                 </PageSearchSection>
 
                 <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Music className="h-5 w-5" />
-                            Promote Your Music
+                            {canManage ? "Promote Releases" : "Promote Your Music"}
                         </CardTitle>
                         <CardDescription>
                             {searchQuery.trim()
@@ -162,7 +207,7 @@ export default function PromotionListingPage() {
                                 <p className="text-sm text-muted-foreground">
                                     {searchQuery.trim()
                                         ? "Try a different search term"
-                                        : "Your releases must be In Process, Submitted, or Released before you can promote them."}
+                                        : "Releases must be In Process, Submitted, or Released before they can be promoted."}
                                 </p>
                             </div>
                         ) : (

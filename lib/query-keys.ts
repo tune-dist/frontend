@@ -2,23 +2,25 @@ import type { BreakdownDimension, SupportedDspFilter, TrendPeriod } from "@/lib/
 
 export const queryKeys = {
   dashboard: {
-    stats: () => ["dashboard", "stats"] as const,
-    latestReleases: (limit: number) =>
-      ["dashboard", "latest-releases", limit] as const,
-    topTracks: (limit: number) => ["dashboard", "top-tracks", limit] as const,
+    stats: (userId: string) => ["dashboard", "stats", userId] as const,
+    latestReleases: (userId: string, limit: number) =>
+      ["dashboard", "latest-releases", userId, limit] as const,
+    topTracks: (userId: string, limit: number) =>
+      ["dashboard", "top-tracks", userId, limit] as const,
   },
   analytics: {
     trends: (
+      userId: string,
       period: TrendPeriod,
       dsp: SupportedDspFilter,
       startDate: string,
       endDate: string,
-    ) => ["analytics", "trends", period, dsp, startDate, endDate] as const,
-    breakdown: (dimension: BreakdownDimension, limit: number) =>
-      ["analytics", "breakdown", dimension, limit] as const,
+    ) => ["analytics", "trends", userId, period, dsp, startDate, endDate] as const,
+    breakdown: (userId: string, dimension: BreakdownDimension, limit: number) =>
+      ["analytics", "breakdown", userId, dimension, limit] as const,
   },
   youtube: {
-    requests: () => ["youtube", "requests"] as const,
+    requests: (userId: string) => ["youtube", "requests", userId] as const,
   },
   releases: {
     list: (params: Record<string, unknown>) =>
