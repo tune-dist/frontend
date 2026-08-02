@@ -103,6 +103,8 @@ export interface User {
   avatarUrl?: string;
   isSubscriptionActive?: boolean;
   subscriptionStatus?: string;
+  lastPaymentId?: string | null;
+  razorpaySubscriptionId?: string | null;
 }
 
 export interface AuthResponse {

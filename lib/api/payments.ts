@@ -48,10 +48,14 @@ export interface PaymentHistoryItem {
 export async function createPaymentOrder(
     planKey: string,
     isAutoPay: boolean = true,
+    campaignCode?: string,
+    isUpgrade?: boolean,
 ): Promise<CreateOrderResponse> {
     const response = await apiClient.post<CreateOrderResponse>('/payments/create-order', {
         planKey,
         isAutoPay,
+        ...(campaignCode ? { campaignCode } : {}),
+        ...(isUpgrade ? { isUpgrade: true } : {}),
     });
     return response.data;
 }
@@ -71,9 +75,13 @@ export async function createPaymentOrder(
  * the free plan or whose subscription is expired/cancelled, use createPaymentOrder
  * instead — they don't have a "current" subscription to replace.
  */
-export async function upgradePlan(planKey: string): Promise<CreateOrderResponse> {
+export async function upgradePlan(
+    planKey: string,
+    campaignCode?: string,
+): Promise<CreateOrderResponse> {
     const response = await apiClient.post<CreateOrderResponse>('/payments/upgrade-plan', {
         planKey,
+        ...(campaignCode ? { campaignCode } : {}),
     });
     return response.data;
 }
@@ -97,6 +105,17 @@ export async function selectPlan(planKey: string): Promise<SelectPlanResult> {
  */
 export async function verifyPayment(data: VerifyPaymentData): Promise<PaymentResult> {
     const response = await apiClient.post<PaymentResult>('/payments/verify', data);
+    return response.data;
+}
+
+/**
+ * Mark a checkout as cancelled when the user closes Razorpay without paying.
+ */
+export async function abandonCheckout(data: {
+    orderId?: string;
+    subscriptionId?: string;
+}): Promise<{ success: boolean }> {
+    const response = await apiClient.post<{ success: boolean }>('/payments/abandon-checkout', data);
     return response.data;
 }
 
