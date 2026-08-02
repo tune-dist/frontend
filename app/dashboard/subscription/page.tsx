@@ -261,6 +261,8 @@ export default function SubscriptionPage() {
                 return <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20">Paid</Badge>
             case 'failed':
                 return <Badge variant="destructive">Failed</Badge>
+            case 'cancelled':
+                return <Badge variant="outline">Cancelled</Badge>
             case 'created':
                 return <Badge variant="secondary">Pending</Badge>
             case 'refunded':

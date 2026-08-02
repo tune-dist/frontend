@@ -6,9 +6,15 @@ import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, CreditCard, CheckCircle, XCircle } from 'lucide-react'
-import { getPlanByKey, Plan } from '@/lib/api/plans'
+import { getPlanByKey, getPlanTotalWithGst, Plan } from '@/lib/api/plans'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
+import {
+    AppliedCampaign,
+    CampaignCodeOffer,
+    formatMoney,
+    isFirstTimeCampaignUser,
+} from '@/components/plans/campaign-code-offer'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
@@ -23,17 +29,23 @@ function CheckoutContent() {
     const [loading, setLoading] = useState(true)
     const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending')
     const [isAutoPay, setIsAutoPay] = useState(true)
+    const [appliedCampaign, setAppliedCampaign] = useState<AppliedCampaign | null>(null)
 
     const planKey = searchParams.get('plan')
+    const showCampaignCode = isFirstTimeCampaignUser(user)
 
-    // Redirect if not authenticated
+    useEffect(() => {
+        if (!showCampaignCode && appliedCampaign) {
+            setAppliedCampaign(null)
+        }
+    }, [showCampaignCode, appliedCampaign])
+
     useEffect(() => {
         if (!isAuthenticated && !loading) {
             router.push(`/auth?plan=${planKey}`)
         }
     }, [isAuthenticated, loading, planKey, router])
 
-    // Fetch plan details
     useEffect(() => {
         const fetchPlan = async () => {
             if (!planKey) {
@@ -48,6 +60,7 @@ function CheckoutContent() {
                     return
                 }
                 setPlan(planData)
+                setAppliedCampaign(null)
             } catch (error) {
                 console.error('Failed to fetch plan:', error)
                 router.push('/#pricing')
@@ -68,11 +81,13 @@ function CheckoutContent() {
             const result = await initiatePayment(plan.key, {
                 name: user?.fullName,
                 email: user?.email,
-            }, { isAutoPay })
+            }, {
+                isAutoPay: appliedCampaign ? false : isAutoPay,
+                campaignCode: appliedCampaign?.code,
+            })
 
             if (result?.success) {
                 setPaymentStatus('success')
-                // Redirect to dashboard after short delay
                 setTimeout(() => {
                     router.push('/dashboard?payment=success')
                 }, 2000)
@@ -95,6 +110,12 @@ function CheckoutContent() {
             </div>
         )
     }
+
+    const originalTotal = getPlanTotalWithGst(plan)
+    const payableTotal = appliedCampaign?.payableAmount ?? originalTotal
+    const payLabel = appliedCampaign
+        ? `Pay ${formatMoney(payableTotal, plan.currency)}`
+        : 'Pay Now'
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
@@ -127,22 +148,53 @@ function CheckoutContent() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {/* Plan Summary */}
                         <div className="bg-muted/50 rounded-lg p-4">
-                            <div className="flex justify-between items-center mb-2">
+                            <div className="flex justify-between items-start mb-2 gap-3">
                                 <span className="font-semibold">{plan.title}</span>
-                                <span className="text-xl font-bold">{plan.priceDisplay}</span>
+                                <div className="text-right">
+                                    {appliedCampaign ? (
+                                        <>
+                                            <div className="text-sm text-muted-foreground line-through decoration-2">
+                                                {formatMoney(appliedCampaign.originalAmount, plan.currency)}
+                                            </div>
+                                            <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                                                {formatMoney(appliedCampaign.payableAmount, plan.currency)}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <span className="text-xl font-bold">{plan.priceDisplay}</span>
+                                    )}
+                                </div>
                             </div>
-                            <PlanGstNote plan={plan} showTotal className="mb-2" />
+                            {!appliedCampaign && <PlanGstNote plan={plan} showTotal className="mb-2" />}
+                            {appliedCampaign && (
+                                <p className="text-xs text-muted-foreground mb-2">
+                                    Discount applied · save {formatMoney(appliedCampaign.discountAmount, plan.currency)}
+                                </p>
+                            )}
                             <p className="text-sm text-muted-foreground">{plan.description}</p>
 
                             {paymentStatus === 'pending' && plan.pricePerYear > 0 && (
-                                <div className="mt-4 pt-4 border-t border-border/50">
-                                    <BillingTypeToggle
-                                        isAutoPay={isAutoPay}
-                                        onChange={setIsAutoPay}
-                                        compact
-                                    />
+                                <div className="mt-4 pt-4 border-t border-border/50 space-y-4">
+                                    {showCampaignCode && (
+                                        <CampaignCodeOffer
+                                            plan={plan}
+                                            applied={appliedCampaign}
+                                            onApplied={setAppliedCampaign}
+                                        />
+                                    )}
+                                    {!appliedCampaign && (
+                                        <BillingTypeToggle
+                                            isAutoPay={isAutoPay}
+                                            onChange={setIsAutoPay}
+                                            compact
+                                        />
+                                    )}
+                                    {appliedCampaign && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Campaign checkouts are one-time payments at the discounted price (no auto-renew).
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -205,7 +257,7 @@ function CheckoutContent() {
                                         Processing...
                                     </>
                                 ) : (
-                                    'Pay Now'
+                                    payLabel
                                 )}
                             </Button>
                         )}

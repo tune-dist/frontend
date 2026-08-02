@@ -11,6 +11,12 @@ import { isEnterprisePlan, resolvePlanPriceDisplay, resolvePlanPeriodLabel } fro
 import { isPublicPricingPlan } from '@/lib/plan-keys'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { BillingTypeToggle } from '@/components/plans/billing-type-toggle'
+import {
+    AppliedCampaign,
+    CampaignCodeOffer,
+    formatMoney,
+    isFirstTimeCampaignUser,
+} from '@/components/plans/campaign-code-offer'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
 import { selectPlan as apiSelectPlan } from '@/lib/api/payments'
@@ -46,9 +52,17 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
     const [confirmingPlan, setConfirmingPlan] = useState<Plan | null>(null)
     const [isAutoPay, setIsAutoPay] = useState(true)
+    const [appliedCampaign, setAppliedCampaign] = useState<AppliedCampaign | null>(null)
     const { initiatePayment, isLoading: paymentLoading } = useRazorpay()
     const { user, refreshUser } = useAuth()
     const router = useRouter()
+    const showCampaignCode = isFirstTimeCampaignUser(user)
+
+    useEffect(() => {
+        if (!showCampaignCode && appliedCampaign) {
+            setAppliedCampaign(null)
+        }
+    }, [showCampaignCode, appliedCampaign])
 
     useEffect(() => {
         if (isOpen) {
@@ -146,6 +160,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
         }
 
         // Show confirmation screen instead of paying directly
+        setAppliedCampaign(null)
         setConfirmingPlan(plan)
     }
 
@@ -161,7 +176,11 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                     name: user?.fullName,
                     email: user?.email,
                 },
-                { isUpgrade: hasActiveSubscription, isAutoPay },
+                {
+                    isUpgrade: hasActiveSubscription,
+                    isAutoPay: appliedCampaign ? false : isAutoPay,
+                    campaignCode: appliedCampaign?.code,
+                },
             )
 
             if (result?.success) {
@@ -169,6 +188,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                 await refreshUser()
                 await onPaymentSuccess?.()
                 setConfirmingPlan(null)
+                setAppliedCampaign(null)
                 onClose()
                 router.refresh()
             }
@@ -243,32 +263,71 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
                                         </div>
                                         
                                         <div className="w-full bg-card rounded-xl p-5 mb-8 border shadow-sm">
-                                            <div className="flex justify-between items-center pb-4 border-b border-border/50">
+                                            <div className="flex justify-between items-start pb-4 border-b border-border/50 gap-3">
                                                 <div>
                                                     <span className="font-bold text-xl">{confirmingPlan.title}</span>
                                                     {resolvePlanPeriodLabel(confirmingPlan) && (
                                                         <span className="text-muted-foreground text-sm ml-2">{resolvePlanPeriodLabel(confirmingPlan)}</span>
                                                     )}
                                                 </div>
-                                                <span className="text-2xl font-black text-primary">{resolvePlanPriceDisplay(confirmingPlan)}</span>
+                                                <div className="text-right">
+                                                    {appliedCampaign ? (
+                                                        <>
+                                                            <div className="text-sm text-muted-foreground line-through decoration-2">
+                                                                {formatMoney(appliedCampaign.originalAmount, confirmingPlan.currency)}
+                                                            </div>
+                                                            <div className="text-2xl font-black text-emerald-500">
+                                                                {formatMoney(appliedCampaign.payableAmount, confirmingPlan.currency)}
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-2xl font-black text-primary">{resolvePlanPriceDisplay(confirmingPlan)}</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <PlanGstNote plan={confirmingPlan} showTotal className="mt-3" />
+                                            {!appliedCampaign && (
+                                                <PlanGstNote plan={confirmingPlan} showTotal className="mt-3" />
+                                            )}
+                                            {appliedCampaign && (
+                                                <p className="text-xs text-muted-foreground mt-3">
+                                                    You save {formatMoney(appliedCampaign.discountAmount, confirmingPlan.currency)} with code {appliedCampaign.code}
+                                                </p>
+                                            )}
 
-                                            <div className="mt-5">
-                                                <BillingTypeToggle
-                                                    isAutoPay={isAutoPay}
-                                                    onChange={setIsAutoPay}
-                                                />
+                                            <div className="mt-5 space-y-4">
+                                                {showCampaignCode && (
+                                                    <CampaignCodeOffer
+                                                        plan={confirmingPlan}
+                                                        applied={appliedCampaign}
+                                                        onApplied={setAppliedCampaign}
+                                                    />
+                                                )}
+                                                {!appliedCampaign && (
+                                                    <BillingTypeToggle
+                                                        isAutoPay={isAutoPay}
+                                                        onChange={setIsAutoPay}
+                                                    />
+                                                )}
+                                                {appliedCampaign && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Campaign checkouts are one-time payments at the discounted price (no auto-renew).
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                         
                                         <div className="flex gap-4 w-full">
-                                            <Button variant="outline" className="flex-1" onClick={() => setConfirmingPlan(null)} disabled={selectedPlan !== null}>
+                                            <Button variant="outline" className="flex-1" onClick={() => {
+                                                setConfirmingPlan(null)
+                                                setAppliedCampaign(null)
+                                            }} disabled={selectedPlan !== null}>
                                                 Back
                                             </Button>
                                             <Button className="flex-1" onClick={proceedToPayment} disabled={selectedPlan !== null}>
                                                 {selectedPlan !== null ? (
                                                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
+                                                ) : appliedCampaign ? (
+                                                    `Pay ${formatMoney(appliedCampaign.payableAmount, confirmingPlan.currency)}`
                                                 ) : (
                                                     'Proceed to Payment'
                                                 )}

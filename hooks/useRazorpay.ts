@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { createPaymentOrder, upgradePlan, verifyPayment, CreateOrderResponse, PaymentResult } from '@/lib/api/payments';
+import { createPaymentOrder, upgradePlan, verifyPayment, abandonCheckout, CreateOrderResponse, PaymentResult } from '@/lib/api/payments';
 import toast from 'react-hot-toast';
 import { getErrorMessage } from '@/lib/get-error-message';
 
@@ -55,6 +55,8 @@ interface InitiatePaymentOptions {
     isUpgrade?: boolean;
     /** true = Razorpay subscription (auto-renew). false = one-time order. Default true. */
     isAutoPay?: boolean;
+    /** Optional campaign / coupon code for discounted checkout. */
+    campaignCode?: string;
 }
 
 interface UseRazorpayReturn {
@@ -183,26 +185,32 @@ export function useRazorpay(): UseRazorpayReturn {
 
             setIsLoading(true);
 
+            let checkout: CreateOrderResponse | null = null;
+
             try {
                 // Step 1: Create order on backend
-                // Three branches:
-                //   - artist add-on → one-time order, attached to main sub via the
-                //     modern addon flow (isAutoPay=false)
-                //   - plan change for someone with an existing active subscription
-                //     → /payments/upgrade-plan so the old sub is cancelled + addons
-                //     are re-attached/dropped on verify
-                //   - fresh plan purchase (user on free / expired) → standard
-                //     /payments/create-order with isAutoPay=true
+                // - artist add-on → one-time order
+                // - upgrade with active subscription → /payments/upgrade-plan
+                // - campaign code → discounted one-time order (isAutoPay ignored)
+                // - fresh paid plan → subscription when isAutoPay, else one-time order
                 const isAddon = planKey === 'artist_addon';
                 const isAutoPay = options?.isAutoPay !== false;
-                const order = isAddon
+                const campaignCode = options?.campaignCode?.trim() || undefined;
+                const isUpgrade = Boolean(options?.isUpgrade);
+
+                checkout = isAddon
                     ? await createPaymentOrder(planKey, false)
-                    : options?.isUpgrade && isAutoPay
-                        ? await upgradePlan(planKey)
-                        : await createPaymentOrder(planKey, isAutoPay);
+                    : isUpgrade
+                        ? await upgradePlan(planKey, campaignCode)
+                        : await createPaymentOrder(
+                            planKey,
+                            campaignCode ? false : isAutoPay,
+                            campaignCode,
+                            isUpgrade,
+                        );
 
                 // Step 2: Open Razorpay checkout
-                const razorpayResponse = await openCheckout(order, userInfo);
+                const razorpayResponse = await openCheckout(checkout, userInfo);
 
                 // Step 3: Verify payment on backend
                 const result = await verifyPayment({
@@ -219,6 +227,14 @@ export function useRazorpay(): UseRazorpayReturn {
                 return result;
             } catch (error: any) {
                 if (error.message === 'Payment cancelled by user') {
+                    if (checkout) {
+                        void abandonCheckout({
+                            orderId: checkout.orderId,
+                            subscriptionId: checkout.subscriptionId,
+                        }).catch((abandonError) => {
+                            console.error('Failed to mark checkout cancelled:', abandonError);
+                        });
+                    }
                     toast('Payment cancelled', { icon: '❌' });
                 } else if (error.response?.data?.code === 'RAZORPAY_PLAN_NOT_CONFIGURED') {
                     toast.error(
