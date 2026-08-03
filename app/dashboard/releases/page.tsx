@@ -85,6 +85,7 @@ import {
   getReportedIssueLabel,
   type ReportedIssue,
 } from "@/lib/reported-issue";
+import { hasDistributionIssueAction } from "@/lib/distribution-issue";
 import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
 
 // Animation variants
@@ -137,6 +138,10 @@ export default function ReleasesPage() {
   const [reportedIssueDialog, setReportedIssueDialog] = useState<{
     title: string;
     issue: ReportedIssue;
+  } | null>(null);
+  const [distributionIssueDialog, setDistributionIssueDialog] = useState<{
+    title: string;
+    note: string;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -522,10 +527,35 @@ export default function ReleasesPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}>
-                                  <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
-                                  {formatStatus(release.status)}
-                                </span>
+                                {hasDistributionIssueAction(
+                                  release.status,
+                                  release.distributionIssueNote,
+                                ) ? (
+                                  <button
+                                    type="button"
+                                    className="inline-flex flex-col items-start gap-0.5 rounded-lg text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                    title="View what needs fixing"
+                                    onClick={() =>
+                                      setDistributionIssueDialog({
+                                        title: release.title,
+                                        note: release.distributionIssueNote!.trim(),
+                                      })
+                                    }
+                                  >
+                                    <span className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                      <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
+                                      In Process
+                                    </span>
+                                    <span className="pl-1 text-[10px] font-semibold text-amber-600/90 dark:text-amber-400/90 underline-offset-2 hover:underline">
+                                      Action needed
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}>
+                                    <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
+                                    {formatStatus(release.status)}
+                                  </span>
+                                )}
                                 {hasActiveReportedIssue(release.status, release.reportedIssue) && (
                                   <Button
                                     type="button"
@@ -789,6 +819,32 @@ export default function ReleasesPage() {
             </div>
             <DialogFooter>
               <Button onClick={() => setReportedIssueDialog(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={distributionIssueDialog !== null}
+          onOpenChange={(open) => {
+            if (!open) setDistributionIssueDialog(null);
+          }}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Distribution issue</DialogTitle>
+              <DialogDescription>
+                {distributionIssueDialog?.title
+                  ? `What needs fixing on "${distributionIssueDialog.title}".`
+                  : "What needs fixing on this release."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+              <p className="whitespace-pre-wrap text-sm text-foreground">
+                {distributionIssueDialog?.note}
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setDistributionIssueDialog(null)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

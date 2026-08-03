@@ -57,9 +57,16 @@ interface BasicInfoStepProps {
     formData?: UploadFormData
     setFormData?: (data: UploadFormData) => void
     usedArtists?: any[] // Changed from string[] to any[] for object support
+    /** Shown when edit load auto-bumped releaseDate after a distribution issue */
+    releaseDateAutoCorrected?: boolean
 }
 
-export default function BasicInfoStep({ formData: propFormData, setFormData: propSetFormData, usedArtists = [] }: BasicInfoStepProps) {
+export default function BasicInfoStep({
+    formData: propFormData,
+    setFormData: propSetFormData,
+    usedArtists = [],
+    releaseDateAutoCorrected = false,
+}: BasicInfoStepProps) {
     const { user, refreshUser } = useAuth()
     const { register, formState: { errors }, watch, setValue, control } = useFormContext<UploadFormData>()
     const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay()
@@ -934,6 +941,12 @@ export default function BasicInfoStep({ formData: propFormData, setFormData: pro
                     <p className="text-xs text-muted-foreground mt-1">
                         Release date must be at least 2 days from today.
                     </p>
+                    {releaseDateAutoCorrected && !errors.releaseDate && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Your previous release date had passed, so we set this to the earliest
+                            valid date. You can change it if you prefer a later date.
+                        </p>
+                    )}
                     {errors.releaseDate && <p className="text-xs text-red-500 mt-1">{errors.releaseDate.message}</p>}
                 </div>
                 {/* Label Name Field - editable on paid plans; locked to default on free */}

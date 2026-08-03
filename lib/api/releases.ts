@@ -219,6 +219,8 @@ export interface Release {
     isAllIssueOfAlbumResolved?: boolean;
     syncedAt?: string;
   };
+  distributionIssueNote?: string | null;
+  distributionIssueDetectedAt?: string | null;
   /** Present only when the release is Released — DSP display data. */
   releasedOn?: {
     syncedAt?: string;
