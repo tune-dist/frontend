@@ -43,6 +43,10 @@ import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage, getReleases, getRelease, submitReleaseUpdate } from "@/lib/api/releases";
 import { hydrateDraftForm, releaseToWriteSnapshot, type ReleaseWriteSnapshot } from "@/lib/releases";
 import {
+  earliestValidReleaseDate,
+  isReleaseDateBelowMinimum,
+} from "@/lib/distribution-issue";
+import {
   attachSignedPlaybackUrl,
   attachSignedPlaybackUrls,
 } from "@/lib/upload/audio-playback";
@@ -120,6 +124,7 @@ export default function UploadPage() {
   const [submitProgress, setSubmitProgress] = useState({ percent: 0, label: "" });
   const [isLoadingEdit, setIsLoadingEdit] = useState(isEditMode);
   const [showCancelEditDialog, setShowCancelEditDialog] = useState(false);
+  const [releaseDateAutoCorrected, setReleaseDateAutoCorrected] = useState(false);
   const isHydratingRef = useRef(false);
   const editBaselineRef = useRef<ReleaseWriteSnapshot | null>(null);
 
@@ -235,16 +240,29 @@ export default function UploadPage() {
         }
 
         const formValues = hydrateDraftForm(release);
+        let releaseDate = formValues.releaseDate || "";
+        const issueNote = release.distributionIssueNote?.trim() || "";
+        let didAutoCorrectReleaseDate = false;
+        if (issueNote && isReleaseDateBelowMinimum(releaseDate)) {
+          releaseDate = earliestValidReleaseDate();
+          didAutoCorrectReleaseDate = true;
+        }
+
         editBaselineRef.current = releaseToWriteSnapshot(release as unknown as Record<string, unknown>);
         isHydratingRef.current = true;
         form.reset({
           ...form.getValues(),
           ...formValues,
+          releaseDate,
           format: formValues.format || "single",
           releaseType: formValues.format || "single",
           coverArtMetadataStale: false,
           coverArtChanged: false,
         } as UploadFormData);
+        setReleaseDateAutoCorrected(didAutoCorrectReleaseDate);
+        if (didAutoCorrectReleaseDate) {
+          form.clearErrors("releaseDate");
+        }
 
         if (formValues.writers?.length) setWriters(formValues.writers);
         if (formValues.composers?.length) setComposers(formValues.composers);
@@ -1083,6 +1101,7 @@ export default function UploadPage() {
       formData,
       setFormData,
       usedArtists,
+      releaseDateAutoCorrected,
     };
 
     switch (currentStep) {

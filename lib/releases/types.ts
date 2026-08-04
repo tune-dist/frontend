@@ -202,6 +202,8 @@ export interface ReleaseDetailResponse {
   distribution: DraftDistribution;
   workflow: DraftWorkflow;
   reportedIssue?: ReportedIssue;
+  distributionIssueNote?: string | null;
+  distributionIssueDetectedAt?: string | null;
   releasedOn?: ReleasedOn;
 }
 
@@ -219,6 +221,8 @@ export interface ReleaseListItem {
   upc?: string;
   pdlAlbumId?: string;
   reportedIssue?: ReportedIssue;
+  distributionIssueNote?: string | null;
+  distributionIssueDetectedAt?: string | null;
   releasedOn?: ReleasedOn;
   createdAt?: string;
 }
@@ -264,6 +268,8 @@ export interface MongoReleaseDocument {
   pdlSubmittedAt?: string;
   pdlPlatformsToRelease?: string;
   reportedIssue?: ReportedIssue;
+  distributionIssueNote?: string | null;
+  distributionIssueDetectedAt?: string | null;
   releasedOn?: ReleasedOn;
   submittedAt?: string;
   approvedAt?: string;
