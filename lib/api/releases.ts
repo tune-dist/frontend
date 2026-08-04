@@ -221,6 +221,19 @@ export interface Release {
   };
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
+  /**
+   * Upload-time warnings the artist acknowledged (duplicate audio / cover art).
+   * Separate from distributionIssueNote (PDL/COSMOS).
+   */
+  warning?: boolean;
+  audioConsent?: boolean;
+  coverArtConsent?: boolean;
+  audioWarningMessage?: string | null;
+  coverArtWarnings?: Array<{
+    code?: string;
+    message: string;
+    severity?: string;
+  }>;
   /** Present only when the release is Released — DSP display data. */
   releasedOn?: {
     syncedAt?: string;

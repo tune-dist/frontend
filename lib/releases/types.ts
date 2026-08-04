@@ -136,10 +136,20 @@ export interface DraftReleaseMeta {
   recordingYear?: number;
 }
 
+export interface CoverArtWarningIssue {
+  code?: string;
+  message: string;
+  severity?: string;
+}
+
 export interface DraftSubmission {
   rightsAccepted: boolean;
   audioDuplicateConsent?: boolean;
   coverArtValidationConsent?: boolean;
+  /** Duplicate-audio warning text when audioDuplicateConsent is true. */
+  audioWarningMessage?: string;
+  /** Cover-art validation issues when coverArtValidationConsent is true. */
+  coverArtWarnings?: CoverArtWarningIssue[];
 }
 
 /** POST /releases · PUT /releases/:id */
@@ -202,6 +212,15 @@ export interface ReleaseDetailResponse {
   distribution: DraftDistribution;
   workflow: DraftWorkflow;
   reportedIssue?: ReportedIssue;
+  /**
+   * Upload-time warnings the artist acknowledged (duplicate audio / cover art).
+   * Separate from distributionIssueNote (PDL/COSMOS).
+   */
+  warning?: boolean;
+  audioConsent?: boolean;
+  coverArtConsent?: boolean;
+  audioWarningMessage?: string | null;
+  coverArtWarnings?: CoverArtWarningIssue[];
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
   releasedOn?: ReleasedOn;
@@ -221,6 +240,10 @@ export interface ReleaseListItem {
   upc?: string;
   pdlAlbumId?: string;
   reportedIssue?: ReportedIssue;
+  /** True when artist acknowledged upload-time warnings (not PDL). */
+  warning?: boolean;
+  audioWarningMessage?: string | null;
+  coverArtWarnings?: CoverArtWarningIssue[];
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
   releasedOn?: ReleasedOn;
@@ -264,6 +287,11 @@ export interface MongoReleaseDocument {
   previewClipStartTime?: string;
   rightsAccepted?: boolean;
   acceptedAt?: string;
+  warning?: boolean;
+  audioConsent?: boolean;
+  coverArtConsent?: boolean;
+  audioWarningMessage?: string | null;
+  coverArtWarnings?: CoverArtWarningIssue[];
   pdlAlbumId?: string;
   pdlSubmittedAt?: string;
   pdlPlatformsToRelease?: string;

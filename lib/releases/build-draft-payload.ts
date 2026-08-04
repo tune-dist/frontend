@@ -503,6 +503,30 @@ export async function buildDraftPayload(
       rightsAccepted,
       audioDuplicateConsent: form.audioConsent === true,
       coverArtValidationConsent: form.coverArtConsent === true,
+      audioWarningMessage:
+        form.audioConsent === true &&
+        form.audioDuplicateDetected === true &&
+        typeof form.audioWarningMessage === 'string' &&
+        form.audioWarningMessage.trim()
+          ? form.audioWarningMessage.trim()
+          : undefined,
+      coverArtWarnings:
+        form.coverArtConsent === true &&
+        Array.isArray(form.coverArtValidationIssues) &&
+        form.coverArtValidationIssues.length > 0
+          ? form.coverArtValidationIssues
+              .filter(
+                (issue): issue is { code?: string; message: string; severity?: string } =>
+                  !!issue &&
+                  typeof (issue as { message?: unknown }).message === 'string' &&
+                  String((issue as { message: string }).message).trim().length > 0,
+              )
+              .map((issue) => ({
+                code: typeof issue.code === 'string' ? issue.code : undefined,
+                message: String(issue.message).trim(),
+                severity: typeof issue.severity === 'string' ? issue.severity : undefined,
+              }))
+          : undefined,
     },
   };
 }

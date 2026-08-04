@@ -51,6 +51,7 @@ import {
   UploadCloud,
   Pencil,
   Flag,
+  AlertTriangle,
 } from "lucide-react";
 import {
   getReleases,
@@ -87,6 +88,11 @@ import {
 } from "@/lib/reported-issue";
 import { hasDistributionIssueAction } from "@/lib/distribution-issue";
 import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
+import {
+  getAudioUploadWarning,
+  getCoverArtUploadWarnings,
+  hasUploadWarning,
+} from "@/lib/upload-warning";
 
 // Animation variants
 const containerVariants = {
@@ -142,6 +148,11 @@ export default function ReleasesPage() {
   const [distributionIssueDialog, setDistributionIssueDialog] = useState<{
     title: string;
     note: string;
+  } | null>(null);
+  const [uploadWarningDialog, setUploadWarningDialog] = useState<{
+    title: string;
+    audioWarning: string | null;
+    coverArtWarnings: Array<{ code?: string; message: string; severity?: string }>;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -573,6 +584,24 @@ export default function ReleasesPage() {
                                     <Flag className="h-4 w-4 fill-current" />
                                   </Button>
                                 )}
+                                {hasUploadWarning(release) && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
+                                    title="View upload warnings"
+                                    onClick={() =>
+                                      setUploadWarningDialog({
+                                        title: release.title,
+                                        audioWarning: getAudioUploadWarning(release),
+                                        coverArtWarnings: getCoverArtUploadWarnings(release),
+                                      })
+                                    }
+                                  >
+                                    <AlertTriangle className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm font-medium">
@@ -845,6 +874,60 @@ export default function ReleasesPage() {
             </div>
             <DialogFooter>
               <Button onClick={() => setDistributionIssueDialog(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={uploadWarningDialog !== null}
+          onOpenChange={(open) => {
+            if (!open) setUploadWarningDialog(null);
+          }}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Upload Warnings
+              </DialogTitle>
+              <DialogDescription>
+                {uploadWarningDialog?.title
+                  ? `Upload warnings for "${uploadWarningDialog.title}". These are separate from distributor (PDL) issues — edit the release to replace audio or cover art if needed.`
+                  : "Upload warnings for this release. These are separate from distributor (PDL) issues — edit the release to replace audio or cover art if needed."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[50vh] space-y-4 overflow-y-auto rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+              {uploadWarningDialog?.audioWarning ? (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                    Audio
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm text-foreground">
+                    {uploadWarningDialog.audioWarning}
+                  </p>
+                </div>
+              ) : null}
+              {(uploadWarningDialog?.coverArtWarnings?.length ?? 0) > 0 ? (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                    Cover art
+                  </p>
+                  <ul className="space-y-1.5">
+                    {uploadWarningDialog!.coverArtWarnings.map((issue, idx) => (
+                      <li
+                        key={`${issue.code || "cover"}-${idx}`}
+                        className="flex items-start gap-2 text-sm text-foreground"
+                      >
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                        <span>{issue.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setUploadWarningDialog(null)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

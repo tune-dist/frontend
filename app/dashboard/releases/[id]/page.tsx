@@ -18,6 +18,7 @@ import {
   AudioWaveform,
   Hash,
   Flag,
+  AlertTriangle,
 } from "lucide-react";
 import { getRelease, Release, TrackPayload } from "@/lib/api/releases";
 import PageLoading from "@/components/dashboard/page-loading";
@@ -30,7 +31,12 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { S3Image } from "@/components/ui/s3-image";
-import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
+import {
+  canManageReleases,
+  formatReleaseStatus,
+  getReleaseStatusColor,
+  isRmEditableRelease,
+} from "@/lib/release-status";
 import {
   formatReleaseCodeDisplay,
   getTrackIsrcDisplay,
@@ -49,10 +55,18 @@ import {
   getReportedIssueLabel,
 } from "@/lib/reported-issue";
 import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  getAudioUploadWarning,
+  getCoverArtUploadWarnings,
+  hasUploadWarning,
+} from "@/lib/upload-warning";
 
 export default function ReleaseDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
+  const canManage = canManageReleases(user);
   const [release, setRelease] = useState<Release | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,6 +175,15 @@ export default function ReleaseDetailsPage() {
                   >
                     <Flag className="h-4 w-4 fill-current" />
                   </Button>
+                )}
+                {hasUploadWarning(release) && (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-amber-500/15 text-amber-400"
+                    title="This release has upload warnings"
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    Warnings
+                  </span>
                 )}
               </div>
               <p className="text-base text-white/50 flex items-center gap-2 font-medium">
@@ -285,6 +308,82 @@ export default function ReleaseDetailsPage() {
                     </p>
                   </div>
                 )}
+
+                {hasUploadWarning(release) && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 mt-4 space-y-4">
+                    <h4 className="text-amber-400 font-bold text-xs mb-1.5 flex items-center gap-1.5 uppercase tracking-wider">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Upload Warnings
+                    </h4>
+                    <p className="text-[11px] text-amber-200/60 leading-relaxed">
+                      {canManage
+                        ? "Artist acknowledged these upload checks (separate from PDL distribution issues)."
+                        : "These checks were flagged when you uploaded. Edit the release to replace the audio or cover art if you want to resolve them."}
+                    </p>
+                    {getAudioUploadWarning(release) && (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80">
+                          Audio
+                        </p>
+                        <p className="text-sm text-amber-100/90 leading-relaxed whitespace-pre-wrap">
+                          {getAudioUploadWarning(release)}
+                        </p>
+                      </div>
+                    )}
+                    {getCoverArtUploadWarnings(release).length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80">
+                          Cover art
+                        </p>
+                        <ul className="space-y-1.5">
+                          {getCoverArtUploadWarnings(release).map((issue, idx) => (
+                            <li
+                              key={`${issue.code || "cover"}-${idx}`}
+                              className="flex items-start gap-2 text-sm text-amber-100/90"
+                            >
+                              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                              <span>{issue.message}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {!canManage && isRmEditableRelease(release.status) && (
+                      <Link
+                        href={`/dashboard/upload?edit=${release._id}`}
+                        className="inline-flex text-xs font-semibold text-amber-300 underline-offset-2 hover:underline"
+                      >
+                        Edit release to fix
+                      </Link>
+                    )}
+                  </div>
+                )}
+
+                {typeof release.distributionIssueNote === "string" &&
+                  release.distributionIssueNote.trim().length > 0 && (
+                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 mt-4 space-y-2">
+                      <h4 className="text-orange-400 font-bold text-xs mb-1.5 flex items-center gap-1.5 uppercase tracking-wider">
+                        <Flag className="h-3.5 w-3.5" />
+                        {canManage ? "PDL Distribution Issue" : "Distribution Issue"}
+                      </h4>
+                      <p className="text-[11px] text-orange-200/60 leading-relaxed">
+                        {canManage
+                          ? "Distributor (COSMOS/PDL) issue — not an upload warning."
+                          : "The distributor reported an issue with this release. Fix the items below, then resubmit."}
+                      </p>
+                      <p className="text-sm text-orange-100/90 leading-relaxed whitespace-pre-wrap">
+                        {release.distributionIssueNote.trim()}
+                      </p>
+                      {!canManage && isRmEditableRelease(release.status) && (
+                        <Link
+                          href={`/dashboard/upload?edit=${release._id}`}
+                          className="inline-flex text-xs font-semibold text-orange-300 underline-offset-2 hover:underline"
+                        >
+                          Edit release to fix
+                        </Link>
+                      )}
+                    </div>
+                  )}
               </div>
             </div>
           </div>
