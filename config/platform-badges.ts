@@ -38,14 +38,14 @@ export const PLATFORM_BADGES: Badge[] = [
     {
         id: 'soundcloud',
         name: 'SoundCloud',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/SoundCloud_logo.svg/2560px-SoundCloud_logo.svg.png',
+        logoUrl: '/assets/images/social-platform-logo/soundcloud-circle-logo-promotion.png',
         fallbackText: 'SC',
         color: '#FF7700'
     },
     {
         id: 'deezer',
         name: 'Deezer',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Deezer_logo.svg/2560px-Deezer_logo.svg.png',
+        logoUrl: '/assets/images/social-platform-logo/deezer-circle-logo-promotion.png',
         fallbackText: 'DZ',
         color: '#FF0092'
     },
@@ -59,21 +59,21 @@ export const PLATFORM_BADGES: Badge[] = [
     {
         id: "jiosaavn",
         name: "JioSaavn",
-        logoUrl: "/assets/images/platform-img/jiosaavan-logo.png",
+        logoUrl: "/assets/images/social-platform-logo/jiosavan-circle-logo-promotion.png",
         fallbackText: 'JS',
         color: '#2C99C9'
     },
     {
         id: 'gaana',
         name: 'Gaana',
-        logoUrl: '/assets/images/platform-img/gaana-logo.png',
+        logoUrl: '/assets/images/social-platform-logo/ganna-circle-logo-promotion.png',
         fallbackText: 'GN',
         color: '#E72C2C'
     },
     {
         id: 'facebook',
         name: 'Meta',
-        logoUrl: '/assets/images/platform-img/meta-logo.png',
+        logoUrl: '/assets/images/social-platform-logo/facebook-circle-logo-promotion.png',
         fallbackText: 'FB',
         color: '#0081FB'
     },
