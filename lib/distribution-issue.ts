@@ -1,5 +1,16 @@
 import type { ReleaseStatus } from '@/lib/api/releases';
 
+export type DistributionIssueLifecycleState =
+  | 'pending'
+  | 'resubmitted'
+  | 'resolved';
+
+export interface DistributionIssueLifecycleFields {
+  distributionIssueNote?: string | null;
+  distributionIssueResubmittedAt?: string | Date | null;
+  distributionIssueResolvedAt?: string | Date | null;
+}
+
 /** True when an In Process release was kicked back with a distributor issue note. */
 export function hasDistributionIssueAction(
   status: ReleaseStatus | string,
@@ -10,6 +21,26 @@ export function hasDistributionIssueAction(
     typeof distributionIssueNote === 'string' &&
     distributionIssueNote.trim().length > 0
   );
+}
+
+/** RM-facing lifecycle derived from stored timestamps (admin badges/filters). */
+export function deriveDistributionIssueState(
+  fields: DistributionIssueLifecycleFields,
+): DistributionIssueLifecycleState | null {
+  if (fields.distributionIssueResolvedAt) {
+    return 'resolved';
+  }
+  if (fields.distributionIssueResubmittedAt) {
+    return 'resubmitted';
+  }
+  const note =
+    typeof fields.distributionIssueNote === 'string'
+      ? fields.distributionIssueNote.trim()
+      : '';
+  if (note) {
+    return 'pending';
+  }
+  return null;
 }
 
 /** Earliest release date allowed by the upload form (today + 2 calendar days). */

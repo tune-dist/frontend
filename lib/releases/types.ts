@@ -204,6 +204,9 @@ export interface ReleaseDetailResponse {
   reportedIssue?: ReportedIssue;
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
+  distributionIssueResubmittedAt?: string | null;
+  distributionIssueResolvedAt?: string | null;
+  distributionIssueResolvedBy?: string | null;
   releasedOn?: ReleasedOn;
 }
 
@@ -223,6 +226,9 @@ export interface ReleaseListItem {
   reportedIssue?: ReportedIssue;
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
+  distributionIssueResubmittedAt?: string | null;
+  distributionIssueResolvedAt?: string | null;
+  distributionIssueResolvedBy?: string | null;
   releasedOn?: ReleasedOn;
   createdAt?: string;
 }
@@ -270,6 +276,9 @@ export interface MongoReleaseDocument {
   reportedIssue?: ReportedIssue;
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
+  distributionIssueResubmittedAt?: string | null;
+  distributionIssueResolvedAt?: string | null;
+  distributionIssueResolvedBy?: string | null;
   releasedOn?: ReleasedOn;
   submittedAt?: string;
   approvedAt?: string;

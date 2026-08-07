@@ -58,6 +58,7 @@ import {
   rejectRelease,
   submitToPdl,
   pdlSubmit,
+  resolveDistributionIssue,
   Release,
   ReleaseStatus,
 } from "@/lib/api/releases";
@@ -85,7 +86,10 @@ import {
   getReportedIssueLabel,
   type ReportedIssue,
 } from "@/lib/reported-issue";
-import { hasDistributionIssueAction } from "@/lib/distribution-issue";
+import {
+  deriveDistributionIssueState,
+  hasDistributionIssueAction,
+} from "@/lib/distribution-issue";
 import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
 
 // Animation variants
@@ -111,8 +115,27 @@ const itemVariants = {
 };
 
 type StatusFilter = "all" | ReleaseStatus;
+type IssueStateFilter = "all" | "pending" | "resubmitted" | "resolved";
 
 const PAGE_SIZE = 10;
+
+const ISSUE_STATE_BADGE: Record<
+  "pending" | "resubmitted" | "resolved",
+  { label: string; className: string }
+> = {
+  pending: {
+    label: "Issue: Pending",
+    className: "bg-orange-500/15 text-orange-600 dark:text-orange-400",
+  },
+  resubmitted: {
+    label: "Issue: Resubmitted",
+    className: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  },
+  resolved: {
+    label: "Issue: Resolved",
+    className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  },
+};
 
 export default function ReleasesPage() {
   const [releases, setReleases] = useState<Release[]>([]);
@@ -121,12 +144,13 @@ export default function ReleasesPage() {
   const [totalReleases, setTotalReleases] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [issueStateFilter, setIssueStateFilter] = useState<IssueStateFilter>("all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<
-    { type: "delete" | "approve" | "distribute"; id: string } | null
+    { type: "delete" | "approve" | "distribute" | "resolve"; id: string } | null
   >(null);
   const [rejectDialog, setRejectDialog] = useState<{ id: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -162,6 +186,10 @@ export default function ReleasesPage() {
 
       if (statusFilter !== "all") {
         params.status = statusFilter;
+      }
+
+      if (canManage && issueStateFilter !== "all") {
+        params.issueState = issueStateFilter;
       }
 
       if (selectedUserId !== "all") {
@@ -204,11 +232,11 @@ export default function ReleasesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, selectedUserId, debouncedSearch]);
+  }, [statusFilter, issueStateFilter, selectedUserId, debouncedSearch]);
 
   useEffect(() => {
     fetchReleases();
-  }, [statusFilter, selectedUserId, page, debouncedSearch]);
+  }, [statusFilter, issueStateFilter, selectedUserId, page, debouncedSearch]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -244,6 +272,10 @@ export default function ReleasesPage() {
     setConfirmDialog({ type: "distribute", id });
   };
 
+  const openResolveIssueDialog = (id: string) => {
+    setConfirmDialog({ type: "resolve", id });
+  };
+
   const handleConfirmAction = async () => {
     if (!confirmDialog || actionLoading) return;
 
@@ -257,6 +289,9 @@ export default function ReleasesPage() {
       } else if (type === "approve") {
         await submitToPdl(id);
         toast.success("Release submitted for processing successfully");
+      } else if (type === "resolve") {
+        await resolveDistributionIssue(id);
+        toast.success("Distribution issue marked as resolved");
       } else {
         await pdlSubmit(id);
         toast.success("Release distributed to platforms successfully");
@@ -281,7 +316,9 @@ export default function ReleasesPage() {
             ? "This release cannot be submitted for processing yet."
             : type === "distribute"
               ? "This release cannot be distributed yet."
-              : "This action could not be completed.",
+              : type === "resolve"
+                ? "This distribution issue could not be resolved."
+                : "This action could not be completed.",
         );
         const distinctIssues = issues.filter((issue) => issue.message !== summary);
 
@@ -292,7 +329,9 @@ export default function ReleasesPage() {
               ? "Cannot submit release"
               : type === "distribute"
                 ? "Cannot distribute release"
-                : "Action blocked",
+                : type === "resolve"
+                  ? "Cannot resolve issue"
+                  : "Action blocked",
           summary,
           issues: distinctIssues,
         });
@@ -304,7 +343,9 @@ export default function ReleasesPage() {
               ? "Failed to delete release"
               : type === "approve"
                 ? "Failed to submit release for processing"
-                : "Failed to distribute to platforms",
+                : type === "resolve"
+                  ? "Failed to resolve distribution issue"
+                  : "Failed to distribute to platforms",
           ),
         );
       }
@@ -358,9 +399,14 @@ export default function ReleasesPage() {
       confirmLabel: "Distribute",
       variant: "default" as const,
     },
+    resolve: {
+      title: "Resolve distribution issue?",
+      description:
+        "Mark this distribution issue as resolved? The issue note will be cleared for artists. This cannot be undone from the UI.",
+      confirmLabel: "Resolve issue",
+      variant: "default" as const,
+    },
   };
-
-
 
   const statusFilters: { value: StatusFilter; label: string }[] = [
     { value: "all", label: "All" },
@@ -370,6 +416,15 @@ export default function ReleasesPage() {
     { value: "Rejected", label: "Rejected" },
     { value: "Released", label: "Released" },
   ];
+
+  const issueStateFilters: { value: IssueStateFilter; label: string }[] = [
+    { value: "all", label: "All issues" },
+    { value: "pending", label: "Pending" },
+    { value: "resubmitted", label: "Resubmitted" },
+    { value: "resolved", label: "Resolved" },
+  ];
+
+  const staffUser = isReleaseStaff(user);
 
     return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
@@ -448,6 +503,24 @@ export default function ReleasesPage() {
                       </Button>
                     ))}
                   </div>
+                  {canManage && (
+                    <div className="flex flex-wrap lg:justify-end gap-2">
+                      {issueStateFilters.map((filter) => (
+                        <Button
+                          key={filter.value}
+                          variant={issueStateFilter === filter.value ? "default" : "outline"}
+                          size="sm"
+                          className={`h-8 px-4 rounded-xl text-[11px] font-semibold transition-all duration-300 ${issueStateFilter === filter.value
+                            ? "bg-secondary text-secondary-foreground shadow-md scale-105"
+                            : "bg-background/40 hover:bg-secondary/20 hover:border-secondary/40"
+                            }`}
+                          onClick={() => setIssueStateFilter(filter.value)}
+                        >
+                          {filter.label}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               </div>
@@ -527,35 +600,91 @@ export default function ReleasesPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                {hasDistributionIssueAction(
-                                  release.status,
-                                  release.distributionIssueNote,
-                                ) ? (
-                                  <button
-                                    type="button"
-                                    className="inline-flex flex-col items-start gap-0.5 rounded-lg text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                                    title="View what needs fixing"
-                                    onClick={() =>
-                                      setDistributionIssueDialog({
-                                        title: release.title,
-                                        note: release.distributionIssueNote!.trim(),
-                                      })
-                                    }
-                                  >
-                                    <span className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                {(() => {
+                                  const issueState = deriveDistributionIssueState({
+                                    distributionIssueNote: release.distributionIssueNote,
+                                    distributionIssueResubmittedAt:
+                                      release.distributionIssueResubmittedAt,
+                                    distributionIssueResolvedAt:
+                                      release.distributionIssueResolvedAt,
+                                  });
+
+                                  if (staffUser && issueState) {
+                                    const badge = ISSUE_STATE_BADGE[issueState];
+                                    const showNote =
+                                      Boolean(release.distributionIssueNote?.trim()) &&
+                                      issueState !== "resolved";
+                                    return (
+                                      <div className="inline-flex flex-col items-start gap-0.5">
+                                        <span
+                                          className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}
+                                        >
+                                          <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
+                                          {formatStatus(release.status)}
+                                        </span>
+                                        {showNote ? (
+                                          <button
+                                            type="button"
+                                            className={`pl-1 text-[10px] font-semibold underline-offset-2 hover:underline rounded ${badge.className}`}
+                                            title="View distribution issue note"
+                                            onClick={() =>
+                                              setDistributionIssueDialog({
+                                                title: release.title,
+                                                note: release.distributionIssueNote!.trim(),
+                                              })
+                                            }
+                                          >
+                                            {badge.label}
+                                          </button>
+                                        ) : (
+                                          <span
+                                            className={`pl-1 text-[10px] font-semibold ${badge.className}`}
+                                          >
+                                            {badge.label}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+
+                                  if (
+                                    hasDistributionIssueAction(
+                                      release.status,
+                                      release.distributionIssueNote,
+                                    )
+                                  ) {
+                                    return (
+                                      <button
+                                        type="button"
+                                        className="inline-flex flex-col items-start gap-0.5 rounded-lg text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                        title="View what needs fixing"
+                                        onClick={() =>
+                                          setDistributionIssueDialog({
+                                            title: release.title,
+                                            note: release.distributionIssueNote!.trim(),
+                                          })
+                                        }
+                                      >
+                                        <span className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                          <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
+                                          In Process
+                                        </span>
+                                        <span className="pl-1 text-[10px] font-semibold text-amber-600/90 dark:text-amber-400/90 underline-offset-2 hover:underline">
+                                          Action needed
+                                        </span>
+                                      </button>
+                                    );
+                                  }
+
+                                  return (
+                                    <span
+                                      className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}
+                                    >
                                       <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
-                                      In Process
+                                      {formatStatus(release.status)}
                                     </span>
-                                    <span className="pl-1 text-[10px] font-semibold text-amber-600/90 dark:text-amber-400/90 underline-offset-2 hover:underline">
-                                      Action needed
-                                    </span>
-                                  </button>
-                                ) : (
-                                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}>
-                                    <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
-                                    {formatStatus(release.status)}
-                                  </span>
-                                )}
+                                  );
+                                })()}
                                 {hasActiveReportedIssue(release.status, release.reportedIssue) && (
                                   <Button
                                     type="button"
@@ -650,6 +779,33 @@ export default function ReleasesPage() {
                                          <UploadCloud className="h-3.5 w-3.5" />
                                        )}
                                        Distribute
+                                     </Button>
+                                   )}
+                                 {canManage &&
+                                   (() => {
+                                     const issueState = deriveDistributionIssueState({
+                                       distributionIssueNote: release.distributionIssueNote,
+                                       distributionIssueResubmittedAt:
+                                         release.distributionIssueResubmittedAt,
+                                       distributionIssueResolvedAt:
+                                         release.distributionIssueResolvedAt,
+                                     });
+                                     return issueState === "pending" || issueState === "resubmitted";
+                                   })() && (
+                                     <Button
+                                       size="sm"
+                                       variant="outline"
+                                       onClick={() => openResolveIssueDialog(release._id)}
+                                       disabled={actionLoading === release._id}
+                                       title="Mark distribution issue resolved"
+                                       className="gap-1.5 text-xs h-8 px-3.5 font-medium border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
+                                     >
+                                       {actionLoading === release._id ? (
+                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                       ) : (
+                                         <CheckCircle className="h-3.5 w-3.5" />
+                                       )}
+                                       Resolve issue
                                      </Button>
                                    )}
                               </div>

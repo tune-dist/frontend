@@ -221,6 +221,9 @@ export interface Release {
   };
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
+  distributionIssueResubmittedAt?: string | null;
+  distributionIssueResolvedAt?: string | null;
+  distributionIssueResolvedBy?: string | null;
   /** Present only when the release is Released — DSP display data. */
   releasedOn?: {
     syncedAt?: string;
@@ -252,6 +255,8 @@ export interface GetReleasesParams {
   limit?: number;
   userId?: string;
   search?: string;
+  /** Admin filter: pending | resubmitted | resolved */
+  issueState?: 'pending' | 'resubmitted' | 'resolved';
 }
 
 // Build API payload from upload form (shared by create + update)
@@ -413,7 +418,11 @@ export const pdlSubmit = async (id: string, data: any = {}): Promise<any> => {
   return response.data;
 };
 
-
+/** Manually resolve an open distribution issue (staff, resolve-only). */
+export const resolveDistributionIssue = async (id: string): Promise<Release> => {
+  const response = await apiClient.post(`/releases/${id}/resolve-issue`);
+  return normalizeRelease(response.data);
+};
 
 // Get artist usage
 export const getArtistUsage = async (): Promise<{ artists: any[] }> => {
