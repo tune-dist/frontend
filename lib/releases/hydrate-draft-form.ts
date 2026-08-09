@@ -150,8 +150,15 @@ function hydrateFromDetail(detail: ReleaseDetailResponse): Partial<UploadFormDat
           format: detail.coverArt.format,
         }
       : undefined,
-    audioConsent: true,
-    coverArtConsent: true,
+    audioConsent: detail.audioConsent === true || detail.warning === true,
+    coverArtConsent: detail.coverArtConsent === true || detail.warning === true,
+    audioDuplicateDetected:
+      typeof detail.audioWarningMessage === 'string' &&
+      detail.audioWarningMessage.trim().length > 0,
+    audioWarningMessage: detail.audioWarningMessage || undefined,
+    coverArtValidationIssues: detail.coverArtWarnings ?? [],
+    coverArtValidationStatus:
+      (detail.coverArtWarnings?.length ?? 0) > 0 ? 'warned' : undefined,
     coverArtChanged: false,
   };
 }

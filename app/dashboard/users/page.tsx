@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, Ban, MoreVertical, Search, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, TrendingDown } from 'lucide-react';
+import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, TrendingDown } from 'lucide-react';
 import { canViewUsers } from '@/lib/permissions';
 import { getUsers } from '@/lib/api/users';
+import { formatPlanDisplayName } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/get-error-message';
 import { PageSearchBar, PageSearchSection } from '@/components/dashboard/page-search-bar';
 import {
     Select,
@@ -22,11 +25,26 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+function escapeCsvValue(value: string | number | null | undefined): string {
+    const text = value == null ? '' : String(value);
+    if (/[",\n\r]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+}
+
+function formatCsvDate(value?: string | Date | null): string {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
+}
+
 export default function UsersPage() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(false);
     const [stats, setStats] = useState({
         total: 145203,
         new: 842,
@@ -89,6 +107,83 @@ export default function UsersPage() {
         // Add toast notification here
     };
 
+    const handleExportCsv = async () => {
+        setExporting(true);
+        try {
+            const filters = {
+                search,
+                role: roleFilter,
+                status: statusFilter,
+            };
+
+            let data = await getUsers({
+                page: 1,
+                limit: Math.max(totalUsers, 1),
+                ...filters,
+            });
+
+            // If filters changed since last list load, refetch with the true total.
+            if ((data.total || 0) > (data.users?.length || 0)) {
+                data = await getUsers({
+                    page: 1,
+                    limit: data.total,
+                    ...filters,
+                });
+            }
+
+            const exportUsers = data.users || [];
+
+            if (exportUsers.length === 0) {
+                toast.error('No users to export');
+                return;
+            }
+
+            const headers = [
+                'User Code',
+                'Full Name',
+                'Email',
+                'Role',
+                'Plan',
+                'Status',
+                'Email Verified',
+                'Last Login',
+                'Plan Start',
+                'Plan End',
+                'Created At',
+            ];
+
+            const rows = exportUsers.map((u: any) => [
+                escapeCsvValue(u.userCode),
+                escapeCsvValue(u.fullName),
+                escapeCsvValue(u.email),
+                escapeCsvValue(u.role),
+                escapeCsvValue(formatPlanDisplayName(u.plan)),
+                escapeCsvValue(u.isSuspended ? 'Suspended' : u.isActive === false ? 'Inactive' : 'Active'),
+                escapeCsvValue(u.isEmailVerified ? 'Yes' : 'No'),
+                escapeCsvValue(formatCsvDate(u.lastLogin) || 'Never'),
+                escapeCsvValue(formatCsvDate(u.planStartDate)),
+                escapeCsvValue(formatCsvDate(u.planEndDate)),
+                escapeCsvValue(formatCsvDate(u.createdAt)),
+            ].join(','));
+
+            const csv = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const dateStamp = new Date().toISOString().slice(0, 10);
+            link.href = url;
+            link.download = `users-export-${dateStamp}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+            toast.success(`Exported ${exportUsers.length} user${exportUsers.length === 1 ? '' : 's'}`);
+        } catch (error) {
+            console.error('Failed to export users:', error);
+            toast.error(getErrorMessage(error, 'Failed to export users'));
+        } finally {
+            setExporting(false);
+        }
+    };
+
     useEffect(() => {
         const debounce = setTimeout(() => {
             fetchUsers();
@@ -109,9 +204,12 @@ export default function UsersPage() {
                         </div>
                         <div className="flex gap-3">
                             <button
-                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-surface-highlight text-white hover:bg-surface-highlight transition-colors">
+                                type="button"
+                                onClick={handleExportCsv}
+                                disabled={exporting || loading || totalUsers === 0}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-surface-highlight text-white hover:bg-surface-highlight transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 <FileDown className="w-5 h-5" />
-                                <span className="text-sm font-bold">Export CSV</span>
+                                <span className="text-sm font-bold">{exporting ? 'Exporting...' : 'Export CSV'}</span>
                             </button>
                             <Link href="/auth"
                                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-background-dark hover:bg-primary/90 transition-colors shadow-[0_0_15px_rgba(51,230,122,0.3)]">
@@ -238,6 +336,7 @@ export default function UsersPage() {
                                         className="border-b border-border/50 bg-surface-highlight/10 text-text-secondary text-xs uppercase tracking-wider font-semibold">
                                         <th className="px-6 py-4">User Details</th>
                                         <th className="px-6 py-4">Role</th>
+                                        <th className="px-6 py-4">Plan</th>
                                         <th className="px-6 py-4">Status</th>
                                         <th className="px-6 py-4">Last Login</th>
                                         <th className="px-6 py-4 text-right">Revenue (YTD)</th>
@@ -247,11 +346,11 @@ export default function UsersPage() {
                                 <tbody className="divide-y divide-surface-highlight text-sm text-white">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={6} className="text-center py-8 text-text-secondary">Loading...</td>
+                                            <td colSpan={7} className="text-center py-8 text-text-secondary">Loading...</td>
                                         </tr>
                                     ) : users.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="text-center py-8 text-text-secondary">No users found.</td>
+                                            <td colSpan={7} className="text-center py-8 text-text-secondary">No users found.</td>
                                         </tr>
                                     ) : (
                                         users.map((user) => (
@@ -274,6 +373,12 @@ export default function UsersPage() {
                                                     <span
                                                         className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
                                                         {user.role}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span
+                                                        className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary/15 text-primary border border-primary/30">
+                                                        {formatPlanDisplayName(user.plan)}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">

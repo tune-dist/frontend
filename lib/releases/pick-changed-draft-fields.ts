@@ -24,6 +24,9 @@ export const RELEASE_WRITE_DIFF_KEYS = [
   'rightsAccepted',
   'audioConsent',
   'coverArtConsent',
+  'warning',
+  'audioWarningMessage',
+  'coverArtWarnings',
   'language',
   'primaryGenre',
   'secondaryGenre',
@@ -220,6 +223,13 @@ export function draftRequestToWriteSnapshot(draft: CreateReleaseDraftRequest): R
     rightsAccepted: draft.submission.rightsAccepted,
     audioConsent: draft.submission.audioDuplicateConsent,
     coverArtConsent: draft.submission.coverArtValidationConsent,
+    warning:
+      (draft.submission.audioDuplicateConsent === true &&
+        !!draft.submission.audioWarningMessage?.trim()) ||
+      (draft.submission.coverArtValidationConsent === true &&
+        (draft.submission.coverArtWarnings?.length ?? 0) > 0),
+    audioWarningMessage: draft.submission.audioWarningMessage?.trim() || null,
+    coverArtWarnings: draft.submission.coverArtWarnings ?? [],
   };
 
   if (isSingle && firstTrack) {
