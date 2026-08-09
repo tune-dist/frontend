@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { getErrorMessage, extractApiFieldErrors, type ApiFieldError } from "@/lib/get-error-message";
@@ -50,7 +50,6 @@ import {
   Ban,
   UploadCloud,
   Pencil,
-  Flag,
   AlertTriangle,
 } from "lucide-react";
 import {
@@ -59,6 +58,8 @@ import {
   rejectRelease,
   submitToPdl,
   pdlSubmit,
+  acknowledgeDistributionIssue,
+  acceptDistributionFix,
   Release,
   ReleaseStatus,
 } from "@/lib/api/releases";
@@ -82,11 +83,12 @@ import {
 import { formatReleaseCodeDisplay } from "@/lib/release-codes";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 import {
-  hasActiveReportedIssue,
-  getReportedIssueLabel,
-  type ReportedIssue,
-} from "@/lib/reported-issue";
-import { hasDistributionIssueAction } from "@/lib/distribution-issue";
+  hasOpenDistributionIssueAction,
+  hasPendingDistributionIssue,
+  hasDistributionIssueAwaitingRm,
+  hasDistributionIssueResubmitted,
+  DISTRIBUTION_ISSUE_ACK_LABEL,
+} from "@/lib/distribution-issue";
 import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
 import {
   getAudioUploadWarning,
@@ -116,7 +118,7 @@ const itemVariants = {
   },
 };
 
-type StatusFilter = "all" | ReleaseStatus;
+type StatusFilter = "all" | ReleaseStatus | "action_needed";
 
 const PAGE_SIZE = 10;
 
@@ -141,14 +143,15 @@ export default function ReleasesPage() {
     summary: string;
     issues: ApiFieldError[];
   } | null>(null);
-  const [reportedIssueDialog, setReportedIssueDialog] = useState<{
-    title: string;
-    issue: ReportedIssue;
-  } | null>(null);
   const [distributionIssueDialog, setDistributionIssueDialog] = useState<{
+    id: string;
     title: string;
     note: string;
+    resubmittedAt?: string | null;
   } | null>(null);
+  const [issueAckChecked, setIssueAckChecked] = useState(false);
+  const [issueAckSubmitting, setIssueAckSubmitting] = useState(false);
+  const [issueAcceptSubmitting, setIssueAcceptSubmitting] = useState(false);
   const [uploadWarningDialog, setUploadWarningDialog] = useState<{
     title: string;
     audioWarning: string | null;
@@ -159,11 +162,14 @@ export default function ReleasesPage() {
 
   const { user } = useAuth();
   const router = useRouter();
+  const fetchRequestIdRef = useRef(0);
 
   const canManage = canManageReleases(user);
   const canEdit = canEditReleases(user);
 
   const fetchReleases = async () => {
+    const requestId = ++fetchRequestIdRef.current;
+
     try {
       setLoading(true);
       const params: any = {
@@ -171,7 +177,9 @@ export default function ReleasesPage() {
         limit: PAGE_SIZE,
       };
 
-      if (statusFilter !== "all") {
+      if (statusFilter === "action_needed") {
+        params.needsDistributionAction = true;
+      } else if (statusFilter !== "all") {
         params.status = statusFilter;
       }
 
@@ -186,10 +194,13 @@ export default function ReleasesPage() {
       }
 
       const response = await getReleases(params);
+      if (requestId !== fetchRequestIdRef.current) return;
+
+      const items = response.releases;
       const pagination = response.pagination;
 
       if (
-        response.releases.length === 0 &&
+        items.length === 0 &&
         page > 1 &&
         (pagination?.totalPages ?? 1) < page
       ) {
@@ -197,16 +208,32 @@ export default function ReleasesPage() {
         return;
       }
 
-      setReleases(response.releases);
-      setTotalReleases(pagination?.total ?? response.releases.length);
+      setReleases(items);
+      setTotalReleases(pagination?.total ?? items.length);
       setTotalPages(pagination?.totalPages ?? 1);
     } catch (error) {
+      if (requestId !== fetchRequestIdRef.current) return;
       toast.error(getErrorMessage(error, "Failed to fetch releases"));
       console.error(error);
     } finally {
-      setLoading(false);
+      if (requestId === fetchRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
+
+  const handleStatusFilterChange = (value: StatusFilter) => {
+    setPage(1);
+    setStatusFilter(value);
+  };
+
+  useEffect(() => {
+    if (!distributionIssueDialog) {
+      setIssueAckChecked(false);
+      return;
+    }
+    setIssueAckChecked(Boolean(distributionIssueDialog.resubmittedAt));
+  }, [distributionIssueDialog]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
@@ -253,6 +280,44 @@ export default function ReleasesPage() {
 
   const openDistributeDialog = (id: string) => {
     setConfirmDialog({ type: "distribute", id });
+  };
+
+  const handleAcknowledgeDistributionIssue = async () => {
+    if (!distributionIssueDialog || issueAckSubmitting) return;
+    if (distributionIssueDialog.resubmittedAt) return;
+    if (!issueAckChecked) {
+      toast.error("Please confirm you have fixed the suggested issue");
+      return;
+    }
+
+    setIssueAckSubmitting(true);
+    try {
+      await acknowledgeDistributionIssue(distributionIssueDialog.id);
+      toast.success("Fix submitted — waiting for RM review");
+      setDistributionIssueDialog(null);
+      await fetchReleases();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to submit fix"));
+    } finally {
+      setIssueAckSubmitting(false);
+    }
+  };
+
+  const handleAcceptDistributionFix = async () => {
+    if (!distributionIssueDialog || issueAcceptSubmitting) return;
+    if (!distributionIssueDialog.resubmittedAt) return;
+
+    setIssueAcceptSubmitting(true);
+    try {
+      await acceptDistributionFix(distributionIssueDialog.id);
+      toast.success("Fix accepted — release moved to Submitted");
+      setDistributionIssueDialog(null);
+      await fetchReleases();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to accept fix"));
+    } finally {
+      setIssueAcceptSubmitting(false);
+    }
   };
 
   const handleConfirmAction = async () => {
@@ -375,6 +440,7 @@ export default function ReleasesPage() {
 
   const statusFilters: { value: StatusFilter; label: string }[] = [
     { value: "all", label: "All" },
+    { value: "action_needed", label: "Action needed" },
     { value: "Draft", label: "Draft" },
     { value: "In Process", label: "In Process" },
     { value: "Submitted", label: "Submitted" },
@@ -389,7 +455,10 @@ export default function ReleasesPage() {
             <h1 className="text-3xl font-bold mb-2">My <span className="animated-gradient">Releases</span></h1>
             <p className="text-muted-foreground">Manage all your music releases in one place</p>
           </div>
-          {!isReleaseStaff(user) && (statusFilter === "all" || statusFilter === "In Process") && (
+          {!isReleaseStaff(user) &&
+            (statusFilter === "all" ||
+              statusFilter === "In Process" ||
+              statusFilter === "action_needed") && (
             <Link href="/dashboard/upload">
               <Button size="lg" className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -453,7 +522,7 @@ export default function ReleasesPage() {
                           ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105"
                           : "bg-background/40 hover:bg-primary/10 hover:border-primary/30 hover:text-primary"
                           }`}
-                        onClick={() => setStatusFilter(filter.value)}
+                        onClick={() => handleStatusFilterChange(filter.value)}
                       >
                         {filter.label}
                       </Button>
@@ -538,18 +607,21 @@ export default function ReleasesPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                {hasDistributionIssueAction(
+                                {hasOpenDistributionIssueAction(
                                   release.status,
                                   release.distributionIssueNote,
+                                  release.distributionIssueResolvedAt,
                                 ) ? (
                                   <button
                                     type="button"
                                     className="inline-flex flex-col items-start gap-0.5 rounded-lg text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                                    title="View what needs fixing"
+                                    title="View distribution issue"
                                     onClick={() =>
                                       setDistributionIssueDialog({
+                                        id: release._id,
                                         title: release.title,
                                         note: release.distributionIssueNote!.trim(),
+                                        resubmittedAt: release.distributionIssueResubmittedAt ?? null,
                                       })
                                     }
                                   >
@@ -558,7 +630,14 @@ export default function ReleasesPage() {
                                       In Process
                                     </span>
                                     <span className="pl-1 text-[10px] font-semibold text-amber-600/90 dark:text-amber-400/90 underline-offset-2 hover:underline">
-                                      Action needed
+                                      {hasDistributionIssueAwaitingRm(
+                                        release.status,
+                                        release.distributionIssueNote,
+                                        release.distributionIssueResubmittedAt,
+                                        release.distributionIssueResolvedAt,
+                                      )
+                                        ? "Awaiting RM review"
+                                        : "Action needed"}
                                     </span>
                                   </button>
                                 ) : (
@@ -567,23 +646,22 @@ export default function ReleasesPage() {
                                     {formatStatus(release.status)}
                                   </span>
                                 )}
-                                {hasActiveReportedIssue(release.status, release.reportedIssue) && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 rounded-full text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
-                                    title="View reported issue"
-                                    onClick={() =>
-                                      setReportedIssueDialog({
-                                        title: release.title,
-                                        issue: release.reportedIssue!,
-                                      })
-                                    }
-                                  >
-                                    <Flag className="h-4 w-4 fill-current" />
-                                  </Button>
-                                )}
+                                {canManage &&
+                                  hasDistributionIssueResubmitted(
+                                    release.distributionIssueResubmittedAt,
+                                    release.distributionIssueResolvedAt,
+                                  ) && (
+                                    <span
+                                      className="inline-flex items-center rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                      title={
+                                        release.distributionIssueResubmittedAt
+                                          ? `Artist marked as fixed on ${new Date(release.distributionIssueResubmittedAt).toLocaleString()}`
+                                          : "Artist marked as fixed"
+                                      }
+                                    >
+                                      Artist fixed
+                                    </span>
+                                  )}
                                 {hasUploadWarning(release) && (
                                   <Button
                                     type="button"
@@ -824,38 +902,11 @@ export default function ReleasesPage() {
         </Dialog>
 
         <Dialog
-          open={reportedIssueDialog !== null}
-          onOpenChange={(open) => {
-            if (!open) setReportedIssueDialog(null);
-          }}
-        >
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Flag className="h-5 w-5 text-amber-500" />
-                Reported Issue
-              </DialogTitle>
-              <DialogDescription>
-                {reportedIssueDialog?.title
-                  ? `COSMOS reported an issue for "${reportedIssueDialog.title}".`
-                  : "COSMOS reported an issue for this release."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
-              <p className="whitespace-pre-wrap text-sm text-foreground">
-                {getReportedIssueLabel(reportedIssueDialog?.issue)}
-              </p>
-            </div>
-            <DialogFooter>
-              <Button onClick={() => setReportedIssueDialog(null)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog
           open={distributionIssueDialog !== null}
           onOpenChange={(open) => {
-            if (!open) setDistributionIssueDialog(null);
+            if (!open && !issueAckSubmitting && !issueAcceptSubmitting) {
+              setDistributionIssueDialog(null);
+            }
           }}
         >
           <DialogContent className="max-w-lg">
@@ -872,8 +923,97 @@ export default function ReleasesPage() {
                 {distributionIssueDialog?.note}
               </p>
             </div>
-            <DialogFooter>
-              <Button onClick={() => setDistributionIssueDialog(null)}>Close</Button>
+            {canManage && distributionIssueDialog?.resubmittedAt ? (
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  Artist marked this as fixed
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {new Date(distributionIssueDialog.resubmittedAt).toLocaleString()} — accept to
+                  move the release to Submitted.
+                </p>
+              </div>
+            ) : null}
+            {distributionIssueDialog?.id && !canManage ? (
+              <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+                <label
+                  className={`flex items-start gap-3 ${
+                    distributionIssueDialog.resubmittedAt
+                      ? "cursor-default opacity-90"
+                      : "cursor-pointer"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={issueAckChecked}
+                    disabled={Boolean(distributionIssueDialog.resubmittedAt) || issueAckSubmitting}
+                    onChange={(event) => setIssueAckChecked(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border accent-amber-500"
+                  />
+                  <span className="text-sm text-foreground">{DISTRIBUTION_ISSUE_ACK_LABEL}</span>
+                </label>
+                {distributionIssueDialog.resubmittedAt ? (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                    Fix submitted — waiting for RM review. You cannot change this confirmation.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Edit the release first if needed, then confirm. Status stays In Process until RM
+                    accepts.
+                  </p>
+                )}
+                {!distributionIssueDialog.resubmittedAt && distributionIssueDialog.id ? (
+                  <Link
+                    href={`/dashboard/upload?edit=${distributionIssueDialog.id}`}
+                    className="inline-flex text-xs font-semibold text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
+                  >
+                    Edit release to fix
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => setDistributionIssueDialog(null)}
+                disabled={issueAckSubmitting || issueAcceptSubmitting}
+              >
+                Close
+              </Button>
+              {distributionIssueDialog?.id &&
+              canManage &&
+              distributionIssueDialog.resubmittedAt ? (
+                <Button
+                  onClick={handleAcceptDistributionFix}
+                  disabled={issueAcceptSubmitting}
+                >
+                  {issueAcceptSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Accepting…
+                    </>
+                  ) : (
+                    "Accept & submit"
+                  )}
+                </Button>
+              ) : null}
+              {distributionIssueDialog?.id &&
+              !canManage &&
+              !distributionIssueDialog.resubmittedAt ? (
+                <Button
+                  onClick={handleAcknowledgeDistributionIssue}
+                  disabled={issueAckSubmitting || !issueAckChecked}
+                >
+                  {issueAckSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting…
+                    </>
+                  ) : (
+                    "Submit fix"
+                  )}
+                </Button>
+              ) : null}
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -213,14 +213,10 @@ export interface Release {
   };
   /** Set after initial platform processing (metadata + assets upload) succeeds */
   pdlAlbumId?: string;
-  reportedIssue?: {
-    reportComment?: string;
-    isResolved?: boolean;
-    isAllIssueOfAlbumResolved?: boolean;
-    syncedAt?: string;
-  };
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
+  distributionIssueResubmittedAt?: string | null;
+  distributionIssueResolvedAt?: string | null;
   /**
    * Upload-time warnings the artist acknowledged (duplicate audio / cover art).
    * Separate from distributionIssueNote (PDL/COSMOS).
@@ -265,6 +261,7 @@ export interface GetReleasesParams {
   limit?: number;
   userId?: string;
   search?: string;
+  needsDistributionAction?: boolean;
 }
 
 // Build API payload from upload form (shared by create + update)
@@ -418,6 +415,20 @@ export const rejectRelease = async (
 export const submitToPdl = async (id: string, data: any = {}): Promise<any> => {
   const response = await apiClient.post(`/releases/${id}/submit-to-pdl`, data);
   return response.data;
+};
+
+/** Artist confirms they fixed an open distribution issue (stays In Process). */
+export const acknowledgeDistributionIssue = async (id: string): Promise<Release> => {
+  const response = await apiClient.post<Release>(
+    `/releases/${id}/acknowledge-distribution-issue`,
+  );
+  return normalizeRelease(response.data);
+};
+
+/** RM accepts artist fix → Submitted. */
+export const acceptDistributionFix = async (id: string): Promise<Release> => {
+  const response = await apiClient.post<Release>(`/releases/${id}/accept-distribution-fix`);
+  return normalizeRelease(response.data);
 };
 
 /** Phase 2: final distribute to selected platforms */
