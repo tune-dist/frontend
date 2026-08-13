@@ -296,7 +296,7 @@ export default function ReleaseDetailsPage() {
                     </h4>
                     <p className="text-[11px] text-amber-200/60 leading-relaxed">
                       {canManage
-                        ? "Artist acknowledged these upload checks (separate from PDL distribution issues)."
+                        ? "Artist acknowledged these upload checks (separate from distribution issues)."
                         : "These checks were flagged when you uploaded. Edit the release to replace the audio or cover art if you want to resolve them."}
                     </p>
                     {getAudioUploadWarning(release) && (
@@ -343,7 +343,7 @@ export default function ReleaseDetailsPage() {
                     <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 mt-4 space-y-3">
                       <h4 className="text-orange-400 font-bold text-xs mb-1.5 flex items-center gap-1.5 uppercase tracking-wider">
                         <Flag className="h-3.5 w-3.5" />
-                        {canManage ? "PDL Distribution Issue" : "Distribution Issue"}
+                        Distribution Issue
                       </h4>
                       {canManage &&
                         hasDistributionIssueResubmitted(
@@ -361,7 +361,7 @@ export default function ReleaseDetailsPage() {
                         )}
                       <p className="text-[11px] text-orange-200/60 leading-relaxed">
                         {canManage
-                          ? "Distributor (COSMOS/PDL) issue — not an upload warning."
+                          ? "Distributor issue — not an upload warning."
                           : release.distributionIssueResubmittedAt
                             ? "You submitted your fix. Status stays In Process until RM accepts."
                             : "The distributor reported an issue. Fix it, confirm here — status stays In Process until RM accepts."}

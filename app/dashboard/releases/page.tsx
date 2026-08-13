@@ -1032,8 +1032,8 @@ export default function ReleasesPage() {
               </DialogTitle>
               <DialogDescription>
                 {uploadWarningDialog?.title
-                  ? `Upload warnings for "${uploadWarningDialog.title}". These are separate from distributor (PDL) issues — edit the release to replace audio or cover art if needed.`
-                  : "Upload warnings for this release. These are separate from distributor (PDL) issues — edit the release to replace audio or cover art if needed."}
+                  ? `Upload warnings for "${uploadWarningDialog.title}". These are separate from distributor issues — edit the release to replace audio or cover art if needed.`
+                  : "Upload warnings for this release. These are separate from distributor issues — edit the release to replace audio or cover art if needed."}
               </DialogDescription>
             </DialogHeader>
             <div className="max-h-[50vh] space-y-4 overflow-y-auto rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
