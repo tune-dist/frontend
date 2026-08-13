@@ -1041,7 +1041,7 @@ export default function UploadPage() {
         }
         toast.success(
           result?.pdlSynced
-            ? "Release updated and synced to PDL."
+            ? "Release updated and synced for distribution."
             : "Release updated successfully!",
         );
       } else {

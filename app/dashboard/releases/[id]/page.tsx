@@ -42,18 +42,6 @@ import {
   getTrackIsrcDisplay,
 } from "@/lib/release-codes";
 import { isReleaseNoLyrics } from "@/components/dashboard/upload/genre-language";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  hasActiveReportedIssue,
-  getReportedIssueLabel,
-} from "@/lib/reported-issue";
 import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -61,6 +49,10 @@ import {
   getCoverArtUploadWarnings,
   hasUploadWarning,
 } from "@/lib/upload-warning";
+import {
+  hasDistributionIssueResubmitted,
+  DISTRIBUTION_ISSUE_ACK_LABEL,
+} from "@/lib/distribution-issue";
 
 export default function ReleaseDetailsPage() {
   const params = useParams();
@@ -70,7 +62,6 @@ export default function ReleaseDetailsPage() {
   const [release, setRelease] = useState<Release | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showReportedIssueDialog, setShowReportedIssueDialog] = useState(false);
   const {
     audioRef,
     activeTrackIndex,
@@ -164,18 +155,6 @@ export default function ReleaseDetailsPage() {
                   <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
                   {formatStatus(release.status)}
                 </span>
-                {hasActiveReportedIssue(release.status, release.reportedIssue) && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
-                    title="View reported issue"
-                    onClick={() => setShowReportedIssueDialog(true)}
-                  >
-                    <Flag className="h-4 w-4 fill-current" />
-                  </Button>
-                )}
                 {hasUploadWarning(release) && (
                   <span
                     className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-amber-500/15 text-amber-400"
@@ -317,7 +296,7 @@ export default function ReleaseDetailsPage() {
                     </h4>
                     <p className="text-[11px] text-amber-200/60 leading-relaxed">
                       {canManage
-                        ? "Artist acknowledged these upload checks (separate from PDL distribution issues)."
+                        ? "Artist acknowledged these upload checks (separate from distribution issues)."
                         : "These checks were flagged when you uploaded. Edit the release to replace the audio or cover art if you want to resolve them."}
                     </p>
                     {getAudioUploadWarning(release) && (
@@ -361,19 +340,47 @@ export default function ReleaseDetailsPage() {
 
                 {typeof release.distributionIssueNote === "string" &&
                   release.distributionIssueNote.trim().length > 0 && (
-                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 mt-4 space-y-2">
+                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 mt-4 space-y-3">
                       <h4 className="text-orange-400 font-bold text-xs mb-1.5 flex items-center gap-1.5 uppercase tracking-wider">
                         <Flag className="h-3.5 w-3.5" />
-                        {canManage ? "PDL Distribution Issue" : "Distribution Issue"}
+                        Distribution Issue
                       </h4>
+                      {canManage &&
+                        hasDistributionIssueResubmitted(
+                          release.distributionIssueResubmittedAt,
+                          release.distributionIssueResolvedAt,
+                        ) && (
+                          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                            Artist marked as fixed
+                            {release.distributionIssueResubmittedAt ? (
+                              <span className="font-normal normal-case tracking-normal text-emerald-200/80">
+                                · {new Date(release.distributionIssueResubmittedAt).toLocaleString()}
+                              </span>
+                            ) : null}
+                          </div>
+                        )}
                       <p className="text-[11px] text-orange-200/60 leading-relaxed">
                         {canManage
-                          ? "Distributor (COSMOS/PDL) issue — not an upload warning."
-                          : "The distributor reported an issue with this release. Fix the items below, then resubmit."}
+                          ? "Distributor issue — not an upload warning."
+                          : release.distributionIssueResubmittedAt
+                            ? "You submitted your fix. Status stays In Process until RM accepts."
+                            : "The distributor reported an issue. Fix it, confirm here — status stays In Process until RM accepts."}
                       </p>
                       <p className="text-sm text-orange-100/90 leading-relaxed whitespace-pre-wrap">
                         {release.distributionIssueNote.trim()}
                       </p>
+                      {!canManage && release.distributionIssueResubmittedAt && (
+                        <label className="flex items-start gap-3 cursor-default opacity-90">
+                          <input
+                            type="checkbox"
+                            checked
+                            disabled
+                            readOnly
+                            className="mt-0.5 h-4 w-4 rounded border-border accent-amber-500"
+                          />
+                          <span className="text-sm text-orange-100/90">{DISTRIBUTION_ISSUE_ACK_LABEL}</span>
+                        </label>
+                      )}
                       {!canManage && isRmEditableRelease(release.status) && (
                         <Link
                           href={`/dashboard/upload?edit=${release._id}`}
@@ -493,32 +500,6 @@ export default function ReleaseDetailsPage() {
         className="hidden"
       />
       {content}
-      <Dialog
-        open={showReportedIssueDialog}
-        onOpenChange={setShowReportedIssueDialog}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Flag className="h-5 w-5 text-amber-500" />
-              Reported Issue
-            </DialogTitle>
-            <DialogDescription>
-              {release?.title
-                ? `COSMOS reported an issue for "${release.title}".`
-                : "COSMOS reported an issue for this release."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
-            <p className="whitespace-pre-wrap text-sm text-foreground">
-              {getReportedIssueLabel(release?.reportedIssue)}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowReportedIssueDialog(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

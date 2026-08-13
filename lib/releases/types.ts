@@ -9,13 +9,6 @@ export type ReleaseStatus =
 
 export type ReleaseType = 'single' | 'ep' | 'album' | 'remix' | 'compilation';
 
-export interface ReportedIssue {
-  reportComment?: string;
-  isResolved?: boolean;
-  isAllIssueOfAlbumResolved?: boolean;
-  syncedAt?: string;
-}
-
 /** One DSP a release went live on (Release.releasedOn.platforms). */
 export interface ReleasedOnPlatform {
   /** Platform display name from COSMOS platform list (e.g. "Spotify"). */
@@ -211,7 +204,6 @@ export interface ReleaseDetailResponse {
   rights: DraftRights;
   distribution: DraftDistribution;
   workflow: DraftWorkflow;
-  reportedIssue?: ReportedIssue;
   /**
    * Upload-time warnings the artist acknowledged (duplicate audio / cover art).
    * Separate from distributionIssueNote (PDL/COSMOS).
@@ -223,6 +215,8 @@ export interface ReleaseDetailResponse {
   coverArtWarnings?: CoverArtWarningIssue[];
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
+  distributionIssueResubmittedAt?: string | null;
+  distributionIssueResolvedAt?: string | null;
   releasedOn?: ReleasedOn;
 }
 
@@ -239,13 +233,14 @@ export interface ReleaseListItem {
   releaseDate?: string;
   upc?: string;
   pdlAlbumId?: string;
-  reportedIssue?: ReportedIssue;
   /** True when artist acknowledged upload-time warnings (not PDL). */
   warning?: boolean;
   audioWarningMessage?: string | null;
   coverArtWarnings?: CoverArtWarningIssue[];
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
+  distributionIssueResubmittedAt?: string | null;
+  distributionIssueResolvedAt?: string | null;
   releasedOn?: ReleasedOn;
   createdAt?: string;
 }
@@ -295,9 +290,10 @@ export interface MongoReleaseDocument {
   pdlAlbumId?: string;
   pdlSubmittedAt?: string;
   pdlPlatformsToRelease?: string;
-  reportedIssue?: ReportedIssue;
   distributionIssueNote?: string | null;
   distributionIssueDetectedAt?: string | null;
+  distributionIssueResubmittedAt?: string | null;
+  distributionIssueResolvedAt?: string | null;
   releasedOn?: ReleasedOn;
   submittedAt?: string;
   approvedAt?: string;
