@@ -725,14 +725,15 @@ export default function ReleasesPage() {
                                    </Button>
                                  )}
                                  {canManage && release.status === "Draft" && (
-                                   <>
-                                     <Button variant="ghost" size="sm" onClick={() => openApproveDialog(release._id)} disabled={actionLoading === release._id} className="text-purple-500 hover:bg-purple-500/10" title="Submit for processing">
-                                       {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                                     </Button>
-                                     <Button variant="ghost" size="sm" onClick={() => openRejectDialog(release._id)} disabled={actionLoading === release._id} className="text-red-500 hover:bg-red-500/10" title="Reject">
-                                       {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-                                     </Button>
-                                   </>
+                                   <Button variant="ghost" size="sm" onClick={() => openApproveDialog(release._id)} disabled={actionLoading === release._id} className="text-purple-500 hover:bg-purple-500/10" title="Submit for processing">
+                                     {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                                   </Button>
+                                 )}
+                                 {canManage &&
+                                   (release.status === "Draft" || release.status === "In Process") && (
+                                   <Button variant="ghost" size="sm" onClick={() => openRejectDialog(release._id)} disabled={actionLoading === release._id} className="text-red-500 hover:bg-red-500/10" title="Reject">
+                                     {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                                   </Button>
                                  )}
                                  {/*
                                    Distribute: shown after processing step 1 succeeds
