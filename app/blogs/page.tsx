@@ -1,25 +1,21 @@
-'use client'
+'use client';
 
-import React from 'react'
-import Navbar from '@/components/navbar'
-import Footer from '@/components/footer'
-import { motion } from 'framer-motion'
-import { Clock } from 'lucide-react'
+import Link from 'next/link';
+import Navbar from '@/components/navbar';
+import Footer from '@/components/footer';
+import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import { usePublishedBlogs } from '@/lib/api/blogs';
+import { S3Image } from '@/components/ui/s3-image';
 
 export default function BlogsPage() {
-  const title = "Music Distribution Blog - Guides, Tips & Artist Success Stories"
+  const { blogs, loading } = usePublishedBlogs();
 
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-96 h-96 animated-gradient-bg rounded-full blur-3xl opacity-10" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 animated-gradient-bg rounded-full blur-3xl opacity-10" />
-        </div>
-
+      <section className="relative pt-32 pb-12 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -28,37 +24,64 @@ export default function BlogsPage() {
             className="text-center max-w-4xl mx-auto"
           >
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 font_heading tracking-tight text-white">
-              {title.split(' ').map((word, i) => (
-                <span key={i} className={i === title.split(' ').length - 1 ? "animated-gradient" : ""}>
-                  {word}{' '}
-                </span>
-              ))}
+              Music Distribution <span className="animated-gradient">Blog</span>
             </h1>
+            <p className="text-base md:text-lg text-muted-foreground">
+              Guides, tips, and artist stories from the KratoLib team.
+            </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Content Section */}
-      <section className="pb-32 pt-10">
+      <section className="pb-32 pt-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-center text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-white/5 border border-white/10 rounded-2xl p-12 max-w-2xl mx-auto backdrop-blur-md"
-            >
-              <Clock className="w-16 h-16 text-primary mx-auto mb-6 opacity-80" />
-              <h2 className="text-3xl font-bold text-white mb-4 font_heading">Coming Soon</h2>
-              <p className="text-lg text-muted-foreground">
-                Our editorial team is writing amazing articles and industry updates for you. We'll be live very soon!
-              </p>
-            </motion.div>
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : blogs.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              No blog posts yet. Check back soon.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {blogs.map((blog) => (
+                <Link
+                  key={blog._id}
+                  href={`/blogs/${blog.slug}`}
+                  className="group rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-md hover:border-primary/40 transition-all"
+                >
+                  <div className="aspect-[16/10] bg-muted overflow-hidden">
+                    {blog.thumbnail ? (
+                      <S3Image
+                        src={blog.thumbnail}
+                        alt={blog.title}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">
+                        No thumbnail
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <h2 className="text-lg font-bold text-white group-hover:text-primary transition-colors line-clamp-2">
+                      {blog.title}
+                    </h2>
+                    {blog.createdAt && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {new Date(blog.createdAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
       <Footer />
     </main>
-  )
+  );
 }
