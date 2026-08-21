@@ -76,6 +76,7 @@ export interface UsageStats {
 
 export interface UpdateProfileData {
   fullName?: string;
+  phoneNumber?: string;
   address?: string;
   addressProof?: {
     url: string;

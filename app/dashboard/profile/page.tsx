@@ -13,9 +13,10 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { User as UserIcon, Mail, CreditCard, Loader2, Save, MapPin, FileText, Shield, CheckCircle2, UploadCloud } from 'lucide-react'
+import { User as UserIcon, Mail, Phone, CreditCard, Loader2, Save, MapPin, FileText, Shield, CheckCircle2, UploadCloud } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { updateUserProfile, updateAddress } from '@/lib/api/users'
+// import { sendPhoneOTP, verifyPhoneOTP } from '@/lib/api/users' // phone OTP — enable when SMS is integrated
 import {
   getVerificationRequests,
   submitVerificationRequest,
@@ -64,9 +65,9 @@ export default function ProfilePage() {
   const { user, refreshUser, loading } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  // Phone verification — disabled for now
-  // const [phoneNumber, setPhoneNumber] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [address, setAddress] = useState('')
+  // Phone OTP verification — disabled until SMS provider is integrated
   // const [isSendingOTP, setIsSendingOTP] = useState(false)
   // const [showOTPModal, setShowOTPModal] = useState(false)
   // const [otp, setOtp] = useState('')
@@ -90,13 +91,12 @@ export default function ProfilePage() {
     }
   }, [user, loading, router]);
 
-  // Initialize address from user data
   useEffect(() => {
     if (user) {
-      // setPhoneNumber(user.phoneNumber || '');
-      setAddress(user.address || '');
+      setPhoneNumber(user.phoneNumber || '')
+      setAddress(user.address || '')
     }
-  }, [user]);
+  }, [user])
 
   useEffect(() => {
     if (user?.role === 'artist') {
@@ -159,46 +159,46 @@ export default function ProfilePage() {
 
   /* Selfie + passport flow — disabled for now */
 
-  /* Phone verification — disabled for now
+  /* Phone OTP verification — disabled until SMS provider is integrated
+  const isPhoneVerified = Boolean(user?.isPhoneVerified || user?.isPhoneNumberVerified)
+
   const handleSendOTP = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
-      toast.error('Please enter a valid phone number');
-      return;
+      toast.error('Please enter a valid phone number')
+      return
     }
 
-    setIsSendingOTP(true);
+    setIsSendingOTP(true)
     try {
-      const response = await sendPhoneOTP(phoneNumber);
-      toast.success(response.otp
-        ? `OTP sent: ${response.otp}`
-        : 'OTP sent to your phone number. Please check console logs.');
-      setShowOTPModal(true);
+      await sendPhoneOTP(phoneNumber)
+      toast.success('OTP sent to your phone number')
+      setShowOTPModal(true)
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to send OTP'));
+      toast.error(getErrorMessage(error, 'Failed to send OTP'))
     } finally {
-      setIsSendingOTP(false);
+      setIsSendingOTP(false)
     }
-  };
+  }
 
   const handleVerifyOTP = async () => {
     if (!otp) {
-      toast.error('Please enter the OTP');
-      return;
+      toast.error('Please enter the OTP')
+      return
     }
 
-    setIsVerifyingOTP(true);
+    setIsVerifyingOTP(true)
     try {
-      const result = await verifyPhoneOTP(otp);
-      toast.success(result.message);
-      setShowOTPModal(false);
-      setOtp('');
-      await refreshUser();
+      const result = await verifyPhoneOTP(otp)
+      toast.success(result.message)
+      setShowOTPModal(false)
+      setOtp('')
+      await refreshUser()
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Invalid OTP'));
+      toast.error(getErrorMessage(error, 'Invalid OTP'))
     } finally {
-      setIsVerifyingOTP(false);
+      setIsVerifyingOTP(false)
     }
-  };
+  }
   */
 
   const handleUpdateAddress = async () => {
@@ -276,9 +276,18 @@ export default function ProfilePage() {
   })
 
   const onSubmit = async (data: ProfileFormData) => {
+    const trimmedPhone = phoneNumber.trim()
+    if (trimmedPhone && trimmedPhone.length < 10) {
+      toast.error('Please enter a valid phone number')
+      return
+    }
+
     setIsLoading(true)
     try {
-      await updateUserProfile(data)
+      await updateUserProfile({
+        ...data,
+        phoneNumber: trimmedPhone || undefined,
+      })
       await refreshUser()
       toast.success('Profile updated successfully')
     } catch (error) {
@@ -425,6 +434,74 @@ export default function ProfilePage() {
                     </p>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber">Phone Number</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="phoneNumber"
+                        type="tel"
+                        placeholder="+91 9876543210"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Save your phone number with the button below
+                    </p>
+                    {/* Phone OTP verification — disabled until SMS provider is integrated
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="phoneNumber"
+                          type="tel"
+                          placeholder="+91 9876543210"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          disabled={isPhoneVerified}
+                          className={`pl-10 ${isPhoneVerified ? 'bg-muted' : ''}`}
+                        />
+                      </div>
+                      {isPhoneVerified ? (
+                        <Button variant="outline" disabled className="flex items-center gap-2 shrink-0">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          Verified
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={handleSendOTP}
+                          disabled={isSendingOTP || !phoneNumber}
+                          className="flex items-center gap-2 shrink-0"
+                        >
+                          {isSendingOTP ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Shield className="h-4 w-4" />
+                              Verify
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                    {isPhoneVerified ? (
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        Your phone number has been verified
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Enter your phone number and verify with OTP
+                      </p>
+                    )}
+                    */}
+                  </div>
+
                   <Button
                     type="submit"
                     disabled={isLoading}
@@ -492,67 +569,6 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Phone Verification — disabled for now
-        <motion.div variants={itemVariants}>
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="h-5 w-5" />
-                Phone Verification
-              </CardTitle>
-              <CardDescription>
-                Verify your phone number for enhanced security
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="phoneNumber">Phone Number</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    placeholder="+1234567890"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    disabled={user?.isPhoneVerified}
-                    className={user?.isPhoneVerified ? 'bg-muted' : ''}
-                  />
-                  {user?.isPhoneVerified ? (
-                    <Button variant="outline" disabled className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      Verified
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleSendOTP}
-                      disabled={isSendingOTP || !phoneNumber}
-                      className="flex items-center gap-2"
-                    >
-                      {isSendingOTP ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Shield className="h-4 w-4" />
-                          Verify
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-                {user?.isPhoneVerified && (
-                  <p className="text-xs text-green-600 dark:text-green-400">
-                    ✓ Your phone number has been verified
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-        */}
 
         {/* Address Information */}
         <motion.div variants={itemVariants}>
@@ -724,7 +740,7 @@ export default function ProfilePage() {
         </motion.div>
       </motion.div>
 
-      {/* OTP Verification Modal — disabled for now
+      {/* Phone OTP modal — disabled until SMS provider is integrated
       <Dialog open={showOTPModal} onOpenChange={setShowOTPModal}>
         <DialogContent>
           <DialogHeader>
@@ -750,8 +766,8 @@ export default function ProfilePage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setShowOTPModal(false);
-                  setOtp('');
+                  setShowOTPModal(false)
+                  setOtp('')
                 }}
                 className="flex-1"
               >
