@@ -60,6 +60,10 @@ export function canViewAnalytics(user: PermissionUser): boolean {
   return hasPermission(user, 'VIEW_ANALYTICS');
 }
 
+export function canManageStreamImports(user: PermissionUser): boolean {
+  return hasPermission(user, 'MANAGE_STREAM_IMPORTS');
+}
+
 export function canAccessNavItem(
   user: PermissionUser,
   permission?: string,

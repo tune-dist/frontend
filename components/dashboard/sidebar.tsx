@@ -21,6 +21,7 @@ import {
   Shield,
   Wallet,
   MessageSquare,
+  FileSpreadsheet,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
@@ -40,6 +41,7 @@ const navigation = [
   { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles, permission: 'MANAGE_PROMOTION' },
   { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote, permission: 'MANAGE_TESTIMONIALS' },
   { name: 'Inquiries', href: '/dashboard/admin/inquiries', icon: MessageSquare, permission: 'VIEW_CONTACT_INQUIRIES' },
+  { name: 'Stream Imports', href: '/dashboard/admin/stream-imports', icon: FileSpreadsheet, permission: 'MANAGE_STREAM_IMPORTS' },
   { name: 'Profile', href: '/dashboard/profile', icon: User, permission: 'PROFILE' },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube, permission: 'USE_YOUTUBE_SERVICE' },
   { name: 'Verifications', href: '/dashboard/verifications', icon: Shield, permission: 'APPROVE_RELEASE' },
