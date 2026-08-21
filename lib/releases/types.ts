@@ -217,6 +217,8 @@ export interface ReleaseDetailResponse {
   distributionIssueDetectedAt?: string | null;
   distributionIssueResubmittedAt?: string | null;
   distributionIssueResolvedAt?: string | null;
+  draftReviewNote?: string | null;
+  draftReviewResubmittedAt?: string | null;
   releasedOn?: ReleasedOn;
 }
 
@@ -241,6 +243,8 @@ export interface ReleaseListItem {
   distributionIssueDetectedAt?: string | null;
   distributionIssueResubmittedAt?: string | null;
   distributionIssueResolvedAt?: string | null;
+  draftReviewNote?: string | null;
+  draftReviewResubmittedAt?: string | null;
   releasedOn?: ReleasedOn;
   createdAt?: string;
 }
