@@ -84,6 +84,12 @@
     cursor: pointer;
     background-size: contain;
   }
+
+  /* Hide browser-native password reveal (we use custom Eye toggles) */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
 }
 
 @layer utilities {
