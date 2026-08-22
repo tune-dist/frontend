@@ -298,6 +298,8 @@ export interface MongoReleaseDocument {
   distributionIssueDetectedAt?: string | null;
   distributionIssueResubmittedAt?: string | null;
   distributionIssueResolvedAt?: string | null;
+  draftReviewNote?: string | null;
+  draftReviewResubmittedAt?: string | null;
   releasedOn?: ReleasedOn;
   submittedAt?: string;
   approvedAt?: string;
