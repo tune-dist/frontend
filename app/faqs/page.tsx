@@ -1,18 +1,10 @@
-import type { Metadata } from 'next'
 import FaqsContent from '@/components/FaqsContent'
+import { createPageMetadata } from '@/lib/site-metadata'
 
-export const metadata: Metadata = {
-  title: 'Music Distribution FAQs | Spotify, CRBT, Royalties | KratoLib',
-  description: 'Frequently asked questions about music distribution, royalties, CRBT, payment methods, plans, and platform support. Get answers to all your distribution questions.',
-  openGraph: {
-    title: 'Music Distribution FAQs | Spotify, CRBT, Royalties | KratoLib',
-    description: 'Frequently asked questions about music distribution, royalties, CRBT, payment methods, plans, and platform support. Get answers to all your distribution questions.',
-  },
-  twitter: {
-    title: 'Music Distribution FAQs | Spotify, CRBT, Royalties | KratoLib',
-    description: 'Frequently asked questions about music distribution, royalties, CRBT, payment methods, plans, and platform support. Get answers to all your distribution questions.',
-  },
-}
+export const metadata = createPageMetadata(
+  'Music Distribution FAQs | Spotify, CRBT, Royalties | KratoLib',
+  'Frequently asked questions about music distribution, royalties, CRBT, payment methods, plans, and platform support. Get answers to all your distribution questions.',
+)
 
 export default function FAQPage() {
   return <FaqsContent />

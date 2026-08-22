@@ -6,19 +6,12 @@ import SmartMusicDistribution from "@/components/smart-music/SmartMusicDistribut
 import SmartMusicAIEngine from "@/components/smart-music/SmartMusicAIEngine";
 import SmartMusicTechnology from "@/components/smart-music/SmartMusicTechnology";
 import SmartMusicCTA from "@/components/smart-music/SmartMusicCTA";
+import { createPageMetadata } from "@/lib/site-metadata";
 
-export const metadata: Metadata = {
-  title: "Smart Music Distribution | AI Release Recommendations | KratoLib",
-  description: "Smart music distribution with AI-powered release timing, data-driven recommendations, and advanced analytics. Let AI optimize your release strategy for maximum reach.",
-  openGraph: {
-    title: "Smart Music Distribution | AI Release Recommendations | KratoLib",
-    description: "Smart music distribution with AI-powered release timing, data-driven recommendations, and advanced analytics. Let AI optimize your release strategy for maximum reach.",
-  },
-  twitter: {
-    title: "Smart Music Distribution | AI Release Recommendations | KratoLib",
-    description: "Smart music distribution with AI-powered release timing, data-driven recommendations, and advanced analytics. Let AI optimize your release strategy for maximum reach.",
-  },
-};
+export const metadata: Metadata = createPageMetadata(
+  "Smart Music Distribution | AI Release Recommendations | KratoLib",
+  "Smart music distribution with AI-powered release timing, data-driven recommendations, and advanced analytics. Let AI optimize your release strategy for maximum reach.",
+);
 
 export default function SmartMusicPage() {
   return (

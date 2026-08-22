@@ -9,19 +9,12 @@ import CRBTSection from "@/components/sell-grow/CRBTSection";
 import CoverageSection from "@/components/sell-grow/CoverageSection";
 import EnterpriseSolutionsSection from "@/components/sell-grow/EnterpriseSolutionsSection";
 import SellAndGrowCTA from "@/components/sell-grow/SellAndGrowCTA";
+import { createPageMetadata } from "@/lib/site-metadata";
 
-export const metadata: Metadata = {
-  title: "Grow Your Audience | Pre-Save, Playlist Pitching, UGC Monetization",
-  description: "Grow your music audience with pre-save campaigns, playlist pitching, UGC monetization on Meta & TikTok, and fan link tools. Turn listeners into fans. Start free.",
-  openGraph: {
-    title: "Grow Your Audience | Pre-Save, Playlist Pitching, UGC Monetization",
-    description: "Grow your music audience with pre-save campaigns, playlist pitching, UGC monetization on Meta & TikTok, and fan link tools. Turn listeners into fans. Start free.",
-  },
-  twitter: {
-    title: "Grow Your Audience | Pre-Save, Playlist Pitching, UGC Monetization",
-    description: "Grow your music audience with pre-save campaigns, playlist pitching, UGC monetization on Meta & TikTok, and fan link tools. Turn listeners into fans. Start free.",
-  },
-};
+export const metadata: Metadata = createPageMetadata(
+  "Grow Your Audience | Pre-Save, Playlist Pitching, UGC Monetization",
+  "Grow your music audience with pre-save campaigns, playlist pitching, UGC monetization on Meta & TikTok, and fan link tools. Turn listeners into fans. Start free.",
+);
 
 
 export default function SellAndGrowPage() {

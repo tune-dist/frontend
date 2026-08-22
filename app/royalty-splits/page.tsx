@@ -7,19 +7,12 @@ import RoyaltySplitsRevenue from "@/components/royalty-splits/RoyaltySplitsReven
 import RoyaltySplitsAutomation from "@/components/royalty-splits/RoyaltySplitsAutomation";
 import RoyaltySplitsTransparency from "@/components/royalty-splits/RoyaltySplitsTransparency";
 import RoyaltySplitsCTA from "@/components/royalty-splits/RoyaltySplitsCTA";
+import { createPageMetadata } from "@/lib/site-metadata";
 
-export const metadata: Metadata = {
-  title: "Royalty Splits | Automatic Payments to Collaborators | KratoLib",
-  description: "Learn how royalty splits work. Automatic payments to band members and collaborators. Step-by-step guide, examples, split sheet template. Manage splits easily.",
-  openGraph: {
-    title: "Royalty Splits | Automatic Payments to Collaborators | KratoLib",
-    description: "Learn how royalty splits work. Automatic payments to band members and collaborators. Step-by-step guide, examples, split sheet template. Manage splits easily.",
-  },
-  twitter: {
-    title: "Royalty Splits | Automatic Payments to Collaborators | KratoLib",
-    description: "Learn how royalty splits work. Automatic payments to band members and collaborators. Step-by-step guide, examples, split sheet template. Manage splits easily.",
-  },
-};
+export const metadata: Metadata = createPageMetadata(
+  "Royalty Splits | Automatic Payments to Collaborators | KratoLib",
+  "Learn how royalty splits work. Automatic payments to band members and collaborators. Step-by-step guide, examples, split sheet template. Manage splits easily.",
+);
 
 export default function RoyaltySplitsPage() {
   return (
