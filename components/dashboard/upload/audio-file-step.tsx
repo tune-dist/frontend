@@ -3,8 +3,9 @@ import { useState } from 'react'
 import { validateAudioOnBackend } from '@/lib/upload/chunk-uploader'
 import {
     isAllowedWavBitDepth,
+    isAllowedWavSampleRate,
     formatAllowedBitDepths,
-    WAV_SAMPLE_RATE_HZ,
+    formatSampleRateRangeHz,
 } from '@/lib/upload/audio-format'
 import { isPlanInactiveError } from '@/lib/plan-inactive'
 import Cookies from 'js-cookie'
@@ -89,8 +90,8 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 const { sampleRate, bitDepth } = await parseWavHeader(file);
                 toast.dismiss(parsingToastId)
 
-                if (sampleRate !== WAV_SAMPLE_RATE_HZ) {
-                    toast.error(`Invalid Sample Rate for ${file.name}: ${sampleRate}Hz. File must be ${WAV_SAMPLE_RATE_HZ.toLocaleString()}Hz.`)
+                if (!isAllowedWavSampleRate(sampleRate)) {
+                    toast.error(`Invalid Sample Rate for ${file.name}: ${sampleRate}Hz. File must be ${formatSampleRateRangeHz()}.`)
                     continue
                 }
                 if (!isAllowedWavBitDepth(bitDepth)) {
@@ -248,7 +249,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 {/* Audio File Upload */}
                 <div className="space-y-3 pt-6 border-t border-border">
                     <h4 className="text-base font-semibold">
-                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV, 44.1kHz, 16- or 24-bit)</span>
+                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV, 44.1–48 kHz, 16- or 24-bit)</span>
                     </h4>
                     {/* <p className="text-sm text-primary">
                         <a href="#" className="underline">Already have an ISRC code?</a>
