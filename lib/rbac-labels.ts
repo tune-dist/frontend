@@ -51,9 +51,23 @@ export const PERMISSION_LABELS: Partial<Record<PermissionSlug, string>> = {
   VIEW_CONTACT_INQUIRIES: 'Contact Inquiries',
 };
 
+function formatPermissionSlug(slug: string): string {
+  const known = PERMISSION_LABELS[slug as PermissionSlug];
+  if (known) return known;
+
+  return slug
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export function formatPermissionLabel(
-  permission: { name: string; slug: string },
+  permission: string | { name: string; slug: string },
 ): string {
+  if (typeof permission === 'string') {
+    return formatPermissionSlug(permission);
+  }
+
   const slug = permission.slug as PermissionSlug;
-  return PERMISSION_LABELS[slug] ?? permission.name;
+  return PERMISSION_LABELS[slug] ?? permission.name ?? formatPermissionSlug(permission.slug);
 }

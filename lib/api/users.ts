@@ -130,7 +130,31 @@ export const getUsers = async (params: {
   role?: string;
   status?: string;
 }) => {
-  const response = await apiClient.get<any>('/users', { params });
+  const { search, role, status, page, limit } = params;
+  const response = await apiClient.get<any>('/users', {
+    params: {
+      page,
+      limit,
+      ...(search?.trim() ? { search: search.trim() } : {}),
+      ...(role && role !== 'All' ? { role } : {}),
+      ...(status && status !== 'All' ? { status } : {}),
+    },
+  });
+  return response.data;
+};
+
+// Get user by ID (admin)
+export const getUserById = async (userId: string): Promise<User> => {
+  const response = await apiClient.get<User>(`/users/${userId}`);
+  return response.data;
+};
+
+// Suspend or unsuspend a user (admin)
+export const updateUserStatus = async (
+  userId: string,
+  isSuspended: boolean,
+): Promise<User> => {
+  const response = await apiClient.patch<User>(`/users/${userId}/status`, { isSuspended });
   return response.data;
 };
 
