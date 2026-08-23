@@ -1,12 +1,7 @@
 
 import { useState } from 'react'
 import { validateAudioOnBackend } from '@/lib/upload/chunk-uploader'
-import {
-    isAllowedWavBitDepth,
-    isAllowedWavSampleRate,
-    formatAllowedBitDepths,
-    formatSampleRateRangeHz,
-} from '@/lib/upload/audio-format'
+import { validateWavAudioSpecs } from '@/lib/upload/audio-format'
 import { isPlanInactiveError } from '@/lib/plan-inactive'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
@@ -35,7 +30,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
     const audioFiles = watch('audioFiles') || []
     const tracks = watch('tracks') || []
 
-    const parseWavHeader = async (file: File): Promise<{ sampleRate: number, bitDepth: number }> => {
+    const parseWavHeader = async (file: File): Promise<{ sampleRate: number, bitDepth: number, channels: number }> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -43,6 +38,10 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 if (!buffer) return reject(new Error('Failed to read file'));
 
                 const view = new DataView(buffer);
+
+                if (view.byteLength < 12) {
+                    return reject(new Error('Invalid audio file format (File too small)'));
+                }
 
                 // Check RIFF signature
                 const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
@@ -52,16 +51,50 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
                 if (wave !== 'WAVE') return reject(new Error('Invalid audio file format (Header missing WAVE)'));
 
-                // Read Sample Rate (offset 24, 32-bit little-endian)
-                const sampleRate = view.getUint32(24, true);
+                // Search for the 'fmt ' chunk dynamically among header chunks (handles JUNK, bext, LIST, etc.)
+                let offset = 12;
+                while (offset + 8 <= view.byteLength) {
+                    const chunkId = String.fromCharCode(
+                        view.getUint8(offset),
+                        view.getUint8(offset + 1),
+                        view.getUint8(offset + 2),
+                        view.getUint8(offset + 3)
+                    );
+                    const chunkSize = view.getUint32(offset + 4, true);
 
-                // Read Bits Per Sample (offset 34, 16-bit little-endian)
-                const bitDepth = view.getUint16(34, true);
+                    if (chunkId === 'fmt ') {
+                        // The 'fmt ' chunk must be at least 14 bytes for basic audio specs
+                        if (offset + 8 + 14 > view.byteLength) {
+                            return reject(new Error('Corrupted WAV format chunk'));
+                        }
 
-                resolve({ sampleRate, bitDepth });
+                        // Offset inside fmt chunk:
+                        // +0: audioFormat (2 bytes)
+                        // +2: numChannels (2 bytes)
+                        // +4: sampleRate (4 bytes)
+                        // +8: byteRate (4 bytes)
+                        // +12: blockAlign (2 bytes)
+                        // +14: bitsPerSample (2 bytes)
+                        const channels = view.getUint16(offset + 10, true);
+                        const sampleRate = view.getUint32(offset + 12, true);
+                        const bitDepth = offset + 8 + 16 <= view.byteLength
+                            ? view.getUint16(offset + 22, true)
+                            : 16;
+
+                        return resolve({ sampleRate, bitDepth, channels });
+                    }
+
+                    // Move to the next chunk (chunks are 2-byte aligned in RIFF specification)
+                    const advance = 8 + chunkSize + (chunkSize % 2 !== 0 ? 1 : 0);
+                    if (advance <= 0) break; // Avoid infinite loops on corrupted chunk sizes
+                    offset += advance;
+                }
+
+                return reject(new Error('Could not find format chunk (fmt ) in WAV file'));
             };
             reader.onerror = () => reject(new Error('Error reading file header'));
-            reader.readAsArrayBuffer(file.slice(0, 44));
+            // Read first 64KB to easily cover any metadata chunks before 'fmt '
+            reader.readAsArrayBuffer(file.slice(0, Math.min(file.size, 65536)));
         });
     }
 
@@ -87,16 +120,13 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
             // Validate WAV header
             try {
                 const parsingToastId = toast.loading(`Checking audio format for ${file.name}...`)
-                const { sampleRate, bitDepth } = await parseWavHeader(file);
+                const { sampleRate, bitDepth, channels } = await parseWavHeader(file);
                 toast.dismiss(parsingToastId)
 
-                if (!isAllowedWavSampleRate(sampleRate)) {
-                    toast.error(`Invalid Sample Rate for ${file.name}: ${sampleRate}Hz. File must be ${formatSampleRateRangeHz()}.`)
-                    continue
-                }
-                if (!isAllowedWavBitDepth(bitDepth)) {
-                    toast.error(`Invalid Bit Depth for ${file.name}: ${bitDepth}-bit. File must be ${formatAllowedBitDepths()}.`)
-                    continue
+                const specValidation = validateWavAudioSpecs({ sampleRate, bitDepth, channels });
+                if (!specValidation.valid) {
+                    toast.error(specValidation.error || `Invalid audio format for ${file.name}`);
+                    continue;
                 }
             } catch (error) {
                 console.error(error)
@@ -249,7 +279,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 {/* Audio File Upload */}
                 <div className="space-y-3 pt-6 border-t border-border">
                     <h4 className="text-base font-semibold">
-                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV, 44.1–48 kHz, 16- or 24-bit)</span>
+                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV: 16-bit 44.1kHz, or 24-bit HD 44.1k/48k/88.2k/96k/192kHz, Stereo)</span>
                     </h4>
                     {/* <p className="text-sm text-primary">
                         <a href="#" className="underline">Already have an ISRC code?</a>
