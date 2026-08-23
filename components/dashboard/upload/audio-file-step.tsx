@@ -1,7 +1,11 @@
 
 import { useState } from 'react'
 import { validateAudioOnBackend } from '@/lib/upload/chunk-uploader'
-import { validateWavAudioSpecs } from '@/lib/upload/audio-format'
+import {
+    isAllowedWavBitDepth,
+    formatAllowedBitDepths,
+    validateWavAudioSpecs,
+} from '@/lib/upload/audio-format'
 import { isPlanInactiveError } from '@/lib/plan-inactive'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
