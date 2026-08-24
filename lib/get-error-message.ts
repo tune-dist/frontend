@@ -163,6 +163,8 @@ export function extractApiFieldErrors(error: unknown): ApiFieldError[] {
 const CHUNK_LOAD_PATTERN =
   /loading chunk|chunkloaderror|failed to fetch dynamically imported module|_next\/static\/chunks/i;
 
+const AXIOS_STATUS_MESSAGE_PATTERN = /^Request failed with status code \d+$/i;
+
 export function isChunkLoadError(error: unknown): boolean {
   if (!error) return false;
 
@@ -183,6 +185,9 @@ export function sanitizeErrorMessage(
   if (!trimmed || trimmed === '[object Object]') return fallback;
   if (CHUNK_LOAD_PATTERN.test(trimmed)) {
     return 'The app was updated. Please refresh the page and try again.';
+  }
+  if (AXIOS_STATUS_MESSAGE_PATTERN.test(trimmed)) {
+    return fallback;
   }
   return trimmed;
 }
