@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { DEFAULT_SITE_METADATA, OG_IMAGE, SITE_URL } from '@/lib/site-metadata'
 import { Manrope } from 'next/font/google';
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -23,33 +24,26 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.kratolib.com'),
-  title: 'Kratolib - Distribute Your Music Worldwide',
-  description: 'Kratolib empowers independent artists to release their music to Spotify, Apple Music, YouTube, JioSaavn, and 150+ platforms — all from one dashboard.',
+  metadataBase: new URL(SITE_URL),
+  title: DEFAULT_SITE_METADATA.title,
+  description: DEFAULT_SITE_METADATA.description,
   icons: {
     icon: '/favicon.png',
   },
   openGraph: {
-    title: 'Kratolib - Distribute Your Music Worldwide',
-    description: 'Kratolib empowers independent artists to release their music to Spotify, Apple Music, YouTube, JioSaavn, and 150+ platforms — all from one dashboard.',
-    url: 'https://www.kratolib.com',
+    title: DEFAULT_SITE_METADATA.title,
+    description: DEFAULT_SITE_METADATA.description,
+    url: SITE_URL,
     siteName: 'Kratolib',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Kratolib - Music Distribution Platform',
-      },
-    ],
+    images: [OG_IMAGE],
     locale: 'en_IN',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Kratolib - Distribute Your Music Worldwide',
-    description: 'Kratolib empowers independent artists to release their music to Spotify, Apple Music, YouTube, JioSaavn, and 150+ platforms — all from one dashboard.',
-    images: ['/og-image.png'],
+    title: DEFAULT_SITE_METADATA.title,
+    description: DEFAULT_SITE_METADATA.description,
+    images: [OG_IMAGE.url],
   },
 }
 

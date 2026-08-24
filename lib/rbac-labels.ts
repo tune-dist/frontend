@@ -34,6 +34,7 @@ export const PERMISSIONS = {
   VIEW_BILLING: 'VIEW_BILLING',
   MANAGE_BILLING: 'MANAGE_BILLING',
   VIEW_ANALYTICS: 'VIEW_ANALYTICS',
+  MANAGE_STREAM_IMPORTS: 'MANAGE_STREAM_IMPORTS',
   MANAGE_PROMOTION: 'MANAGE_PROMOTION',
   MANAGE_TESTIMONIALS: 'MANAGE_TESTIMONIALS',
   VIEW_CONTACT_INQUIRIES: 'VIEW_CONTACT_INQUIRIES',
@@ -46,12 +47,27 @@ export type PermissionSlug = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 /** Optional display overrides (API/DB may still store longer names). */
 export const PERMISSION_LABELS: Partial<Record<PermissionSlug, string>> = {
   USE_YOUTUBE_SERVICE: 'YouTube Service',
+  MANAGE_STREAM_IMPORTS: 'Stream Imports',
   VIEW_CONTACT_INQUIRIES: 'Contact Inquiries',
 };
 
+function formatPermissionSlug(slug: string): string {
+  const known = PERMISSION_LABELS[slug as PermissionSlug];
+  if (known) return known;
+
+  return slug
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export function formatPermissionLabel(
-  permission: { name: string; slug: string },
+  permission: string | { name: string; slug: string },
 ): string {
+  if (typeof permission === 'string') {
+    return formatPermissionSlug(permission);
+  }
+
   const slug = permission.slug as PermissionSlug;
-  return PERMISSION_LABELS[slug] ?? permission.name;
+  return PERMISSION_LABELS[slug] ?? permission.name ?? formatPermissionSlug(permission.slug);
 }

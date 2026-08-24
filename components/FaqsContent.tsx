@@ -41,7 +41,7 @@ const faqCategories = [
       },
       {
         q: "What audio and cover art formats does Kratolib accept?",
-        a: "<strong style='color:#fff'>Audio:</strong> WAV (recommended — 16-bit or 24-bit, 44.1kHz minimum) or high-quality MP3 (320kbps). WAV gives best quality across all platforms.<br/><br/><strong style='color:#fff'>Cover Art:</strong> JPEG or PNG, minimum 3000×3000 pixels, square format, RGB color mode. Artwork must not contain streaming platform logos, website URLs, or social media handles — these cause platform rejection."
+        a: "<strong style='color:#fff'>Audio:</strong> WAV (16-bit or 24-bit, 44.1–48 kHz). WAV gives best quality across all platforms.<br/><br/><strong style='color:#fff'>Cover Art:</strong> JPEG or PNG, 1500×1500 to 6000×6000 pixels, square format, RGB color mode. Artwork must not contain streaming platform logos, website URLs, or social media handles — these cause platform rejection."
       }
     ]
   },

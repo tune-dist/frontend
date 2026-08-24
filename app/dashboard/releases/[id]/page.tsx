@@ -391,6 +391,54 @@ export default function ReleaseDetailsPage() {
                       )}
                     </div>
                   )}
+
+                {typeof release.draftReviewNote === "string" &&
+                  release.draftReviewNote.trim().length > 0 && (
+                    <div className="bg-sky-500/10 border border-sky-500/20 rounded-2xl p-4 mt-4 space-y-3">
+                      <h4 className="text-sky-400 font-bold text-xs mb-1.5 flex items-center gap-1.5 uppercase tracking-wider">
+                        <Flag className="h-3.5 w-3.5" />
+                        Review Feedback
+                      </h4>
+                      {canManage && release.draftReviewResubmittedAt && (
+                          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                            Artist marked as fixed
+                            <span className="font-normal normal-case tracking-normal text-emerald-200/80">
+                              · {new Date(release.draftReviewResubmittedAt).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      <p className="text-[11px] text-sky-200/60 leading-relaxed">
+                        {canManage
+                          ? "Draft review feedback — use Actions to approve when ready."
+                          : release.draftReviewResubmittedAt
+                            ? "You submitted your fix. Status stays Draft until RM approves."
+                            : "Our team reviewed your draft and found items to fix. Update your release, then confirm on the releases page."}
+                      </p>
+                      <p className="text-sm text-sky-100/90 leading-relaxed whitespace-pre-wrap">
+                        {release.draftReviewNote.trim()}
+                      </p>
+                      {!canManage && release.draftReviewResubmittedAt && (
+                        <label className="flex items-start gap-3 cursor-default opacity-90">
+                          <input
+                            type="checkbox"
+                            checked
+                            disabled
+                            readOnly
+                            className="mt-0.5 h-4 w-4 rounded border-border accent-sky-500"
+                          />
+                          <span className="text-sm text-sky-100/90">{DISTRIBUTION_ISSUE_ACK_LABEL}</span>
+                        </label>
+                      )}
+                      {!canManage && isRmEditableRelease(release.status) && (
+                        <Link
+                          href={`/dashboard/upload?edit=${release._id}`}
+                          className="inline-flex text-xs font-semibold text-sky-300 underline-offset-2 hover:underline"
+                        >
+                          Edit release to fix
+                        </Link>
+                      )}
+                    </div>
+                  )}
               </div>
             </div>
           </div>

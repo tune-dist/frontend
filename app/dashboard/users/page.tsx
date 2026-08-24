@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, TrendingDown } from 'lucide-react';
-import { canViewUsers } from '@/lib/permissions';
-import { getUsers } from '@/lib/api/users';
+import { canViewUsers, canManageUsers } from '@/lib/permissions';
+import { getUsers, updateUserStatus } from '@/lib/api/users';
 import { formatPlanDisplayName } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/get-error-message';
 import { PageSearchBar, PageSearchSection } from '@/components/dashboard/page-search-bar';
@@ -39,8 +39,20 @@ function formatCsvDate(value?: string | Date | null): string {
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
 }
 
+function getUserStatusLabel(user: { isSuspended?: boolean; isEmailVerified?: boolean }) {
+    if (user.isSuspended) return 'Suspended';
+    if (user.isEmailVerified) return 'Active';
+    return 'Pending';
+}
+
+function getUserStatusDotClass(user: { isSuspended?: boolean; isEmailVerified?: boolean }) {
+    if (user.isSuspended) return 'bg-red-500';
+    if (user.isEmailVerified) return 'bg-primary shadow-[0_0_8px_rgba(51,230,122,0.6)]';
+    return 'bg-yellow-500';
+}
+
 export default function UsersPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user: currentUser, loading: authLoading } = useAuth();
     const router = useRouter();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -66,11 +78,11 @@ export default function UsersPage() {
     // Redirect if unauthorized
     useEffect(() => {
         if (!authLoading && isMounted) {
-            if (!user || !canViewUsers(user)) {
+            if (!currentUser || !canViewUsers(currentUser)) {
                 router.push('/dashboard');
             }
         }
-    }, [user, authLoading, isMounted, router]);
+    }, [currentUser, authLoading, isMounted, router]);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -97,14 +109,24 @@ export default function UsersPage() {
     };
 
     const handleViewUser = (userId: string) => {
-        // Implement navigation to user profile
-        console.log('View user:', userId);
+        router.push(`/dashboard/users/${userId}`);
     };
 
-    const handleSuspendUser = async (userId: string) => {
-        // Implement suspend logic
-        console.log('Suspend user:', userId);
-        // Add toast notification here
+    const handleSuspendUser = async (userId: string, isSuspended: boolean, fullName?: string) => {
+        const action = isSuspended ? 'unsuspend' : 'suspend';
+        const confirmed = window.confirm(
+            `Are you sure you want to ${action} ${fullName || 'this user'}?`,
+        );
+        if (!confirmed) return;
+
+        try {
+            await updateUserStatus(userId, !isSuspended);
+            toast.success(`User ${isSuspended ? 'unsuspended' : 'suspended'} successfully`);
+            fetchUsers();
+        } catch (error) {
+            console.error(`Failed to ${action} user:`, error);
+            toast.error(getErrorMessage(error, `Failed to ${action} user`));
+        }
     };
 
     const handleExportCsv = async () => {
@@ -185,11 +207,28 @@ export default function UsersPage() {
     };
 
     useEffect(() => {
-        const debounce = setTimeout(() => {
-            fetchUsers();
-        }, 500);
-        return () => clearTimeout(debounce);
-    }, [search, roleFilter, statusFilter, page]);
+        if (!authLoading && currentUser && canViewUsers(currentUser)) {
+            const debounce = setTimeout(() => {
+                fetchUsers();
+            }, search ? 500 : 0);
+            return () => clearTimeout(debounce);
+        }
+    }, [search, roleFilter, statusFilter, page, authLoading, currentUser]);
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value);
+        setPage(1);
+    };
+
+    const handleRoleFilterChange = (value: string) => {
+        setRoleFilter(value);
+        setPage(1);
+    };
+
+    const handleStatusFilterChange = (value: string) => {
+        setStatusFilter(value);
+        setPage(1);
+    };
 
 
     return (
@@ -278,7 +317,7 @@ export default function UsersPage() {
                     <div className="flex flex-col md:flex-row gap-2">
                         <PageSearchBar
                             value={search}
-                            onChange={setSearch}
+                            onChange={handleSearchChange}
                             placeholder="Search by ID, email, artist name, or label..."
                             className="flex-1"
                         />
@@ -286,12 +325,13 @@ export default function UsersPage() {
                         {isMounted ? (
                             <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
                                 <div className="w-[180px]">
-                                    <Select value={roleFilter} onValueChange={setRoleFilter}>
+                                    <Select value={roleFilter} onValueChange={handleRoleFilterChange}>
                                         <SelectTrigger className="w-full bg-surface-highlight border-none text-white h-[46px] rounded-xl">
                                             <SelectValue placeholder="Role" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="All">Role: All</SelectItem>
+                                            <SelectItem value="super_admin">Super Admin</SelectItem>
                                             <SelectItem value="admin">Admin</SelectItem>
                                             <SelectItem value="release_manager">Release Manager</SelectItem>
                                             <SelectItem value="artist">Artist</SelectItem>
@@ -299,13 +339,14 @@ export default function UsersPage() {
                                     </Select>
                                 </div>
                                 <div className="w-[180px]">
-                                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                    <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                                         <SelectTrigger className="w-full bg-surface-highlight border-none text-white h-[46px] rounded-xl">
                                             <SelectValue placeholder="Status" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="All">Status: All</SelectItem>
                                             <SelectItem value="Active">Active</SelectItem>
+                                            <SelectItem value="Pending">Pending</SelectItem>
                                             <SelectItem value="Suspended">Suspended</SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -353,48 +394,48 @@ export default function UsersPage() {
                                         <td colSpan={7} className="text-center py-8 text-text-secondary">No users found.</td>
                                     </tr>
                                 ) : (
-                                    users.map((user) => (
-                                        <tr key={user._id} className="group hover:bg-surface-highlight/30 transition-colors">
+                                    users.map((listedUser) => (
+                                        <tr key={listedUser._id} className="group hover:bg-surface-highlight/30 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-4">
                                                     {/* <div className="size-10 rounded-full bg-cover bg-center border border-surface-highlight"
                                                             style={{ backgroundImage: `url("${user.avatar || 'https://via.placeholder.com/40'}")` }}>
                                                         </div> */}
                                                     <img
-                                                        src={user.avatar || 'https://via.placeholder.com/40'}
-                                                        alt={user.fullName}
+                                                        src={listedUser.avatar || 'https://via.placeholder.com/40'}
+                                                        alt={listedUser.fullName}
                                                         className="size-10 shrink-0 rounded-full object-cover border border-surface-highlight"
                                                     />
                                                     <div className="flex flex-col">
                                                         <span
                                                             className="font-bold text-white group-hover:text-primary transition-colors">
-                                                            {user.fullName || 'Unknown User'}
+                                                            {listedUser.fullName || 'Unknown User'}
                                                         </span>
-                                                        <span className="text-text-secondary text-xs">{user.email}</span>
+                                                        <span className="text-text-secondary text-xs">{listedUser.email}</span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span
                                                     className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                                    {user.role}
+                                                    {listedUser.role}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span
                                                     className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary/15 text-primary border border-primary/30">
-                                                    {formatPlanDisplayName(user.plan)}
+                                                    {formatPlanDisplayName(listedUser.plan)}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <span
-                                                        className={`size-2.5 rounded-full ${user.isEmailVerified ? 'bg-primary shadow-[0_0_8px_rgba(51,230,122,0.6)]' : 'bg-yellow-500'}`}></span>
-                                                    <span className="text-white">{user.isEmailVerified ? 'Active' : 'Pending'}</span>
+                                                        className={`size-2.5 rounded-full ${getUserStatusDotClass(listedUser)}`}></span>
+                                                    <span className="text-white">{getUserStatusLabel(listedUser)}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-gray-400">
-                                                {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                                                {listedUser.lastLogin ? new Date(listedUser.lastLogin).toLocaleDateString() : 'Never'}
                                             </td>
                                             <td className="px-6 py-4 text-right font-mono">
                                                 {/* Revenue placeholder */}
@@ -409,14 +450,28 @@ export default function UsersPage() {
                                                         </button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="w-48">
-                                                        <DropdownMenuItem onClick={() => handleViewUser(user._id)} className="cursor-pointer">
+                                                        <DropdownMenuItem
+                                                            onSelect={() => handleViewUser(listedUser._id)}
+                                                            className="cursor-pointer"
+                                                        >
                                                             <Eye className="w-4 h-4 mr-2" />
                                                             View Profile
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleSuspendUser(user._id)} className="text-red-500 focus:text-red-500 cursor-pointer">
-                                                            <Ban className="w-4 h-4 mr-2" />
-                                                            Suspend User
-                                                        </DropdownMenuItem>
+                                                        {canManageUsers(currentUser) && listedUser._id !== currentUser?._id && (
+                                                            <DropdownMenuItem
+                                                                onSelect={() =>
+                                                                    handleSuspendUser(
+                                                                        listedUser._id,
+                                                                        listedUser.isSuspended,
+                                                                        listedUser.fullName,
+                                                                    )
+                                                                }
+                                                                className={`cursor-pointer ${listedUser.isSuspended ? 'text-primary focus:text-primary' : 'text-red-500 focus:text-red-500'}`}
+                                                            >
+                                                                <Ban className="w-4 h-4 mr-2" />
+                                                                {listedUser.isSuspended ? 'Unsuspend User' : 'Suspend User'}
+                                                            </DropdownMenuItem>
+                                                        )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </td>

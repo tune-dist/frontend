@@ -38,14 +38,9 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Loader2,
   Plus,
-  Filter,
   Eye,
   Trash2,
   X,
-  Sparkles,
-  ExternalLink,
-  CheckCircle,
-  XCircle,
   Music,
   Ban,
   UploadCloud,
@@ -60,6 +55,8 @@ import {
   pdlSubmit,
   acknowledgeDistributionIssue,
   acceptDistributionFix,
+  submitDraftReview,
+  acknowledgeDraftReview,
   Release,
   ReleaseStatus,
 } from "@/lib/api/releases";
@@ -84,7 +81,6 @@ import { formatReleaseCodeDisplay } from "@/lib/release-codes";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 import {
   hasOpenDistributionIssueAction,
-  hasPendingDistributionIssue,
   hasDistributionIssueAwaitingRm,
   hasDistributionIssueResubmitted,
   DISTRIBUTION_ISSUE_ACK_LABEL,
@@ -138,12 +134,16 @@ export default function ReleasesPage() {
   >(null);
   const [rejectDialog, setRejectDialog] = useState<{ id: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [reviewDialog, setReviewDialog] = useState<{ id: string } | null>(null);
+  const [reviewComment, setReviewComment] = useState("");
+  const [staffActionSelect, setStaffActionSelect] = useState<Record<string, string>>({});
   const [validationErrorDialog, setValidationErrorDialog] = useState<{
     title: string;
     summary: string;
     issues: ApiFieldError[];
   } | null>(null);
-  const [distributionIssueDialog, setDistributionIssueDialog] = useState<{
+  const [fixDialog, setFixDialog] = useState<{
+    kind: "distribution" | "draft";
     id: string;
     title: string;
     note: string;
@@ -228,12 +228,12 @@ export default function ReleasesPage() {
   };
 
   useEffect(() => {
-    if (!distributionIssueDialog) {
+    if (!fixDialog) {
       setIssueAckChecked(false);
       return;
     }
-    setIssueAckChecked(Boolean(distributionIssueDialog.resubmittedAt));
-  }, [distributionIssueDialog]);
+    setIssueAckChecked(Boolean(fixDialog.resubmittedAt));
+  }, [fixDialog]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
@@ -278,13 +278,47 @@ export default function ReleasesPage() {
     setRejectDialog({ id });
   };
 
+  const handleStaffDraftAction = (releaseId: string, action: string) => {
+    setStaffActionSelect((prev) => ({ ...prev, [releaseId]: "" }));
+    if (action === "approve") {
+      openApproveDialog(releaseId);
+    } else if (action === "reject") {
+      openRejectDialog(releaseId);
+    } else if (action === "review") {
+      setReviewComment("");
+      setReviewDialog({ id: releaseId });
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewDialog || actionLoading) return;
+    if (!reviewComment.trim()) {
+      toast.error("Review comment is required");
+      return;
+    }
+
+    const { id } = reviewDialog;
+    try {
+      setActionLoading(id);
+      await submitDraftReview(id, reviewComment.trim());
+      toast.success("Review submitted — artist has been notified");
+      setReviewDialog(null);
+      setReviewComment("");
+      await fetchReleases();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to submit review"));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const openDistributeDialog = (id: string) => {
     setConfirmDialog({ type: "distribute", id });
   };
 
   const handleAcknowledgeDistributionIssue = async () => {
-    if (!distributionIssueDialog || issueAckSubmitting) return;
-    if (distributionIssueDialog.resubmittedAt) return;
+    if (!fixDialog || issueAckSubmitting || fixDialog.kind !== "distribution") return;
+    if (fixDialog.resubmittedAt) return;
     if (!issueAckChecked) {
       toast.error("Please confirm you have fixed the suggested issue");
       return;
@@ -292,9 +326,9 @@ export default function ReleasesPage() {
 
     setIssueAckSubmitting(true);
     try {
-      await acknowledgeDistributionIssue(distributionIssueDialog.id);
+      await acknowledgeDistributionIssue(fixDialog.id);
       toast.success("Fix submitted — waiting for RM review");
-      setDistributionIssueDialog(null);
+      setFixDialog(null);
       await fetchReleases();
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to submit fix"));
@@ -303,15 +337,44 @@ export default function ReleasesPage() {
     }
   };
 
+  const handleAcknowledgeDraftReview = async () => {
+    if (!fixDialog || issueAckSubmitting || fixDialog.kind !== "draft") return;
+    if (fixDialog.resubmittedAt) return;
+    if (!issueAckChecked) {
+      toast.error("Please confirm you have fixed the suggested issues");
+      return;
+    }
+
+    setIssueAckSubmitting(true);
+    try {
+      await acknowledgeDraftReview(fixDialog.id);
+      toast.success("Fix submitted — waiting for RM review");
+      setFixDialog(null);
+      await fetchReleases();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to submit fix"));
+    } finally {
+      setIssueAckSubmitting(false);
+    }
+  };
+
+  const handleSubmitFix = async () => {
+    if (fixDialog?.kind === "draft") {
+      await handleAcknowledgeDraftReview();
+    } else {
+      await handleAcknowledgeDistributionIssue();
+    }
+  };
+
   const handleAcceptDistributionFix = async () => {
-    if (!distributionIssueDialog || issueAcceptSubmitting) return;
-    if (!distributionIssueDialog.resubmittedAt) return;
+    if (!fixDialog || issueAcceptSubmitting || fixDialog.kind !== "distribution") return;
+    if (!fixDialog.resubmittedAt) return;
 
     setIssueAcceptSubmitting(true);
     try {
-      await acceptDistributionFix(distributionIssueDialog.id);
+      await acceptDistributionFix(fixDialog.id);
       toast.success("Fix accepted — release moved to Submitted");
-      setDistributionIssueDialog(null);
+      setFixDialog(null);
       await fetchReleases();
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to accept fix"));
@@ -617,7 +680,8 @@ export default function ReleasesPage() {
                                     className="inline-flex flex-col items-start gap-0.5 rounded-lg text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                     title="View distribution issue"
                                     onClick={() =>
-                                      setDistributionIssueDialog({
+                                      setFixDialog({
+                                        kind: "distribution",
                                         id: release._id,
                                         title: release.title,
                                         note: release.distributionIssueNote!.trim(),
@@ -640,6 +704,31 @@ export default function ReleasesPage() {
                                         : "Action needed"}
                                     </span>
                                   </button>
+                                ) : release.status === "Draft" && release.draftReviewNote?.trim() ? (
+                                  <button
+                                    type="button"
+                                    className="inline-flex flex-col items-start gap-0.5 rounded-lg text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                    title="View draft review"
+                                    onClick={() =>
+                                      setFixDialog({
+                                        kind: "draft",
+                                        id: release._id,
+                                        title: release.title,
+                                        note: release.draftReviewNote!.trim(),
+                                        resubmittedAt: release.draftReviewResubmittedAt ?? null,
+                                      })
+                                    }
+                                  >
+                                    <span className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                                      <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
+                                      Draft
+                                    </span>
+                                    <span className="pl-1 text-[10px] font-semibold text-sky-600/90 dark:text-sky-400/90 underline-offset-2 hover:underline">
+                                      {release.draftReviewResubmittedAt
+                                        ? "Awaiting RM review"
+                                        : "Review feedback"}
+                                    </span>
+                                  </button>
                                 ) : (
                                   <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}>
                                     <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
@@ -658,6 +747,16 @@ export default function ReleasesPage() {
                                           ? `Artist marked as fixed on ${new Date(release.distributionIssueResubmittedAt).toLocaleString()}`
                                           : "Artist marked as fixed"
                                       }
+                                    >
+                                      Artist fixed
+                                    </span>
+                                  )}
+                                {canManage &&
+                                  release.draftReviewResubmittedAt &&
+                                  release.draftReviewNote?.trim() && (
+                                    <span
+                                      className="inline-flex items-center rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                      title={`Artist marked as fixed on ${new Date(release.draftReviewResubmittedAt).toLocaleString()}`}
                                     >
                                       Artist fixed
                                     </span>
@@ -725,12 +824,27 @@ export default function ReleasesPage() {
                                    </Button>
                                  )}
                                  {canManage && release.status === "Draft" && (
-                                   <Button variant="ghost" size="sm" onClick={() => openApproveDialog(release._id)} disabled={actionLoading === release._id} className="text-purple-500 hover:bg-purple-500/10" title="Submit for processing">
-                                     {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                                   </Button>
+                                   <Select
+                                     value={staffActionSelect[release._id] || ""}
+                                     onValueChange={(value) =>
+                                       handleStaffDraftAction(release._id, value)
+                                     }
+                                     disabled={actionLoading === release._id}
+                                   >
+                                     <SelectTrigger
+                                       className="h-8 w-[130px] text-xs font-semibold bg-background/50 border-border/50"
+                                       title="Staff actions"
+                                     >
+                                       <SelectValue placeholder="Actions" />
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                       <SelectItem value="approve">Approve</SelectItem>
+                                       <SelectItem value="reject">Reject</SelectItem>
+                                       <SelectItem value="review">Review</SelectItem>
+                                     </SelectContent>
+                                   </Select>
                                  )}
-                                 {canManage &&
-                                   (release.status === "Draft" || release.status === "In Process") && (
+                                 {canManage && release.status === "In Process" && (
                                    <Button variant="ghost" size="sm" onClick={() => openRejectDialog(release._id)} disabled={actionLoading === release._id} className="text-red-500 hover:bg-red-500/10" title="Reject">
                                      {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                                    </Button>
@@ -903,70 +1017,83 @@ export default function ReleasesPage() {
         </Dialog>
 
         <Dialog
-          open={distributionIssueDialog !== null}
+          open={fixDialog !== null}
           onOpenChange={(open) => {
             if (!open && !issueAckSubmitting && !issueAcceptSubmitting) {
-              setDistributionIssueDialog(null);
+              setFixDialog(null);
             }
           }}
         >
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Distribution issue</DialogTitle>
+              <DialogTitle>
+                {fixDialog?.kind === "draft" ? "Draft review feedback" : "Distribution issue"}
+              </DialogTitle>
               <DialogDescription>
-                {distributionIssueDialog?.title
-                  ? `What needs fixing on "${distributionIssueDialog.title}".`
+                {fixDialog?.title
+                  ? `What needs fixing on "${fixDialog.title}".`
                   : "What needs fixing on this release."}
               </DialogDescription>
             </DialogHeader>
-            <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
-              <p className="whitespace-pre-wrap text-sm text-foreground">
-                {distributionIssueDialog?.note}
-              </p>
+            <div
+              className={`max-h-[50vh] overflow-y-auto rounded-lg border p-4 ${
+                fixDialog?.kind === "draft"
+                  ? "border-sky-500/20 bg-sky-500/5"
+                  : "border-amber-500/20 bg-amber-500/5"
+              }`}
+            >
+              <p className="whitespace-pre-wrap text-sm text-foreground">{fixDialog?.note}</p>
             </div>
-            {canManage && distributionIssueDialog?.resubmittedAt ? (
+            {canManage && fixDialog?.resubmittedAt ? (
               <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
                 <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                   Artist marked this as fixed
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {new Date(distributionIssueDialog.resubmittedAt).toLocaleString()} — accept to
-                  move the release to Submitted.
+                  {new Date(fixDialog.resubmittedAt).toLocaleString()}
+                  {fixDialog.kind === "draft"
+                    ? " — use Approve from Actions to submit for processing."
+                    : " — accept to move the release to Submitted."}
                 </p>
               </div>
             ) : null}
-            {distributionIssueDialog?.id && !canManage ? (
+            {fixDialog?.id && !canManage ? (
               <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
                 <label
                   className={`flex items-start gap-3 ${
-                    distributionIssueDialog.resubmittedAt
-                      ? "cursor-default opacity-90"
-                      : "cursor-pointer"
+                    fixDialog.resubmittedAt ? "cursor-default opacity-90" : "cursor-pointer"
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={issueAckChecked}
-                    disabled={Boolean(distributionIssueDialog.resubmittedAt) || issueAckSubmitting}
+                    disabled={Boolean(fixDialog.resubmittedAt) || issueAckSubmitting}
                     onChange={(event) => setIssueAckChecked(event.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-border accent-amber-500"
+                    className={`mt-0.5 h-4 w-4 rounded border-border ${
+                      fixDialog.kind === "draft" ? "accent-sky-500" : "accent-amber-500"
+                    }`}
                   />
                   <span className="text-sm text-foreground">{DISTRIBUTION_ISSUE_ACK_LABEL}</span>
                 </label>
-                {distributionIssueDialog.resubmittedAt ? (
+                {fixDialog.resubmittedAt ? (
                   <p className="text-xs text-emerald-600 dark:text-emerald-400">
                     Fix submitted — waiting for RM review. You cannot change this confirmation.
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    Edit the release first if needed, then confirm. Status stays In Process until RM
-                    accepts.
+                    Edit the release first if needed, then confirm. Status stays{" "}
+                    {fixDialog.kind === "draft" ? "Draft" : "In Process"} until RM{" "}
+                    {fixDialog.kind === "draft" ? "approves" : "accepts"}.
                   </p>
                 )}
-                {!distributionIssueDialog.resubmittedAt && distributionIssueDialog.id ? (
+                {!fixDialog.resubmittedAt ? (
                   <Link
-                    href={`/dashboard/upload?edit=${distributionIssueDialog.id}`}
-                    className="inline-flex text-xs font-semibold text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
+                    href={`/dashboard/upload?edit=${fixDialog.id}`}
+                    className={`inline-flex text-xs font-semibold underline-offset-2 hover:underline ${
+                      fixDialog.kind === "draft"
+                        ? "text-sky-600 dark:text-sky-400"
+                        : "text-amber-600 dark:text-amber-400"
+                    }`}
                   >
                     Edit release to fix
                   </Link>
@@ -976,18 +1103,13 @@ export default function ReleasesPage() {
             <DialogFooter className="gap-2 sm:gap-0">
               <Button
                 variant="outline"
-                onClick={() => setDistributionIssueDialog(null)}
+                onClick={() => setFixDialog(null)}
                 disabled={issueAckSubmitting || issueAcceptSubmitting}
               >
                 Close
               </Button>
-              {distributionIssueDialog?.id &&
-              canManage &&
-              distributionIssueDialog.resubmittedAt ? (
-                <Button
-                  onClick={handleAcceptDistributionFix}
-                  disabled={issueAcceptSubmitting}
-                >
+              {fixDialog?.id && canManage && fixDialog.resubmittedAt && fixDialog.kind === "distribution" ? (
+                <Button onClick={handleAcceptDistributionFix} disabled={issueAcceptSubmitting}>
                   {issueAcceptSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -998,13 +1120,8 @@ export default function ReleasesPage() {
                   )}
                 </Button>
               ) : null}
-              {distributionIssueDialog?.id &&
-              !canManage &&
-              !distributionIssueDialog.resubmittedAt ? (
-                <Button
-                  onClick={handleAcknowledgeDistributionIssue}
-                  disabled={issueAckSubmitting || !issueAckChecked}
-                >
+              {fixDialog?.id && !canManage && !fixDialog.resubmittedAt ? (
+                <Button onClick={handleSubmitFix} disabled={issueAckSubmitting || !issueAckChecked}>
                   {issueAckSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -1069,6 +1186,60 @@ export default function ReleasesPage() {
             </div>
             <DialogFooter>
               <Button onClick={() => setUploadWarningDialog(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={reviewDialog !== null}
+          onOpenChange={(open) => {
+            if (!open && !actionLoading) {
+              setReviewDialog(null);
+              setReviewComment("");
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Submit draft review</DialogTitle>
+              <DialogDescription>
+                Add feedback for the artist. They will be emailed and can fix and resubmit.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="What needs to be fixed or updated"
+              rows={4}
+              disabled={!!reviewDialog && actionLoading === reviewDialog.id}
+            />
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setReviewDialog(null);
+                  setReviewComment("");
+                }}
+                disabled={!!reviewDialog && actionLoading === reviewDialog.id}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitReview}
+                disabled={
+                  !!reviewDialog &&
+                  (actionLoading === reviewDialog.id || !reviewComment.trim())
+                }
+              >
+                {reviewDialog && actionLoading === reviewDialog.id ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting…
+                  </>
+                ) : (
+                  "Submit review"
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

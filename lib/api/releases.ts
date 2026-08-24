@@ -217,6 +217,8 @@ export interface Release {
   distributionIssueDetectedAt?: string | null;
   distributionIssueResubmittedAt?: string | null;
   distributionIssueResolvedAt?: string | null;
+  draftReviewNote?: string | null;
+  draftReviewResubmittedAt?: string | null;
   /**
    * Upload-time warnings the artist acknowledged (duplicate audio / cover art).
    * Separate from distributionIssueNote (PDL/COSMOS).
@@ -428,6 +430,25 @@ export const acknowledgeDistributionIssue = async (id: string): Promise<Release>
 /** RM accepts artist fix → Submitted. */
 export const acceptDistributionFix = async (id: string): Promise<Release> => {
   const response = await apiClient.post<Release>(`/releases/${id}/accept-distribution-fix`);
+  return normalizeRelease(response.data);
+};
+
+/** RM submits draft review feedback (stays Draft, emails artist). */
+export const submitDraftReview = async (
+  id: string,
+  comment: string,
+): Promise<Release> => {
+  const response = await apiClient.post<Release>(`/releases/${id}/submit-draft-review`, {
+    comment,
+  });
+  return normalizeRelease(response.data);
+};
+
+/** Artist confirms they fixed draft review feedback (stays Draft). */
+export const acknowledgeDraftReview = async (id: string): Promise<Release> => {
+  const response = await apiClient.post<Release>(
+    `/releases/${id}/acknowledge-draft-review`,
+  );
   return normalizeRelease(response.data);
 };
 

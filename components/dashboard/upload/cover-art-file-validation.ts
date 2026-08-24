@@ -33,7 +33,8 @@ export function getCoverArtMaxSizeMB(rules?: CoverArtFieldRules): number {
   return rules?.maxFileSizeMB ?? 10;
 }
 
-export const COVER_ART_MIN_DIMENSION_PX = 3000;
+export const COVER_ART_MIN_DIMENSION_PX = 1500;
+export const COVER_ART_MAX_DIMENSION_PX = 6000;
 
 export function isExistingUnchangedCoverArt(
   coverArt: unknown,
@@ -48,11 +49,19 @@ export function validateCoverArtDimensions(
   width: number,
   height: number,
   minPx: number = COVER_ART_MIN_DIMENSION_PX,
+  maxPx: number = COVER_ART_MAX_DIMENSION_PX,
 ): { valid: true } | { valid: false; message: string } {
   if (width < minPx || height < minPx) {
     return {
       valid: false,
       message: `Image resolution too low. Minimum ${minPx}x${minPx}px required. Current: ${width}x${height}px`,
+    };
+  }
+
+  if (width > maxPx || height > maxPx) {
+    return {
+      valid: false,
+      message: `Image resolution too high. Maximum ${maxPx}x${maxPx}px allowed. Current: ${width}x${height}px`,
     };
   }
 

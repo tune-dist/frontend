@@ -17,6 +17,8 @@ import {
     loadCoverArtImage,
     validateCoverArt,
     isExistingUnchangedCoverArt,
+    COVER_ART_MIN_DIMENSION_PX,
+    COVER_ART_MAX_DIMENSION_PX,
 } from './cover-art-file-validation'
 import { getErrorMessage } from '@/lib/get-error-message'
 
@@ -79,8 +81,8 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
     const requirements = useMemo(() => [
         {
             id: 'resolution',
-            label: 'HD Resolution (3000x3000px minimum)',
-            codes: ['LOW_RESOLUTION', 'CANNOT_READ_DIMENSIONS']
+            label: 'Resolution (1500×1500 to 6000×6000 px)',
+            codes: ['LOW_RESOLUTION', 'HIGH_RESOLUTION', 'CANNOT_READ_DIMENSIONS']
         },
         {
             id: 'aspectRatio',
@@ -475,7 +477,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 )}
 
                 <p className="text-sm text-muted-foreground text-center pt-4">
-                    Supported formats: {allowedCoverArtTypes}. Max size: {maxCoverArtSizeMB}MB.
+                    Supported formats: {allowedCoverArtTypes}. Dimensions: {COVER_ART_MIN_DIMENSION_PX}×{COVER_ART_MIN_DIMENSION_PX} to {COVER_ART_MAX_DIMENSION_PX}×{COVER_ART_MAX_DIMENSION_PX}px (square). Max size: {maxCoverArtSizeMB}MB.
                 </p>
             </div>
 
