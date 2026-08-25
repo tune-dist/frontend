@@ -125,6 +125,7 @@ export default function UploadPage() {
   const [isLoadingEdit, setIsLoadingEdit] = useState(isEditMode);
   const [showCancelEditDialog, setShowCancelEditDialog] = useState(false);
   const [releaseDateAutoCorrected, setReleaseDateAutoCorrected] = useState(false);
+  const [editReleaseStatus, setEditReleaseStatus] = useState<string | null>(null);
   const isHydratingRef = useRef(false);
   const editBaselineRef = useRef<ReleaseWriteSnapshot | null>(null);
 
@@ -238,6 +239,7 @@ export default function UploadPage() {
           router.push("/dashboard/releases");
           return;
         }
+        setEditReleaseStatus(release.status ?? null);
 
         const formValues = hydrateDraftForm(release);
         let releaseDate = formValues.releaseDate || "";
@@ -1108,7 +1110,12 @@ export default function UploadPage() {
       case 1:
         return <BasicInfoStep {...commonProps} />;
       case 2:
-        return <AudioFileStep {...commonProps} />;
+        return (
+          <AudioFileStep
+            {...commonProps}
+            lockTrackStructure={isEditMode && editReleaseStatus === "In Process" && form.watch("format") !== "single"}
+          />
+        );
       case 3:
         return (
           <CreditsStep

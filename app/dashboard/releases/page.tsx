@@ -148,6 +148,7 @@ export default function ReleasesPage() {
     title: string;
     note: string;
     resubmittedAt?: string | null;
+    status?: string;
   } | null>(null);
   const [issueAckChecked, setIssueAckChecked] = useState(false);
   const [issueAckSubmitting, setIssueAckSubmitting] = useState(false);
@@ -278,6 +279,11 @@ export default function ReleasesPage() {
     setRejectDialog({ id });
   };
 
+  const openReviewDialog = (releaseId: string) => {
+    setReviewComment("");
+    setReviewDialog({ id: releaseId });
+  };
+
   const handleStaffDraftAction = (releaseId: string, action: string) => {
     setStaffActionSelect((prev) => ({ ...prev, [releaseId]: "" }));
     if (action === "approve") {
@@ -285,8 +291,7 @@ export default function ReleasesPage() {
     } else if (action === "reject") {
       openRejectDialog(releaseId);
     } else if (action === "review") {
-      setReviewComment("");
-      setReviewDialog({ id: releaseId });
+      openReviewDialog(releaseId);
     }
   };
 
@@ -704,11 +709,12 @@ export default function ReleasesPage() {
                                         : "Action needed"}
                                     </span>
                                   </button>
-                                ) : release.status === "Draft" && release.draftReviewNote?.trim() ? (
+                                ) : (release.status === "Draft" || release.status === "In Process") &&
+                                  release.draftReviewNote?.trim() ? (
                                   <button
                                     type="button"
                                     className="inline-flex flex-col items-start gap-0.5 rounded-lg text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                                    title="View draft review"
+                                    title="View admin review"
                                     onClick={() =>
                                       setFixDialog({
                                         kind: "draft",
@@ -716,12 +722,13 @@ export default function ReleasesPage() {
                                         title: release.title,
                                         note: release.draftReviewNote!.trim(),
                                         resubmittedAt: release.draftReviewResubmittedAt ?? null,
+                                        status: release.status,
                                       })
                                     }
                                   >
                                     <span className="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-sky-500/15 text-sky-600 dark:text-sky-400">
                                       <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
-                                      Draft
+                                      {release.status}
                                     </span>
                                     <span className="pl-1 text-[10px] font-semibold text-sky-600/90 dark:text-sky-400/90 underline-offset-2 hover:underline">
                                       {release.draftReviewResubmittedAt
@@ -845,9 +852,21 @@ export default function ReleasesPage() {
                                    </Select>
                                  )}
                                  {canManage && release.status === "In Process" && (
-                                   <Button variant="ghost" size="sm" onClick={() => openRejectDialog(release._id)} disabled={actionLoading === release._id} className="text-red-500 hover:bg-red-500/10" title="Reject">
-                                     {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
-                                   </Button>
+                                   <>
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() => openReviewDialog(release._id)}
+                                       disabled={actionLoading === release._id}
+                                       className="text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                                       title="Submit review feedback"
+                                     >
+                                       Review
+                                     </Button>
+                                     <Button variant="ghost" size="sm" onClick={() => openRejectDialog(release._id)} disabled={actionLoading === release._id} className="text-red-500 hover:bg-red-500/10" title="Reject">
+                                       {actionLoading === release._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                                     </Button>
+                                   </>
                                  )}
                                  {/*
                                    Distribute: shown after processing step 1 succeeds
@@ -1027,7 +1046,7 @@ export default function ReleasesPage() {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>
-                {fixDialog?.kind === "draft" ? "Draft review feedback" : "Distribution issue"}
+                {fixDialog?.kind === "draft" ? "Admin review feedback" : "Distribution issue"}
               </DialogTitle>
               <DialogDescription>
                 {fixDialog?.title
@@ -1052,7 +1071,9 @@ export default function ReleasesPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   {new Date(fixDialog.resubmittedAt).toLocaleString()}
                   {fixDialog.kind === "draft"
-                    ? " — use Approve from Actions to submit for processing."
+                    ? fixDialog.status === "In Process"
+                      ? " — use Distribute when ready."
+                      : " — use Approve from Actions to submit for processing."
                     : " — accept to move the release to Submitted."}
                 </p>
               </div>
@@ -1082,8 +1103,12 @@ export default function ReleasesPage() {
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     Edit the release first if needed, then confirm. Status stays{" "}
-                    {fixDialog.kind === "draft" ? "Draft" : "In Process"} until RM{" "}
-                    {fixDialog.kind === "draft" ? "approves" : "accepts"}.
+                    {fixDialog.kind === "draft" ? fixDialog.status ?? "Draft" : "In Process"} until RM{" "}
+                    {fixDialog.kind === "draft"
+                      ? fixDialog.status === "In Process"
+                        ? "reviews"
+                        : "approves"
+                      : "accepts"}.
                   </p>
                 )}
                 {!fixDialog.resubmittedAt ? (
@@ -1201,9 +1226,9 @@ export default function ReleasesPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Submit draft review</DialogTitle>
+              <DialogTitle>Submit admin review</DialogTitle>
               <DialogDescription>
-                Add feedback for the artist. They will be emailed and can fix and resubmit.
+                Add feedback for the artist. They will be emailed and can fix while the release stays in its current status.
               </DialogDescription>
             </DialogHeader>
             <Textarea

@@ -7,6 +7,8 @@ import {
     validateWavAudioSpecs,
 } from '@/lib/upload/audio-format'
 import { isPlanInactiveError } from '@/lib/plan-inactive'
+import { getErrorMessage } from '@/lib/get-error-message'
+import { getMinTrackDurationError } from './crbt-validation'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
 
@@ -21,20 +23,32 @@ import { motion } from 'framer-motion'
 interface AudioFileStepProps {
     formData?: UploadFormData
     setFormData?: (data: UploadFormData) => void
+    /** In Process PDL sync cannot add/remove album tracks yet — only replace audio per track. */
+    lockTrackStructure?: boolean
 }
 
-export default function AudioFileStep({ formData: propFormData, setFormData: propSetFormData }: AudioFileStepProps) {
+export default function AudioFileStep({
+    formData: propFormData,
+    setFormData: propSetFormData,
+    lockTrackStructure = false,
+}: AudioFileStepProps) {
     const { setValue, watch, getValues, formState: { errors } } = useFormContext<UploadFormData>()
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
     const [isUploading, setIsUploading] = useState(false)
     const [activeFileId, setActiveFileId] = useState<string | null>(null)
     const format = watch('format')
     const audioFile = watch('audioFile')
-    const audioFileName = getValues('title')
+    const releaseTitle = watch('title')
+    const displayAudioName =
+        (audioFile as AudioFile | null)?.fileName?.trim() ||
+        releaseTitle?.trim() ||
+        'Audio file'
     const audioFiles = watch('audioFiles') || []
     const tracks = watch('tracks') || []
 
-    const parseWavHeader = async (file: File): Promise<{ sampleRate: number, bitDepth: number, channels: number }> => {
+    const parseWavHeader = async (
+        file: File,
+    ): Promise<{ sampleRate: number; bitDepth: number; channels: number; durationSec?: number }> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -55,7 +69,12 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
                 if (wave !== 'WAVE') return reject(new Error('Invalid audio file format (Header missing WAVE)'));
 
-                // Search for the 'fmt ' chunk dynamically among header chunks (handles JUNK, bext, LIST, etc.)
+                let sampleRate = 0;
+                let bitDepth = 16;
+                let channels = 0;
+                let dataChunkSize = 0;
+
+                // Search chunks dynamically (handles JUNK, bext, LIST, etc.)
                 let offset = 12;
                 while (offset + 8 <= view.byteLength) {
                     const chunkId = String.fromCharCode(
@@ -67,40 +86,46 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                     const chunkSize = view.getUint32(offset + 4, true);
 
                     if (chunkId === 'fmt ') {
-                        // The 'fmt ' chunk must be at least 14 bytes for basic audio specs
                         if (offset + 8 + 14 > view.byteLength) {
                             return reject(new Error('Corrupted WAV format chunk'));
                         }
 
-                        // Offset inside fmt chunk:
-                        // +0: audioFormat (2 bytes)
-                        // +2: numChannels (2 bytes)
-                        // +4: sampleRate (4 bytes)
-                        // +8: byteRate (4 bytes)
-                        // +12: blockAlign (2 bytes)
-                        // +14: bitsPerSample (2 bytes)
-                        const channels = view.getUint16(offset + 10, true);
-                        const sampleRate = view.getUint32(offset + 12, true);
-                        const bitDepth = offset + 8 + 16 <= view.byteLength
+                        channels = view.getUint16(offset + 10, true);
+                        sampleRate = view.getUint32(offset + 12, true);
+                        bitDepth = offset + 8 + 16 <= view.byteLength
                             ? view.getUint16(offset + 22, true)
                             : 16;
-
-                        return resolve({ sampleRate, bitDepth, channels });
+                    } else if (chunkId === 'data') {
+                        dataChunkSize = chunkSize;
                     }
 
-                    // Move to the next chunk (chunks are 2-byte aligned in RIFF specification)
                     const advance = 8 + chunkSize + (chunkSize % 2 !== 0 ? 1 : 0);
-                    if (advance <= 0) break; // Avoid infinite loops on corrupted chunk sizes
+                    if (advance <= 0) break;
                     offset += advance;
                 }
 
-                return reject(new Error('Could not find format chunk (fmt ) in WAV file'));
+                if (!sampleRate || !channels) {
+                    return reject(new Error('Could not find format chunk (fmt ) in WAV file'));
+                }
+
+                const bytesPerFrame = channels * (bitDepth / 8);
+                const durationSec =
+                    dataChunkSize > 0 && bytesPerFrame > 0
+                        ? dataChunkSize / bytesPerFrame / sampleRate
+                        : undefined;
+
+                return resolve({ sampleRate, bitDepth, channels, durationSec });
             };
             reader.onerror = () => reject(new Error('Error reading file header'));
-            // Read first 64KB to easily cover any metadata chunks before 'fmt '
             reader.readAsArrayBuffer(file.slice(0, Math.min(file.size, 65536)));
         });
     }
+
+    const formatAudioValidationError = (fileName: string, error: unknown) =>
+        `${fileName}: ${getErrorMessage(
+            error,
+            'Could not validate this audio file. Please check the format and try again.',
+        )}`;
 
     const handleAudioFileChange = async (incomingFiles: File | FileList) => {
         const files = incomingFiles instanceof FileList ? Array.from(incomingFiles) : [incomingFiles]
@@ -124,12 +149,18 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
             // Validate WAV header
             try {
                 const parsingToastId = toast.loading(`Checking audio format for ${file.name}...`)
-                const { sampleRate, bitDepth, channels } = await parseWavHeader(file);
+                const { sampleRate, bitDepth, channels, durationSec } = await parseWavHeader(file);
                 toast.dismiss(parsingToastId)
 
                 const specValidation = validateWavAudioSpecs({ sampleRate, bitDepth, channels });
                 if (!specValidation.valid) {
                     toast.error(specValidation.error || `Invalid audio format for ${file.name}`);
+                    continue;
+                }
+
+                const earlyDurationError = getMinTrackDurationError(durationSec);
+                if (earlyDurationError) {
+                    toast.error(`${file.name}: ${earlyDurationError}`);
                     continue;
                 }
             } catch (error) {
@@ -158,9 +189,16 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                     toast.error(`Duplicate audio detected: ${file.name}. Please review the warning below.`, { duration: 6000 });
                 }
 
+                const durationError = getMinTrackDurationError(result.metaData?.duration);
+                if (durationError) {
+                    toast.error(`${file.name}: ${durationError}`);
+                    continue;
+                }
+
                 // Upload complete, update form
                 if (format === 'single' || !format) {
-                    setValue('audioFile', {
+                    const newAudioFile: AudioFile = {
+                        id: (audioFile as AudioFile | null)?.id || crypto.randomUUID(),
                         file: file,
                         fileName: file.name,
                         size: file.size,
@@ -168,9 +206,30 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                         duration: result.metaData?.duration,
                         resolution: result.metaData?.resolution,
                         hash: result.metaData?.hash,
-                        fingerprint: result.metaData?.fingerprint
-                    }, { shouldValidate: true })
-                    setValue('audioFileName', audioFileName, { shouldValidate: true })
+                        fingerprint: result.metaData?.fingerprint,
+                    }
+                    setValue('audioFile', newAudioFile, { shouldValidate: true })
+                    setValue('audioFileName', file.name, { shouldValidate: true })
+
+                    // Single edit hydrates audio into audioFiles[] too — keep both in sync
+                    // or save will still send the old S3 key from tracks[0].audioFileId.
+                    const currentTracks = getValues('tracks') || []
+                    const currentAudioFiles = getValues('audioFiles') || []
+                    if (currentAudioFiles.length > 0) {
+                        const trackAudioId = currentTracks[0]?.audioFileId
+                        const idx = trackAudioId
+                            ? currentAudioFiles.findIndex((af: AudioFile) => af.id === trackAudioId)
+                            : 0
+                        const targetIdx = idx >= 0 ? idx : 0
+                        const updatedAudioFiles = [...currentAudioFiles]
+                        updatedAudioFiles[targetIdx] = {
+                            ...newAudioFile,
+                            id: currentAudioFiles[targetIdx]?.id || newAudioFile.id,
+                        }
+                        setValue('audioFiles', updatedAudioFiles, { shouldValidate: true })
+                    } else {
+                        setValue('audioFiles', [newAudioFile], { shouldValidate: true })
+                    }
                     break
                 } else {
                     const currentAudioFiles = getValues('audioFiles') || []
@@ -206,7 +265,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                 console.error(error)
                 // Plan-inactive shows the global subscribe modal; no extra toast.
                 if (!isPlanInactiveError(error)) {
-                    toast.error(`Validation failed for ${file.name}: ${error.message || 'Unknown error'}`)
+                    toast.error(formatAudioValidationError(file.name, error))
                 }
             } finally {
                 setActiveFileId(null)
@@ -252,6 +311,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
     const handleRemoveAudio = () => {
         setValue('audioFile', null, { shouldValidate: true })
         setValue('audioFileName', '', { shouldValidate: true })
+        setValue('audioFiles', [], { shouldValidate: true })
         setValue('audioDuplicateDetected', false);
         setValue('audioWarningMessage', '');
         setValue('audioConsent', false);
@@ -272,6 +332,113 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
             setValue('audioWarningMessage', '');
             setValue('audioConsent', false);
         }
+    }
+
+    const validateAndPrepareAudioFile = async (file: File) => {
+        if (!file.type.includes('wav') && !file.name.toLowerCase().endsWith('.wav')) {
+            toast.error(`File rejected: ${file.name}. Only WAV files are accepted.`)
+            return null
+        }
+
+        if (file.size > 500 * 1024 * 1024) {
+            toast.error(`File rejected: ${file.name}. Size must be less than 500MB.`)
+            return null
+        }
+
+        try {
+            const parsingToastId = toast.loading(`Checking audio format for ${file.name}...`)
+            const { sampleRate, bitDepth, channels, durationSec } = await parseWavHeader(file);
+            toast.dismiss(parsingToastId)
+
+            const specValidation = validateWavAudioSpecs({ sampleRate, bitDepth, channels });
+            if (!specValidation.valid) {
+                toast.error(specValidation.error || `Invalid audio format for ${file.name}`);
+                return null;
+            }
+
+            const earlyDurationError = getMinTrackDurationError(durationSec);
+            if (earlyDurationError) {
+                toast.error(`${file.name}: ${earlyDurationError}`);
+                return null;
+            }
+        } catch (error) {
+            console.error(error)
+            toast.error(`Failed to validate ${file.name}. Please ensure it is a valid WAV.`)
+            return null
+        }
+
+        const token = Cookies.get(config.tokenKey) || ''
+        const result = await validateAudioOnBackend(
+            file,
+            token,
+            format === 'single' ? getValues('title') : undefined,
+            watch('audioConsent')
+        );
+
+        if (result.status === 'duplicate_warning') {
+            setValue('audioDuplicateDetected', true);
+            setValue('audioWarningMessage', result.message);
+            toast.error(`Duplicate audio detected: ${file.name}. Please review the warning below.`, { duration: 6000 });
+        }
+
+        const durationError = getMinTrackDurationError(result.metaData?.duration);
+        if (durationError) {
+            toast.error(`${file.name}: ${durationError}`);
+            return null;
+        }
+
+        return {
+            file,
+            fileName: file.name,
+            size: file.size,
+            path: '',
+            duration: result.metaData?.duration,
+            resolution: result.metaData?.resolution,
+            hash: result.metaData?.hash,
+            fingerprint: result.metaData?.fingerprint,
+        }
+    }
+
+    const handleReplaceTrackAudio = (trackIndex: number) => {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = 'audio/wav,.wav'
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0]
+            if (!file) return
+
+            const track = tracks[trackIndex]
+            if (!track?.audioFileId) return
+
+            setIsUploading(true)
+            const fileId = track.audioFileId
+            setActiveFileId(fileId)
+            try {
+                const prepared = await validateAndPrepareAudioFile(file)
+                if (!prepared) return
+
+                const audioIdx = audioFiles.findIndex((af: AudioFile) => af.id === track.audioFileId)
+                if (audioIdx < 0) return
+
+                const updatedAudioFiles = [...audioFiles]
+                updatedAudioFiles[audioIdx] = {
+                    ...updatedAudioFiles[audioIdx],
+                    ...prepared,
+                    id: track.audioFileId,
+                }
+                setValue('audioFiles', updatedAudioFiles, { shouldValidate: true })
+                toast.success(`Validation complete: ${file.name}`)
+            } catch (error: any) {
+                console.error(error)
+                if (!isPlanInactiveError(error)) {
+                    toast.error(formatAudioValidationError(file.name, error))
+                }
+            } finally {
+                setIsUploading(false)
+                setActiveFileId(null)
+            }
+        }
+        input.click()
     }
 
     return (
@@ -331,7 +498,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                         <div className="flex items-center gap-3">
                                             <Music className="h-10 w-10 text-primary" />
                                             <div className="flex-1">
-                                                <p className="font-medium">{audioFileName}</p>
+                                                <p className="font-medium">{displayAudioName}</p>
                                                 {audioFile && (
                                                     <div className="space-y-1">
                                                         <p className="text-sm text-muted-foreground">
@@ -394,7 +561,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                                     <p className="font-medium">{index + 1}. {track.title || 'Untitled'}</p>
                                                     <div className="space-y-1">
                                                         <p className="text-sm text-muted-foreground">
-                                                            {audioFileName}.{audioFile?.fileName.split('.').pop()} • {audioFile?.size ? ((audioFile.size / 1024 / 1024).toFixed(2) + ' MB') : ''}
+                                                            {audioFile?.fileName || 'Untitled'} • {audioFile?.size ? ((audioFile.size / 1024 / 1024).toFixed(2) + ' MB') : ''}
                                                         </p>
                                                         {uploadProgress[audioFile?.id || ''] !== undefined && (
                                                             <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
@@ -409,22 +576,43 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                                         )}
                                                     </div>
                                                 </div>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleRemoveTrack(index)}
-                                                    type="button"
-                                                    className="text-destructive hover:text-destructive"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleReplaceTrackAudio(index)}
+                                                        type="button"
+                                                        disabled={isUploading}
+                                                    >
+                                                        Change File
+                                                    </Button>
+                                                    {!lockTrackStructure && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleRemoveTrack(index)}
+                                                            type="button"
+                                                            className="text-destructive hover:text-destructive"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                         )
                                     })}
                                 </div>
                             )}
 
+                            {lockTrackStructure && (
+                                <div className="p-3 rounded-lg border border-blue-500/20 bg-blue-500/5 text-sm text-blue-300/90">
+                                    In Process releases can replace each track&apos;s audio with <strong>Change File</strong>.
+                                    Adding or removing tracks is not synced to COSMOS yet.
+                                </div>
+                            )}
+
                             {/* Upload Area */}
+                            {!lockTrackStructure && (
                             <div
                                 className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
                                 onClick={handleAudioFileClick}
@@ -454,6 +642,7 @@ export default function AudioFileStep({ formData: propFormData, setFormData: pro
                                     Click to select or drag audio file here
                                 </p>
                             </div>
+                            )}
                         </div>
                     )}
                 </div>

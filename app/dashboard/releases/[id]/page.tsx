@@ -409,10 +409,12 @@ export default function ReleaseDetailsPage() {
                         )}
                       <p className="text-[11px] text-sky-200/60 leading-relaxed">
                         {canManage
-                          ? "Draft review feedback — use Actions to approve when ready."
+                          ? release.status === "In Process"
+                            ? "Admin review feedback — use Distribute when ready."
+                            : "Admin review feedback — use Actions to approve when ready."
                           : release.draftReviewResubmittedAt
-                            ? "You submitted your fix. Status stays Draft until RM approves."
-                            : "Our team reviewed your draft and found items to fix. Update your release, then confirm on the releases page."}
+                            ? `You submitted your fix. Status stays ${release.status} until RM ${release.status === "In Process" ? "reviews" : "approves"}.`
+                            : "Our team reviewed your release and found items to fix. Update your release, then confirm on the releases page."}
                       </p>
                       <p className="text-sm text-sky-100/90 leading-relaxed whitespace-pre-wrap">
                         {release.draftReviewNote.trim()}

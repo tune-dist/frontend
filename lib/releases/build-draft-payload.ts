@@ -367,27 +367,42 @@ export async function buildDraftPayload(
     const track = trackRows[index];
     let linked = track.audioFileId ? audioMap.get(track.audioFileId) : undefined;
 
-    if (!linked && isSingle && index === 0 && form.audioFile) {
+    if (isSingle && index === 0 && form.audioFile) {
       const rootAudioFile = form.audioFile as FormAudioFile;
-      if (rootAudioFile.file instanceof File && !rootAudioFile.path) {
-        await runUpload(`Uploading ${form.title || 'audio'}…`, (onFileProgress) =>
-          uploadFileInChunks(
-            rootAudioFile.file!,
-            token,
-            onFileProgress,
-            'audio',
-            form.artistName,
+      const rootStorageKey = toStorageKey(rootAudioFile.path);
+      const linkedStorageKey = linked ? toStorageKey(linked.path) : undefined;
+      const pendingRootUpload =
+        rootAudioFile.file instanceof File && !rootStorageKey;
+      const rootDiffersFromLinked =
+        !!rootStorageKey && rootStorageKey !== linkedStorageKey;
+
+      if (pendingRootUpload || rootDiffersFromLinked || !linked) {
+        if (pendingRootUpload) {
+          const uploadTitle = resolveAudioUploadTitle(
+            rootAudioFile,
+            trackRows,
+            0,
             form.title,
-            form.audioConsent,
-          ).then((result) => {
-            rootAudioFile.path = result.path;
-            rootAudioFile.duration = result.metaData?.duration;
-            rootAudioFile.hash = result.metaData?.hash;
-            rootAudioFile.fingerprint = result.metaData?.fingerprint;
-          }),
-        );
+          );
+          await runUpload(`Uploading ${uploadTitle}…`, (onFileProgress) =>
+            uploadFileInChunks(
+              rootAudioFile.file!,
+              token,
+              onFileProgress,
+              'audio',
+              form.artistName,
+              uploadTitle,
+              form.audioConsent,
+            ).then((result) => {
+              rootAudioFile.path = result.path;
+              rootAudioFile.duration = result.metaData?.duration;
+              rootAudioFile.hash = result.metaData?.hash;
+              rootAudioFile.fingerprint = result.metaData?.fingerprint;
+            }),
+          );
+        }
+        linked = rootAudioFile;
       }
-      linked = rootAudioFile;
     }
 
     const audio = linked ? toDraftMediaAsset(linked, track.title) : null;

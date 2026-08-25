@@ -433,7 +433,7 @@ export const acceptDistributionFix = async (id: string): Promise<Release> => {
   return normalizeRelease(response.data);
 };
 
-/** RM submits draft review feedback (stays Draft, emails artist). */
+/** RM submits admin review feedback (Draft or In Process; emails artist). */
 export const submitDraftReview = async (
   id: string,
   comment: string,
@@ -444,7 +444,7 @@ export const submitDraftReview = async (
   return normalizeRelease(response.data);
 };
 
-/** Artist confirms they fixed draft review feedback (stays Draft). */
+/** Artist confirms they fixed admin review feedback (stays Draft or In Process). */
 export const acknowledgeDraftReview = async (id: string): Promise<Release> => {
   const response = await apiClient.post<Release>(
     `/releases/${id}/acknowledge-draft-review`,
