@@ -16,9 +16,12 @@ import {
   FileAudio,
   Disc3,
   AudioWaveform,
-  Hash,
   Flag,
   AlertTriangle,
+  Clock,
+  Users,
+  Mic2,
+  Layers,
 } from "lucide-react";
 import { getRelease, Release, TrackPayload } from "@/lib/api/releases";
 import PageLoading from "@/components/dashboard/page-loading";
@@ -37,10 +40,6 @@ import {
   getReleaseStatusColor,
   isRmEditableRelease,
 } from "@/lib/release-status";
-import {
-  formatReleaseCodeDisplay,
-  getTrackIsrcDisplay,
-} from "@/lib/release-codes";
 import { isReleaseNoLyrics } from "@/components/dashboard/upload/genre-language";
 import { PlatformReleaseIcons } from "@/components/releases/platform-release-icons";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +52,17 @@ import {
   hasDistributionIssueResubmitted,
   DISTRIBUTION_ISSUE_ACK_LABEL,
 } from "@/lib/distribution-issue";
+
+function formatDisplayDate(value?: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString();
+}
+
+function joinNonEmpty(items?: string[]): string | null {
+  const filtered = items?.map((item) => item?.trim()).filter(Boolean) ?? [];
+  return filtered.length > 0 ? filtered.join(", ") : null;
+}
 
 export default function ReleaseDetailsPage() {
   const params = useParams();
@@ -131,6 +141,62 @@ export default function ReleaseDetailsPage() {
       !releaseNoLyrics && release.writers?.filter((w) => w?.trim()).length
         ? release.writers.filter((w) => w?.trim()).join(", ")
         : null;
+    const composersDisplay =
+      joinNonEmpty(release.composers) ||
+      joinNonEmpty(
+        release.tracks?.flatMap((track) => track.composers ?? []) ?? [],
+      );
+    const featuredDisplay = joinNonEmpty(release.featuredArtists);
+    const versionDisplay =
+      typeof releaseAny.version === "string" ? releaseAny.version.trim() : null;
+    const moodDisplay =
+      typeof releaseAny.mood === "string"
+        ? releaseAny.mood.trim()
+        : joinNonEmpty(release.tracks?.map((track) => track.mood ?? "") ?? []);
+    const socialLinks = [
+      { label: "Spotify", value: releaseAny.spotifyProfile?.url || releaseAny.spotifyProfile?.uri },
+      { label: "Apple Music", value: releaseAny.appleMusicProfile?.url },
+      { label: "YouTube Music", value: releaseAny.youtubeMusicProfile?.url },
+      { label: "Instagram", value: releaseAny.instagramProfileUrl || releaseAny.instagramProfile },
+      { label: "Facebook", value: releaseAny.facebookProfileUrl || releaseAny.facebookProfile },
+    ].filter((link) => typeof link.value === "string" && link.value.trim().length > 0);
+
+    const infoCards = [
+      { icon: <Disc />, label: "Type", value: release.releaseType },
+      { icon: <Globe />, label: "Language", value: release.language },
+      {
+        icon: <Calendar />,
+        label: "Release Date",
+        value: formatDisplayDate(release.releaseDate),
+      },
+      {
+        icon: <Calendar />,
+        label: "Original Date",
+        value: formatDisplayDate(release.originalReleaseDate),
+      },
+      { icon: <Disc3 />, label: "Label", value: release.labelName },
+      { icon: <Music />, label: "Genre", value: releaseAny.primaryGenre },
+      { icon: <Music />, label: "Sub-genre", value: releaseAny.secondaryGenre },
+      { icon: <Layers />, label: "Version", value: versionDisplay },
+      {
+        icon: <Clock />,
+        label: "Recording Year",
+        value: release.recordingYear ? String(release.recordingYear) : null,
+      },
+      { icon: <Music />, label: "Mood", value: moodDisplay },
+      {
+        icon: <Flag />,
+        label: "Explicit",
+        value: release.isExplicit ? "Yes" : "No",
+      },
+      { icon: <Users />, label: "Featured", value: featuredDisplay },
+      ...(writersDisplay
+        ? [{ icon: <User />, label: "Lyricist", value: writersDisplay }]
+        : []),
+      ...(composersDisplay
+        ? [{ icon: <Mic2 />, label: "Composer", value: composersDisplay }]
+        : []),
+    ].filter((item) => item.value && item.value !== "");
 
     content = (
       <div className="space-y-8 pb-24">
@@ -188,16 +254,7 @@ export default function ReleaseDetailsPage() {
 
         {/* Release Info Grid */}
         <div className="flex flex-wrap gap-4 w-full">
-          {[
-            { icon: <Disc />, label: "Type", value: release.releaseType },
-            { icon: <Globe />, label: "Language", value: release.language },
-            { icon: <Calendar />, label: "Date", value: release.releaseDate ? new Date(release.releaseDate).toLocaleDateString() : null },
-            { icon: <Disc3 />, label: "Label", value: release.labelName },
-            { icon: <Hash />, label: "Release ID", value: formatReleaseCodeDisplay(release) },
-            ...(writersDisplay
-              ? [{ icon: <User />, label: "Lyricist", value: writersDisplay }]
-              : []),
-          ].filter(item => item.value && item.value !== "").map((item, idx) => (
+          {infoCards.map((item, idx) => (
             <div key={idx} className="flex-1 min-w-[140px] bg-[#0A0A0B] border border-white/5 rounded-3xl p-5 flex flex-col items-center justify-center text-center group hover:bg-white/[0.02] transition-colors relative overflow-hidden shadow-xl shadow-black/20">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -210,8 +267,8 @@ export default function ReleaseDetailsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Cover Art */}
-          <div className="lg:col-span-4 space-y-6">
+          {/* Left Column: Cover Art + Tracklist */}
+          <div className="lg:col-span-5 space-y-6">
             <div className="aspect-square relative rounded-[40px] overflow-hidden bg-[#0A0A0B] border border-white/5 flex items-center justify-center shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] group">
               {release.coverArt ? (
                 <>
@@ -230,32 +287,223 @@ export default function ReleaseDetailsPage() {
               )}
             </div>
 
-            {/* Distribution Details inside left column */}
+            {/* Tracklist under album cover — scrollable for albums */}
+            <div className="bg-[#0A0A0B] border border-white/5 rounded-[32px] p-6 shadow-xl shadow-black/20">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-2xl bg-primary/10 flex items-center justify-center">
+                      <FileAudio className="h-4 w-4 text-primary" />
+                    </div>
+                    Tracklist
+                  </h2>
+                  <p className="text-white/40 mt-1.5 text-xs">
+                    {release.tracks?.length ?? 0} track(s) in this release
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className="max-h-[420px] overflow-y-auto overscroll-contain pr-1 space-y-3 scrollbar-thin"
+                data-lenis-prevent="true"
+              >
+                {release.tracks && release.tracks.length > 0 ? (
+                  release.tracks.map((track: TrackPayload, index: number) => {
+                    const trackWriters = joinNonEmpty(track.writers);
+                    const trackComposers = joinNonEmpty(track.composers);
+                    const trackMeta = [
+                      track.language ? `Language: ${track.language}` : null,
+                      track.primaryGenre ? `Genre: ${track.primaryGenre}` : null,
+                      track.secondaryGenre ? `Sub-genre: ${track.secondaryGenre}` : null,
+                      track.mood ? `Mood: ${track.mood}` : null,
+                      track.isInstrumental ? "Instrumental" : null,
+                      track.featuringArtist ? `Feat. ${track.featuringArtist}` : null,
+                      trackWriters ? `Lyricist: ${trackWriters}` : null,
+                      trackComposers ? `Composer: ${trackComposers}` : null,
+                      track.previewStartTime
+                        ? `Preview: ${track.previewStartTime}s`
+                        : null,
+                    ].filter(Boolean);
+
+                    return (
+                      <div
+                        key={index}
+                        className="p-4 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-colors group space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-9 w-9 rounded-2xl bg-white/5 group-hover:bg-primary/20 transition-colors flex items-center justify-center text-white/50 group-hover:text-primary font-black text-xs shadow-inner shrink-0">
+                              {index + 1}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-white text-sm flex items-center gap-2">
+                                {track.title}
+                                {track.isExplicit && (
+                                  <span className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[9px] font-black tracking-widest leading-none">
+                                    E
+                                  </span>
+                                )}
+                                {track.isInstrumental && (
+                                  <span className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[9px] font-black tracking-widest leading-none">
+                                    INST
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-white/40">{track.artistName}</p>
+                            </div>
+                          </div>
+                          {track.audioFile && (
+                            <a
+                              href={track.audioFile.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-2 rounded-full bg-white/10 hover:bg-primary hover:text-black text-white text-[10px] font-bold tracking-wide transition-all flex items-center gap-1.5 shrink-0 opacity-80 group-hover:opacity-100"
+                            >
+                              <AudioWaveform className="w-3 h-3" />
+                              Download
+                            </a>
+                          )}
+                        </div>
+
+                        {trackMeta.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pl-12">
+                            {trackMeta.map((meta, metaIdx) => (
+                              <span
+                                key={`${index}-${metaIdx}`}
+                                className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 text-white/50 border border-white/5"
+                              >
+                                {meta}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {track.audioFile && (
+                          <TrackAudioPlayer
+                            isActive={activeTrackIndex === index}
+                            isPlaying={activeTrackIndex === index && isPlaying}
+                            loading={loadingTrackIndex === index}
+                            currentTime={currentTime}
+                            duration={duration}
+                            durationHint={track.audioFile.duration}
+                            onToggle={() => {
+                              void toggleTrackPlayback(index, track.audioFile!.url).catch(() => {
+                                toast.error("Could not play this track");
+                              });
+                            }}
+                            onSeekStart={beginSeek}
+                            onSeek={(time) => {
+                              if (activeTrackIndex === index) {
+                                seekTo(time);
+                              }
+                            }}
+                            onSeekEnd={(time) => {
+                              if (activeTrackIndex === index) {
+                                endSeek(time);
+                              }
+                            }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-white/40">
+                    No tracks in this release
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Full release details */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Artists & profiles */}
+            {(release.primaryArtists?.length || socialLinks.length > 0) && (
+              <div className="bg-[#0A0A0B] border border-white/5 rounded-[32px] p-6 space-y-5 shadow-xl shadow-black/20">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" /> Artists & Profiles
+                </h3>
+                {release.primaryArtists && release.primaryArtists.length > 0 && (
+                  <div className="space-y-3">
+                    {release.primaryArtists.map((artist, artistIdx) => (
+                      <div
+                        key={`${artist.name}-${artistIdx}`}
+                        className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-2"
+                      >
+                        <p className="text-sm font-bold text-white">{artist.name}</p>
+                        <div className="flex flex-wrap gap-2 text-[11px]">
+                          {artist.spotifyProfile?.url && (
+                            <a
+                              href={artist.spotifyProfile.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-full bg-white/5 text-white/60 hover:text-primary transition-colors"
+                            >
+                              Spotify
+                            </a>
+                          )}
+                          {artist.appleMusicProfile?.url && (
+                            <a
+                              href={artist.appleMusicProfile.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-full bg-white/5 text-white/60 hover:text-primary transition-colors"
+                            >
+                              Apple Music
+                            </a>
+                          )}
+                          {artist.youtubeMusicProfile?.url && (
+                            <a
+                              href={artist.youtubeMusicProfile.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-full bg-white/5 text-white/60 hover:text-primary transition-colors"
+                            >
+                              YouTube Music
+                            </a>
+                          )}
+                          {artist.instagramProfile && (
+                            <span className="px-2.5 py-1 rounded-full bg-white/5 text-white/50">
+                              Instagram: {artist.instagramProfile}
+                            </span>
+                          )}
+                          {artist.facebookProfile && (
+                            <span className="px-2.5 py-1 rounded-full bg-white/5 text-white/50">
+                              Facebook: {artist.facebookProfile}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {socialLinks.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {socialLinks.map((link) => (
+                      <a
+                        key={link.label}
+                        href={String(link.value)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Distribution Details */}
             <div className="bg-[#0A0A0B] border border-white/5 rounded-[32px] p-6 space-y-6 shadow-xl shadow-black/20">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Globe className="h-5 w-5 text-primary" /> Distribution
               </h3>
 
               <div className="space-y-4">
-                <div>
-                  <h4 className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">
-                    Genres
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {releaseAny.primaryGenre && (
-                      <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                        {releaseAny.primaryGenre}
-                      </span>
-                    )}
-                    {releaseAny.secondaryGenre && (
-                      <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-white/5 text-white/70 border border-white/5">
-                        {releaseAny.secondaryGenre}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-white/5">
+                <div className="pt-0">
                   <h4 className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">
                     Copyrights
                   </h4>
@@ -441,98 +689,6 @@ export default function ReleaseDetailsPage() {
                       )}
                     </div>
                   )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Tracks */}
-          <div className="lg:col-span-8 space-y-6">
-            <div className="bg-[#0A0A0B] border border-white/5 rounded-[40px] p-8 shadow-xl shadow-black/20">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                      <FileAudio className="h-5 w-5 text-primary" />
-                    </div>
-                    Tracklist
-                  </h2>
-                  <p className="text-white/40 mt-2 text-sm">
-                    {release.tracks?.length ?? 0} track(s) in this release
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {release.tracks && release.tracks.length > 0 && (
-                  <div className="space-y-3">
-                    {release.tracks.map((track: TrackPayload, index: number) => (
-                      <div
-                        key={index}
-                        className="p-4 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-colors group space-y-4"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-4 min-w-0">
-                            <div className="h-10 w-10 rounded-2xl bg-white/5 group-hover:bg-primary/20 transition-colors flex items-center justify-center text-white/50 group-hover:text-primary font-black text-sm shadow-inner shrink-0">
-                              {index + 1}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-white text-base flex items-center gap-2">
-                                {track.title}
-                                {track.isExplicit && (
-                                  <span className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 text-[9px] font-black tracking-widest leading-none">
-                                    E
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-sm text-white/40">{track.artistName}</p>
-                              <p className="text-[10px] font-mono text-white/30 mt-1">
-                                ISRC: {getTrackIsrcDisplay(track, release)}
-                              </p>
-                            </div>
-                          </div>
-                          {track.audioFile && (
-                            <a
-                              href={track.audioFile.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-primary hover:text-black text-white text-xs font-bold tracking-wide transition-all flex items-center gap-2 shrink-0 opacity-80 group-hover:opacity-100"
-                            >
-                              <AudioWaveform className="w-3.5 h-3.5" />
-                              Download
-                            </a>
-                          )}
-                        </div>
-
-                        {track.audioFile && (
-                          <TrackAudioPlayer
-                            isActive={activeTrackIndex === index}
-                            isPlaying={activeTrackIndex === index && isPlaying}
-                            loading={loadingTrackIndex === index}
-                            currentTime={currentTime}
-                            duration={duration}
-                            durationHint={track.audioFile.duration}
-                            onToggle={() => {
-                              void toggleTrackPlayback(index, track.audioFile!.url).catch(() => {
-                                toast.error("Could not play this track");
-                              });
-                            }}
-                            onSeekStart={beginSeek}
-                            onSeek={(time) => {
-                              if (activeTrackIndex === index) {
-                                seekTo(time);
-                              }
-                            }}
-                            onSeekEnd={(time) => {
-                              if (activeTrackIndex === index) {
-                                endSeek(time);
-                              }
-                            }}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>

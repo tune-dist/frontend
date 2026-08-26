@@ -1,4 +1,9 @@
-import type { BreakdownDimension, SupportedDspFilter, TrendPeriod } from "@/lib/api/analytics";
+import type {
+  BreakdownDimension,
+  DashboardTrendPeriod,
+  SupportedDspFilter,
+  TrendPeriod,
+} from "@/lib/api/analytics";
 
 export const queryKeys = {
   dashboard: {
@@ -7,6 +12,12 @@ export const queryKeys = {
       ["dashboard", "latest-releases", userId, limit] as const,
     topTracks: (userId: string, limit: number) =>
       ["dashboard", "top-tracks", userId, limit] as const,
+    streamingTrends: (
+      userId: string,
+      period: DashboardTrendPeriod,
+      startDate: string,
+      endDate: string,
+    ) => ["dashboard", "streaming-trends", userId, period, startDate, endDate] as const,
   },
   analytics: {
     trends: (

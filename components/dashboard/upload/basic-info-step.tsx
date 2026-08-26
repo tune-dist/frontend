@@ -22,6 +22,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { toTitleCase } from '@/lib/validation/title-case'
 import {
     extractAppleArtistId,
     profileNeedsAppleEnrichment,
@@ -69,6 +70,7 @@ export default function BasicInfoStep({
 }: BasicInfoStepProps) {
     const { user, refreshUser } = useAuth()
     const { register, formState: { errors }, watch, setValue, control } = useFormContext<UploadFormData>()
+    const titleField = register('title')
     const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay()
 
     // Watch values for conditional rendering
@@ -505,7 +507,19 @@ export default function BasicInfoStep({
                     <Input
                         id="title"
                         placeholder="Enter title"
-                        {...register('title')}
+                        name={titleField.name}
+                        ref={titleField.ref}
+                        onChange={titleField.onChange}
+                        onBlur={(event) => {
+                            titleField.onBlur(event)
+                            const normalized = toTitleCase(event.target.value)
+                            if (normalized !== event.target.value) {
+                                setValue('title', normalized, {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                })
+                            }
+                        }}
                         className={errors.title ? 'border-red-500' : ''}
                     />
                     {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 // React Hook Form & Zod
-import { useForm, FormProvider, useFormContext } from "react-hook-form";
+import { useForm, FormProvider, useFormContext, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import TrackEditModal from "@/components/dashboard/upload/track-edit-modal";
 import {
@@ -393,6 +393,76 @@ export default function UploadPage() {
         shouldDirty: true,
       });
     });
+  };
+
+  const collectFormErrorMessage = (
+    errors: unknown,
+    path = "",
+  ): string | null => {
+    if (!errors || typeof errors !== "object") return null;
+
+    const record = errors as Record<string, unknown>;
+    if (
+      typeof record.message === "string" &&
+      record.message.trim() &&
+      !record.root
+    ) {
+      return path ? `${path}: ${record.message}` : record.message;
+    }
+
+    if (Array.isArray(errors)) {
+      for (let index = 0; index < errors.length; index += 1) {
+        const nested = collectFormErrorMessage(errors[index], `${path}[${index}]`);
+        if (nested) return nested;
+      }
+      return null;
+    }
+
+    for (const [key, value] of Object.entries(record)) {
+      if (key === "ref" || key === "type") continue;
+      const nextPath = path ? `${path}.${key}` : key;
+      const nested = collectFormErrorMessage(value, nextPath);
+      if (nested) return nested;
+    }
+
+    return null;
+  };
+
+  const getFirstFormErrorMessage = (
+    errors: FieldErrors<UploadFormData>,
+  ): string | null => collectFormErrorMessage(errors);
+
+  const inferErrorStep = (errors: FieldErrors<UploadFormData>): number | null => {
+    const keys = Object.keys(errors);
+    const step1 = [
+      "title",
+      "artistName",
+      "format",
+      "releaseDate",
+      "labelName",
+      "featuringArtist",
+      "artists",
+      "upc",
+    ];
+    const step2 = ["audioFile", "audioFiles", "audioConsent"];
+    const step3 = [
+      "primaryGenre",
+      "secondaryGenre",
+      "language",
+      "writers",
+      "composers",
+      "mood",
+      "tracks",
+      "producers",
+      "copyright",
+    ];
+    const step4 = ["coverArt", "coverArtConsent"];
+
+    if (keys.some((key) => step4.includes(key))) return 4;
+    if (keys.some((key) => step3.includes(key))) return 3;
+    if (keys.some((key) => step2.includes(key))) return 2;
+    if (keys.some((key) => step1.includes(key))) return 1;
+    return null;
   };
 
   const scrollToError = () => {
@@ -1057,7 +1127,12 @@ export default function UploadPage() {
         toast.success("Release submitted successfully!");
       }
       submitSucceeded = true;
-      router.push("/dashboard/releases");
+      try {
+        await router.push("/dashboard/releases");
+      } finally {
+        setIsSubmitting(false);
+        setSubmitProgress({ percent: 0, label: "" });
+      }
     } catch (error: any) {
       console.error("Submission error:", error);
       // The plan-inactive modal already explains the block — skip the toast.
@@ -1093,7 +1168,19 @@ export default function UploadPage() {
     }
   };
 
-  const onInvalid = () => {
+  const onInvalid = (errors: FieldErrors<UploadFormData>) => {
+    const message = getFirstFormErrorMessage(errors);
+    toast.error(message || "Please fix the highlighted errors before saving.");
+
+    if (currentStep === 5) {
+      const targetStep = inferErrorStep(errors);
+      if (targetStep !== null && targetStep < currentStep) {
+        setCurrentStep(targetStep);
+        setTimeout(() => scrollToError(), 250);
+        return;
+      }
+    }
+
     scrollToError();
   };
 

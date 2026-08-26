@@ -19,6 +19,7 @@ import type {
 } from './types';
 import { buildProfilesFromFlatFields, toPlatformRef } from './platform-ref.util';
 import { getDefaultLabelName } from '@/lib/validation/label-name';
+import { toTitleCase } from '@/lib/validation/title-case';
 
 type FormAudioFile = {
   id?: string;
@@ -341,7 +342,7 @@ export async function buildDraftPayload(
     trackRows = [
       {
         id: 'single-track',
-        title: form.title,
+        title: toTitleCase(form.title),
         audioFileId: '',
         artistName: form.artistName,
         language: form.language,
@@ -444,7 +445,7 @@ export async function buildDraftPayload(
 
     tracks.push({
       order: index + 1,
-      title: track.title,
+      title: toTitleCase(track.title),
       version: track.version || null,
       artistName: track.artistName || form.artistName || null,
       language:
@@ -495,7 +496,7 @@ export async function buildDraftPayload(
 
   return {
     release: {
-      title: form.title,
+      title: toTitleCase(form.title),
       version: form.version || null,
       type: releaseType,
       labelName: form.labelName || defaultLabel,
