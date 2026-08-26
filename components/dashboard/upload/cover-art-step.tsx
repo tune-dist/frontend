@@ -102,7 +102,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         {
             id: 'metadata',
             label: 'Artist & Title Match (No Misleading Names)',
-            codes: ['ARTIST_NAME_MISMATCH', 'TRACK_TITLE_MISMATCH', 'POTENTIAL_MISLEADING_ARTIST', 'MISLEADING_VERSION_TEXT', 'ARTIST_PARTIAL_MATCH', 'TITLE_PARTIAL_MATCH', 'ARTIST_MISSING', 'TITLE_MISSING', 'VERSION_MISMATCH']
+            codes: ['ARTIST_NAME_MISMATCH', 'TRACK_TITLE_MISMATCH', 'POTENTIAL_MISLEADING_ARTIST', 'MISLEADING_VERSION_TEXT', 'ARTIST_PARTIAL_MATCH', 'TITLE_PARTIAL_MATCH', 'ARTIST_MISSING', 'TITLE_MISSING', 'VERSION_MISMATCH', 'OCR_UNREADABLE']
         },
         {
             id: 'collab',
@@ -123,8 +123,11 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
     const getStatus = (reqCodes: string[]): RequirementStatus => {
         if (!hasValidated) return 'pending';
-        const hasError = validationIssues.some((err: any) => reqCodes.includes(err.code));
-        return hasError ? 'error' : 'success';
+        const matching = validationIssues.filter((err: { code?: string; severity?: string }) =>
+            reqCodes.includes(err.code ?? ''),
+        );
+        if (matching.length === 0) return 'success';
+        return 'error';
     };
 
     const coverArtRules = fieldRules.coverArt;
