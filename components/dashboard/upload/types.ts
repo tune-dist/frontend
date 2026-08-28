@@ -34,6 +34,38 @@ export const audioFileSchema = z.object({
 
 export type AudioFile = z.infer<typeof audioFileSchema>
 
+// Artist Profile Schema for rich metadata storage
+export const artistProfileSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    image: z.string().optional(),
+    url: z.string().optional(),
+    followers: z.number().optional(), // For Spotify
+    track: z.string().optional(), // For Apple/YouTube (description/genre)
+})
+
+export type ArtistProfile = z.infer<typeof artistProfileSchema>
+
+/** Spotify/Apple profile values stored in form state (id string or rich object). */
+export const platformProfileFormSchema = z
+    .union([
+        z.string(),
+        artistProfileSchema,
+        z
+            .object({
+                id: z.string().optional(),
+                url: z.string().optional(),
+                appleId: z.string().optional(),
+                name: z.string().optional(),
+                image: z.string().optional(),
+            })
+            .passthrough(),
+    ])
+    .optional()
+    .nullable()
+
+export type PlatformProfileFormValue = z.infer<typeof platformProfileFormSchema>
+
 // Track Schema (metadata only, NO audio file)
 export const trackSchema = z.object({
     id: z.string(),
@@ -63,30 +95,18 @@ export const trackSchema = z.object({
         return val;
     }, z.boolean().optional()),
     previewClipStartTime: z.string().optional(),
-    // Social media profiles per track
-    spotifyProfile: z.string().optional().nullable(),
-    appleMusicProfile: z.string().optional().nullable(),
-    youtubeMusicProfile: z.string().optional().nullable(),
-    instagramProfile: z.string().optional().nullable(),
-    facebookProfile: z.string().optional().nullable(),
+    // Social media profiles per track (may be id string or rich profile object)
+    spotifyProfile: platformProfileFormSchema,
+    appleMusicProfile: platformProfileFormSchema,
+    youtubeMusicProfile: platformProfileFormSchema,
+    instagramProfile: platformProfileFormSchema,
+    facebookProfile: platformProfileFormSchema,
     version: z.string().optional(),
     featuringArtist: z.string().optional(),
-    mood: z.string().min(1, 'Vibe is required'),
+    mood: z.string().optional(),
 })
 
 export type Track = z.infer<typeof trackSchema>
-
-// Artist Profile Schema for rich metadata storage
-export const artistProfileSchema = z.object({
-    id: z.string(),
-    name: z.string(),
-    image: z.string().optional(),
-    url: z.string().optional(),
-    followers: z.number().optional(), // For Spotify
-    track: z.string().optional(), // For Apple/YouTube (description/genre)
-})
-
-export type ArtistProfile = z.infer<typeof artistProfileSchema>
 
 export const uploadFormSchema = z.object({
     // Basic Info
@@ -98,9 +118,9 @@ export const uploadFormSchema = z.object({
     artists: z.array(z.object({
         name: z.string().min(1, 'Artist name is required'),
         cosmosArtistId: z.string().optional(),
-        spotifyProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
-        appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
-        youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
+        spotifyProfile: platformProfileFormSchema,
+        appleMusicProfile: platformProfileFormSchema,
+        youtubeMusicProfile: platformProfileFormSchema,
         instagramProfile: z.string().optional().nullable(),
         facebookProfile: z.string().optional().nullable(),
     })).default([]),
@@ -134,9 +154,9 @@ export const uploadFormSchema = z.object({
     }),
 
     // Social media & platforms
-    spotifyProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
-    appleMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
-    youtubeMusicProfile: z.union([z.string(), artistProfileSchema]).optional().nullable(),
+    spotifyProfile: platformProfileFormSchema,
+    appleMusicProfile: platformProfileFormSchema,
+    youtubeMusicProfile: platformProfileFormSchema,
     instagramProfile: z.string().optional().nullable(),
     instagramProfileUrl: z.string().url('Invalid URL').optional().or(z.literal('')).nullable(),
     facebookProfile: z.string().optional().nullable(),
@@ -194,6 +214,18 @@ export const uploadFormSchema = z.object({
     producers: z.array(z.string()).optional(),
     selectedPlatforms: z.array(z.string()).optional(),
 }).superRefine((data, ctx) => {
+    if (data.format !== 'single') {
+        data.tracks.forEach((track, index) => {
+            if (!track.mood?.trim()) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `Track ${index + 1}: Vibe is required`,
+                    path: ['tracks', index, 'mood'],
+                });
+            }
+        });
+    }
+
     // Mood is required only for single releases at the root level
     if (data.format === 'single' && (!data.mood || data.mood.trim() === '')) {
         ctx.addIssue({

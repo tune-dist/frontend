@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import PageLoading from "@/components/dashboard/page-loading";
 import {
   Card,
@@ -18,11 +21,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrendingUp, Music, ListMusic, Activity } from "lucide-react";
+import { TrendingUp, Music, ListMusic, Activity, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { getErrorMessage } from "@/lib/get-error-message";
+import { isPlanInactiveError } from "@/lib/plan-inactive";
 import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
 import { ReleaseCoverArt } from "@/components/releases/release-cover-art";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
+import {
+  DashboardTrendPeriod,
+  getDashboardTrendCacheKey,
+  getStreamingTrends,
+  getTodayDateKey,
+  MIN_TREND_DATE,
+  resolveTrendQueryParams,
+} from "@/lib/api/analytics";
+import { queryKeys } from "@/lib/query-keys";
+import { cn } from "@/lib/utils";
 import { PLATFORM_COLORS } from "@/lib/platform-logos";
 import { PlatformLegendItem } from "@/components/analytics/platform-icon";
 import {
@@ -70,13 +88,130 @@ const itemVariants = {
   },
 };
 
+const DASHBOARD_TREND_PERIODS: Array<{ key: DashboardTrendPeriod; label: string }> = [
+  { key: "all_time", label: "All time" },
+  { key: "monthly", label: "Monthly" },
+  { key: "weekly", label: "Weekly" },
+  { key: "custom", label: "Custom range" },
+];
+
 function formatTrend(value: number) {
   return `${value >= 0 ? "+" : ""}${value}%`;
+}
+
+function formatChartDate(dateStr: string, compact = false): string {
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (compact) {
+    return date.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+  }
+  return date.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function computeStreamChartScale(values: number[]) {
+  const maxValue = Math.max(...values, 0);
+  if (maxValue === 0) {
+    return { min: 0, max: 10, stepSize: 2 };
+  }
+
+  const paddedMax = Math.ceil(maxValue * 1.1);
+  let stepSize: number;
+  if (paddedMax <= 10) stepSize = 1;
+  else if (paddedMax <= 100) stepSize = 10;
+  else if (paddedMax <= 1000) stepSize = 100;
+  else if (paddedMax <= 10000) stepSize = 1000;
+  else stepSize = 5000;
+
+  const max = Math.ceil(paddedMax / stepSize) * stepSize;
+  return { min: 0, max, stepSize };
+}
+
+function formatStreamAxisTick(value: number | string) {
+  const num = Number(value);
+  if (num >= 1000) {
+    return `${num / 1000}K`;
+  }
+  return num.toLocaleString();
 }
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { stats, latestReleases, topTracks, loading } = useDashboardData(6, 4);
+  const userId = user?._id ?? "";
+
+  const [trendPeriod, setTrendPeriod] = useState<DashboardTrendPeriod>("weekly");
+  const [appliedCustomRange, setAppliedCustomRange] = useState({
+    startDate: MIN_TREND_DATE,
+    endDate: getTodayDateKey(),
+  });
+  const [customDraft, setCustomDraft] = useState({
+    startDate: MIN_TREND_DATE,
+    endDate: getTodayDateKey(),
+  });
+
+  const trendCacheKey = getDashboardTrendCacheKey({
+    period: trendPeriod,
+    startDate: appliedCustomRange.startDate,
+    endDate: appliedCustomRange.endDate,
+  });
+
+  const streamingTrendsQuery = useQuery({
+    queryKey: queryKeys.dashboard.streamingTrends(
+      userId,
+      trendCacheKey.period,
+      trendCacheKey.startDate,
+      trendCacheKey.endDate,
+    ),
+    queryFn: () =>
+      getStreamingTrends(
+        resolveTrendQueryParams({
+          period: trendPeriod,
+          startDate: appliedCustomRange.startDate,
+          endDate: appliedCustomRange.endDate,
+        }),
+      ),
+    enabled: !!userId,
+  });
+
+  useEffect(() => {
+    if (streamingTrendsQuery.isError && !isPlanInactiveError(streamingTrendsQuery.error)) {
+      toast.error(getErrorMessage(streamingTrendsQuery.error, "Failed to load streaming trends"));
+      console.error(streamingTrendsQuery.error);
+    }
+  }, [streamingTrendsQuery.isError, streamingTrendsQuery.error]);
+
+  const streamingTrends = streamingTrendsQuery.data ?? null;
+  const streamingTrendsLoading = streamingTrendsQuery.isFetching;
+  const maxCustomDate = getTodayDateKey();
+  const trendPointCount = streamingTrends?.dataPoints.length ?? 0;
+  const useCompactTrendLabels = trendPointCount > 14;
+
+  const trendLabels =
+    streamingTrends?.dataPoints.map((point) =>
+      formatChartDate(point.date, useCompactTrendLabels),
+    ) ?? [];
+  const trendDateKeys = streamingTrends?.dataPoints.map((point) => point.date) ?? [];
+  const trendValues =
+    streamingTrends?.dataPoints.map((point) => point.plays) ?? [];
+  const chartScale = computeStreamChartScale(trendValues);
+  const hasStreamData = (stats?.totalStreams ?? 0) > 0;
+
+  const handleTrendPeriodChange = (period: DashboardTrendPeriod) => {
+    if (period === "custom") {
+      setCustomDraft({
+        startDate: appliedCustomRange.startDate,
+        endDate: appliedCustomRange.endDate,
+      });
+    }
+    setTrendPeriod(period);
+  };
+
+  const handleCustomApply = () => {
+    setAppliedCustomRange({
+      startDate: customDraft.startDate,
+      endDate: customDraft.endDate,
+    });
+    setTrendPeriod("custom");
+  };
 
   const getStatusColor = getReleaseStatusColor;
   const formatStatus = formatReleaseStatus;
@@ -258,23 +393,103 @@ export default function DashboardPage() {
 
         <motion.div variants={itemVariants}>
           <Card className="glass-card">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 space-y-4">
               <CardTitle className="text-xl font-bold">Streaming performance</CardTitle>
+              {hasStreamData && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex rounded-xl border border-border/60 p-1 bg-secondary/20 w-full sm:w-fit overflow-x-auto">
+                    {DASHBOARD_TREND_PERIODS.map((period) => (
+                      <button
+                        key={period.key}
+                        type="button"
+                        onClick={() => handleTrendPeriodChange(period.key)}
+                        className={cn(
+                          "rounded-lg px-4 py-2 text-sm font-semibold transition-all whitespace-nowrap",
+                          trendPeriod === period.key
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {period.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {trendPeriod === "custom" && (
+                    <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-secondary/10 p-4 sm:flex-row sm:items-end">
+                      <div className="flex flex-1 flex-col gap-1.5">
+                        <Label htmlFor="dashboard-trend-start-date" className="text-xs text-muted-foreground">
+                          From
+                        </Label>
+                        <Input
+                          id="dashboard-trend-start-date"
+                          type="date"
+                          min={MIN_TREND_DATE}
+                          max={customDraft.endDate || maxCustomDate}
+                          value={customDraft.startDate}
+                          onChange={(event) =>
+                            setCustomDraft((current) => ({
+                              ...current,
+                              startDate: event.target.value,
+                            }))
+                          }
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="flex flex-1 flex-col gap-1.5">
+                        <Label htmlFor="dashboard-trend-end-date" className="text-xs text-muted-foreground">
+                          To
+                        </Label>
+                        <Input
+                          id="dashboard-trend-end-date"
+                          type="date"
+                          min={customDraft.startDate || MIN_TREND_DATE}
+                          max={maxCustomDate}
+                          value={customDraft.endDate}
+                          onChange={(event) =>
+                            setCustomDraft((current) => ({
+                              ...current,
+                              endDate: event.target.value,
+                            }))
+                          }
+                          className="h-10"
+                        />
+                      </div>
+                      <Button
+                        className="h-10 shrink-0"
+                        onClick={handleCustomApply}
+                        disabled={
+                          streamingTrendsLoading ||
+                          !customDraft.startDate ||
+                          !customDraft.endDate
+                        }
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardHeader>
             <CardContent>
-              {(stats?.totalStreams ?? 0) === 0 ? (
+              {!hasStreamData ? (
                 <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">
                   Stream data will appear here once daily DSP reports are received.
+                </div>
+              ) : streamingTrendsLoading ? (
+                <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading stream trends...
                 </div>
               ) : (
                 <div className="h-[280px] w-full mt-4">
                   <Line
                     data={{
-                      labels: ["May 04", "May 05", "May 06", "May 07", "May 08", "May 09", "May 10"],
+                      labels: trendLabels,
                       datasets: [
                         {
                           label: "Streams",
-                          data: [85000, 88500, 87000, 85800, 87200, 84800, 85200],
+                          data: trendValues,
                           fill: true,
                           borderColor: "#d901bc",
                           backgroundColor: (context: { chart: { ctx: CanvasRenderingContext2D } }) => {
@@ -305,21 +520,35 @@ export default function DashboardPage() {
                           backgroundColor: "#1f2937",
                           padding: 12,
                           cornerRadius: 8,
+                          callbacks: {
+                            title: (items) =>
+                              trendDateKeys[items[0]?.dataIndex ?? 0] ??
+                              trendLabels[items[0]?.dataIndex ?? 0] ??
+                              "",
+                            label: (context) => {
+                              const value = context.parsed.y ?? 0;
+                              return `Streams: ${value.toLocaleString()}`;
+                            },
+                          },
                         },
                       },
                       scales: {
                         x: {
                           grid: { display: false },
-                          ticks: { color: "#9ca3af", font: { size: 10, weight: 600 } },
+                          ticks: {
+                            color: "#9ca3af",
+                            maxTicksLimit: trendPointCount > 31 ? 15 : 12,
+                            font: { size: 10, weight: 600 },
+                          },
                         },
                         y: {
-                          min: 75000,
-                          max: 95000,
+                          min: chartScale.min,
+                          max: chartScale.max,
                           grid: { color: "rgba(156, 163, 175, 0.05)" },
                           ticks: {
                             color: "#9ca3af",
-                            stepSize: 5000,
-                            callback: (value) => `${Number(value) / 1000}K`,
+                            stepSize: chartScale.stepSize,
+                            callback: (value) => formatStreamAxisTick(value),
                             font: { size: 10, weight: 600 },
                           },
                         },

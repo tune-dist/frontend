@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Track, Songwriter } from './types'
+import { Track, Songwriter, PlatformProfileFormValue } from './types'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Music, X, Loader2, Plus, Info, UserCheck } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -26,6 +26,18 @@ import {
 } from './genre-language'
 import { searchArtistProfiles, emptySearchResults } from '@/lib/integrations/artist-search.util'
 import { rosterArtistName } from '@/lib/integrations/artist-form-state.util'
+import { toTitleCase } from '@/lib/validation/title-case'
+
+function profileValueToInputString(value: unknown): string {
+    if (value == null) return ''
+    if (typeof value === 'string') return value
+    if (typeof value === 'object') {
+        const record = value as Record<string, unknown>
+        if (typeof record.url === 'string') return record.url
+        if (typeof record.id === 'string' && record.id.startsWith('http')) return record.id
+    }
+    return ''
+}
 
 interface TrackEditModalProps {
     isOpen: boolean
@@ -112,12 +124,20 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     )
     const [composerErrors, setComposerErrors] = useState<string[]>([])
 
-    const [modalSpotifyProfile, setModalSpotifyProfile] = useState(track?.spotifyProfile || '')
-    const [modalAppleMusicProfile, setModalAppleMusicProfile] = useState(track?.appleMusicProfile || '')
+    const [modalSpotifyProfile, setModalSpotifyProfile] = useState<PlatformProfileFormValue>(
+        track?.spotifyProfile || '',
+    )
+    const [modalAppleMusicProfile, setModalAppleMusicProfile] = useState<PlatformProfileFormValue>(
+        track?.appleMusicProfile || '',
+    )
     const [instagramStatus, setInstagramStatus] = useState(track?.instagramProfile ? 'yes' : 'no')
     const [facebookStatus, setFacebookStatus] = useState(track?.facebookProfile ? 'yes' : 'no')
-    const [instagramUrl, setInstagramUrl] = useState(track?.instagramProfile || '')
-    const [facebookUrl, setFacebookUrl] = useState(track?.facebookProfile || '')
+    const [instagramUrl, setInstagramUrl] = useState(() =>
+        profileValueToInputString(track?.instagramProfile),
+    )
+    const [facebookUrl, setFacebookUrl] = useState(() =>
+        profileValueToInputString(track?.facebookProfile),
+    )
 
     // Genres state
     const [genres, setGenres] = useState<Genre[]>([])
@@ -328,10 +348,10 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 setModalSpotifyProfile(track.spotifyProfile || '')
                 setModalAppleMusicProfile(track.appleMusicProfile || '')
 
-                setInstagramStatus(track.instagramProfile ? 'yes' : 'no')
-                setFacebookStatus(track.facebookProfile ? 'yes' : 'no')
-                setInstagramUrl(track.instagramProfile || '')
-                setFacebookUrl(track.facebookProfile || '')
+                setInstagramStatus(profileValueToInputString(track.instagramProfile) ? 'yes' : 'no')
+                setFacebookStatus(profileValueToInputString(track.facebookProfile) ? 'yes' : 'no')
+                setInstagramUrl(profileValueToInputString(track.instagramProfile))
+                setFacebookUrl(profileValueToInputString(track.facebookProfile))
 
                 // Check if artist name is new (not in usedArtists)
                 const isNew = track.artistName ? !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === track.artistName) : false
@@ -601,9 +621,11 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 }
             }
 
+            const normalizedTrackTitle = toTitleCase(trackTitle)
+
             const updatedTrack: Track = {
                 ...track,
-                title: trackTitle,
+                title: normalizedTrackTitle,
                 artistName: modalArtistSearch,
                 language: (() => {
                     const lang = resolveLanguage(primaryGenre, language, instrumental)
@@ -654,6 +676,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             placeholder="Enter track title"
                             value={trackTitle}
                             onChange={(e) => setTrackTitle(e.target.value)}
+                            onBlur={() => {
+                                const normalized = toTitleCase(trackTitle)
+                                if (normalized !== trackTitle) {
+                                    setTrackTitle(normalized)
+                                }
+                            }}
                         />
                     </div>
 
@@ -1630,17 +1658,15 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             />
                         </div>
                     </div>
+                </div>
 
-
-
-                    <div className="flex justify-end gap-2 pt-4 border-t mt-6 sticky bottom-0 bg-[#1a1c23]">
-                        <Button variant="outline" onClick={onClose} type="button">
-                            Cancel
-                        </Button>
-                        <Button onClick={handleSave} type="button">
-                            Save Changes
-                        </Button>
-                    </div>
+                <div className="flex justify-end gap-2 pt-4 border-t mt-6">
+                    <Button variant="outline" onClick={onClose} type="button">
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSave} type="button">
+                        Save Changes
+                    </Button>
                 </div>
             </div>
         </div>

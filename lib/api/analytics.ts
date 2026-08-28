@@ -7,6 +7,7 @@ export interface StreamingTrendPoint {
 }
 
 export type TrendPeriod = 'weekly' | 'monthly' | 'custom';
+export type DashboardTrendPeriod = TrendPeriod | 'all_time';
 
 export const MIN_TREND_DATE = '2026-01-01';
 
@@ -48,6 +49,66 @@ export function getTodayDateKey(): string {
   const month = String(today.getMonth() + 1).padStart(2, '0');
   const day = String(today.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+export function resolveTrendQueryParams(filters: {
+  period: DashboardTrendPeriod;
+  dsp?: SupportedDspFilter;
+  startDate?: string;
+  endDate?: string;
+}): TrendQueryParams {
+  const dsp = filters.dsp ?? 'total';
+
+  if (filters.period === 'all_time') {
+    return {
+      period: 'custom',
+      dsp,
+      startDate: MIN_TREND_DATE,
+      endDate: getTodayDateKey(),
+    };
+  }
+
+  if (filters.period === 'custom') {
+    return {
+      period: 'custom',
+      dsp,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+    };
+  }
+
+  return {
+    period: filters.period,
+    dsp,
+  };
+}
+
+export function getDashboardTrendCacheKey(filters: {
+  period: DashboardTrendPeriod;
+  startDate: string;
+  endDate: string;
+}) {
+  if (filters.period === 'all_time') {
+    return {
+      period: 'all_time' as const,
+      startDate: MIN_TREND_DATE,
+      endDate: getTodayDateKey(),
+    };
+  }
+
+  if (filters.period === 'custom') {
+    return {
+      period: 'custom' as const,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+    };
+  }
+
+  return {
+    period: filters.period,
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+  };
 }
 
 export const getStreamingTrends = async ({
