@@ -9,12 +9,20 @@ import { useAuth } from '@/contexts/AuthContext'
 import UpgradePlanModal from './upgrade-plan-modal'
 import PlanExpiredModal from './plan-expired-modal'
 import PlanExpiringSoonBanner from './plan-expiring-soon-banner'
+import PhoneVerificationModal from './phone-verification-modal'
 import { useState, useEffect } from 'react'
+import Cookies from 'js-cookie'
+import { config } from '@/lib/config'
+import { dispatchAuthUserUpdated } from '@/lib/auth-session'
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { isUpgradeModalOpen, closeUpgradeModal, isSidebarCollapsed } = useUI()
   const { user, refreshUser } = useAuth()
   const needsPlanSelection = user?.planSelected === false
+  const needsPhoneVerification = Boolean(
+    user && !user.isPhoneVerified && !user.isPhoneNumberVerified,
+  )
+  const showPhoneVerification = needsPhoneVerification && !needsPlanSelection
   const [isPlanExpiredModalOpen, setIsPlanExpiredModalOpen] = useState(false)
   const [isExpiringSoonBannerOpen, setIsExpiringSoonBannerOpen] = useState(false)
   const [daysRemaining, setDaysRemaining] = useState(0)
@@ -55,6 +63,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     if (user) {
       sessionStorage.setItem(`dismissedExpiringSoon_${user._id}_${user.planEndDate}`, 'true')
     }
+  }
+
+  const handlePhoneVerified = (updatedUser: Parameters<typeof dispatchAuthUserUpdated>[0]) => {
+    dispatchAuthUserUpdated(updatedUser)
+    Cookies.set('user', JSON.stringify(updatedUser), {
+      expires: 7,
+      sameSite: 'lax',
+    })
   }
 
   return (
@@ -98,6 +114,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       <PlanExpiredModal
         isOpen={isPlanExpiredModalOpen}
         onClose={() => setIsPlanExpiredModalOpen(false)}
+      />
+      <PhoneVerificationModal
+        active={needsPhoneVerification}
+        isOpen={showPhoneVerification}
+        onVerified={handlePhoneVerified}
       />
     </div>
   )

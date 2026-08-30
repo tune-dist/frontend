@@ -158,6 +158,14 @@ export const updateUserStatus = async (
   return response.data;
 };
 
+// Log out all users except the current admin (invalidates all sessions)
+export const logoutAllUsers = async (): Promise<{ message: string; loggedOutCount: number }> => {
+  const response = await apiClient.post<{ message: string; loggedOutCount: number }>(
+    '/users/logout-all',
+  );
+  return response.data;
+};
+
 // Update user permissions
 export const updateUserPermissions = async (userId: string, permissions: string[]): Promise<User> => {
   const response = await apiClient.patch<User>(`/users/${userId}/permissions`, { permissions });
@@ -173,6 +181,18 @@ export const sendPhoneOTP = async (phoneNumber: string): Promise<{ success: bool
 // Verify phone OTP
 export const verifyPhoneOTP = async (otp: string): Promise<{ success: boolean; message: string }> => {
   const response = await apiClient.post<{ success: boolean; message: string }>('/users/phone/verify-otp', { otp });
+  return response.data;
+};
+
+// Verify phone via MSG91 widget access token
+export const verifyMsg91PhoneToken = async (
+  accessToken: string,
+  phoneNumber?: string,
+): Promise<User> => {
+  const response = await apiClient.post<User>('/users/phone/verify-msg91-token', {
+    accessToken,
+    phoneNumber,
+  });
   return response.data;
 };
 

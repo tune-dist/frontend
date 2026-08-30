@@ -31,6 +31,7 @@ import { API_URL } from '@/lib/config'
 import { getErrorMessage } from '@/lib/get-error-message'
 import { hasPermission } from '@/lib/permissions'
 import { formatPlanDisplayName } from '@/lib/utils'
+import { formatPhoneDisplay } from '@/lib/phone-format'
 import { S3Image } from '@/components/ui/s3-image'
 
 const profileSchema = z.object({
@@ -65,7 +66,6 @@ export default function ProfilePage() {
   const { user, refreshUser, loading } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState('')
   const [address, setAddress] = useState('')
   // Phone OTP verification — disabled until SMS provider is integrated
   // const [isSendingOTP, setIsSendingOTP] = useState(false)
@@ -93,10 +93,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setPhoneNumber(user.phoneNumber || '')
       setAddress(user.address || '')
     }
   }, [user])
+
+  const isPhoneVerified = Boolean(user?.isPhoneVerified || user?.isPhoneNumberVerified)
+  const displayPhone = formatPhoneDisplay(user?.phoneNumber)
 
   useEffect(() => {
     if (user?.role === 'artist') {
@@ -276,17 +278,10 @@ export default function ProfilePage() {
   })
 
   const onSubmit = async (data: ProfileFormData) => {
-    const trimmedPhone = phoneNumber.trim()
-    if (trimmedPhone && trimmedPhone.length < 10) {
-      toast.error('Please enter a valid phone number')
-      return
-    }
-
     setIsLoading(true)
     try {
       await updateUserProfile({
         ...data,
-        phoneNumber: trimmedPhone || undefined,
       })
       await refreshUser()
       toast.success('Profile updated successfully')
@@ -441,65 +436,22 @@ export default function ProfilePage() {
                       <Input
                         id="phoneNumber"
                         type="tel"
-                        placeholder="+91 9876543210"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        className="pl-10"
+                        placeholder="Verified at login"
+                        value={displayPhone || 'Not verified'}
+                        disabled
+                        className="pl-10 bg-muted"
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Save your phone number with the button below
-                    </p>
-                    {/* Phone OTP verification — disabled until SMS provider is integrated
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="phoneNumber"
-                          type="tel"
-                          placeholder="+91 9876543210"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          disabled={isPhoneVerified}
-                          className={`pl-10 ${isPhoneVerified ? 'bg-muted' : ''}`}
-                        />
-                      </div>
-                      {isPhoneVerified ? (
-                        <Button variant="outline" disabled className="flex items-center gap-2 shrink-0">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          Verified
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          onClick={handleSendOTP}
-                          disabled={isSendingOTP || !phoneNumber}
-                          className="flex items-center gap-2 shrink-0"
-                        >
-                          {isSendingOTP ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Sending...
-                            </>
-                          ) : (
-                            <>
-                              <Shield className="h-4 w-4" />
-                              Verify
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </div>
                     {isPhoneVerified ? (
-                      <p className="text-xs text-green-600 dark:text-green-400">
+                      <p className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
                         Your phone number has been verified
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        Enter your phone number and verify with OTP
+                        Complete mobile verification when you sign in to add your phone number
                       </p>
                     )}
-                    */}
                   </div>
 
                   <Button
