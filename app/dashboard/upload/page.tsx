@@ -995,11 +995,25 @@ export default function UploadPage() {
               } else {
                 const status = formData.coverArtValidationStatus;
                 const issues = formData.coverArtValidationIssues || [];
+                const hasBlockingErrors =
+                  formData.coverArtChanged &&
+                  (status === "rejected" ||
+                    issues.some((issue) => issue.severity === "error"));
                 const hasIssues =
                   formData.coverArtChanged &&
                   ((status && status !== "approved") || issues.length > 0);
 
-                if (hasIssues && !formData.coverArtConsent) {
+                if (hasBlockingErrors) {
+                  form.setError("coverArt", {
+                    type: "manual",
+                    message:
+                      "Cover art has issues that must be fixed before continuing.",
+                  });
+                  toast.error(
+                    "Please fix the cover art errors before continuing. Warnings can be accepted, but errors cannot.",
+                  );
+                  isValid = false;
+                } else if (hasIssues && !formData.coverArtConsent) {
                   form.setError("coverArtConsent", {
                     type: "manual",
                     message:
