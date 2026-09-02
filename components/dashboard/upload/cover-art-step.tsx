@@ -200,6 +200,10 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
             applyValidationResult(validationResult);
 
             setValue('coverArtPreview', imageData.previewDataUrl, { shouldValidate: true });
+            const currentCover = getValues('coverArt') as
+              | { path?: string; storageKey?: string }
+              | null;
+            const replacedPath = currentCover?.path || currentCover?.storageKey;
             setValue('coverArt', {
                 file: file,
                 fileName: file.name,
@@ -209,6 +213,7 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                     height: imageData.height,
                 },
                 format: file.type.split('/')[1] || 'jpg',
+                ...(replacedPath ? { replacedPath } : {}),
             } as any, { shouldValidate: true });
         } catch (error) {
             console.error('[CoverArt] Upload/Validation failed:', error);

@@ -77,7 +77,7 @@ import {
   isRmEditableRelease,
   isReleaseStaff,
 } from "@/lib/release-status";
-import { formatReleaseCodeDisplay } from "@/lib/release-codes";
+import { formatReleaseCodeDisplay, formatUpcDisplay, formatIsrcListDisplay, formatIsrcDetailDisplay, getTrackIsrcDisplay } from "@/lib/release-codes";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 import {
   hasOpenDistributionIssueAction,
@@ -619,6 +619,12 @@ export default function ReleasesPage() {
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Title</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Artist</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Release ID</TableHead>
+                        {canManage && (
+                          <>
+                            <TableHead className="font-bold uppercase tracking-wider text-[10px]">UPC</TableHead>
+                            <TableHead className="font-bold uppercase tracking-wider text-[10px]">ISRC</TableHead>
+                          </>
+                        )}
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">Status</TableHead>
                         <TableHead className="font-bold uppercase tracking-wider text-[10px]">WorldWide DSP</TableHead>
                         <TableHead className="text-right pr-6 font-bold uppercase tracking-wider text-[10px]">Actions</TableHead>
@@ -627,7 +633,7 @@ export default function ReleasesPage() {
                     <TableBody>
                       {releases.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground py-24">
+                          <TableCell colSpan={canManage ? 9 : 7} className="text-center text-muted-foreground py-24">
                             <div className="flex flex-col items-center gap-4">
                               <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-2">
                                 <Music className="h-10 w-10 text-primary/30" />
@@ -673,6 +679,20 @@ export default function ReleasesPage() {
                                 {formatReleaseCodeDisplay(release)}
                               </span>
                             </TableCell>
+                            {canManage && (
+                              <>
+                                <TableCell>
+                                  <span className="px-2 py-1 rounded bg-muted/50 text-[11px] text-muted-foreground font-mono font-semibold w-fit max-w-[140px] truncate block" title={formatUpcDisplay(release)}>
+                                    {formatUpcDisplay(release)}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="px-2 py-1 rounded bg-muted/50 text-[11px] text-muted-foreground font-mono font-semibold w-fit max-w-[180px] truncate block" title={formatIsrcListDisplay(release)}>
+                                    {release.isrc || formatIsrcListDisplay(release)}
+                                  </span>
+                                </TableCell>
+                              </>
+                            )}
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 {hasOpenDistributionIssueAction(

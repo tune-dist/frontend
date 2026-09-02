@@ -197,12 +197,17 @@ export default function AudioFileStep({
 
                 // Upload complete, update form
                 if (format === 'single' || !format) {
+                    const previousPath =
+                        (audioFile as AudioFile | null)?.path ||
+                        getValues('audioFiles')?.[0]?.path ||
+                        '';
                     const newAudioFile: AudioFile = {
                         id: (audioFile as AudioFile | null)?.id || crypto.randomUUID(),
                         file: file,
                         fileName: file.name,
                         size: file.size,
                         path: '',
+                        ...(previousPath ? { replacedPath: previousPath } : {}),
                         duration: result.metaData?.duration,
                         resolution: result.metaData?.resolution,
                         hash: result.metaData?.hash,
@@ -421,10 +426,12 @@ export default function AudioFileStep({
                 if (audioIdx < 0) return
 
                 const updatedAudioFiles = [...audioFiles]
+                const previousPath = updatedAudioFiles[audioIdx]?.path;
                 updatedAudioFiles[audioIdx] = {
                     ...updatedAudioFiles[audioIdx],
                     ...prepared,
                     id: track.audioFileId,
+                    ...(previousPath ? { replacedPath: previousPath } : {}),
                 }
                 setValue('audioFiles', updatedAudioFiles, { shouldValidate: true })
                 toast.success(`Validation complete: ${file.name}`)

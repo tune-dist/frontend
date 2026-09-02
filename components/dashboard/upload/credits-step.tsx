@@ -17,8 +17,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
 import WaveformTrimmer from "./WaveformTrimmer";
 import { isTrackEligibleForCrbt } from "./crbt-validation";
-import { LEGAL_PERSON_NAME_HINT } from "@/lib/validation/legal-person-name";
+import { LEGAL_PERSON_NAME_COMPOSER_HINT, LEGAL_PERSON_NAME_HINT } from "@/lib/validation/legal-person-name";
 import { useResolvedCrbtPlayback } from "@/lib/upload/audio-playback";
+import { IsrcCodeSection, type IsrcMode } from "./isrc-code-section";
 import {
   INSTRUMENTAL_LANGUAGE,
   filterGenresForInstrumentalChoice,
@@ -262,14 +263,31 @@ export default function CreditsStep({
   const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false;
   const instrumentalValue = watch("instrumental");
 
-  // ISRC State — restore checkbox when returning to this step with a saved ISRC
   const isrcValue = watch("isrc");
-  const [showIsrc, setShowIsrc] = useState(() => !!isrcValue);
+  const [isrcMode, setIsrcMode] = useState<IsrcMode>(() =>
+    isrcValue ? "existing" : "generate",
+  );
   useEffect(() => {
     if (isrcValue) {
-      setShowIsrc(true);
+      setIsrcMode("existing");
     }
   }, [isrcValue]);
+
+  const handleIsrcModeChange = useCallback(
+    (mode: IsrcMode) => {
+      setIsrcMode(mode);
+      if (mode === "generate") {
+        setValue("isrc", "", { shouldValidate: true });
+        return;
+      }
+      if (!watch("isrc")) {
+        setValue("isrc", process.env.NEXT_PUBLIC_DEFAULT_ISRC || "", {
+          shouldValidate: true,
+        });
+      }
+    },
+    [setValue, watch],
+  );
   const { user } = useAuth();
 
   useEffect(() => {
@@ -647,75 +665,25 @@ export default function CreditsStep({
                 />
               </div>
 
-              {/* ISRC Logic for Single */}
-              <div className="space-y-4 pt-6 border-t border-border">
-                <div className="flex flex-col space-y-2">
-                  <Label className="text-lg font-semibold">ISRC</Label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="hasIsrc"
-                      checked={showIsrc}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setShowIsrc(checked);
-                        if (checked) {
-                          // Pre-fill with default from env if empty
-                          if (!watch("isrc")) {
-                            setValue(
-                              "isrc",
-                              process.env.NEXT_PUBLIC_DEFAULT_ISRC
-                            );
-                          }
-                        } else {
-                          setValue("isrc", "");
-                        }
-                      }}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <Label
-                      htmlFor="hasIsrc"
-                      className="font-normal cursor-pointer"
-                    >
-                      I already have an ISRC code
-                    </Label>
-                  </div>
-                </div>
-
-                {showIsrc && (
-                  <div className="space-y-2">
-                    <Label htmlFor="isrc">ISRC Code</Label>
-                    <Input
-                      id="isrc"
-                      placeholder="XX-XXX-XX-XXXXX"
-                      readOnly={user?.plan === "free"}
-                      {...register("isrc", {
-                        onChange: (e) => {
-                          if (
-                            user?.plan === "free"
-                          ) {
-                            toast.error(
-                              "Upgrade to paid plan to use custom ISRC",
-                              { id: "isrc-warning" }
-                            );
-                          }
-                        },
-                      })}
-                      className={errors.isrc ? "border-red-500" : ""}
-                    />
-                    {user?.plan === "free" && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        Upgrade to a paid plan to use a custom ISRC code.
-                      </p>
-                    )}
-                    {errors.isrc && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {String(errors.isrc.message)}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+              <IsrcCodeSection
+                mode={isrcMode}
+                onModeChange={handleIsrcModeChange}
+                value={isrcValue || ""}
+                onChange={(value) =>
+                  setValue("isrc", value, { shouldValidate: true })
+                }
+                error={
+                  errors.isrc?.message
+                    ? String(errors.isrc.message)
+                    : undefined
+                }
+                isFreePlan={user?.plan === "free"}
+                onFreePlanAttempt={() =>
+                  toast.error("Upgrade to paid plan to use custom ISRC", {
+                    id: "isrc-warning",
+                  })
+                }
+              />
 
               {/* Genres */}
               <div className="space-y-4 mt-6">
@@ -929,7 +897,7 @@ export default function CreditsStep({
                       )}
                     </Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Real names, not stage names. {LEGAL_PERSON_NAME_HINT}
+                      Real names, not stage names. {LEGAL_PERSON_NAME_COMPOSER_HINT}
                     </p>
                   </div>
 

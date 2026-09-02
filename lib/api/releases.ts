@@ -12,6 +12,13 @@ import {
   type ReleaseWriteSnapshot,
 } from "@/lib/releases";
 import type { CreateReleaseDraftRequest } from "@/lib/releases";
+import type { BuildDraftPayloadResult } from "@/lib/releases/build-draft-payload";
+import type { FormMediaUpdates } from "@/lib/upload/upload-session";
+import {
+  abandonUploadSession,
+  createUploadSession,
+  finalizeUploadSession,
+} from "@/lib/upload/upload-session";
 import type { SubmitProgressCallback } from "@/lib/upload/submit-progress";
 
 export type { ReleaseWriteSnapshot };
@@ -20,6 +27,8 @@ export type SubmitReleaseOptions = {
   onProgress?: SubmitProgressCallback;
   /** Edit-mode baseline write snapshot; only changed keys are PUTed. */
   baseline?: ReleaseWriteSnapshot;
+  /** Called after files upload to S3 but before the release API save succeeds. */
+  onMediaUploaded?: (updates: FormMediaUpdates) => void;
 };
 
 export interface ReleaseFormData {
@@ -271,11 +280,13 @@ export const buildCreateReleaseData = async (
   formData: ReleaseFormData,
   token: string,
   onProgress?: SubmitProgressCallback,
-): Promise<CreateReleaseDraftRequest> => {
+  uploadSession = createUploadSession(),
+): Promise<BuildDraftPayloadResult> => {
   return buildDraftPayload(
     formData as Parameters<typeof buildDraftPayload>[0],
     token,
     onProgress,
+    uploadSession,
   );
 };
 
@@ -296,14 +307,18 @@ export const submitNewRelease = async (
 ) => {
   const token = Cookies.get(config.tokenKey) || "";
   const onProgress = options?.onProgress;
+  const uploadSession = createUploadSession();
 
   try {
-    const releaseData = await buildCreateReleaseData(formData, token, onProgress);
+    const built = await buildCreateReleaseData(formData, token, onProgress, uploadSession);
     onProgress?.({ percent: 92, label: "Saving release…" });
-    const result = await createRelease(releaseData);
+    const result = await createRelease(built.payload);
+    options?.onMediaUploaded?.(built.formMediaUpdates);
+    await finalizeUploadSession(uploadSession);
     onProgress?.({ percent: 100, label: "Complete" });
     return result;
   } catch (error: any) {
+    await abandonUploadSession(uploadSession);
     console.error("Release submission failed:", error);
     throw error;
   }
@@ -317,13 +332,16 @@ export const submitReleaseUpdate = async (
 ): Promise<(Release & { pdlSynced?: boolean; pdlMessage?: string }) & { writeSnapshot: ReleaseWriteSnapshot }> => {
   const token = Cookies.get(config.tokenKey) || "";
   const onProgress = options?.onProgress;
+  const uploadSession = createUploadSession();
 
   try {
-    const releaseData = await buildCreateReleaseData(formData, token, onProgress);
-    const writeSnapshot = draftRequestToWriteSnapshot(releaseData);
+    const built = await buildCreateReleaseData(formData, token, onProgress, uploadSession);
+    const writeSnapshot = draftRequestToWriteSnapshot(built.payload);
     const patch = pickChangedDraftFields(options?.baseline ?? {}, writeSnapshot);
 
     if (Object.keys(patch).length === 0) {
+      options?.onMediaUploaded?.(built.formMediaUpdates);
+      await finalizeUploadSession(uploadSession);
       onProgress?.({ percent: 100, label: "Complete" });
       return { _id: id, writeSnapshot } as (Release & { pdlSynced?: boolean; pdlMessage?: string }) & {
         writeSnapshot: ReleaseWriteSnapshot;
@@ -332,9 +350,12 @@ export const submitReleaseUpdate = async (
 
     onProgress?.({ percent: 92, label: "Saving release…" });
     const result = await updateRelease(id, patch);
+    options?.onMediaUploaded?.(built.formMediaUpdates);
+    await finalizeUploadSession(uploadSession);
     onProgress?.({ percent: 100, label: "Complete" });
     return { ...result, writeSnapshot };
   } catch (error: any) {
+    await abandonUploadSession(uploadSession);
     console.error("Release update failed:", error);
     throw error;
   }

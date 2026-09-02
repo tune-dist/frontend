@@ -2,6 +2,7 @@ import type { UploadFormData, AudioFile, Track } from '@/components/dashboard/up
 import type { ReleaseDetailResponse } from './types';
 import { toReleaseDetailResponse } from './release-document.mapper';
 import { profilesToFormFields } from './platform-ref.util';
+import { getDefaultLabelName } from '@/lib/validation/label-name';
 
 function toAudioFormFile(
   storageKey: string | undefined,
@@ -72,6 +73,7 @@ function hydrateFromDetail(detail: ReleaseDetailResponse): Partial<UploadFormDat
       audioFileId: audio?.id || '',
       artistName: track.artistName || mainArtist?.name,
       language: track.language,
+      version: track.version || undefined,
       isrc: track.isrc || undefined,
       previouslyReleased: track.previouslyReleased ? 'yes' : 'no',
       originalReleaseDate: track.originalReleaseDate
@@ -131,6 +133,9 @@ function hydrateFromDetail(detail: ReleaseDetailResponse): Partial<UploadFormDat
     tracks,
     releaseDate: formatDateInput(detail.release.releaseDate),
     previouslyReleased: detail.release.previouslyReleased ? 'yes' : 'no',
+    originalReleaseDate: detail.release.originalReleaseDate
+      ? formatDateInput(detail.release.originalReleaseDate)
+      : undefined,
     labelName: detail.release.labelName || '',
     distributionTerritories: detail.release.distributionTerritories || ['Worldwide'],
     previewClipStartTime: isSingle ? previewClipStartTime : undefined,
@@ -140,7 +145,9 @@ function hydrateFromDetail(detail: ReleaseDetailResponse): Partial<UploadFormDat
     composers: isSingle ? firstTrack?.credits.composers || [] : [],
     recordingYear: detail.release.recordingYear || new Date().getFullYear(),
     mood: isSingle ? firstTrack?.mood : undefined,
-    producers: [process.env.NEXT_PUBLIC_DEFAULT_LABEL || 'KratoLib'],
+    producers: detail.release.publisher
+      ? [detail.release.publisher]
+      : [getDefaultLabelName()],
     coverArt: detail.coverArt.storageKey
       ? {
           path: detail.coverArt.storageKey,

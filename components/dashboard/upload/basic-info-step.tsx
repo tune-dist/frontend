@@ -23,6 +23,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { toTitleCase } from '@/lib/validation/title-case'
+import { earliestValidReleaseDate, isReleaseDateBelowMinimum } from '@/lib/distribution-issue'
 import {
     extractAppleArtistId,
     profileNeedsAppleEnrichment,
@@ -937,23 +938,35 @@ export default function BasicInfoStep({
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="releaseDate">Release Date <span className="text-red-500">*</span></Label>
-                    <Input
-                        id="releaseDate"
-                        type="date"
-                        min={(() => {
-                            const d = new Date();
-                            d.setDate(d.getDate() + 2);
-                            const yyyy = d.getFullYear();
-                            const mm = String(d.getMonth() + 1).padStart(2, '0');
-                            const dd = String(d.getDate()).padStart(2, '0');
-                            return `${yyyy}-${mm}-${dd}`;
-                        })()}
-                        {...register('releaseDate')}
-                        onClick={(e) => e.currentTarget.showPicker()}
-                        className={errors.releaseDate ? 'border-red-500' : ''}
+                    <Controller
+                        name="releaseDate"
+                        control={control}
+                        render={({ field }) => (
+                            <Input
+                                id="releaseDate"
+                                type="date"
+                                min={earliestValidReleaseDate()}
+                                value={field.value || ''}
+                                onChange={(event) => {
+                                    const selectedDate = event.target.value
+                                    if (selectedDate && isReleaseDateBelowMinimum(selectedDate)) {
+                                        const today = earliestValidReleaseDate()
+                                        field.onChange(today)
+                                        toast.error('Release date cannot be in the past')
+                                        return
+                                    }
+                                    field.onChange(selectedDate)
+                                }}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
+                                onClick={(event) => event.currentTarget.showPicker()}
+                                className={errors.releaseDate ? 'border-red-500' : ''}
+                            />
+                        )}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                        Release date must be at least 2 days from today.
+                        Release date can be today or any future date.
                     </p>
                     {releaseDateAutoCorrected && !errors.releaseDate && (
                         <p className="text-xs text-muted-foreground mt-1">
@@ -1007,38 +1020,6 @@ export default function BasicInfoStep({
                     )}
                     {errors.labelName && (
                         <p className="text-xs text-red-500 mt-1">{errors.labelName.message}</p>
-                    )}
-                </div>
-
-                {/* UPC Field */}
-                <div className="space-y-3 pt-6 border-t border-border">
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="upc" className="text-lg font-semibold">
-                            UPC
-                        </Label>
-                        <div className="group relative">
-                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                            <div className="invisible group-hover:visible absolute left-0 top-6 z-50 w-72 p-3 bg-popover border border-border rounded-md shadow-lg text-xs">
-                                <p className="font-medium mb-1">Don't have a UPC?</p>
-                                <p className="text-muted-foreground">
-                                    If you don't have a UPC, or it is less than 13 characters, leave this field empty and we will generate one for you.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <Input
-                        id="upc"
-                        placeholder="Enter 13-digit UPC"
-                        {...register('upc')}
-                        maxLength={13}
-                        className={errors.upc ? 'border-red-500' : ''}
-                    />
-                    {/* <p className="text-xs text-muted-foreground">
-                        UPC must be exactly 13 digits. Leave empty for auto-generation.
-                    </p> */}
-                    {errors.upc && (
-                        <p className="text-xs text-red-500 mt-1">{errors.upc.message}</p>
                     )}
                 </div>
 

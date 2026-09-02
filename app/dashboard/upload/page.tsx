@@ -41,6 +41,7 @@ import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/u
 import { validateCoverArtSize, validateCoverArtDimensions, isExistingUnchangedCoverArt } from "@/components/dashboard/upload/cover-art-file-validation";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage, getReleases, getRelease, submitReleaseUpdate } from "@/lib/api/releases";
+import { applyFormMediaUpdates } from "@/lib/upload/upload-session";
 import { hydrateDraftForm, releaseToWriteSnapshot, type ReleaseWriteSnapshot } from "@/lib/releases";
 import {
   earliestValidReleaseDate,
@@ -55,9 +56,11 @@ import { isPlanInactiveError } from "@/lib/plan-inactive";
 import { getErrorMessage } from "@/lib/get-error-message";
 import {
   getLegalPersonNameError,
+  LEGAL_PERSON_NAME_COMPOSER_HINT,
   LEGAL_PERSON_NAME_HINT,
 } from '@/lib/validation/legal-person-name';
 import { applyUploadApiErrors } from "@/lib/upload-api-errors";
+import { ensureExternalSocialUrl } from "@/lib/releases/platform-ref.util";
 import {
   areMandatoryChecksComplete,
   getUncheckedMandatoryChecks,
@@ -442,7 +445,6 @@ export default function UploadPage() {
       "labelName",
       "featuringArtist",
       "artists",
-      "upc",
     ];
     const step2 = ["audioFile", "audioFiles", "audioConsent"];
     const step3 = [
@@ -790,7 +792,8 @@ export default function UploadPage() {
               isValid = false;
             } else {
               // Check each track for required fields
-              const nameErrorHint = LEGAL_PERSON_NAME_HINT;
+              const writerNameErrorHint = LEGAL_PERSON_NAME_HINT;
+              const composerNameErrorHint = LEGAL_PERSON_NAME_COMPOSER_HINT;
               let hasError = false;
 
               for (let i = 0; i < formData.tracks.length; i++) {
@@ -833,9 +836,9 @@ export default function UploadPage() {
 
                 if (!isNoLyricsTrack) {
                   for (const sw of filledWriters) {
-                    if (getLegalPersonNameError(sw.trim())) {
+                    if (getLegalPersonNameError(sw.trim(), true)) {
                       toast.error(
-                        `Track ${i + 1}: Invalid writer name "${sw}". ${nameErrorHint}`
+                        `Track ${i + 1}: Invalid writer name "${sw}". ${writerNameErrorHint}`
                       );
                       hasError = true;
                       break;
@@ -848,9 +851,9 @@ export default function UploadPage() {
                 const filledComposers = (track.composers || []).filter(comp => comp?.trim());
                 if (filledComposers.length > 0) {
                   for (const comp of filledComposers) {
-                    if (getLegalPersonNameError(comp.trim())) {
+                    if (getLegalPersonNameError(comp.trim(), false)) {
                       toast.error(
-                        `Track ${i + 1}: Invalid composer name "${comp}". ${nameErrorHint}`
+                        `Track ${i + 1}: Invalid composer name "${comp}". ${composerNameErrorHint}`
                       );
                       hasError = true;
                       break;
@@ -1110,6 +1113,9 @@ export default function UploadPage() {
       setSubmitProgress(update);
     };
     try {
+      const mediaUploaded = (updates: Parameters<typeof applyFormMediaUpdates>[0]) => {
+        applyFormMediaUpdates(updates, form.setValue);
+      };
       if (isEditMode && editReleaseId) {
         const result = await submitReleaseUpdate(
           editReleaseId,
@@ -1120,6 +1126,7 @@ export default function UploadPage() {
           {
             onProgress: reportSubmitProgress,
             baseline: editBaselineRef.current ?? undefined,
+            onMediaUploaded: mediaUploaded,
           },
         );
         if (result.writeSnapshot) {
@@ -1136,7 +1143,7 @@ export default function UploadPage() {
             ...data,
             mandatoryChecks: mandatoryChecks,
           } as any,
-          { onProgress: reportSubmitProgress },
+          { onProgress: reportSubmitProgress, onMediaUploaded: mediaUploaded },
         );
         toast.success("Release submitted successfully!");
       }
@@ -1650,8 +1657,8 @@ export default function UploadPage() {
         mainArtistProfiles={{
           spotify: watch("spotifyProfile") ?? undefined,
           apple: watch("appleMusicProfile") ?? undefined,
-          instagram: (watch("instagramProfile") === 'yes' ? watch("instagramProfileUrl") : watch("instagramProfile")) ?? undefined,
-          facebook: (watch("facebookProfile") === 'yes' ? watch("facebookProfileUrl") : watch("facebookProfile")) ?? undefined
+          instagram: ensureExternalSocialUrl(watch("instagramProfileUrl")),
+          facebook: ensureExternalSocialUrl(watch("facebookProfileUrl")),
         }}
         fieldRules={fieldRules}
         audioFiles={watch("audioFiles")}

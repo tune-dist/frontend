@@ -20,6 +20,18 @@ import type {
 import { buildProfilesFromFlatFields, toPlatformRef } from './platform-ref.util';
 import { getDefaultLabelName } from '@/lib/validation/label-name';
 import { toTitleCase } from '@/lib/validation/title-case';
+import {
+  createUploadSession,
+  recordUploadedKey,
+  type FormMediaUpdates,
+  type UploadSession,
+} from '@/lib/upload/upload-session';
+
+export type BuildDraftPayloadResult = {
+  payload: CreateReleaseDraftRequest;
+  uploadSession: UploadSession;
+  formMediaUpdates: FormMediaUpdates;
+};
 
 type FormAudioFile = {
   id?: string;
@@ -27,6 +39,7 @@ type FormAudioFile = {
   fileName?: string;
   size?: number;
   path?: string;
+  replacedPath?: string;
   duration?: number;
   hash?: string;
   fingerprint?: string;
@@ -134,13 +147,16 @@ async function ensureAudioUploaded(
   form: BuildDraftPayloadInput,
   token: string,
   runUpload: FileUploadRunner,
+  uploadSession: UploadSession,
 ): Promise<Map<string, FormAudioFile>> {
   const map = new Map<string, FormAudioFile>();
 
   for (let i = 0; i < audioFiles.length; i++) {
     const af = audioFiles[i];
-    if (af.file instanceof File && !af.path) {
+    if (af.file instanceof File && !toStorageKey(af.path)) {
       const uploadTitle = resolveAudioUploadTitle(af, tracks, i, form.title);
+      const replaceKey =
+        toStorageKey(af.replacedPath) || toStorageKey(af.path);
       await runUpload(`Uploading ${uploadTitle}…`, (onFileProgress) =>
         uploadFileInChunks(
           af.file!,
@@ -151,6 +167,7 @@ async function ensureAudioUploaded(
           uploadTitle,
           form.audioConsent,
         ).then((result) => {
+          recordUploadedKey(uploadSession, result.path, replaceKey);
           af.path = result.path;
           af.duration = result.metaData?.duration;
           af.hash = result.metaData?.hash;
@@ -191,10 +208,8 @@ function buildArtists(form: BuildDraftPayloadInput): CreateReleaseDraftRequest['
         spotifyProfile: form.spotifyProfile,
         appleMusicProfile: form.appleMusicProfile,
         youtubeMusicProfile: form.youtubeMusicProfile,
-        instagramProfile: form.instagramProfile,
-        instagramProfileUrl: form.instagramProfileUrl ?? undefined,
-        facebookProfile: form.facebookProfile,
-        facebookProfileUrl: form.facebookProfileUrl ?? undefined,
+        instagramUrl: form.instagramProfileUrl ?? undefined,
+        facebookUrl: form.facebookProfileUrl ?? undefined,
       }),
     });
   }
@@ -210,8 +225,8 @@ function buildArtists(form: BuildDraftPayloadInput): CreateReleaseDraftRequest['
         spotifyProfile: artist.spotifyProfile,
         appleMusicProfile: artist.appleMusicProfile,
         youtubeMusicProfile: artist.youtubeMusicProfile,
-        instagramProfile: artist.instagramProfile,
-        facebookProfile: artist.facebookProfile,
+        instagramUrl: artist.instagramProfile ?? undefined,
+        facebookUrl: artist.facebookProfile ?? undefined,
       }),
     });
   }
@@ -226,7 +241,8 @@ async function resolveCoverArt(
   form: BuildDraftPayloadInput,
   token: string,
   runUpload: FileUploadRunner,
-): Promise<DraftCoverArt> {
+  uploadSession: UploadSession,
+): Promise<{ coverArt: DraftCoverArt; coverArtFormValue: Record<string, unknown> | null }> {
   const coverArtData = form.coverArt as Record<string, unknown> | File | null | undefined;
   if (!coverArtData) {
     throw new Error('Cover art is missing or invalid. Please check the Cover Art step.');
@@ -235,7 +251,7 @@ async function resolveCoverArt(
   let storageKey: string;
   let coverMeta: Record<string, unknown> =
     typeof coverArtData === 'object' && !(coverArtData instanceof File)
-      ? coverArtData
+      ? { ...coverArtData }
       : {};
 
   if (typeof coverMeta.path === 'string' && toStorageKey(coverMeta.path)) {
@@ -253,6 +269,10 @@ async function resolveCoverArt(
   } else if (form.coverArt instanceof File || coverMeta.file instanceof File) {
     const fileToUpload =
       form.coverArt instanceof File ? form.coverArt : (coverMeta.file as File);
+    const replaceKey =
+      toStorageKey(typeof coverMeta.replacedPath === 'string' ? coverMeta.replacedPath : undefined) ||
+      toStorageKey(typeof coverMeta.path === 'string' ? coverMeta.path : undefined) ||
+      toStorageKey(typeof coverMeta.storageKey === 'string' ? coverMeta.storageKey : undefined);
     let uploadedKey = '';
     await runUpload('Uploading cover art…', (onFileProgress) =>
       uploadFileInChunks(
@@ -264,7 +284,10 @@ async function resolveCoverArt(
         form.title,
         form.coverArtConsent,
       ).then((result) => {
+        recordUploadedKey(uploadSession, result.path, replaceKey);
         uploadedKey = result.path;
+        coverMeta.path = result.path;
+        coverMeta.storageKey = result.path;
         if (result.metaData) {
           if (result.metaData.size) coverMeta.size = result.metaData.size;
           if (result.metaData.resolution) {
@@ -307,11 +330,14 @@ async function resolveCoverArt(
         : 0;
 
   return {
-    storageKey,
-    filename,
-    size,
-    dimensions: dimensions || { width: 0, height: 0 },
-    format,
+    coverArt: {
+      storageKey,
+      filename,
+      size,
+      dimensions: dimensions || { width: 0, height: 0 },
+      format,
+    },
+    coverArtFormValue: coverMeta,
   };
 }
 
@@ -320,11 +346,13 @@ export async function buildDraftPayload(
   form: BuildDraftPayloadInput,
   token: string,
   onProgress?: SubmitProgressCallback,
-): Promise<CreateReleaseDraftRequest> {
+  uploadSession: UploadSession = createUploadSession(),
+): Promise<BuildDraftPayloadResult> {
   const releaseType = (form.format || form.releaseType || 'single') as ReleaseType;
   const isSingle = releaseType === 'single';
-  const audioFiles = (form.audioFiles || []) as FormAudioFile[];
-  const rootAudio = isSingle ? (form.audioFile as FormAudioFile | undefined) : undefined;
+  const audioFiles = ((form.audioFiles || []) as FormAudioFile[]).map((af) => ({ ...af }));
+  const rootAudioSource = isSingle ? (form.audioFile as FormAudioFile | undefined) : undefined;
+  const rootAudio = rootAudioSource ? { ...rootAudioSource } : undefined;
   const progress = createSubmitProgressTracker(
     countPendingUploads(form, audioFiles, isSingle, rootAudio),
     onProgress,
@@ -332,7 +360,14 @@ export async function buildDraftPayload(
   progress.start();
   const runUpload = progress.wrapFileUpload;
 
-  const audioMap = await ensureAudioUploaded(audioFiles, form.tracks || [], form, token, runUpload);
+  const audioMap = await ensureAudioUploaded(
+    audioFiles,
+    form.tracks || [],
+    form,
+    token,
+    runUpload,
+    uploadSession,
+  );
 
   const releaseNoLyrics = isInstrumentalRelease(form.primaryGenre, form.instrumental);
 
@@ -368,8 +403,8 @@ export async function buildDraftPayload(
     const track = trackRows[index];
     let linked = track.audioFileId ? audioMap.get(track.audioFileId) : undefined;
 
-    if (isSingle && index === 0 && form.audioFile) {
-      const rootAudioFile = form.audioFile as FormAudioFile;
+    if (isSingle && index === 0 && rootAudio) {
+      const rootAudioFile = rootAudio;
       const rootStorageKey = toStorageKey(rootAudioFile.path);
       const linkedStorageKey = linked ? toStorageKey(linked.path) : undefined;
       const pendingRootUpload =
@@ -385,6 +420,8 @@ export async function buildDraftPayload(
             0,
             form.title,
           );
+          const replaceKey =
+            toStorageKey(rootAudioFile.replacedPath) || toStorageKey(rootAudioFile.path);
           await runUpload(`Uploading ${uploadTitle}…`, (onFileProgress) =>
             uploadFileInChunks(
               rootAudioFile.file!,
@@ -395,6 +432,7 @@ export async function buildDraftPayload(
               uploadTitle,
               form.audioConsent,
             ).then((result) => {
+              recordUploadedKey(uploadSession, result.path, replaceKey);
               rootAudioFile.path = result.path;
               rootAudioFile.duration = result.metaData?.duration;
               rootAudioFile.hash = result.metaData?.hash;
@@ -478,7 +516,12 @@ export async function buildDraftPayload(
     });
   }
 
-  const coverArt = await resolveCoverArt(form, token, runUpload);
+  const { coverArt, coverArtFormValue } = await resolveCoverArt(
+    form,
+    token,
+    runUpload,
+    uploadSession,
+  );
   progress.uploadsFinished();
 
   const rightsAccepted =
@@ -495,54 +538,62 @@ export async function buildDraftPayload(
     defaultLabel;
 
   return {
-    release: {
-      title: toTitleCase(form.title),
-      version: form.version || null,
-      type: releaseType,
-      labelName: form.labelName || defaultLabel,
-      releaseDate: form.releaseDate || new Date().toISOString().slice(0, 10),
-      originalReleaseDate: form.originalReleaseDate || null,
-      previouslyReleased: yesNo(form.previouslyReleased),
-      distributionTerritories: form.distributionTerritories || ['Worldwide'],
-      upc: form.upc || null,
-      copyright: form.copyright || null,
-      publisher,
-      recordingYear:
-        typeof form.recordingYear === 'number'
-          ? form.recordingYear
-          : parseInt(String(form.recordingYear || new Date().getFullYear()), 10),
+    payload: {
+      release: {
+        title: toTitleCase(form.title),
+        version: form.version || null,
+        type: releaseType,
+        labelName: form.labelName || defaultLabel,
+        releaseDate: form.releaseDate || new Date().toISOString().slice(0, 10),
+        originalReleaseDate: form.originalReleaseDate || null,
+        previouslyReleased: yesNo(form.previouslyReleased),
+        distributionTerritories: form.distributionTerritories || ['Worldwide'],
+        upc: form.upc || null,
+        copyright: form.copyright || null,
+        publisher,
+        recordingYear:
+          typeof form.recordingYear === 'number'
+            ? form.recordingYear
+            : parseInt(String(form.recordingYear || new Date().getFullYear()), 10),
+      },
+      artists: buildArtists(form),
+      coverArt,
+      tracks,
+      submission: {
+        rightsAccepted,
+        audioDuplicateConsent: form.audioConsent === true,
+        coverArtValidationConsent: form.coverArtConsent === true,
+        audioWarningMessage:
+          form.audioConsent === true &&
+          form.audioDuplicateDetected === true &&
+          typeof form.audioWarningMessage === 'string' &&
+          form.audioWarningMessage.trim()
+            ? form.audioWarningMessage.trim()
+            : undefined,
+        coverArtWarnings:
+          form.coverArtConsent === true &&
+          Array.isArray(form.coverArtValidationIssues) &&
+          form.coverArtValidationIssues.length > 0
+            ? form.coverArtValidationIssues
+                .filter(
+                  (issue): issue is { code?: string; message: string; severity?: string } =>
+                    !!issue &&
+                    typeof (issue as { message?: unknown }).message === 'string' &&
+                    String((issue as { message: string }).message).trim().length > 0,
+                )
+                .map((issue) => ({
+                  code: typeof issue.code === 'string' ? issue.code : undefined,
+                  message: String(issue.message).trim(),
+                  severity: typeof issue.severity === 'string' ? issue.severity : undefined,
+                }))
+            : undefined,
+      },
     },
-    artists: buildArtists(form),
-    coverArt,
-    tracks,
-    submission: {
-      rightsAccepted,
-      audioDuplicateConsent: form.audioConsent === true,
-      coverArtValidationConsent: form.coverArtConsent === true,
-      audioWarningMessage:
-        form.audioConsent === true &&
-        form.audioDuplicateDetected === true &&
-        typeof form.audioWarningMessage === 'string' &&
-        form.audioWarningMessage.trim()
-          ? form.audioWarningMessage.trim()
-          : undefined,
-      coverArtWarnings:
-        form.coverArtConsent === true &&
-        Array.isArray(form.coverArtValidationIssues) &&
-        form.coverArtValidationIssues.length > 0
-          ? form.coverArtValidationIssues
-              .filter(
-                (issue): issue is { code?: string; message: string; severity?: string } =>
-                  !!issue &&
-                  typeof (issue as { message?: unknown }).message === 'string' &&
-                  String((issue as { message: string }).message).trim().length > 0,
-              )
-              .map((issue) => ({
-                code: typeof issue.code === 'string' ? issue.code : undefined,
-                message: String(issue.message).trim(),
-                severity: typeof issue.severity === 'string' ? issue.severity : undefined,
-              }))
-          : undefined,
+    uploadSession,
+    formMediaUpdates: {
+      audioFiles,
+      ...(rootAudio ? { audioFile: rootAudio } : {}),
+      coverArt: coverArtFormValue,
     },
   };
 }

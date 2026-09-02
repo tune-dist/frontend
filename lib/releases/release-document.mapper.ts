@@ -48,14 +48,17 @@ function mapMongoArtist(
 ): DraftArtist {
   return {
     name: artist.name,
+    cosmosId: artist.cosmosId,
     profiles: buildProfilesFromFlatFields({
       spotifyProfile: artist.spotifyProfile,
       appleMusicProfile: artist.appleMusicProfile,
       youtubeMusicProfile: artist.youtubeMusicProfile,
-      instagramProfile: artist.instagramProfile,
-      instagramProfileUrl: artist.instagramProfileUrl,
-      facebookProfile: artist.facebookProfile,
-      facebookProfileUrl: artist.facebookProfileUrl,
+      instagramUrl:
+        artist.instagramProfileUrl ??
+        (typeof artist.instagramProfile === 'string' ? artist.instagramProfile : undefined),
+      facebookUrl:
+        artist.facebookProfileUrl ??
+        (typeof artist.facebookProfile === 'string' ? artist.facebookProfile : undefined),
     }),
   };
 }
@@ -72,10 +75,24 @@ function buildMainArtists(document: MongoReleaseDocument): DraftArtist[] {
           spotifyProfile: document.spotifyProfile ?? document.socialPlatforms?.spotifyProfile,
           appleMusicProfile: document.appleMusicProfile ?? document.socialPlatforms?.appleMusicProfile,
           youtubeMusicProfile: document.youtubeMusicProfile ?? document.socialPlatforms?.youtubeMusicProfile,
-          instagramProfile: document.instagramProfile ?? document.socialPlatforms?.instagramProfile,
-          instagramProfileUrl: document.instagramProfileUrl ?? document.socialPlatforms?.instagramProfileUrl,
-          facebookProfile: document.facebookProfile ?? document.socialPlatforms?.facebookProfile,
-          facebookProfileUrl: document.facebookProfileUrl ?? document.socialPlatforms?.facebookProfileUrl,
+          instagramUrl:
+            document.instagramProfileUrl ??
+            document.socialPlatforms?.instagramProfileUrl ??
+            (typeof document.instagramProfile === 'string'
+              ? document.instagramProfile
+              : undefined) ??
+            (typeof document.socialPlatforms?.instagramProfile === 'string'
+              ? document.socialPlatforms.instagramProfile
+              : undefined),
+          facebookUrl:
+            document.facebookProfileUrl ??
+            document.socialPlatforms?.facebookProfileUrl ??
+            (typeof document.facebookProfile === 'string'
+              ? document.facebookProfile
+              : undefined) ??
+            (typeof document.socialPlatforms?.facebookProfile === 'string'
+              ? document.socialPlatforms.facebookProfile
+              : undefined),
         }),
       },
     ];
@@ -97,7 +114,7 @@ function mapMongoTrack(
   return {
     order: track.trackOrder ?? index + 1,
     title: track.title || document.title || 'Untitled',
-    version: null,
+    version: track.version || null,
     artistName: track.artistName || document.artistName || null,
     language: track.language || document.language || 'Hindi',
     genre: {
@@ -229,12 +246,7 @@ export function mapMongoReleaseToDetail(document: MongoReleaseDocument): Release
       distributionTerritories: document.distributionTerritories || ['Worldwide'],
       upc: document.upc || document.barcode || null,
       copyright: document.copyright || null,
-      publisher:
-        document.publisher ||
-        document.producers?.[0] ||
-        document.copyright ||
-        document.labelName ||
-        null,
+      publisher: document.publisher || document.producers?.[0] || null,
       recordingYear: document.recordingYear,
     },
     artists: {
@@ -315,6 +327,8 @@ export function mapListItemToFlatRelease(item: ReleaseListItem): Record<string, 
     releaseType: item.type,
     releaseDate: item.releaseDate,
     upc: item.upc,
+    isrc: item.isrc,
+    catalogNumber: item.catalogNumber,
     pdlAlbumId: item.pdlAlbumId,
     warning: item.warning === true,
     audioWarningMessage: item.audioWarningMessage ?? null,

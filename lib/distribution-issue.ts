@@ -51,18 +51,17 @@ export function hasDistributionIssueResubmitted(
   return Boolean(distributionIssueResubmittedAt) && !distributionIssueResolvedAt;
 }
 
-/** Earliest release date allowed by the upload form (today + 2 calendar days). */
+/** Earliest release date allowed by the upload form (today). */
 export function earliestValidReleaseDate(from: Date = new Date()): string {
   const d = new Date(from);
   d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 2);
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
-/** Whether a YYYY-MM-DD release date fails the 2-day-from-today rule. */
+/** Whether a YYYY-MM-DD release date is before today. */
 export function isReleaseDateBelowMinimum(dateStr: string, from: Date = new Date()): boolean {
   if (!dateStr) return true;
   return dateStr < earliestValidReleaseDate(from);
