@@ -39,6 +39,14 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
     const validationStatus = watch('coverArtValidationStatus');
     const validationIssues = watch('coverArtValidationIssues') || [];
+    const blockingErrors = validationIssues.filter((issue: any) => issue.severity === 'error');
+    const hasBlockingCoverArtErrors =
+        validationStatus === 'rejected' || blockingErrors.length > 0;
+    const showValidationIssues =
+        (validationStatus === 'rejected' ||
+            validationStatus === 'warned' ||
+            validationStatus === 'warning') &&
+        validationIssues.length > 0;
     const coverArtChanged = watch('coverArtChanged');
     const coverArtPreview = watch('coverArtPreview')
     const coverArt = watch('coverArt')
@@ -432,47 +440,71 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 )}
 
                 {/* OCR Warnings and Consent Section */}
-                {(watch('coverArtValidationStatus') === 'rejected' || watch('coverArtValidationStatus') === 'warned' || watch('coverArtValidationStatus') === 'warning') && (watch('coverArtValidationIssues') || []).length > 0 && (
+                {showValidationIssues && (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mt-6 p-6 rounded-3xl border border-amber-500/30 bg-amber-500/5 space-y-4"
+                        className={`mt-6 p-6 rounded-3xl border space-y-4 ${
+                            hasBlockingCoverArtErrors
+                                ? 'border-red-500/30 bg-red-500/5'
+                                : 'border-amber-500/30 bg-amber-500/5'
+                        }`}
                     >
-                        <div className="flex items-center gap-3 text-amber-500">
+                        <div className={`flex items-center gap-3 ${
+                            hasBlockingCoverArtErrors ? 'text-red-400' : 'text-amber-500'
+                        }`}>
                             <AlertCircle className="h-6 w-6" />
-                            <h3 className="text-xl font-bold">Validation Warnings</h3>
+                            <h3 className="text-xl font-bold">
+                                {hasBlockingCoverArtErrors ? 'Cover Art Rejected' : 'Validation Warnings'}
+                            </h3>
                         </div>
 
                         <ul className="space-y-2">
                             {validationIssues.map((issue: any, idx: number) => (
-                                <li key={idx} className="flex items-start gap-2 text-sm text-amber-200/80">
-                                    <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                                    <span>{issue.message}</span>
+                                <li
+                                    key={idx}
+                                    className={`flex items-start gap-2 text-sm ${
+                                        hasBlockingCoverArtErrors ? 'text-red-200/80' : 'text-amber-200/80'
+                                    }`}
+                                >
+                                    <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${
+                                        hasBlockingCoverArtErrors ? 'bg-red-500' : 'bg-amber-500'
+                                    }`} />
+                                    <span>
+                                        {issue.severity === 'error' ? 'Error: ' : 'Warning: '}
+                                        {issue.message}
+                                    </span>
                                 </li>
                             ))}
                         </ul>
 
-                        <div className="pt-4 border-t border-amber-500/20">
-                            <label className="flex items-start gap-3 cursor-pointer group">
-                                <div className="relative flex items-center mt-1">
-                                    <input
-                                        type="checkbox"
-                                        className="peer h-5 w-5 rounded border-amber-500/50 bg-transparent text-amber-500 focus:ring-amber-500 cursor-pointer appearance-none border-2 checked:bg-amber-500"
-                                        checked={watch('coverArtConsent')}
-                                        onChange={(e) => setValue('coverArtConsent', e.target.checked, { shouldValidate: true })}
-                                    />
-                                    <CheckCircle2 className="absolute h-5 w-5 text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none p-0.5" />
-                                </div>
-                                <span className="text-base font-medium text-amber-200/90 group-hover:text-amber-100 transition-colors">
-                                    Are you sure you want to continue with these warnings?
-                                </span>
-                            </label>
-                            {errors.coverArtConsent && (
-                                <p className="text-xs text-red-500 mt-2 ml-8 font-medium italic">
-                                    You must check this box to proceed to the next step.
-                                </p>
-                            )}
-                        </div>
+                        {hasBlockingCoverArtErrors ? (
+                            <p className="text-sm text-red-200/90 pt-4 border-t border-red-500/20">
+                                These errors must be fixed with a new cover image. Accepting warnings will not override them.
+                            </p>
+                        ) : (
+                            <div className="pt-4 border-t border-amber-500/20">
+                                <label className="flex items-start gap-3 cursor-pointer group">
+                                    <div className="relative flex items-center mt-1">
+                                        <input
+                                            type="checkbox"
+                                            className="peer h-5 w-5 rounded border-amber-500/50 bg-transparent text-amber-500 focus:ring-amber-500 cursor-pointer appearance-none border-2 checked:bg-amber-500"
+                                            checked={watch('coverArtConsent')}
+                                            onChange={(e) => setValue('coverArtConsent', e.target.checked, { shouldValidate: true })}
+                                        />
+                                        <CheckCircle2 className="absolute h-5 w-5 text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none p-0.5" />
+                                    </div>
+                                    <span className="text-base font-medium text-amber-200/90 group-hover:text-amber-100 transition-colors">
+                                        Are you sure you want to continue with these warnings?
+                                    </span>
+                                </label>
+                                {errors.coverArtConsent && (
+                                    <p className="text-xs text-red-500 mt-2 ml-8 font-medium italic">
+                                        You must check this box to proceed to the next step.
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </motion.div>
                 )}
 
