@@ -388,7 +388,9 @@ export function mapDetailToFlatRelease(detail: ReleaseDetailResponse): Record<st
     catalogNumber: detail.distribution.catalogNumber,
     copyright: detail.release.copyright,
     publisher: detail.release.publisher,
-    producers: detail.release.publisher ? [detail.release.publisher] : undefined,
+    producers: detail.release.publisher
+      ? [detail.release.publisher]
+      : undefined,
     recordingYear: detail.release.recordingYear,
     featuredArtists: detail.artists.featured,
     primaryArtists: detail.artists.main.map((artist) => ({

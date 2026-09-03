@@ -72,6 +72,19 @@ function yesNo(value?: string | boolean): boolean {
   return value === 'yes';
 }
 
+export function resolveDraftPublisher(input: {
+  producers?: string[];
+  publisher?: string;
+  labelName?: string;
+}): string {
+  const defaultLabel = getDefaultLabelName();
+  return (
+    input.producers?.[0]?.trim() ||
+    input.publisher?.trim() ||
+    defaultLabel
+  );
+}
+
 /** Durable S3 key from a form path that may still hold a signed URL (legacy). */
 function toStorageKey(value?: string | null): string | undefined {
   const trimmed = value?.trim();
@@ -481,9 +494,14 @@ export async function buildDraftPayload(
         ? form.previewClipStartTime || track.previewClipStartTime
         : track.previewClipStartTime;
 
+    const trackTitle =
+      isSingle && index === 0 && form.title?.trim()
+        ? form.title
+        : track.title;
+
     tracks.push({
       order: index + 1,
-      title: toTitleCase(track.title),
+      title: toTitleCase(trackTitle),
       version: track.version || null,
       artistName: track.artistName || form.artistName || null,
       language:
@@ -530,12 +548,11 @@ export async function buildDraftPayload(
     form.rightsAccepted === true;
 
   const defaultLabel = getDefaultLabelName();
-  const publisher =
-    form.producers?.[0]?.trim() ||
-    form.publisher?.trim() ||
-    form.copyright?.trim() ||
-    form.labelName?.trim() ||
-    defaultLabel;
+  const publisher = resolveDraftPublisher({
+    producers: form.producers,
+    publisher: form.publisher,
+    labelName: form.labelName,
+  });
 
   return {
     payload: {

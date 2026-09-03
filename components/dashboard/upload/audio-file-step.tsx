@@ -1,11 +1,7 @@
 
 import { useState } from 'react'
 import { validateAudioOnBackend } from '@/lib/upload/chunk-uploader'
-import {
-    isAllowedWavBitDepth,
-    formatAllowedBitDepths,
-    validateWavAudioSpecs,
-} from '@/lib/upload/audio-format'
+import { validateLocalWavFile } from '@/lib/upload/validate-local-wav-file'
 import { isPlanInactiveError } from '@/lib/plan-inactive'
 import { getErrorMessage } from '@/lib/get-error-message'
 import { getMinTrackDurationError } from './crbt-validation'
@@ -46,81 +42,6 @@ export default function AudioFileStep({
     const audioFiles = watch('audioFiles') || []
     const tracks = watch('tracks') || []
 
-    const parseWavHeader = async (
-        file: File,
-    ): Promise<{ sampleRate: number; bitDepth: number; channels: number; durationSec?: number }> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const buffer = e.target?.result as ArrayBuffer;
-                if (!buffer) return reject(new Error('Failed to read file'));
-
-                const view = new DataView(buffer);
-
-                if (view.byteLength < 12) {
-                    return reject(new Error('Invalid audio file format (File too small)'));
-                }
-
-                // Check RIFF signature
-                const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
-                if (riff !== 'RIFF') return reject(new Error('Invalid audio file format (Header missing RIFF)'));
-
-                // Check WAVE signature
-                const wave = String.fromCharCode(view.getUint8(8), view.getUint8(9), view.getUint8(10), view.getUint8(11));
-                if (wave !== 'WAVE') return reject(new Error('Invalid audio file format (Header missing WAVE)'));
-
-                let sampleRate = 0;
-                let bitDepth = 16;
-                let channels = 0;
-                let dataChunkSize = 0;
-
-                // Search chunks dynamically (handles JUNK, bext, LIST, etc.)
-                let offset = 12;
-                while (offset + 8 <= view.byteLength) {
-                    const chunkId = String.fromCharCode(
-                        view.getUint8(offset),
-                        view.getUint8(offset + 1),
-                        view.getUint8(offset + 2),
-                        view.getUint8(offset + 3)
-                    );
-                    const chunkSize = view.getUint32(offset + 4, true);
-
-                    if (chunkId === 'fmt ') {
-                        if (offset + 8 + 14 > view.byteLength) {
-                            return reject(new Error('Corrupted WAV format chunk'));
-                        }
-
-                        channels = view.getUint16(offset + 10, true);
-                        sampleRate = view.getUint32(offset + 12, true);
-                        bitDepth = offset + 8 + 16 <= view.byteLength
-                            ? view.getUint16(offset + 22, true)
-                            : 16;
-                    } else if (chunkId === 'data') {
-                        dataChunkSize = chunkSize;
-                    }
-
-                    const advance = 8 + chunkSize + (chunkSize % 2 !== 0 ? 1 : 0);
-                    if (advance <= 0) break;
-                    offset += advance;
-                }
-
-                if (!sampleRate || !channels) {
-                    return reject(new Error('Could not find format chunk (fmt ) in WAV file'));
-                }
-
-                const bytesPerFrame = channels * (bitDepth / 8);
-                const durationSec =
-                    dataChunkSize > 0 && bytesPerFrame > 0
-                        ? dataChunkSize / bytesPerFrame / sampleRate
-                        : undefined;
-
-                return resolve({ sampleRate, bitDepth, channels, durationSec });
-            };
-            reader.onerror = () => reject(new Error('Error reading file header'));
-            reader.readAsArrayBuffer(file.slice(0, Math.min(file.size, 65536)));
-        });
-    }
-
     const formatAudioValidationError = (fileName: string, error: unknown) =>
         `${fileName}: ${getErrorMessage(
             error,
@@ -135,39 +56,8 @@ export default function AudioFileStep({
         setIsUploading(true)
 
         for (const file of files) {
-            // Only accept WAV files for all formats
-            if (!file.type.includes('wav') && !file.name.toLowerCase().endsWith('.wav')) {
-                toast.error(`File rejected: ${file.name}. Only WAV files are accepted.`)
-                continue
-            }
-
-            if (file.size > 500 * 1024 * 1024) {
-                toast.error(`File rejected: ${file.name}. Size must be less than 500MB.`)
-                continue
-            }
-
-            // Validate WAV header
-            try {
-                const parsingToastId = toast.loading(`Checking audio format for ${file.name}...`)
-                const { sampleRate, bitDepth, channels, durationSec } = await parseWavHeader(file);
-                toast.dismiss(parsingToastId)
-
-                const specValidation = validateWavAudioSpecs({ sampleRate, bitDepth, channels });
-                if (!specValidation.valid) {
-                    toast.error(specValidation.error || `Invalid audio format for ${file.name}`);
-                    continue;
-                }
-
-                const earlyDurationError = getMinTrackDurationError(durationSec);
-                if (earlyDurationError) {
-                    toast.error(`${file.name}: ${earlyDurationError}`);
-                    continue;
-                }
-            } catch (error) {
-                console.error(error)
-                toast.error(`Failed to validate ${file.name}. Please ensure it is a valid WAV.`)
-                continue
-            }
+            const wavHeader = await validateLocalWavFile(file)
+            if (!wavHeader) continue
 
             const fileId = crypto.randomUUID()
             setActiveFileId(fileId)
@@ -266,7 +156,7 @@ export default function AudioFileStep({
 
                 toast.success(`Validation complete: ${file.name}`)
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error(error)
                 // Plan-inactive shows the global subscribe modal; no extra toast.
                 if (!isPlanInactiveError(error)) {
@@ -340,37 +230,8 @@ export default function AudioFileStep({
     }
 
     const validateAndPrepareAudioFile = async (file: File) => {
-        if (!file.type.includes('wav') && !file.name.toLowerCase().endsWith('.wav')) {
-            toast.error(`File rejected: ${file.name}. Only WAV files are accepted.`)
-            return null
-        }
-
-        if (file.size > 500 * 1024 * 1024) {
-            toast.error(`File rejected: ${file.name}. Size must be less than 500MB.`)
-            return null
-        }
-
-        try {
-            const parsingToastId = toast.loading(`Checking audio format for ${file.name}...`)
-            const { sampleRate, bitDepth, channels, durationSec } = await parseWavHeader(file);
-            toast.dismiss(parsingToastId)
-
-            const specValidation = validateWavAudioSpecs({ sampleRate, bitDepth, channels });
-            if (!specValidation.valid) {
-                toast.error(specValidation.error || `Invalid audio format for ${file.name}`);
-                return null;
-            }
-
-            const earlyDurationError = getMinTrackDurationError(durationSec);
-            if (earlyDurationError) {
-                toast.error(`${file.name}: ${earlyDurationError}`);
-                return null;
-            }
-        } catch (error) {
-            console.error(error)
-            toast.error(`Failed to validate ${file.name}. Please ensure it is a valid WAV.`)
-            return null
-        }
+        const wavHeader = await validateLocalWavFile(file)
+        if (!wavHeader) return null
 
         const token = Cookies.get(config.tokenKey) || ''
         const result = await validateAudioOnBackend(
@@ -435,7 +296,7 @@ export default function AudioFileStep({
                 }
                 setValue('audioFiles', updatedAudioFiles, { shouldValidate: true })
                 toast.success(`Validation complete: ${file.name}`)
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error(error)
                 if (!isPlanInactiveError(error)) {
                     toast.error(formatAudioValidationError(file.name, error))
@@ -457,7 +318,7 @@ export default function AudioFileStep({
                 {/* Audio File Upload */}
                 <div className="space-y-3 pt-6 border-t border-border">
                     <h4 className="text-base font-semibold">
-                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV: 16-bit 44.1kHz, or 24-bit HD 44.1k/48k/88.2k/96k/192kHz, Stereo)</span>
+                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV: 16-bit 44.1kHz, or 24-bit HD 44.1k/48k/88.2k/96k/192kHz, Mono or Stereo)</span>
                     </h4>
                     {/* <p className="text-sm text-primary">
                         <a href="#" className="underline">Already have an ISRC code?</a>

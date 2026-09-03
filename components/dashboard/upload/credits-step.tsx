@@ -20,6 +20,7 @@ import { isTrackEligibleForCrbt } from "./crbt-validation";
 import { LEGAL_PERSON_NAME_COMPOSER_HINT, LEGAL_PERSON_NAME_HINT } from "@/lib/validation/legal-person-name";
 import { useResolvedCrbtPlayback } from "@/lib/upload/audio-playback";
 import { IsrcCodeSection, type IsrcMode } from "./isrc-code-section";
+import { cn } from "@/lib/utils";
 import {
   INSTRUMENTAL_LANGUAGE,
   filterGenresForInstrumentalChoice,
@@ -630,36 +631,54 @@ export default function CreditsStep({
                   name="instrumental"
                   control={control}
                   render={({ field }) => (
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label
+                        htmlFor="instrumentalNo"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors",
+                          field.value === "no"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-accent/50",
+                        )}
+                      >
                         <input
                           type="radio"
                           id="instrumentalNo"
+                          name="instrumental"
                           value="no"
                           checked={field.value === "no"}
                           onChange={() => handleInstrumentalChange("no")}
                           onBlur={field.onBlur}
-                          className="h-4 w-4"
+                          className="h-4 w-4 border-primary text-primary focus:ring-primary"
                         />
-                        <Label htmlFor="instrumentalNo" className="font-normal cursor-pointer">
+                        <span className="text-sm font-medium">
                           This song contains lyrics
-                        </Label>
-                      </div>
+                        </span>
+                      </label>
 
-                      <div className="flex items-center space-x-2">
+                      <label
+                        htmlFor="instrumentalYes"
+                        className={cn(
+                          "flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors",
+                          field.value === "yes"
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-accent/50",
+                        )}
+                      >
                         <input
                           type="radio"
                           id="instrumentalYes"
+                          name="instrumental"
                           value="yes"
                           checked={field.value === "yes"}
                           onChange={() => handleInstrumentalChange("yes")}
                           onBlur={field.onBlur}
-                          className="h-4 w-4"
+                          className="h-4 w-4 border-primary text-primary focus:ring-primary"
                         />
-                        <Label htmlFor="instrumentalYes" className="font-normal cursor-pointer">
+                        <span className="text-sm font-medium">
                           This song is instrumental and contains no lyrics
-                        </Label>
-                      </div>
+                        </span>
+                      </label>
                     </div>
                   )}
                 />

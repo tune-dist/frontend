@@ -44,10 +44,49 @@ function formatDateInput(value?: string | null): string {
 /** Map v2 (or Mongo flat) API response → react-hook-form upload state. */
 export function hydrateDraftForm(input: unknown): Partial<UploadFormData> {
   const detail = toReleaseDetailResponse(input);
-  return hydrateFromDetail(detail);
+  return hydrateFromDetail(detail, input);
 }
 
-function hydrateFromDetail(detail: ReleaseDetailResponse): Partial<UploadFormData> {
+function resolvePublisherForForm(
+  detail: ReleaseDetailResponse,
+  input: unknown,
+): string {
+  const defaultLabel = getDefaultLabelName();
+  const fromDetail = detail.release.publisher?.trim() || '';
+
+  let fromProducers = '';
+  if (input && typeof input === 'object') {
+    const raw = input as Record<string, unknown>;
+    if (Array.isArray(raw.producers)) {
+      fromProducers = String(raw.producers[0] ?? '').trim();
+    }
+    if (!fromProducers) {
+      const nestedPublisher = (raw.release as { publisher?: string } | undefined)
+        ?.publisher;
+      if (typeof nestedPublisher === 'string') {
+        fromProducers = nestedPublisher.trim();
+      }
+    }
+  }
+
+  if (
+    fromProducers &&
+    fromDetail &&
+    fromProducers !== fromDetail &&
+    fromDetail === defaultLabel
+  ) {
+    return fromProducers;
+  }
+
+  if (fromDetail) return fromDetail;
+  if (fromProducers) return fromProducers;
+  return defaultLabel;
+}
+
+function hydrateFromDetail(
+  detail: ReleaseDetailResponse,
+  input?: unknown,
+): Partial<UploadFormData> {
   const format = detail.release.type as UploadFormData['format'];
   const isSingle = format === 'single';
   const mainArtist = detail.artists.main[0];
@@ -145,9 +184,7 @@ function hydrateFromDetail(detail: ReleaseDetailResponse): Partial<UploadFormDat
     composers: isSingle ? firstTrack?.credits.composers || [] : [],
     recordingYear: detail.release.recordingYear || new Date().getFullYear(),
     mood: isSingle ? firstTrack?.mood : undefined,
-    producers: detail.release.publisher
-      ? [detail.release.publisher]
-      : [getDefaultLabelName()],
+    producers: [resolvePublisherForForm(detail, input)],
     coverArt: detail.coverArt.storageKey
       ? {
           path: detail.coverArt.storageKey,

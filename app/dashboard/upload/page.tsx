@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 // React Hook Form & Zod
-import { useForm, FormProvider, useFormContext, type FieldErrors } from "react-hook-form";
+import { useForm, FormProvider, useFormContext, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import TrackEditModal from "@/components/dashboard/upload/track-edit-modal";
 import {
@@ -256,7 +256,6 @@ export default function UploadPage() {
         editBaselineRef.current = releaseToWriteSnapshot(release as unknown as Record<string, unknown>);
         isHydratingRef.current = true;
         form.reset({
-          ...form.getValues(),
           ...formValues,
           releaseDate,
           format: formValues.format || "single",
@@ -264,6 +263,18 @@ export default function UploadPage() {
           coverArtMetadataStale: false,
           coverArtChanged: false,
         } as UploadFormData);
+        if (formValues.producers?.length) {
+          form.setValue("producers", [...formValues.producers], {
+            shouldValidate: true,
+            shouldDirty: false,
+          });
+        }
+        if (formValues.copyright) {
+          form.setValue("copyright", formValues.copyright, {
+            shouldValidate: true,
+            shouldDirty: false,
+          });
+        }
         setReleaseDateAutoCorrected(didAutoCorrectReleaseDate);
         if (didAutoCorrectReleaseDate) {
           form.clearErrors("releaseDate");
@@ -1481,11 +1492,18 @@ export default function UploadPage() {
                           <Label htmlFor="copyright">
                             C-Line ©{fieldRules.copyright?.required && " *"}
                           </Label>
-                          <Input
-                            id="copyright"
-                            placeholder="© Your label name"
-                            readOnly={user?.plan === "free"}
-                            {...register("copyright")}
+                          <Controller
+                            name="copyright"
+                            control={form.control}
+                            render={({ field }) => (
+                              <Input
+                                id="copyright"
+                                placeholder="© Your label name"
+                                readOnly={user?.plan === "free"}
+                                {...field}
+                                value={field.value ?? ""}
+                              />
+                            )}
                           />
                           {user?.plan === "free" && (
                             <p className="text-xs text-amber-600 mt-1">
@@ -1527,11 +1545,18 @@ export default function UploadPage() {
                           <Label htmlFor="producers">
                             P-Line ℗{fieldRules.producers?.required && " *"}
                           </Label>
-                          <Input
-                            id="producers"
-                            placeholder="℗ Your label Name"
-                            readOnly={user?.plan === "free"}
-                            {...register("producers.0")}
+                          <Controller
+                            name="producers.0"
+                            control={form.control}
+                            render={({ field }) => (
+                              <Input
+                                id="producers"
+                                placeholder="℗ Your label Name"
+                                readOnly={user?.plan === "free"}
+                                {...field}
+                                value={field.value ?? ""}
+                              />
+                            )}
                           />
                           {user?.plan === "free" && (
                             <p className="text-xs text-amber-600 mt-1">

@@ -70,7 +70,7 @@ export default function BasicInfoStep({
     releaseDateAutoCorrected = false,
 }: BasicInfoStepProps) {
     const { user, refreshUser } = useAuth()
-    const { register, formState: { errors }, watch, setValue, control } = useFormContext<UploadFormData>()
+    const { register, formState: { errors }, watch, setValue, control, getValues } = useFormContext<UploadFormData>()
     const titleField = register('title')
     const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay()
 
@@ -101,6 +101,19 @@ export default function BasicInfoStep({
     const [creatingNewSecondary, setCreatingNewSecondary] = useState<Record<number, boolean>>({})
     const planKey = user?.plan || 'free'
     const allowedFormats = planLimits?.allowedFormats || ['single']
+
+    const syncSingleTrackTitle = (nextTitle: string) => {
+        if (getValues('format') !== 'single') return
+        const tracks = getValues('tracks') || []
+        if (tracks.length === 0) return
+        const normalized = toTitleCase(nextTitle)
+        if (!normalized || tracks[0]?.title === normalized) return
+        setValue(
+            'tracks',
+            [{ ...tracks[0], title: normalized }, ...tracks.slice(1)],
+            { shouldDirty: true, shouldValidate: true },
+        )
+    }
 
     // Fetch plan limits on mount and when plan changes
     useEffect(() => {
@@ -520,6 +533,7 @@ export default function BasicInfoStep({
                                     shouldDirty: true,
                                 })
                             }
+                            syncSingleTrackTitle(normalized || event.target.value)
                         }}
                         className={errors.title ? 'border-red-500' : ''}
                     />

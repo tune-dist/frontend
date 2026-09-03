@@ -60,7 +60,8 @@ import {
   Release,
   ReleaseStatus,
 } from "@/lib/api/releases";
-import { getUsers } from "@/lib/api/users";
+import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
+import { UserFilterSelect } from "@/components/dashboard/user-filter-select";
 import {
   Select,
   SelectContent,
@@ -78,7 +79,6 @@ import {
   isReleaseStaff,
 } from "@/lib/release-status";
 import { formatReleaseCodeDisplay, formatUpcDisplay, formatIsrcListDisplay, formatIsrcDetailDisplay, getTrackIsrcDisplay } from "@/lib/release-codes";
-import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
 import {
   hasOpenDistributionIssueAction,
   hasDistributionIssueAwaitingRm,
@@ -127,7 +127,6 @@ export default function ReleasesPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<
     { type: "delete" | "approve" | "distribute"; id: string } | null
@@ -248,20 +247,6 @@ export default function ReleasesPage() {
   useEffect(() => {
     fetchReleases();
   }, [statusFilter, selectedUserId, page, debouncedSearch]);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      if (canManage) {
-        try {
-          const response = await getUsers({ limit: 100 });
-          setUsers(response.users || []);
-        } catch (error) {
-          console.error("Failed to fetch users:", error);
-        }
-      }
-    };
-    fetchUsers();
-  }, [canManage]);
 
   const getStatusColor = getReleaseStatusColor;
   const formatStatus = formatReleaseStatus;
@@ -555,17 +540,10 @@ export default function ReleasesPage() {
                 {canManage && (
                   <div className="flex flex-col gap-1.5 min-w-[200px]">
                     <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Filter by User</div>
-                    <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                      <SelectTrigger className="h-10 bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all rounded-xl">
-                        <SelectValue placeholder="All Users" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
-                        <SelectItem value="all">All Users</SelectItem>
-                        {users.map((u) => (
-                          <SelectItem key={u._id} value={u._id}>{u.fullName || u.email}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <UserFilterSelect
+                      value={selectedUserId}
+                      onValueChange={setSelectedUserId}
+                    />
                   </div>
                 )}
               </div>

@@ -28,6 +28,7 @@ import { searchArtistProfiles, emptySearchResults } from '@/lib/integrations/art
 import { rosterArtistName } from '@/lib/integrations/artist-form-state.util'
 import { toTitleCase } from '@/lib/validation/title-case'
 import { IsrcCodeSection, type IsrcMode } from './isrc-code-section'
+import { cn } from '@/lib/utils'
 
 function profileValueToInputString(value: unknown): string {
     if (value == null) return ''
@@ -1272,8 +1273,16 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             Choose first — genre and language options below will update based on your answer.
                         </p>
 
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label
+                                htmlFor="track-instrumental-no"
+                                className={cn(
+                                    "flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors",
+                                    instrumental === 'no'
+                                        ? "border-primary bg-primary/5"
+                                        : "border-border hover:bg-accent/50",
+                                )}
+                            >
                                 <input
                                     type="radio"
                                     id="track-instrumental-no"
@@ -1281,14 +1290,22 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     value="no"
                                     checked={instrumental === 'no'}
                                     onChange={() => handleInstrumentalChange('no')}
-                                    className="h-4 w-4"
+                                    className="h-4 w-4 border-primary text-primary focus:ring-primary"
                                 />
-                                <Label htmlFor="track-instrumental-no" className="font-normal cursor-pointer">
+                                <span className="text-sm font-medium">
                                     This song contains lyrics
-                                </Label>
-                            </div>
+                                </span>
+                            </label>
 
-                            <div className="flex items-center space-x-2">
+                            <label
+                                htmlFor="track-instrumental-yes"
+                                className={cn(
+                                    "flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors",
+                                    instrumental === 'yes'
+                                        ? "border-primary bg-primary/5"
+                                        : "border-border hover:bg-accent/50",
+                                )}
+                            >
                                 <input
                                     type="radio"
                                     id="track-instrumental-yes"
@@ -1296,12 +1313,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     value="yes"
                                     checked={instrumental === 'yes'}
                                     onChange={() => handleInstrumentalChange('yes')}
-                                    className="h-4 w-4"
+                                    className="h-4 w-4 border-primary text-primary focus:ring-primary"
                                 />
-                                <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
+                                <span className="text-sm font-medium">
                                     This song is instrumental and contains no lyrics
-                                </Label>
-                            </div>
+                                </span>
+                            </label>
                         </div>
                     </div>
 

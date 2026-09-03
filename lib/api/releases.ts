@@ -339,6 +339,16 @@ export const submitReleaseUpdate = async (
     const writeSnapshot = draftRequestToWriteSnapshot(built.payload);
     const patch = pickChangedDraftFields(options?.baseline ?? {}, writeSnapshot);
 
+    if (patch.publisher !== undefined && patch.producers === undefined) {
+      patch.producers = [String(patch.publisher)];
+    }
+    if (patch.producers !== undefined && patch.publisher === undefined) {
+      const first = Array.isArray(patch.producers) ? patch.producers[0] : undefined;
+      if (typeof first === 'string' && first.trim()) {
+        patch.publisher = first.trim();
+      }
+    }
+
     if (Object.keys(patch).length === 0) {
       options?.onMediaUploaded?.(built.formMediaUpdates);
       await finalizeUploadSession(uploadSession);

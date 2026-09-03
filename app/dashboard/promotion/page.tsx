@@ -23,20 +23,13 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Loader2, Music, Sparkles, ExternalLink } from "lucide-react";
 import { isPromotableRelease } from "@/lib/release-status";
 import { canManageReleases } from "@/lib/permissions";
 import { getReleases, Release } from "@/lib/api/releases";
-import { getUsers } from "@/lib/api/users";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
+import { UserFilterSelect } from "@/components/dashboard/user-filter-select";
 import { formatReleaseCodeDisplay } from "@/lib/release-codes";
 
 export default function PromotionListingPage() {
@@ -47,7 +40,6 @@ export default function PromotionListingPage() {
     const [selectedReleaseForPromo, setSelectedReleaseForPromo] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedUserId, setSelectedUserId] = useState<string>("all");
-    const [users, setUsers] = useState<Array<{ _id: string; fullName?: string; email?: string }>>([]);
     const { user } = useAuth();
 
     const canManage = canManageReleases(user);
@@ -97,19 +89,6 @@ export default function PromotionListingPage() {
         fetchReleases();
         // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch when staff filter changes
     }, [user?._id, canManage, selectedUserId]);
-
-    useEffect(() => {
-        if (!canManage) return;
-        const fetchUsersList = async () => {
-            try {
-                const response = await getUsers({ limit: 100 });
-                setUsers(response.users || []);
-            } catch (error) {
-                console.error("Failed to fetch users:", error);
-            }
-        };
-        fetchUsersList();
-    }, [canManage]);
 
     const handlePromoteClick = (releaseId: string) => {
         setSelectedReleaseForPromo(releaseId);
@@ -161,19 +140,10 @@ export default function PromotionListingPage() {
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
                                     Filter by User
                                 </div>
-                                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                                    <SelectTrigger className="h-10 bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all rounded-xl">
-                                        <SelectValue placeholder="All Users" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
-                                        <SelectItem value="all">All Users</SelectItem>
-                                        {users.map((u) => (
-                                            <SelectItem key={u._id} value={u._id}>
-                                                {u.fullName || u.email}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <UserFilterSelect
+                                    value={selectedUserId}
+                                    onValueChange={setSelectedUserId}
+                                />
                             </div>
                         )}
                     </div>

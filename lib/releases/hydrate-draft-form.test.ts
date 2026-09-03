@@ -214,6 +214,15 @@ describe('hydrateDraftForm — edit round-trip QA', () => {
     expect(form.producers?.[0]).not.toBe('2026 Indie Records');
     expect(form.copyright).toBe('2026 Indie Records');
   });
+
+  it('prefers producers array when publisher is stale default label', () => {
+    const form = hydrateDraftForm({
+      ...buildSavedRelease(),
+      publisher: 'KratoLib',
+      producers: ['2026 Vidhi Vision Production'],
+    });
+    expect(form.producers).toEqual(['2026 Vidhi Vision Production']);
+  });
 });
 
 describe('mapMongoReleaseToDetail — read model QA', () => {
