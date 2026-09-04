@@ -1,4 +1,4 @@
-import TestimonialsContent from '@/components/TestimonialsContent'
+import TestimonialsContent from '@/components/testimonials-page-content'
 import { createPageMetadata } from '@/lib/site-metadata'
 
 export const metadata = createPageMetadata(

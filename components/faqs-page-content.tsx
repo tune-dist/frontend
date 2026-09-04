@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import StaticPageLayout from '@/components/StaticPageLayout'
+import ContentPageLayout from '@/components/content-page-layout'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronDown,
@@ -293,7 +293,7 @@ export default function FaqsContent() {
   }, [])
 
   return (
-    <StaticPageLayout>
+    <ContentPageLayout>
       <section className="relative pt-24 md:pt-32 pb-12 md:pb-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-0 md:px-6 text-center">
           <motion.div
@@ -513,6 +513,6 @@ export default function FaqsContent() {
           </div>
         </div>
       </motion.section>
-    </StaticPageLayout>
+    </ContentPageLayout>
   )
 }

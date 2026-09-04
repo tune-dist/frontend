@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -16,7 +16,7 @@ import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { sendEmailOtp, verifyEmailOtp } from '@/lib/api/auth'
-import { getErrorMessage } from '@/lib/api-client'
+import { getErrorMessage } from '@/lib/get-error-message'
 
 // Login form schema
 const loginSchema = z.object({
@@ -40,7 +40,6 @@ const otpSchema = z.object({
 type OtpFormData = z.infer<typeof otpSchema>
 
 function AuthContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   // Get tab from URL query params, default to 'login'
@@ -153,7 +152,6 @@ function AuthContent() {
     register: registerOtp,
     handleSubmit: handleSubmitOtp,
     formState: { errors: otpErrors },
-    setValue: setOtpValue,
   } = useForm<OtpFormData>({
     resolver: zodResolver(otpSchema),
   })
@@ -222,7 +220,7 @@ function AuthContent() {
 
     setIsVerifyingEmail(true)
     try {
-      const response = await sendEmailOtp(email.value)
+      await sendEmailOtp(email.value)
       toast.success('OTP sent to your email')
       setShowEmailOtpInput(true)
     } catch (error) {
@@ -277,9 +275,8 @@ function AuthContent() {
         spotifyId,
         avatar,
         getRedirectUrl(),
-        verificationToken // Pass the token
+        verificationToken
       )
-      // await registerUser(data.email, data.password, data.fullName, 'artist', getRedirectUrl())
       toast.success('Account created successfully!')
     } catch (error) {
       toast.error(getErrorMessage(error))
@@ -491,24 +488,6 @@ function AuthContent() {
                         )}
                         Google
                       </Button>
-                      {/* Spotify login temporarily disabled
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        disabled={oauthLoading !== null}
-                        onClick={() => handleOAuthRedirect('spotify')}
-                      >
-                        {oauthLoading === 'spotify' ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                        <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm5.11 17.182c-.172.283-.55.373-.833.202-2.313-1.413-5.225-1.73-8.655-.947-.323.074-.648-.133-.722-.456-.073-.323.133-.648.456-.722 3.75-.858 6.974-.486 9.55 1.09.284.172.373.55.204.833zm1.36-3.235c-.216.353-.674.464-1.027.247-2.647-1.627-6.68-2.1-9.808-1.15-.4-.122-.824.1-.947.5-.123.4.1.824.5.947 3.58-1.085 8.04-.563 11.08 1.307.353.217.464.675.247 1.028zm.13-3.327C15.147 8.544 9.17 8.347 5.71 9.397c-.507.153-1.04-.136-1.194-.643-.153-.507.136-1.04.643-1.194 3.986-1.21 10.584-.98 14.653 1.438.455.27.604.856.333 1.31-.27.455-.856.605-1.31.334z" />
-                        </svg>
-                        )}
-                        Spotify
-                      </Button>
-                      */}
                     </div>
                   </form>
                 )}
@@ -679,24 +658,6 @@ function AuthContent() {
                       )}
                       Google
                     </Button>
-                    {/* Spotify login temporarily disabled
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      disabled={oauthLoading !== null}
-                      onClick={() => handleOAuthRedirect('spotify')}
-                    >
-                      {oauthLoading === 'spotify' ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                      <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm5.11 17.182c-.172.283-.55.373-.833.202-2.313-1.413-5.225-1.73-8.655-.947-.323.074-.648-.133-.722-.456-.073-.323.133-.648.456-.722 3.75-.858 6.974-.486 9.55 1.09.284.172.373.55.204.833zm1.36-3.235c-.216.353-.674.464-1.027.247-2.647-1.627-6.68-2.1-9.808-1.15-.4-.122-.824.1-.947.5-.123.4.1.824.5.947 3.58-1.085 8.04-.563 11.08 1.307.353.217.464.675.247 1.028zm.13-3.327C15.147 8.544 9.17 8.347 5.71 9.397c-.507.153-1.04-.136-1.194-.643-.153-.507.136-1.04.643-1.194 3.986-1.21 10.584-.98 14.653 1.438.455.27.604.856.333 1.31-.27.455-.856.605-1.31.334z" />
-                      </svg>
-                      )}
-                      Spotify
-                    </Button>
-                    */}
                   </div>
                 </form>
               </TabsContent>

@@ -5,7 +5,7 @@ import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin, { Region } from "wavesurfer.js/dist/plugins/regions.js";
 import { Play, Pause, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/class-names";
 import {
   CRBT_CLIP_DURATION_SEC,
   CRBT_MIN_TRACK_DURATION_SEC,

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import StaticPageLayout from '@/components/StaticPageLayout'
+import ContentPageLayout from '@/components/content-page-layout'
 import { motion } from 'framer-motion'
 
 export default function PrivacyContent() {
@@ -12,7 +12,7 @@ export default function PrivacyContent() {
   }
 
   return (
-    <StaticPageLayout
+    <ContentPageLayout
       title="Privacy Policy - Protecting Your Data & Artist Information | KratoLib"
     >
       <motion.div {...fadeIn}>
@@ -210,6 +210,6 @@ export default function PrivacyContent() {
           </p>
         </section>
       </motion.div>
-    </StaticPageLayout>
+    </ContentPageLayout>
   )
 }

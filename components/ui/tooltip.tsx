@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 
 interface TooltipProps {
-  children: React.ReactNode
+  children: ReactNode
   content: string
   enabled?: boolean
   className?: string

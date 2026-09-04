@@ -1,9 +1,8 @@
 'use client'
 
-import React from 'react'
 import { motion } from 'framer-motion'
 
-export const Preloader = () => {
+export default function PageLoader() {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#030303]">
       <div className="relative flex flex-col items-center">
@@ -39,5 +38,3 @@ export const Preloader = () => {
     </div>
   )
 }
-
-export default Preloader

@@ -1,4 +1,4 @@
-/** Release upload API v2 — canonical types (see docs/RELEASE_UPLOAD_V2_REFACTOR.md). */
+/** Release upload API v2 — canonical types. */
 
 export type ReleaseStatus =
   | 'Draft'

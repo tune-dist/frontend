@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { forgotPassword } from '@/lib/api/auth'
-import { getErrorMessage } from '@/lib/api-client'
+import { getErrorMessage } from '@/lib/get-error-message'
 import toast from 'react-hot-toast'
 
 const forgotPasswordSchema = z.object({

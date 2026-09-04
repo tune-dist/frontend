@@ -1,6 +1,6 @@
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
-import StaticPricing from '@/components/StaticPricing'
+import PricingPlansSection from '@/components/pricing-plans-section'
 import { createPageMetadata } from '@/lib/site-metadata'
 
 export const metadata = createPageMetadata(
@@ -12,7 +12,7 @@ export default function PricingPage() {
   return (
     <>
       <Navbar />
-      <StaticPricing />
+      <PricingPlansSection />
       <Footer />
     </>
   )

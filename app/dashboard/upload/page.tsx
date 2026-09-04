@@ -20,16 +20,15 @@ import {
 } from "lucide-react";
 
 // React Hook Form & Zod
-import { useForm, FormProvider, useFormContext, Controller, type FieldErrors } from "react-hook-form";
+import { useForm, FormProvider, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import TrackEditModal from "@/components/dashboard/upload/track-edit-modal";
 import {
   UploadFormData,
   uploadFormSchema,
-  Songwriter,
   MandatoryChecks,
   Track,
-} from "@/components/dashboard/upload/types";
+} from "@/components/dashboard/upload/upload-form.schema";
 import { getDefaultLabelName } from "@/lib/validation/label-name";
 
 // Child Components
@@ -129,7 +128,6 @@ export default function UploadPage() {
   const [showCancelEditDialog, setShowCancelEditDialog] = useState(false);
   const [releaseDateAutoCorrected, setReleaseDateAutoCorrected] = useState(false);
   const [editReleaseStatus, setEditReleaseStatus] = useState<string | null>(null);
-  const isHydratingRef = useRef(false);
   const editBaselineRef = useRef<ReleaseWriteSnapshot | null>(null);
 
   useEffect(() => {
@@ -254,7 +252,6 @@ export default function UploadPage() {
         }
 
         editBaselineRef.current = releaseToWriteSnapshot(release as unknown as Record<string, unknown>);
-        isHydratingRef.current = true;
         form.reset({
           ...formValues,
           releaseDate,
@@ -315,7 +312,6 @@ export default function UploadPage() {
           }
         }
 
-        isHydratingRef.current = false;
       } catch (error) {
         if (!cancelled) {
           toast.error(getErrorMessage(error, "Failed to load release for editing"));

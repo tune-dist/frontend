@@ -6,7 +6,7 @@ import type {
   ReleaseDetailResponse,
   ReleaseListItem,
   ReleaseType,
-} from './types';
+} from './release.types';
 import { buildProfilesFromFlatFields, profilesToFormFields } from './platform-ref.util';
 
 export function isV2ReleaseDetail(value: unknown): value is ReleaseDetailResponse {

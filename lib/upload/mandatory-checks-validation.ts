@@ -1,4 +1,4 @@
-import type { MandatoryChecks } from "@/components/dashboard/upload/types";
+import type { MandatoryChecks } from "@/components/dashboard/upload/upload-form.schema";
 
 export const MANDATORY_CHECK_LABELS: Record<
   Exclude<keyof MandatoryChecks, "youtubeConfirmation">,

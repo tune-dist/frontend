@@ -100,7 +100,7 @@ function buildCategories(plans: Plan[]): ComparisonCategory[] {
   return categories
 }
 
-export default function StaticPricing() {
+export default function PricingPlansSection() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
 

@@ -49,7 +49,7 @@ function mapPlanToCard(plan: Plan): PricingCardPlan {
   }
 }
 
-export default function StaticPricing2() {
+export default function HomePricingSection() {
   const [plans, setPlans] = useState<PricingCardPlan[]>([])
   const [loading, setLoading] = useState(true)
 

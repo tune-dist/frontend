@@ -1,18 +1,14 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import {
   LayoutDashboard,
   Music,
   Upload,
   BarChart3,
   User,
-  Menu,
-  X,
-  LogOut,
   Settings,
   CreditCard,
   Sparkles,
@@ -54,16 +50,6 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { openUpgradeModal, isMobileMenuOpen, closeMobileMenu, isSidebarCollapsed, toggleSidebar } = useUI()
   const { user } = useAuth()
-  // const router = useRouter()
-
-  // const handleLogout = async () => {
-  //   try {
-  //     await logout()
-  //     router.push('/login')
-  //   } catch (error) {
-  //     console.error('Logout failed:', error)
-  //   }
-  // }
 
   return (
     <>

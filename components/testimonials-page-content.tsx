@@ -3,7 +3,7 @@
 import { Loader2 } from 'lucide-react'
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
-import TestiCard from '@/components/TestiCard'
+import TestimonialCard from '@/components/testimonial-card'
 import { useTestimonials } from '@/lib/api/testimonials'
 
 export default function TestimonialsContent() {
@@ -40,7 +40,7 @@ export default function TestimonialsContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto pb-20">
               {testimonials.map((testimonial) => (
                 <div key={testimonial._id}>
-                  <TestiCard testimonial={testimonial} />
+                  <TestimonialCard testimonial={testimonial} />
                 </div>
               ))}
             </div>

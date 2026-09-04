@@ -5,6 +5,14 @@ import {
   normalizePlanKey,
 } from '@/lib/api/plans';
 
+export function formatPlanDisplayName(plan?: string | null): string {
+  if (!plan) return 'Free';
+
+  return plan
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export function resolvePlanPriceDisplay(plan: Plan): string {
   const raw = plan.priceDisplay?.trim();
   const isCustomLabel = raw?.toLowerCase() === 'custom';

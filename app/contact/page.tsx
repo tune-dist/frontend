@@ -1,4 +1,4 @@
-import ContactContent from '@/components/ContactContent'
+import ContactContent from '@/components/contact-page-content'
 import { createPageMetadata } from '@/lib/site-metadata'
 
 export const metadata = createPageMetadata(

@@ -1,4 +1,4 @@
-import FaqsContent from '@/components/FaqsContent'
+import FaqsContent from '@/components/faqs-page-content'
 import { createPageMetadata } from '@/lib/site-metadata'
 
 export const metadata = createPageMetadata(

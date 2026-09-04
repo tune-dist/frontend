@@ -1,6 +1,6 @@
 import apiClient from '@/lib/api-client';
 import type { UseFormSetValue } from 'react-hook-form';
-import type { UploadFormData } from '@/components/dashboard/upload/types';
+import type { UploadFormData } from '@/components/dashboard/upload/upload-form.schema';
 
 export type UploadSession = {
   /** Keys uploaded during this submit attempt — removed if the API save fails. */

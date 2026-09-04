@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Track, Songwriter, PlatformProfileFormValue } from './types'
+import { Track, PlatformProfileFormValue } from './upload-form.schema'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Music, X, Loader2, Plus, Info, UserCheck } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -11,7 +11,7 @@ import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/l
 import { useAuth } from '@/contexts/AuthContext'
 import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
-import WaveformTrimmer from './WaveformTrimmer'
+import WaveformTrimmer from './waveform-trimmer'
 import { getCrbtIneligibilityMessage, isTrackEligibleForCrbt } from './crbt-validation'
 import { getLegalPersonNameError, LEGAL_PERSON_NAME_COMPOSER_HINT, LEGAL_PERSON_NAME_HINT } from '@/lib/validation/legal-person-name'
 import {
@@ -28,7 +28,7 @@ import { searchArtistProfiles, emptySearchResults } from '@/lib/integrations/art
 import { rosterArtistName } from '@/lib/integrations/artist-form-state.util'
 import { toTitleCase } from '@/lib/validation/title-case'
 import { IsrcCodeSection, type IsrcMode } from './isrc-code-section'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 
 function profileValueToInputString(value: unknown): string {
     if (value == null) return ''

@@ -5,13 +5,13 @@ import Navbar from './navbar'
 import Footer from './footer'
 import { motion } from 'framer-motion'
 
-interface StaticPageLayoutProps {
+interface ContentPageLayoutProps {
   title?: string
   subtitle?: string
   children: React.ReactNode
 }
 
-export default function StaticPageLayout({ title, subtitle, children }: StaticPageLayoutProps) {
+export default function ContentPageLayout({ title, subtitle, children }: ContentPageLayoutProps) {
   return (
     <main className="min-h-screen bg-background">
       <Navbar />

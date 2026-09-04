@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import StaticPageLayout from '@/components/StaticPageLayout'
+import ContentPageLayout from '@/components/content-page-layout'
 import { motion } from 'framer-motion'
 
 export default function TermsContent() {
@@ -12,7 +12,7 @@ export default function TermsContent() {
   }
 
   return (
-    <StaticPageLayout
+    <ContentPageLayout
       title="Music Distribution Terms of Service - Artist Rights & Copyright Protection"
     >
       <motion.div {...fadeIn}>
@@ -307,6 +307,6 @@ export default function TermsContent() {
           </p>
         </section>
       </motion.div>
-    </StaticPageLayout>
+    </ContentPageLayout>
   )
 }

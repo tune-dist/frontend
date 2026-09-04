@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hydrateDraftForm } from './hydrate-draft-form';
 import { mapMongoReleaseToDetail } from './release-document.mapper';
-import type { MongoReleaseDocument } from './types';
+import type { MongoReleaseDocument } from './release.types';
 
 /** Realistic saved Mongo document — edit flow loads this shape via the API. */
 function buildSavedRelease(overrides: Partial<MongoReleaseDocument> = {}): MongoReleaseDocument {

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, Music, X, Loader2, AlertCircle, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { UploadFormData, AudioFile, Track } from './types'
+import { UploadFormData, AudioFile, Track } from './upload-form.schema'
 import { useFormContext } from 'react-hook-form'
 import { motion } from 'framer-motion'
 
@@ -320,11 +320,7 @@ export default function AudioFileStep({
                     <h4 className="text-base font-semibold">
                         Upload your audio file <span className="text-muted-foreground font-normal">(WAV: 16-bit 44.1kHz, or 24-bit HD 44.1k/48k/88.2k/96k/192kHz, Mono or Stereo)</span>
                     </h4>
-                    {/* <p className="text-sm text-primary">
-                        <a href="#" className="underline">Already have an ISRC code?</a>
-                    </p> */}
 
-                    {/* Single Upload Logic */}
                     {format === 'single' ? (
                         <>
                             {!audioFile ? (

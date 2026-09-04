@@ -1,15 +1,14 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import { Suspense } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from '@/components/navbar'
 import Hero from '@/components/hero'
 import Features from '@/components/features'
 import HowItWorks from '@/components/how-it-works'
 import Testimonials from '@/components/testimonials'
-import StaticPricing2 from '@/components/StaticPricing2'
+import HomePricingSection from '@/components/home-pricing-section'
 import Contact from '@/components/contact'
 import FaqSection from '@/components/faq-section'
 import Footer from '@/components/footer'
@@ -43,7 +42,7 @@ export default function HomePage() {
       <Features />
       <HowItWorks />
       <Testimonials />
-      <StaticPricing2 />
+      <HomePricingSection />
       <FaqSection />
       <Suspense fallback={<div className="min-h-[600px] w-full" />}>
         <Contact />

@@ -115,9 +115,6 @@ export default function ReleaseDetailsPage() {
     return () => stopPlayback();
   }, [stopPlayback]);
 
-  const getStatusColor = getReleaseStatusColor;
-  const formatStatus = formatReleaseStatus;
-
   let content: ReactNode;
 
   if (loading) {
@@ -234,12 +231,12 @@ export default function ReleaseDetailsPage() {
                   {release.title}
                 </h1>
                 <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getReleaseStatusColor(
                     release.status
                   )}`}
                 >
                   <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
-                  {formatStatus(release.status)}
+                  {formatReleaseStatus(release.status)}
                 </span>
                 {hasUploadWarning(release) && (
                   <span
@@ -264,7 +261,6 @@ export default function ReleaseDetailsPage() {
                     <PlatformReleaseIcons
                       platforms={release.releasedOn.platforms}
                       iconClassName="h-8 w-8"
-                      iconsOnly
                     />
                   </div>
                 )}
@@ -469,9 +465,8 @@ export default function ReleaseDetailsPage() {
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" /> Artists & Profiles
                 </h3>
-                {release.primaryArtists && release.primaryArtists.length > 0 && (
-                  <div className="space-y-3">
-                    {release.primaryArtists.map((artist, artistIdx) => {
+                <div className="space-y-3">
+                  {release.primaryArtists.map((artist, artistIdx) => {
                       const instagramHref = ensureExternalSocialUrl(artist.instagramProfile);
                       const facebookHref = ensureExternalSocialUrl(artist.facebookProfile);
 
@@ -535,8 +530,7 @@ export default function ReleaseDetailsPage() {
                         </div>
                       </div>
                     )})}
-                  </div>
-                )}
+                </div>
               </div>
             )}
 

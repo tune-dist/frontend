@@ -22,8 +22,6 @@ export const composerSchema = z.string()
         message: LEGAL_PERSON_NAME_COMPOSER_HINT,
     });
 
-export type Songwriter = string;
-
 // Audio File Schema (just the file, no metadata)
 export const audioFileSchema = z.object({
     id: z.string(),
@@ -260,14 +258,6 @@ export const uploadFormSchema = z.object({
 
 export type UploadFormData = z.infer<typeof uploadFormSchema>
 export type SecondaryArtist = z.infer<typeof uploadFormSchema>['artists'][number]
-
-export interface StepProps {
-    // We will use react-hook-form context in steps, but kept for backward compatibility if needed, 
-    // or we can remove if we fully switch.
-    // For now, let's keep it but optional or partial as we transition.
-    formData?: UploadFormData
-    setFormData?: (data: UploadFormData) => void
-}
 
 export interface MandatoryChecks {
     youtubeConfirmation: boolean

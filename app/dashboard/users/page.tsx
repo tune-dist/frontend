@@ -9,7 +9,7 @@ import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, T
 import { canViewUsers, canManageUsers } from '@/lib/permissions';
 import { getUsers, getUsersOverview, updateUserStatus, logoutAllUsers } from '@/lib/api/users';
 import { getAllPlans } from '@/lib/api/plans';
-import { formatPlanDisplayName } from '@/lib/utils';
+import { formatPlanDisplayName } from '@/lib/plans-display';
 import { getUserAccountStatus, getUserStatusDotClass } from '@/lib/user-status';
 import { getErrorMessage } from '@/lib/get-error-message';
 import { PageSearchBar, PageSearchSection } from '@/components/dashboard/page-search-bar';
@@ -62,7 +62,7 @@ export default function UsersPage() {
     const [planFilter, setPlanFilter] = useState('All');
     const [planOptions, setPlanOptions] = useState<{ key: string; title: string }[]>([]);
     const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(10);
+    const limit = 10;
     const [totalUsers, setTotalUsers] = useState(0);
     const [isMounted, setIsMounted] = useState(false);
 
@@ -292,7 +292,6 @@ export default function UsersPage() {
     return (
         <div className="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
             <div className="max-w-[1400px] mx-auto flex flex-col gap-8">
-                {/* ... content ... */}
                 {/* Page Heading & Actions */}
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div className="flex flex-col gap-1">
@@ -436,13 +435,6 @@ export default function UsersPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                {/* <div className="relative group">
-                                        <button
-                                            className="flex items-center gap-2 px-4 py-3 bg-surface-highlight rounded-xl text-white hover:bg-surface-highlight/80 whitespace-nowrap text-sm font-medium transition-colors">
-                                            <span className="material-symbols-outlined text-[18px]">public</span>
-                                            Region: Global
-                                        </button>
-                                    </div> */}
                             </div>
                         ) : (
                             <div className="flex gap-2 pb-2 md:pb-0">
@@ -483,9 +475,6 @@ export default function UsersPage() {
                                         <tr key={listedUser._id} className="group hover:bg-surface-highlight/30 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-4">
-                                                    {/* <div className="size-10 rounded-full bg-cover bg-center border border-surface-highlight"
-                                                            style={{ backgroundImage: `url("${user.avatar || 'https://via.placeholder.com/40'}")` }}>
-                                                        </div> */}
                                                     <img
                                                         src={listedUser.avatar || 'https://via.placeholder.com/40'}
                                                         alt={listedUser.fullName}

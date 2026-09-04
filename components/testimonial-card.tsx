@@ -3,11 +3,11 @@ import { Quote } from 'lucide-react'
 import { Testimonial } from '@/lib/api/testimonials'
 import { S3Image } from '@/components/ui/s3-image'
 
-interface TestiCardProps {
+interface TestimonialCardProps {
     testimonial: Testimonial;
 }
 
-export default function TestiCard({ testimonial }: TestiCardProps) {
+export default function TestimonialCard({ testimonial }: TestimonialCardProps) {
     if (!testimonial) {
         return null;
     }

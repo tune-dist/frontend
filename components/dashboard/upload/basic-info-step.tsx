@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Music, ExternalLink, Info, Plus, X, AlertCircle, Lock, UserCheck, Link as LinkIcon, Loader2 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
-import { UploadFormData, SecondaryArtist } from './types'
+import { UploadFormData, SecondaryArtist } from './upload-form.schema'
 import { useFormContext, Controller } from 'react-hook-form'
 import { getPlanLimits, getPlanFieldRules, getAllPlans, Plan } from '@/lib/api/plans'
 import { useRazorpay } from '@/hooks/useRazorpay'
@@ -95,7 +95,6 @@ export default function BasicInfoStep({
     const addonPriceInr = addonEligibility?.addonPriceInr ?? 499
     const addonPriceWithGstInr = addonEligibility?.addonPriceWithGstInr ?? addonPriceInr
     const addonGstPercent = addonEligibility?.addonGstPercent ?? 18
-    const [isAddonAutoPay] = useState(true)
     const [creatingNewMain, setCreatingNewMain] = useState(false)
     const [pendingProfileNotice, setPendingProfileNotice] = useState(false)
     const [creatingNewSecondary, setCreatingNewSecondary] = useState<Record<number, boolean>>({})
@@ -1062,29 +1061,6 @@ export default function BasicInfoStep({
                                 </div>
                             </div>
 
-                            {/* <div className="mt-5">
-                                <p className="text-sm font-semibold text-foreground mb-3">Select Billing Frequency</p>
-                                
-                                <div className="grid grid-cols-2 gap-3 w-full">
-                                    <div 
-                                        onClick={() => setIsAddonAutoPay(true)} 
-                                        className={`cursor-pointer rounded-lg border-2 p-2.5 flex flex-col items-center justify-center transition-all ${isAddonAutoPay ? 'border-primary bg-primary/5' : 'border-border bg-transparent hover:bg-muted/50'}`}
-                                    >
-                                        <RefreshCw className={`h-4 w-4 mb-1.5 ${isAddonAutoPay ? 'text-primary' : 'text-muted-foreground'}`} />
-                                        <span className={`font-semibold text-xs ${isAddonAutoPay ? 'text-foreground' : 'text-muted-foreground'}`}>Subscription</span>
-                                        <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">Auto-renews annually</span>
-                                    </div>
-                                    
-                                    <div 
-                                        onClick={() => setIsAddonAutoPay(false)} 
-                                        className={`cursor-pointer rounded-lg border-2 p-2.5 flex flex-col items-center justify-center transition-all ${!isAddonAutoPay ? 'border-primary bg-primary/5' : 'border-border bg-transparent hover:bg-muted/50'}`}
-                                    >
-                                        <CreditCard className={`h-4 w-4 mb-1.5 ${!isAddonAutoPay ? 'text-primary' : 'text-muted-foreground'}`} />
-                                        <span className={`font-semibold text-xs ${!isAddonAutoPay ? 'text-foreground' : 'text-muted-foreground'}`}>One-time</span>
-                                        <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">Pay for 1 year only</span>
-                                    </div>
-                                </div>
-                            </div> */}
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setShowAddonDialog(false)} disabled={isPurchasingAddon}>Cancel</Button>

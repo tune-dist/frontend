@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -13,10 +13,9 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { User as UserIcon, Mail, Phone, CreditCard, Loader2, Save, MapPin, FileText, Shield, CheckCircle2, UploadCloud } from 'lucide-react'
+import { User as UserIcon, Mail, Phone, CreditCard, Loader2, Save, MapPin, Shield, CheckCircle2, UploadCloud } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { updateUserProfile, updateAddress } from '@/lib/api/users'
-// import { sendPhoneOTP, verifyPhoneOTP } from '@/lib/api/users' // phone OTP — enable when SMS is integrated
+import { updateUserProfile } from '@/lib/api/users'
 import {
   getVerificationRequests,
   submitVerificationRequest,
@@ -27,10 +26,9 @@ import {
 import { uploadFileDirectly } from '@/lib/upload/chunk-uploader'
 import { getDisplayUrl } from '@/lib/api/s3'
 import { isAllowedVerificationFile, VERIFICATION_FILE_ACCEPT, VERIFICATION_FILE_HINT } from '@/lib/verification-document'
-import { API_URL } from '@/lib/config'
 import { getErrorMessage } from '@/lib/get-error-message'
 import { hasPermission } from '@/lib/permissions'
-import { formatPlanDisplayName } from '@/lib/utils'
+import { formatPlanDisplayName } from '@/lib/plans-display'
 import { formatPhoneDisplay } from '@/lib/phone-format'
 import { S3Image } from '@/components/ui/s3-image'
 
@@ -67,18 +65,11 @@ export default function ProfilePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [address, setAddress] = useState('')
-  // Phone OTP verification — disabled until SMS provider is integrated
-  // const [isSendingOTP, setIsSendingOTP] = useState(false)
-  // const [showOTPModal, setShowOTPModal] = useState(false)
-  // const [otp, setOtp] = useState('')
-  // const [isVerifyingOTP, setIsVerifyingOTP] = useState(false)
 
   const [showVerifyModal, setShowVerifyModal] = useState(false)
   const [uploadDocType, setUploadDocType] = useState<VerificationDocumentType | null>(null)
   const [docFile, setDocFile] = useState<File | null>(null)
   const [verificationRequests, setVerificationRequests] = useState<ProfileVerificationRequest[]>([])
-  // const [passportFile, setPassportFile] = useState<File | null>(null)
-  // const [selfieFile, setSelfieFile] = useState<File | null>(null)
   const [isVerifyingProfile, setIsVerifyingProfile] = useState(false)
   const [openingVerifyDoc, setOpeningVerifyDoc] = useState<string | null>(null)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
@@ -158,50 +149,6 @@ export default function ProfilePage() {
       setIsVerifyingProfile(false);
     }
   };
-
-  /* Selfie + passport flow — disabled for now */
-
-  /* Phone OTP verification — disabled until SMS provider is integrated
-  const isPhoneVerified = Boolean(user?.isPhoneVerified || user?.isPhoneNumberVerified)
-
-  const handleSendOTP = async () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
-      toast.error('Please enter a valid phone number')
-      return
-    }
-
-    setIsSendingOTP(true)
-    try {
-      await sendPhoneOTP(phoneNumber)
-      toast.success('OTP sent to your phone number')
-      setShowOTPModal(true)
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to send OTP'))
-    } finally {
-      setIsSendingOTP(false)
-    }
-  }
-
-  const handleVerifyOTP = async () => {
-    if (!otp) {
-      toast.error('Please enter the OTP')
-      return
-    }
-
-    setIsVerifyingOTP(true)
-    try {
-      const result = await verifyPhoneOTP(otp)
-      toast.success(result.message)
-      setShowOTPModal(false)
-      setOtp('')
-      await refreshUser()
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'Invalid OTP'))
-    } finally {
-      setIsVerifyingOTP(false)
-    }
-  }
-  */
 
   const handleUpdateAddress = async () => {
     setIsLoading(true);
@@ -604,12 +551,6 @@ export default function ProfilePage() {
                   user?.isAadharVerified,
                 )}
               </div>
-
-              {/* Selfie with uploaded document — disabled for now
-              <div className="flex-1 p-3 border border-border/80 rounded-md bg-muted/50">
-                ...
-              </div>
-              */}
             </CardContent>
           </Card>
         </motion.div>
@@ -692,59 +633,6 @@ export default function ProfilePage() {
         </motion.div>
       </motion.div>
 
-      {/* Phone OTP modal — disabled until SMS provider is integrated
-      <Dialog open={showOTPModal} onOpenChange={setShowOTPModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Verify Phone Number</DialogTitle>
-            <DialogDescription>
-              Enter the 6-digit OTP sent to {phoneNumber}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="otp">OTP Code</Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="000000"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                maxLength={6}
-                className="text-center text-2xl tracking-widest"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowOTPModal(false)
-                  setOtp('')
-                }}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleVerifyOTP}
-                disabled={isVerifyingOTP || otp.length !== 6}
-                className="flex-1"
-              >
-                {isVerifyingOTP ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Verifying...
-                  </>
-                ) : (
-                  'Verify'
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-      */}
-
       {/* Verify Profile Modal */}
       <Dialog
         open={showVerifyModal}
@@ -818,13 +706,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-
-            {/* Selfie with uploaded document — disabled for now
-            <div className="space-y-2">
-              <Label>Selfie with uploaded document</Label>
-              ...
-            </div>
-            */}
 
             <div className="flex gap-2 pt-4">
               <Button

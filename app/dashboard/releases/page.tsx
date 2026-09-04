@@ -7,14 +7,11 @@ import { getErrorMessage, extractApiFieldErrors, type ApiFieldError } from "@/li
 import { isPlanInactiveError } from "@/lib/plan-inactive";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import PageLoading from "@/components/dashboard/page-loading";
-import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -78,7 +75,7 @@ import {
   isRmEditableRelease,
   isReleaseStaff,
 } from "@/lib/release-status";
-import { formatReleaseCodeDisplay, formatUpcDisplay, formatIsrcListDisplay, formatIsrcDetailDisplay, getTrackIsrcDisplay } from "@/lib/release-codes";
+import { formatReleaseCodeDisplay, formatUpcDisplay, formatIsrcListDisplay } from "@/lib/release-codes";
 import {
   hasOpenDistributionIssueAction,
   hasDistributionIssueAwaitingRm,
@@ -161,7 +158,6 @@ export default function ReleasesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const { user } = useAuth();
-  const router = useRouter();
   const fetchRequestIdRef = useRef(0);
 
   const canManage = canManageReleases(user);
@@ -247,9 +243,6 @@ export default function ReleasesPage() {
   useEffect(() => {
     fetchReleases();
   }, [statusFilter, selectedUserId, page, debouncedSearch]);
-
-  const getStatusColor = getReleaseStatusColor;
-  const formatStatus = formatReleaseStatus;
 
   const openDeleteDialog = (id: string) => {
     setConfirmDialog({ type: "delete", id });
@@ -557,7 +550,6 @@ export default function ReleasesPage() {
                 </CardDescription>
 
                 <div className="flex flex-col gap-2">
-                  {/* <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground lg:text-right mr-1">Filter by Status</div> */}
                   <div className="flex flex-wrap lg:justify-end gap-2">
                     {statusFilters.map((filter) => (
                       <Button
@@ -735,9 +727,9 @@ export default function ReleasesPage() {
                                     </span>
                                   </button>
                                 ) : (
-                                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getStatusColor(release.status)}`}>
+                                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${getReleaseStatusColor(release.status)}`}>
                                     <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
-                                    {formatStatus(release.status)}
+                                    {formatReleaseStatus(release.status)}
                                   </span>
                                 )}
                                 {canManage &&
@@ -793,7 +785,6 @@ export default function ReleasesPage() {
                                 <PlatformReleaseIcons
                                   platforms={release.releasedOn.platforms}
                                   className="flex items-center gap-1.5 flex-wrap max-w-[180px]"
-                                  iconsOnly
                                   emptyFallback={release.pdlAlbumId ? "Yes" : "-"}
                                 />
                               ) : release.pdlAlbumId ? (
@@ -866,11 +857,6 @@ export default function ReleasesPage() {
                                      </Button>
                                    </>
                                  )}
-                                 {/*
-                                   Distribute: shown after processing step 1 succeeds
-                                   (platform link exists), while release is still
-                                   in the post-upload pipeline.
-                                 */}
                                  {canManage &&
                                    release.pdlAlbumId &&
                                    release.status === "In Process" && (

@@ -64,7 +64,6 @@ import { Badge } from "@/components/ui/badge";
 type UserPermissionState = {
     fromRole: boolean;
     fromUser: boolean;
-    effective: boolean;
 };
 
 function getUserPermissionState(
@@ -75,10 +74,10 @@ function getUserPermissionState(
     const roleDef = roles.find((r) => r.name === user.role);
     const fromRole = roleDef?.permissions.includes(permissionSlug) ?? false;
     const fromUser = (user.permissions ?? []).includes(permissionSlug);
-    return { fromRole, fromUser, effective: fromRole || fromUser };
+    return { fromRole, fromUser };
 }
 
-export default function PermissionsPage() {
+export default function PermissionsPageContent() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const canManage = canManagePermissions(user);
@@ -97,20 +96,23 @@ export default function PermissionsPage() {
     const [usersLoading, setUsersLoading] = useState(false);
     const [pendingToggles, setPendingToggles] = useState<Record<string, boolean>>({});
 
-    // User permissions state
     const [activeTab, setActiveTab] = useState("role");
     const [userSearch, setUserSearch] = useState("");
     const [userRoleFilter, setUserRoleFilter] = useState("All");
 
+    const loadPermissionsAndRoles = async () => {
+        const [permsData, rolesData] = await Promise.all([
+            getPermissions(),
+            getRoles(),
+        ]);
+        setPermissions(permsData);
+        setRoles(rolesData);
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [permsData, rolesData] = await Promise.all([
-                getPermissions(),
-                getRoles(),
-            ]);
-            setPermissions(permsData);
-            setRoles(rolesData);
+            await loadPermissionsAndRoles();
         } catch (error) {
             console.error(error);
             toast.error(getErrorMessage(error, "Failed to fetch data"));
@@ -122,12 +124,7 @@ export default function PermissionsPage() {
     const handleRefresh = async () => {
         setIsRefreshing(true);
         try {
-            const [permsData, rolesData] = await Promise.all([
-                getPermissions(),
-                getRoles(),
-            ]);
-            setPermissions(permsData);
-            setRoles(rolesData);
+            await loadPermissionsAndRoles();
             toast.success("Permissions refreshed");
         } catch (error) {
             console.error(error);
