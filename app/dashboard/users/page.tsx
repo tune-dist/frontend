@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp } from 'lucide-react';
+import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, LogOut } from 'lucide-react';
 import { canViewUsers, canManageUsers } from '@/lib/permissions';
-import { getUsers, getUsersOverview, updateUserStatus } from '@/lib/api/users';
+import { getUsers, getUsersOverview, updateUserStatus, logoutAllUsers } from '@/lib/api/users';
 import { getAllPlans } from '@/lib/api/plans';
 import { formatPlanDisplayName } from '@/lib/utils';
 import { getUserAccountStatus, getUserStatusDotClass } from '@/lib/user-status';
@@ -47,6 +47,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [exporting, setExporting] = useState(false);
+    const [loggingOutAll, setLoggingOutAll] = useState(false);
     const [stats, setStats] = useState({
         total: 0,
         new: 0,
@@ -155,6 +156,28 @@ export default function UsersPage() {
         } catch (error) {
             console.error(`Failed to ${action} user:`, error);
             toast.error(getErrorMessage(error, `Failed to ${action} user`));
+        }
+    };
+
+    const handleLogoutAllUsers = async () => {
+        const confirmed = window.confirm(
+            'Log out all users? Everyone except you will be signed out immediately and must log in again.',
+        );
+        if (!confirmed) return;
+
+        setLoggingOutAll(true);
+        try {
+            const result = await logoutAllUsers();
+            toast.success(
+                result.loggedOutCount > 0
+                    ? `Logged out ${result.loggedOutCount} user${result.loggedOutCount === 1 ? '' : 's'}`
+                    : 'No active user sessions to revoke',
+            );
+        } catch (error) {
+            console.error('Failed to log out all users:', error);
+            toast.error(getErrorMessage(error, 'Failed to log out all users'));
+        } finally {
+            setLoggingOutAll(false);
         }
     };
 
@@ -277,6 +300,18 @@ export default function UsersPage() {
                         <p className="text-text-secondary text-base">Manage permissions, roles, and system access.</p>
                     </div>
                     <div className="flex gap-3">
+                        {canManageUsers(currentUser) && (
+                            <button
+                                type="button"
+                                onClick={handleLogoutAllUsers}
+                                disabled={loggingOutAll || loading}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <LogOut className="w-5 h-5" />
+                                <span className="text-sm font-bold">
+                                    {loggingOutAll ? 'Logging out...' : 'Logout All Users'}
+                                </span>
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={handleExportCsv}
