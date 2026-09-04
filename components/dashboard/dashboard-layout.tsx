@@ -85,10 +85,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         currentPlanKey={needsPlanSelection ? undefined : user?.plan}
         hasActiveSubscription={
           !needsPlanSelection &&
-          !!user?.plan &&
-          user.plan !== 'free' &&
-          user.subscriptionStatus !== 'cancelled' &&
-          user.isSubscriptionActive !== false
+          user?.hasPaidPlanAccess === true &&
+          user.subscriptionStatus !== 'cancelled'
         }
         subscriptionStatus={user?.subscriptionStatus === 'cancelled' ? 'cancelled' : user?.subscriptionStatus === 'active' ? 'active' : undefined}
         onPaymentSuccess={refreshUser}

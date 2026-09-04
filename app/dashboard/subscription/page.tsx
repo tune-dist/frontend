@@ -292,17 +292,16 @@ export default function SubscriptionPage() {
     })
     const planStartDate = activeMapping?.startDate ?? profile?.planStartDate
     const planEndDate = activeMapping?.endDate ?? profile?.planEndDate
-    const isFreePlan = !activeMapping && (planKey === 'free' || !planKey)
-    const isExpired = !!planEndDate && new Date(planEndDate) < new Date()
+    const isFreePlan = planKey === 'free' || !planKey
+    const hasPaidPlanAccess =
+        profile?.hasPaidPlanAccess ?? user?.hasPaidPlanAccess === true
     const subscriptionStatus =
-        profile?.subscriptionStatus ??
-        user?.subscriptionStatus ??
-        activeMapping?.status ??
-        (!isFreePlan && !isExpired && profile?.isSubscriptionActive !== false && user?.isSubscriptionActive !== false
-            ? 'active'
-            : undefined)
-    const isSubscriptionActive = !isFreePlan && !isExpired && subscriptionStatus === 'active'
-    const isCancellationPending = !isFreePlan && !isExpired && subscriptionStatus === 'cancelled'
+        profile?.subscriptionStatus ?? user?.subscriptionStatus ?? 'inactive'
+    const isExpired = !isFreePlan && !hasPaidPlanAccess
+    const isSubscriptionActive =
+        !isFreePlan && hasPaidPlanAccess && subscriptionStatus === 'active'
+    const isCancellationPending =
+        !isFreePlan && hasPaidPlanAccess && subscriptionStatus === 'cancelled'
 
     const extraArtistSlots = effective?.extraArtistSlots ?? activeAddons.length
     const baseArtistLimit = resolvedPlanDetails?.limits?.maxArtists ?? 0
