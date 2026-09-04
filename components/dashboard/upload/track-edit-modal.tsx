@@ -13,7 +13,7 @@ import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
 import WaveformTrimmer from './WaveformTrimmer'
 import { getCrbtIneligibilityMessage, isTrackEligibleForCrbt } from './crbt-validation'
-import { getLegalPersonNameError, LEGAL_PERSON_NAME_HINT } from '@/lib/validation/legal-person-name'
+import { getLegalPersonNameError, LEGAL_PERSON_NAME_COMPOSER_HINT, LEGAL_PERSON_NAME_HINT } from '@/lib/validation/legal-person-name'
 import {
     INSTRUMENTAL_LANGUAGE,
     filterGenresForInstrumentalChoice,
@@ -27,6 +27,8 @@ import {
 import { searchArtistProfiles, emptySearchResults } from '@/lib/integrations/artist-search.util'
 import { rosterArtistName } from '@/lib/integrations/artist-form-state.util'
 import { toTitleCase } from '@/lib/validation/title-case'
+import { IsrcCodeSection, type IsrcMode } from './isrc-code-section'
+import { cn } from '@/lib/utils'
 
 function profileValueToInputString(value: unknown): string {
     if (value == null) return ''
@@ -87,7 +89,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
     const [language, setLanguage] = useState(track?.language || '')
     const [isrc, setIsrc] = useState(track?.isrc || '')
     const [isrcError, setIsrcError] = useState('')
-    const [showIsrc, setShowIsrc] = useState(!!track?.isrc)
+    const [isrcMode, setIsrcMode] = useState<IsrcMode>(() => (track?.isrc ? 'existing' : 'generate'))
     const [primaryGenre, setPrimaryGenre] = useState(track?.primaryGenre || '')
     const [secondaryGenre, setSecondaryGenre] = useState(track?.secondaryGenre || '')
     const [previewClipStartTime, setPreviewClipStartTime] = useState(track?.previewClipStartTime || '')
@@ -291,7 +293,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setTrackTitle(track.title || '')
             setLanguage(track.language || '')
             setIsrc(track.isrc || '')
-            setShowIsrc(!!track.isrc)
+            setIsrcMode(track.isrc ? 'existing' : 'generate')
             setPrimaryGenre(track.primaryGenre || '')
             setSecondaryGenre(track.secondaryGenre || '')
             setPreviewClipStartTime(track.previewClipStartTime || '')
@@ -461,6 +463,18 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         }
     }
 
+    const handleIsrcModeChange = (mode: IsrcMode) => {
+        setIsrcMode(mode)
+        if (mode === 'generate') {
+            setIsrc('')
+            setIsrcError('')
+            return
+        }
+        if (!isrc) {
+            setIsrc(process.env.NEXT_PUBLIC_DEFAULT_ISRC || '')
+        }
+    }
+
     const handleISRCChange = (value: string) => {
         setIsrc(value)
 
@@ -481,8 +495,12 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         }
     }
 
-    const validateName = (name: string): string => {
-        return getLegalPersonNameError(name) ?? ''
+    const validateWriterName = (name: string): string => {
+        return getLegalPersonNameError(name, true) ?? ''
+    }
+
+    const validateComposerName = (name: string): string => {
+        return getLegalPersonNameError(name, false) ?? ''
     }
 
     const handleSave = () => {
@@ -542,7 +560,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             }
 
             for (const sw of filteredWriters) {
-                const writerError = getLegalPersonNameError(sw.trim())
+                const writerError = getLegalPersonNameError(sw.trim(), true)
                 if (writerError) {
                     toast.error(`Invalid Writer name: "${sw}". ${writerError}`)
                     return
@@ -552,7 +570,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
             // Validate Composers (if provided, must be valid)
             for (const comp of filteredComposers) {
-                const composerError = getLegalPersonNameError(comp.trim())
+                const composerError = getLegalPersonNameError(comp.trim(), false)
                 if (composerError) {
                     toast.error(`Invalid Composer name: "${comp}". ${composerError}`)
                     return
@@ -1255,8 +1273,16 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             Choose first — genre and language options below will update based on your answer.
                         </p>
 
-                        <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label
+                                htmlFor="track-instrumental-no"
+                                className={cn(
+                                    "flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors",
+                                    instrumental === 'no'
+                                        ? "border-primary bg-primary/5"
+                                        : "border-border hover:bg-accent/50",
+                                )}
+                            >
                                 <input
                                     type="radio"
                                     id="track-instrumental-no"
@@ -1264,14 +1290,22 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     value="no"
                                     checked={instrumental === 'no'}
                                     onChange={() => handleInstrumentalChange('no')}
-                                    className="h-4 w-4"
+                                    className="h-4 w-4 border-primary text-primary focus:ring-primary"
                                 />
-                                <Label htmlFor="track-instrumental-no" className="font-normal cursor-pointer">
+                                <span className="text-sm font-medium">
                                     This song contains lyrics
-                                </Label>
-                            </div>
+                                </span>
+                            </label>
 
-                            <div className="flex items-center space-x-2">
+                            <label
+                                htmlFor="track-instrumental-yes"
+                                className={cn(
+                                    "flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors",
+                                    instrumental === 'yes'
+                                        ? "border-primary bg-primary/5"
+                                        : "border-border hover:bg-accent/50",
+                                )}
+                            >
                                 <input
                                     type="radio"
                                     id="track-instrumental-yes"
@@ -1279,71 +1313,27 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                     value="yes"
                                     checked={instrumental === 'yes'}
                                     onChange={() => handleInstrumentalChange('yes')}
-                                    className="h-4 w-4"
+                                    className="h-4 w-4 border-primary text-primary focus:ring-primary"
                                 />
-                                <Label htmlFor="track-instrumental-yes" className="font-normal cursor-pointer">
+                                <span className="text-sm font-medium">
                                     This song is instrumental and contains no lyrics
-                                </Label>
-                            </div>
+                                </span>
+                            </label>
                         </div>
                     </div>
 
-                    {/* ISRC */}
-                    <div className="space-y-4 pt-6 border-t border-border">
-                        <div className="flex flex-col space-y-2">
-                            <Label className="text-lg font-semibold">ISRC</Label>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    id="hasIsrc"
-                                    checked={showIsrc}
-                                    onChange={(e) => {
-                                        const checked = e.target.checked
-                                        setShowIsrc(checked)
-                                        if (checked) {
-                                            if (!isrc) {
-                                                setIsrc(process.env.NEXT_PUBLIC_DEFAULT_ISRC || '')
-                                            }
-                                        } else {
-                                            setIsrc('')
-                                            setIsrcError('')
-                                        }
-                                    }}
-                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                />
-                                <Label htmlFor="hasIsrc" className="font-normal cursor-pointer">
-                                    I already have an ISRC code
-                                </Label>
-                            </div>
-                        </div>
-
-                        {showIsrc && (
-                            <div className="space-y-2">
-                                <Label htmlFor="track-isrc">ISRC Code</Label>
-                                <Input
-                                    id="track-isrc"
-                                    placeholder="XX-XXX-XX-XXXXX"
-                                    readOnly={user?.plan === 'free'}
-                                    value={isrc}
-                                    onChange={(e) => {
-                                        handleISRCChange(e.target.value)
-                                        if (user?.plan === 'free') {
-                                            toast.error("Upgrade to paid plan to use custom ISRC", { id: "isrc-warning" })
-                                        }
-                                    }}
-                                    className={isrcError ? 'border-red-500' : ''}
-                                />
-                                {user?.plan === 'free' && (
-                                    <p className="text-xs text-amber-600 mt-1">
-                                        Upgrade to a paid plan to use a custom ISRC code.
-                                    </p>
-                                )}
-                                {isrcError && (
-                                    <p className="text-xs text-red-500 mt-1">{isrcError}</p>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                    <IsrcCodeSection
+                        idPrefix="track-isrc"
+                        mode={isrcMode}
+                        onModeChange={handleIsrcModeChange}
+                        value={isrc}
+                        onChange={handleISRCChange}
+                        error={isrcError}
+                        isFreePlan={user?.plan === 'free'}
+                        onFreePlanAttempt={() =>
+                            toast.error('Upgrade to paid plan to use custom ISRC', { id: 'isrc-warning' })
+                        }
+                    />
 
                     {/* Primary Genre */}
                     <div className="space-y-2">
@@ -1480,7 +1470,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                             setModalWriters(updated)
                                             // Validate immediately
                                             const errors = [...writerErrors]
-                                            errors[idx] = validateName(e.target.value)
+                                            errors[idx] = validateWriterName(e.target.value)
                                             setWriterErrors(errors)
                                         }}
                                         className={writerErrors[idx] ? 'border-red-500' : ''}
@@ -1524,7 +1514,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     <div className="space-y-3 pt-4 border-t">
                         <div>
                             <Label className="text-lg font-semibold">Composer</Label>
-                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. {LEGAL_PERSON_NAME_HINT}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Real names, not stage names. {LEGAL_PERSON_NAME_COMPOSER_HINT}</p>
                         </div>
                         {modalComposers.map((composer, idx) => (
                             <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-accent/5">
@@ -1537,7 +1527,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                                         setModalComposers(updated)
                                         // Validate immediately
                                         const errors = [...composerErrors]
-                                        errors[idx] = validateName(e.target.value)
+                                        errors[idx] = validateComposerName(e.target.value)
                                         setComposerErrors(errors)
                                     }}
                                     className={composerErrors[idx] ? 'border-red-500' : ''}

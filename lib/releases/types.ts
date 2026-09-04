@@ -234,6 +234,8 @@ export interface ReleaseListItem {
   coverArtUrl?: string;
   releaseDate?: string;
   upc?: string;
+  isrc?: string;
+  catalogNumber?: string;
   pdlAlbumId?: string;
   /** True when artist acknowledged upload-time warnings (not PDL). */
   warning?: boolean;
@@ -309,6 +311,7 @@ export interface MongoReleaseDocument {
   riskStatus?: string;
   primaryArtists?: Array<{
     name: string;
+    cosmosId?: string;
     appleId?: string;
     spotifyProfile?: unknown;
     appleMusicProfile?: unknown;
@@ -361,6 +364,7 @@ export interface MongoReleaseTrack {
   _id?: string;
   trackOrder?: number;
   title?: string;
+  version?: string;
   artistName?: string;
   language?: string;
   primaryGenre?: string;

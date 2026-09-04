@@ -296,10 +296,7 @@ export function getErrorMessage(
 
     const fromBody = extractFromApiBody(axiosError.response.data);
     if (fromBody) {
-      return sanitizeErrorMessage(
-        sanitizeUserFacingMessage(fromBody, fallback),
-        fallback,
-      );
+      return sanitizeUserFacingMessage(fromBody, fallback);
     }
 
     const status = axiosError.response.status;

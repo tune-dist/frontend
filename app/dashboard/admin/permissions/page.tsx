@@ -143,7 +143,7 @@ export default function PermissionsPage() {
             const usersData = await getUsers({
                 search: userSearch || undefined,
                 role: userRoleFilter !== "All" ? userRoleFilter : undefined,
-                limit: 100,
+                limit: 500,
             });
             setUsers(usersData.users || []);
         } catch (error) {
