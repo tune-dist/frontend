@@ -11,6 +11,7 @@ import {
   extractMsg91AccessToken,
   extractMsg91ReqId,
   MSG91_CAPTCHA_ELEMENT_ID,
+  MSG91_RESEND_COOLDOWN_SECONDS,
   useMsg91Otp,
 } from '@/hooks/use-msg91-otp'
 import { verifyMsg91PhoneToken } from '@/lib/api/users'
@@ -101,12 +102,12 @@ export default function PhoneVerificationModal({
       identifier,
       (data) => {
         console.debug('MSG91 sendOtp success:', data)
-        const nextReqId = extractMsg91ReqId(data)
+        const nextReqId = extractMsg91ReqId(data) ?? extractMsg91ReqId(null)
 
         setReqId(nextReqId)
         setStep('otp')
         setOtp('')
-        setTimer(120)
+        setTimer(MSG91_RESEND_COOLDOWN_SECONDS)
         setCanResend(false)
         setLoading(false)
         toast.success('OTP sent to your mobile number')
@@ -163,25 +164,37 @@ export default function PhoneVerificationModal({
   }
 
   const handleResendOtp = () => {
-    if (!ready || typeof window.retryOtp !== 'function') {
+    if (!ready || typeof window.sendOtp !== 'function') {
+      toast.error('Verification service is not ready')
+      return
+    }
+
+    const identifier = formatPhoneForMsg91(phone)
+    if (identifier.length < 12) {
+      toast.error('Please enter a valid mobile number')
       return
     }
 
     setLoading(true)
-    window.retryOtp(
-      null,
-      () => {
-        setTimer(120)
+    // Use sendOtp (not retryOtp) so MSG91 generates a fresh OTP + reqId.
+    // retryOtp only re-delivers the same code until expiry.
+    window.sendOtp(
+      identifier,
+      (data) => {
+        console.debug('MSG91 resend sendOtp success:', data)
+        const nextReqId = extractMsg91ReqId(data) ?? extractMsg91ReqId(null)
+        setReqId(nextReqId)
+        setOtp('')
+        setTimer(MSG91_RESEND_COOLDOWN_SECONDS)
         setCanResend(false)
         setLoading(false)
-        toast.success('OTP resent successfully')
+        toast.success('New OTP sent to your mobile number')
       },
       (error) => {
-        console.error('MSG91 retryOtp failed:', error)
-        toast.error('Failed to resend OTP')
+        console.error('MSG91 resend sendOtp failed:', error)
+        toast.error('Failed to resend OTP. Please try again.')
         setLoading(false)
       },
-      reqId ?? undefined,
     )
   }
 

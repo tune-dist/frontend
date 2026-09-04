@@ -55,6 +55,10 @@ declare global {
 export const MSG91_SCRIPT_SRC = 'https://verify.msg91.com/otp-provider.js'
 export const MSG91_SCRIPT_ID = 'msg91-otp-provider-script'
 export const MSG91_CAPTCHA_ELEMENT_ID = 'msg91-phone-captcha'
+/** MSG91 retryOtp channel code for SMS (required for multi-channel widgets). */
+export const MSG91_SMS_CHANNEL = '11'
+/** Match widget "Resend after" setting (+ small buffer). */
+export const MSG91_RESEND_COOLDOWN_SECONDS = 30
 
 const METHOD_POLL_INTERVAL_MS = 200
 const METHOD_POLL_MAX_MS = 30000
