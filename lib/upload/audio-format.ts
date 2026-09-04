@@ -1,4 +1,5 @@
 export const ALLOWED_WAV_BIT_DEPTHS = [16, 24] as const;
+export const ALLOWED_WAV_CHANNELS = [1, 2] as const;
 export const ALLOWED_16BIT_SAMPLE_RATES_HZ = [44100] as const;
 export const ALLOWED_24BIT_SAMPLE_RATES_HZ = [44100, 48000, 88200, 96000, 192000] as const;
 
@@ -6,8 +7,8 @@ export function isAllowedWavBitDepth(bitDepth: number): boolean {
   return (ALLOWED_WAV_BIT_DEPTHS as readonly number[]).includes(bitDepth);
 }
 
-export function formatAllowedBitDepths(): string {
-  return ALLOWED_WAV_BIT_DEPTHS.map((depth) => `${depth}-bit`).join(' or ');
+export function isAllowedWavChannelCount(channels: number): boolean {
+  return (ALLOWED_WAV_CHANNELS as readonly number[]).includes(channels);
 }
 
 export function validateWavAudioSpecs(params: {
@@ -20,7 +21,7 @@ export function validateWavAudioSpecs(params: {
   if (!isAllowedWavBitDepth(bitDepth)) {
     return {
       valid: false,
-      error: `Invalid Bit Depth: ${bitDepth}-bit. File must be 16-bit or 24-bit HD.`,
+      error: `This file is ${bitDepth}-bit. Please upload a 16-bit or 24-bit WAV file.`,
     };
   }
 
@@ -28,25 +29,24 @@ export function validateWavAudioSpecs(params: {
     if (!(ALLOWED_16BIT_SAMPLE_RATES_HZ as readonly number[]).includes(sampleRate)) {
       return {
         valid: false,
-        error: `Invalid Sample Rate for 16-bit audio: ${sampleRate.toLocaleString()}Hz. 16-bit standard WAV must be 44,100Hz.`,
+        error: `This file is ${sampleRate.toLocaleString()}Hz. 16-bit WAV files must be 44.1kHz (44,100Hz). Re-export at the correct sample rate and try again.`,
       };
     }
   } else if (bitDepth === 24) {
     if (!(ALLOWED_24BIT_SAMPLE_RATES_HZ as readonly number[]).includes(sampleRate)) {
       return {
         valid: false,
-        error: `Invalid Sample Rate for 24-bit HD audio: ${sampleRate.toLocaleString()}Hz. 24-bit HD files must be 44.1kHz, 48kHz, 88.2kHz, 96kHz, or 192kHz.`,
+        error: `This file is ${sampleRate.toLocaleString()}Hz. 24-bit HD WAV files must be 44.1kHz, 48kHz, 88.2kHz, 96kHz, or 192kHz. Re-export at a supported sample rate and try again.`,
       };
     }
   }
 
-  if (channels !== undefined && channels !== 2) {
+  if (channels !== undefined && !isAllowedWavChannelCount(channels)) {
     return {
       valid: false,
-      error: `Invalid Channels: ${channels === 1 ? 'Mono (1 channel)' : `${channels} channels`}. Audio file must be Stereo (2 channels).`,
+      error: `This file has ${channels} audio channels. We only accept Mono (1 channel) or Stereo (2 channels) WAV files. Re-export from your DAW or audio editor and try again.`,
     };
   }
 
   return { valid: true };
 }
-

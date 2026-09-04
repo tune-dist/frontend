@@ -1,15 +1,25 @@
 import { z } from 'zod'
 import {
     isValidLegalPersonName,
+    LEGAL_PERSON_NAME_COMPOSER_HINT,
     LEGAL_PERSON_NAME_HINT,
 } from '@/lib/validation/legal-person-name'
+import { earliestValidReleaseDate } from '@/lib/distribution-issue'
 
 export const songwriterSchema = z.string()
     .refine((val) => {
         if (!val || val.trim() === '') return true;
-        return isValidLegalPersonName(val);
+        return isValidLegalPersonName(val, true);
     }, {
         message: LEGAL_PERSON_NAME_HINT,
+    });
+
+export const composerSchema = z.string()
+    .refine((val) => {
+        if (!val || val.trim() === '') return true;
+        return isValidLegalPersonName(val, false);
+    }, {
+        message: LEGAL_PERSON_NAME_COMPOSER_HINT,
     });
 
 export type Songwriter = string;
@@ -88,7 +98,7 @@ export const trackSchema = z.object({
     primaryGenre: z.string().optional(),
     secondaryGenre: z.string().optional(),
     writers: z.array(songwriterSchema).optional(),
-    composers: z.array(songwriterSchema).optional(),
+    composers: z.array(composerSchema).optional(),
     isInstrumental: z.string().optional(),
     isExplicit: z.preprocess((val) => {
         if (typeof val === 'string') return val === 'true';
@@ -131,6 +141,7 @@ export const uploadFormSchema = z.object({
         message: 'ISRC must be in format: XX-XXX-XX-XXXXX (e.g., US-ABC-12-34567)'
     }),
     previouslyReleased: z.enum(['yes', 'no']).optional(),
+    originalReleaseDate: z.string().optional(),
     primaryGenre: z.string().optional(),
     secondaryGenre: z.string().optional(),
     language: z.string().optional(),
@@ -185,15 +196,9 @@ export const uploadFormSchema = z.object({
     // Release Details
     releaseDate: z.string().min(1, 'Release date is required').refine((val) => {
         if (!val) return false;
-        const minDate = new Date();
-        minDate.setDate(minDate.getDate() + 2);
-        const yyyy = minDate.getFullYear();
-        const mm = String(minDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(minDate.getDate()).padStart(2, '0');
-        const minStr = `${yyyy}-${mm}-${dd}`;
-        return val >= minStr;
+        return val >= earliestValidReleaseDate();
     }, {
-        message: 'Release date must be at least 2 days from today'
+        message: 'Release date cannot be in the past'
     }),
     labelName: z.string().min(1, 'Label name is required'),
     distributionTerritories: z.array(z.string()).default(['Worldwide']),
@@ -205,7 +210,7 @@ export const uploadFormSchema = z.object({
 
     // Detailed Credits (UI State managed by FieldArray)
     writers: z.array(songwriterSchema).default([]),
-    composers: z.array(songwriterSchema).default([]),
+    composers: z.array(composerSchema).default([]),
 
     recordingYear: z.number().default(new Date().getFullYear()),
     mood: z.string().optional(),

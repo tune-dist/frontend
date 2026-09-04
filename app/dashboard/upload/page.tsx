@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 // React Hook Form & Zod
-import { useForm, FormProvider, useFormContext, type FieldErrors } from "react-hook-form";
+import { useForm, FormProvider, useFormContext, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import TrackEditModal from "@/components/dashboard/upload/track-edit-modal";
 import {
@@ -41,6 +41,7 @@ import { isInstrumentalRelease, resolveLanguage } from "@/components/dashboard/u
 import { validateCoverArtSize, validateCoverArtDimensions, isExistingUnchangedCoverArt } from "@/components/dashboard/upload/cover-art-file-validation";
 import ReviewStep from "@/components/dashboard/upload/review-step";
 import { submitNewRelease, getArtistUsage, getReleases, getRelease, submitReleaseUpdate } from "@/lib/api/releases";
+import { applyFormMediaUpdates } from "@/lib/upload/upload-session";
 import { hydrateDraftForm, releaseToWriteSnapshot, type ReleaseWriteSnapshot } from "@/lib/releases";
 import {
   earliestValidReleaseDate,
@@ -55,9 +56,11 @@ import { isPlanInactiveError } from "@/lib/plan-inactive";
 import { getErrorMessage } from "@/lib/get-error-message";
 import {
   getLegalPersonNameError,
+  LEGAL_PERSON_NAME_COMPOSER_HINT,
   LEGAL_PERSON_NAME_HINT,
 } from '@/lib/validation/legal-person-name';
 import { applyUploadApiErrors } from "@/lib/upload-api-errors";
+import { ensureExternalSocialUrl } from "@/lib/releases/platform-ref.util";
 import {
   areMandatoryChecksComplete,
   getUncheckedMandatoryChecks,
@@ -253,7 +256,6 @@ export default function UploadPage() {
         editBaselineRef.current = releaseToWriteSnapshot(release as unknown as Record<string, unknown>);
         isHydratingRef.current = true;
         form.reset({
-          ...form.getValues(),
           ...formValues,
           releaseDate,
           format: formValues.format || "single",
@@ -261,6 +263,18 @@ export default function UploadPage() {
           coverArtMetadataStale: false,
           coverArtChanged: false,
         } as UploadFormData);
+        if (formValues.producers?.length) {
+          form.setValue("producers", [...formValues.producers], {
+            shouldValidate: true,
+            shouldDirty: false,
+          });
+        }
+        if (formValues.copyright) {
+          form.setValue("copyright", formValues.copyright, {
+            shouldValidate: true,
+            shouldDirty: false,
+          });
+        }
         setReleaseDateAutoCorrected(didAutoCorrectReleaseDate);
         if (didAutoCorrectReleaseDate) {
           form.clearErrors("releaseDate");
@@ -442,7 +456,6 @@ export default function UploadPage() {
       "labelName",
       "featuringArtist",
       "artists",
-      "upc",
     ];
     const step2 = ["audioFile", "audioFiles", "audioConsent"];
     const step3 = [
@@ -790,7 +803,8 @@ export default function UploadPage() {
               isValid = false;
             } else {
               // Check each track for required fields
-              const nameErrorHint = LEGAL_PERSON_NAME_HINT;
+              const writerNameErrorHint = LEGAL_PERSON_NAME_HINT;
+              const composerNameErrorHint = LEGAL_PERSON_NAME_COMPOSER_HINT;
               let hasError = false;
 
               for (let i = 0; i < formData.tracks.length; i++) {
@@ -833,9 +847,9 @@ export default function UploadPage() {
 
                 if (!isNoLyricsTrack) {
                   for (const sw of filledWriters) {
-                    if (getLegalPersonNameError(sw.trim())) {
+                    if (getLegalPersonNameError(sw.trim(), true)) {
                       toast.error(
-                        `Track ${i + 1}: Invalid writer name "${sw}". ${nameErrorHint}`
+                        `Track ${i + 1}: Invalid writer name "${sw}". ${writerNameErrorHint}`
                       );
                       hasError = true;
                       break;
@@ -848,9 +862,9 @@ export default function UploadPage() {
                 const filledComposers = (track.composers || []).filter(comp => comp?.trim());
                 if (filledComposers.length > 0) {
                   for (const comp of filledComposers) {
-                    if (getLegalPersonNameError(comp.trim())) {
+                    if (getLegalPersonNameError(comp.trim(), false)) {
                       toast.error(
-                        `Track ${i + 1}: Invalid composer name "${comp}". ${nameErrorHint}`
+                        `Track ${i + 1}: Invalid composer name "${comp}". ${composerNameErrorHint}`
                       );
                       hasError = true;
                       break;
@@ -995,11 +1009,25 @@ export default function UploadPage() {
               } else {
                 const status = formData.coverArtValidationStatus;
                 const issues = formData.coverArtValidationIssues || [];
+                const hasBlockingErrors =
+                  formData.coverArtChanged &&
+                  (status === "rejected" ||
+                    issues.some((issue) => issue.severity === "error"));
                 const hasIssues =
                   formData.coverArtChanged &&
                   ((status && status !== "approved") || issues.length > 0);
 
-                if (hasIssues && !formData.coverArtConsent) {
+                if (hasBlockingErrors) {
+                  form.setError("coverArt", {
+                    type: "manual",
+                    message:
+                      "Cover art has issues that must be fixed before continuing.",
+                  });
+                  toast.error(
+                    "Please fix the cover art errors before continuing. Warnings can be accepted, but errors cannot.",
+                  );
+                  isValid = false;
+                } else if (hasIssues && !formData.coverArtConsent) {
                   form.setError("coverArtConsent", {
                     type: "manual",
                     message:
@@ -1096,6 +1124,9 @@ export default function UploadPage() {
       setSubmitProgress(update);
     };
     try {
+      const mediaUploaded = (updates: Parameters<typeof applyFormMediaUpdates>[0]) => {
+        applyFormMediaUpdates(updates, form.setValue);
+      };
       if (isEditMode && editReleaseId) {
         const result = await submitReleaseUpdate(
           editReleaseId,
@@ -1106,6 +1137,7 @@ export default function UploadPage() {
           {
             onProgress: reportSubmitProgress,
             baseline: editBaselineRef.current ?? undefined,
+            onMediaUploaded: mediaUploaded,
           },
         );
         if (result.writeSnapshot) {
@@ -1122,7 +1154,7 @@ export default function UploadPage() {
             ...data,
             mandatoryChecks: mandatoryChecks,
           } as any,
-          { onProgress: reportSubmitProgress },
+          { onProgress: reportSubmitProgress, onMediaUploaded: mediaUploaded },
         );
         toast.success("Release submitted successfully!");
       }
@@ -1460,11 +1492,18 @@ export default function UploadPage() {
                           <Label htmlFor="copyright">
                             C-Line ©{fieldRules.copyright?.required && " *"}
                           </Label>
-                          <Input
-                            id="copyright"
-                            placeholder="© Your label name"
-                            readOnly={user?.plan === "free"}
-                            {...register("copyright")}
+                          <Controller
+                            name="copyright"
+                            control={form.control}
+                            render={({ field }) => (
+                              <Input
+                                id="copyright"
+                                placeholder="© Your label name"
+                                readOnly={user?.plan === "free"}
+                                {...field}
+                                value={field.value ?? ""}
+                              />
+                            )}
                           />
                           {user?.plan === "free" && (
                             <p className="text-xs text-amber-600 mt-1">
@@ -1506,11 +1545,18 @@ export default function UploadPage() {
                           <Label htmlFor="producers">
                             P-Line ℗{fieldRules.producers?.required && " *"}
                           </Label>
-                          <Input
-                            id="producers"
-                            placeholder="℗ Your label Name"
-                            readOnly={user?.plan === "free"}
-                            {...register("producers.0")}
+                          <Controller
+                            name="producers.0"
+                            control={form.control}
+                            render={({ field }) => (
+                              <Input
+                                id="producers"
+                                placeholder="℗ Your label Name"
+                                readOnly={user?.plan === "free"}
+                                {...field}
+                                value={field.value ?? ""}
+                              />
+                            )}
                           />
                           {user?.plan === "free" && (
                             <p className="text-xs text-amber-600 mt-1">
@@ -1636,8 +1682,8 @@ export default function UploadPage() {
         mainArtistProfiles={{
           spotify: watch("spotifyProfile") ?? undefined,
           apple: watch("appleMusicProfile") ?? undefined,
-          instagram: (watch("instagramProfile") === 'yes' ? watch("instagramProfileUrl") : watch("instagramProfile")) ?? undefined,
-          facebook: (watch("facebookProfile") === 'yes' ? watch("facebookProfileUrl") : watch("facebookProfile")) ?? undefined
+          instagram: ensureExternalSocialUrl(watch("instagramProfileUrl")),
+          facebook: ensureExternalSocialUrl(watch("facebookProfileUrl")),
         }}
         fieldRules={fieldRules}
         audioFiles={watch("audioFiles")}

@@ -191,7 +191,6 @@ export function draftRequestToWriteSnapshot(draft: CreateReleaseDraftRequest): R
 
   const publisher =
     draft.release.publisher?.trim() ||
-    draft.release.copyright?.trim() ||
     draft.release.labelName;
 
   const snapshot: ReleaseWriteSnapshot = {

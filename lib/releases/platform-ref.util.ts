@@ -2,6 +2,22 @@ import type { AppleMusicPlatformRef, ArtistProfiles, PlatformRef } from './types
 
 const SENTINEL_VALUES = new Set(['yes', 'no', 'new']);
 
+/** Ensure Instagram/Facebook href is absolute. Form input is the source of truth. */
+export function ensureExternalSocialUrl(url?: string | null): string | undefined {
+  const trimmed = url?.trim();
+  if (!trimmed || SENTINEL_VALUES.has(trimmed.toLowerCase())) return undefined;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+/** @deprecated Prefer ensureExternalSocialUrl(profileUrl). Kept for stale bundles. */
+export function resolveSocialProfileUrl(
+  _profile: unknown,
+  profileUrl?: string | null,
+): string | undefined {
+  return ensureExternalSocialUrl(profileUrl);
+}
+
 /** Normalize flat profile values (string URL, rich object, or sentinel) to v2 PlatformRef. */
 export function toPlatformRef(value: unknown): PlatformRef | undefined {
   if (value == null) return undefined;
@@ -72,33 +88,21 @@ export function buildProfilesFromFlatFields(sources: {
   spotifyProfile?: unknown;
   appleMusicProfile?: unknown;
   youtubeMusicProfile?: unknown;
-  instagramProfile?: unknown;
-  instagramProfileUrl?: string;
-  facebookProfile?: unknown;
-  facebookProfileUrl?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
 }): ArtistProfiles | undefined {
   const spotify = toPlatformRef(sources.spotifyProfile);
   const appleMusic = toAppleMusicPlatformRef(sources.appleMusicProfile);
   const youtubeMusic = toPlatformRef(sources.youtubeMusicProfile);
-
-  const instagramUrl =
-    sources.instagramProfile === 'yes'
-      ? sources.instagramProfileUrl?.trim()
-      : toPlatformRef(sources.instagramProfile)?.url;
-  const instagram = instagramUrl ? { url: instagramUrl } : undefined;
-
-  const facebookUrl =
-    sources.facebookProfile === 'yes'
-      ? sources.facebookProfileUrl?.trim()
-      : toPlatformRef(sources.facebookProfile)?.url;
-  const facebook = facebookUrl ? { url: facebookUrl } : undefined;
+  const instagram = ensureExternalSocialUrl(sources.instagramUrl);
+  const facebook = ensureExternalSocialUrl(sources.facebookUrl);
 
   const profiles: ArtistProfiles = {
     ...(spotify ? { spotify } : {}),
     ...(appleMusic ? { appleMusic } : {}),
     ...(youtubeMusic ? { youtubeMusic } : {}),
-    ...(instagram ? { instagram } : {}),
-    ...(facebook ? { facebook } : {}),
+    ...(instagram ? { instagram: { url: instagram } } : {}),
+    ...(facebook ? { facebook: { url: facebook } } : {}),
   };
 
   return Object.keys(profiles).length > 0 ? profiles : undefined;
@@ -114,8 +118,8 @@ export function profilesToFormFields(profiles?: ArtistProfiles): {
   facebookProfile: string;
   facebookProfileUrl?: string;
 } {
-  const instagramUrl = profiles?.instagram?.url;
-  const facebookUrl = profiles?.facebook?.url;
+  const instagramProfileUrl = profiles?.instagram?.url;
+  const facebookProfileUrl = profiles?.facebook?.url;
 
   const toFormProfile = (ref?: PlatformRef | AppleMusicPlatformRef) => {
     if (!ref) return undefined;
@@ -127,9 +131,9 @@ export function profilesToFormFields(profiles?: ArtistProfiles): {
     spotifyProfile: toFormProfile(profiles?.spotify),
     appleMusicProfile: toFormProfile(profiles?.appleMusic),
     youtubeMusicProfile: toFormProfile(profiles?.youtubeMusic),
-    instagramProfile: instagramUrl ? 'yes' : 'no',
-    instagramProfileUrl: instagramUrl,
-    facebookProfile: facebookUrl ? 'yes' : 'no',
-    facebookProfileUrl: facebookUrl,
+    instagramProfile: instagramProfileUrl ? 'yes' : 'no',
+    instagramProfileUrl,
+    facebookProfile: facebookProfileUrl ? 'yes' : 'no',
+    facebookProfileUrl,
   };
 }

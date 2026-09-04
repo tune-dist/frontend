@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, TrendingDown, LogOut } from 'lucide-react';
+import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp } from 'lucide-react';
 import { canViewUsers, canManageUsers } from '@/lib/permissions';
-import { getUsers, updateUserStatus, logoutAllUsers } from '@/lib/api/users';
+import { getUsers, getUsersOverview, updateUserStatus } from '@/lib/api/users';
+import { getAllPlans } from '@/lib/api/plans';
 import { formatPlanDisplayName } from '@/lib/utils';
+import { getUserAccountStatus, getUserStatusDotClass } from '@/lib/user-status';
 import { getErrorMessage } from '@/lib/get-error-message';
 import { PageSearchBar, PageSearchSection } from '@/components/dashboard/page-search-bar';
 import {
@@ -39,18 +41,6 @@ function formatCsvDate(value?: string | Date | null): string {
     return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
 }
 
-function getUserStatusLabel(user: { isSuspended?: boolean; isEmailVerified?: boolean }) {
-    if (user.isSuspended) return 'Suspended';
-    if (user.isEmailVerified) return 'Active';
-    return 'Pending';
-}
-
-function getUserStatusDotClass(user: { isSuspended?: boolean; isEmailVerified?: boolean }) {
-    if (user.isSuspended) return 'bg-red-500';
-    if (user.isEmailVerified) return 'bg-primary shadow-[0_0_8px_rgba(51,230,122,0.6)]';
-    return 'bg-yellow-500';
-}
-
 export default function UsersPage() {
     const { user: currentUser, loading: authLoading } = useAuth();
     const router = useRouter();
@@ -59,14 +49,18 @@ export default function UsersPage() {
     const [exporting, setExporting] = useState(false);
     const [loggingOutAll, setLoggingOutAll] = useState(false);
     const [stats, setStats] = useState({
-        total: 145203,
-        new: 842,
-        pending: 45, // API doesn't provide this yet
-        flagged: 112 // API doesn't provide this yet
+        total: 0,
+        new: 0,
+        pending: 0,
+        flagged: 0,
+        totalGrowthPercent: 0,
+        newSignupsGrowthPercent: 0,
     });
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
+    const [planFilter, setPlanFilter] = useState('All');
+    const [planOptions, setPlanOptions] = useState<{ key: string; title: string }[]>([]);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -74,6 +68,45 @@ export default function UsersPage() {
 
     useEffect(() => {
         setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        Promise.all([getAllPlans(), getUsersOverview()])
+            .then(([plans, overview]) => {
+                const planTitleByKey = new Map(
+                    plans.map((plan) => [plan.key, plan.title]),
+                );
+
+                const mergedKeys = Array.from(
+                    new Set([
+                        ...overview.planKeys,
+                        ...plans.map((plan) => plan.key),
+                    ]),
+                ).sort((a, b) => {
+                    const labelA = planTitleByKey.get(a) || formatPlanDisplayName(a);
+                    const labelB = planTitleByKey.get(b) || formatPlanDisplayName(b);
+                    return labelA.localeCompare(labelB);
+                });
+
+                setPlanOptions(
+                    mergedKeys.map((key) => ({
+                        key,
+                        title: planTitleByKey.get(key) || formatPlanDisplayName(key),
+                    })),
+                );
+
+                setStats({
+                    total: overview.stats.total,
+                    new: overview.stats.newSignups24h,
+                    pending: overview.stats.pendingApprovals,
+                    flagged: overview.stats.flaggedAccounts,
+                    totalGrowthPercent: overview.stats.totalGrowthPercent,
+                    newSignupsGrowthPercent: overview.stats.newSignupsGrowthPercent,
+                });
+            })
+            .catch((error) => {
+                console.error('Failed to fetch users overview:', error);
+            });
     }, []);
 
     // Redirect if unauthorized
@@ -93,15 +126,11 @@ export default function UsersPage() {
                 limit,
                 search,
                 role: roleFilter,
-                status: statusFilter
+                status: statusFilter,
+                plan: planFilter,
             });
-            setUsers(data.users || []); // Handle backend response structure
+            setUsers(data.users || []);
             setTotalUsers(data.total || 0);
-
-            // If backend returns stats, update them here
-            if (data.total) {
-                setStats(prev => ({ ...prev, total: data.total }));
-            }
         } catch (error) {
             console.error('Failed to fetch users:', error);
         } finally {
@@ -159,6 +188,7 @@ export default function UsersPage() {
                 search,
                 role: roleFilter,
                 status: statusFilter,
+                plan: planFilter,
             };
 
             let data = await getUsers({
@@ -203,7 +233,7 @@ export default function UsersPage() {
                 escapeCsvValue(u.email),
                 escapeCsvValue(u.role),
                 escapeCsvValue(formatPlanDisplayName(u.plan)),
-                escapeCsvValue(u.isSuspended ? 'Suspended' : u.isActive === false ? 'Inactive' : 'Active'),
+                escapeCsvValue(getUserAccountStatus(u)),
                 escapeCsvValue(u.isEmailVerified ? 'Yes' : 'No'),
                 escapeCsvValue(formatCsvDate(u.lastLogin) || 'Never'),
                 escapeCsvValue(formatCsvDate(u.planStartDate)),
@@ -236,7 +266,7 @@ export default function UsersPage() {
             }, search ? 500 : 0);
             return () => clearTimeout(debounce);
         }
-    }, [search, roleFilter, statusFilter, page, authLoading, currentUser]);
+    }, [search, roleFilter, statusFilter, planFilter, page, authLoading, currentUser]);
 
     const handleSearchChange = (value: string) => {
         setSearch(value);
@@ -250,6 +280,11 @@ export default function UsersPage() {
 
     const handleStatusFilterChange = (value: string) => {
         setStatusFilter(value);
+        setPage(1);
+    };
+
+    const handlePlanFilterChange = (value: string) => {
+        setPlanFilter(value);
         setPage(1);
     };
 
@@ -304,7 +339,7 @@ export default function UsersPage() {
                         <p className="text-white text-2xl font-bold">{stats.total.toLocaleString()}</p>
                         <div className="flex items-center gap-1 text-[#0bda43] text-sm font-medium">
                             <TrendingUp className="w-4 h-4" />
-                            <span>+12% vs last month</span>
+                            <span>{stats.totalGrowthPercent >= 0 ? '+' : ''}{stats.totalGrowthPercent}% vs last month</span>
                         </div>
                     </div>
                     {/* Stat 2 */}
@@ -317,7 +352,7 @@ export default function UsersPage() {
                         <p className="text-white text-2xl font-bold">+{stats.new}</p>
                         <div className="flex items-center gap-1 text-[#0bda43] text-sm font-medium">
                             <TrendingUp className="w-4 h-4" />
-                            <span>+5% growth rate</span>
+                            <span>{stats.newSignupsGrowthPercent >= 0 ? '+' : ''}{stats.newSignupsGrowthPercent}% vs previous day</span>
                         </div>
                     </div>
                     {/* Stat 3 */}
@@ -328,9 +363,9 @@ export default function UsersPage() {
                             <Clock className="w-5 h-5 text-text-secondary group-hover:text-primary transition-colors" />
                         </div>
                         <p className="text-white text-2xl font-bold">{stats.pending}</p>
-                        <div className="flex items-center gap-1 text-[#fa5538] text-sm font-medium">
-                            <TrendingDown className="w-4 h-4" />
-                            <span>-2% processing time</span>
+                        <div className="flex items-center gap-1 text-text-secondary text-sm font-medium">
+                            <Clock className="w-4 h-4" />
+                            <span>Awaiting email verification</span>
                         </div>
                     </div>
                     {/* Stat 4 */}
@@ -343,7 +378,7 @@ export default function UsersPage() {
                         <p className="text-white text-2xl font-bold">{stats.flagged}</p>
                         <div className="flex items-center gap-1 text-yellow-500 text-sm font-medium">
                             <Flag className="w-4 h-4" />
-                            <span>Requires Attention</span>
+                            <span>Suspended accounts</span>
                         </div>
                     </div>
                 </div>
@@ -386,6 +421,21 @@ export default function UsersPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                <div className="w-[180px]">
+                                    <Select value={planFilter} onValueChange={handlePlanFilterChange}>
+                                        <SelectTrigger className="w-full bg-surface-highlight border-none text-white h-[46px] rounded-xl">
+                                            <SelectValue placeholder="Plan" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="All">Plan: All</SelectItem>
+                                            {planOptions.map((plan) => (
+                                                <SelectItem key={plan.key} value={plan.key}>
+                                                    {plan.title || formatPlanDisplayName(plan.key)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 {/* <div className="relative group">
                                         <button
                                             className="flex items-center gap-2 px-4 py-3 bg-surface-highlight rounded-xl text-white hover:bg-surface-highlight/80 whitespace-nowrap text-sm font-medium transition-colors">
@@ -398,7 +448,7 @@ export default function UsersPage() {
                             <div className="flex gap-2 pb-2 md:pb-0">
                                 <div className="w-[180px] h-[46px] bg-surface-highlight rounded-xl animate-pulse"></div>
                                 <div className="w-[180px] h-[46px] bg-surface-highlight rounded-xl animate-pulse"></div>
-                                <div className="w-[150px] h-[46px] bg-surface-highlight rounded-xl animate-pulse"></div>
+                                <div className="w-[180px] h-[46px] bg-surface-highlight rounded-xl animate-pulse"></div>
                             </div>
                         )}
                     </div>
@@ -466,7 +516,7 @@ export default function UsersPage() {
                                                 <div className="flex items-center gap-2">
                                                     <span
                                                         className={`size-2.5 rounded-full ${getUserStatusDotClass(listedUser)}`}></span>
-                                                    <span className="text-white">{getUserStatusLabel(listedUser)}</span>
+                                                    <span className="text-white">{getUserAccountStatus(listedUser)}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-gray-400">

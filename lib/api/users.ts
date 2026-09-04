@@ -122,6 +122,13 @@ export const getUsageStats = async (): Promise<UsageStats> => {
   return response.data;
 };
 
+export interface PaginatedUsersResponse {
+  users: User[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // Get list of users with filters
 export const getUsers = async (params: {
   page?: number;
@@ -129,17 +136,39 @@ export const getUsers = async (params: {
   search?: string;
   role?: string;
   status?: string;
-}) => {
-  const { search, role, status, page, limit } = params;
-  const response = await apiClient.get<any>('/users', {
+  plan?: string;
+}): Promise<PaginatedUsersResponse> => {
+  const { search, role, status, plan, page, limit } = params;
+  const response = await apiClient.get<PaginatedUsersResponse>('/users', {
     params: {
       page,
       limit,
       ...(search?.trim() ? { search: search.trim() } : {}),
       ...(role && role !== 'All' ? { role } : {}),
       ...(status && status !== 'All' ? { status } : {}),
+      ...(plan && plan !== 'All' ? { plan } : {}),
     },
   });
+  return response.data;
+};
+
+export interface UsersOverviewStats {
+  total: number;
+  newSignups24h: number;
+  previousNewSignups24h: number;
+  pendingApprovals: number;
+  flaggedAccounts: number;
+  totalGrowthPercent: number;
+  newSignupsGrowthPercent: number;
+}
+
+export const getUsersOverview = async (): Promise<{
+  stats: UsersOverviewStats;
+  planKeys: string[];
+}> => {
+  const response = await apiClient.get<{ stats: UsersOverviewStats; planKeys: string[] }>(
+    '/users/overview',
+  );
   return response.data;
 };
 

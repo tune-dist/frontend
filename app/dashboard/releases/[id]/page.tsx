@@ -22,6 +22,7 @@ import {
   Users,
   Mic2,
   Layers,
+  Hash,
 } from "lucide-react";
 import { getRelease, Release, TrackPayload } from "@/lib/api/releases";
 import PageLoading from "@/components/dashboard/page-loading";
@@ -52,6 +53,13 @@ import {
   hasDistributionIssueResubmitted,
   DISTRIBUTION_ISSUE_ACK_LABEL,
 } from "@/lib/distribution-issue";
+import {
+  formatReleaseCodeDisplay,
+  formatUpcDisplay,
+  formatIsrcDetailDisplay,
+  getTrackIsrcDisplay,
+} from "@/lib/release-codes";
+import { ensureExternalSocialUrl } from "@/lib/releases/platform-ref.util";
 
 function formatDisplayDate(value?: string | null): string | null {
   if (!value) return null;
@@ -153,13 +161,25 @@ export default function ReleaseDetailsPage() {
       typeof releaseAny.mood === "string"
         ? releaseAny.mood.trim()
         : joinNonEmpty(release.tracks?.map((track) => track.mood ?? "") ?? []);
-    const socialLinks = [
-      { label: "Spotify", value: releaseAny.spotifyProfile?.url || releaseAny.spotifyProfile?.uri },
-      { label: "Apple Music", value: releaseAny.appleMusicProfile?.url },
-      { label: "YouTube Music", value: releaseAny.youtubeMusicProfile?.url },
-      { label: "Instagram", value: releaseAny.instagramProfileUrl || releaseAny.instagramProfile },
-      { label: "Facebook", value: releaseAny.facebookProfileUrl || releaseAny.facebookProfile },
-    ].filter((link) => typeof link.value === "string" && link.value.trim().length > 0);
+    const identifierRows = canManage
+      ? [
+          { label: "Release ID", value: formatReleaseCodeDisplay(release) },
+          { label: "UPC", value: formatUpcDisplay(release) },
+          {
+            label: "Catalog Number",
+            value: release.catalogNumber?.trim() || "—",
+          },
+          {
+            label: "ISRC",
+            value: formatIsrcDetailDisplay(release),
+          },
+          {
+            label: "PDL Album ID",
+            value: releaseAny.pdlAlbumId?.trim() || "—",
+          },
+          { label: "Internal ID", value: release._id },
+        ]
+      : [];
 
     const infoCards = [
       { icon: <Disc />, label: "Type", value: release.releaseType },
@@ -311,7 +331,11 @@ export default function ReleaseDetailsPage() {
                   release.tracks.map((track: TrackPayload, index: number) => {
                     const trackWriters = joinNonEmpty(track.writers);
                     const trackComposers = joinNonEmpty(track.composers);
+                    const trackIsrc = getTrackIsrcDisplay(track, release);
                     const trackMeta = [
+                      trackIsrc && trackIsrc !== "—" && trackIsrc !== "Pending"
+                        ? `ISRC: ${trackIsrc}`
+                        : null,
                       track.language ? `Language: ${track.language}` : null,
                       track.primaryGenre ? `Genre: ${track.primaryGenre}` : null,
                       track.secondaryGenre ? `Sub-genre: ${track.secondaryGenre}` : null,
@@ -418,15 +442,40 @@ export default function ReleaseDetailsPage() {
 
           {/* Right Column: Full release details */}
           <div className="lg:col-span-7 space-y-6">
+            {canManage && (
+              <div className="bg-[#0A0A0B] border border-white/5 rounded-[32px] p-6 space-y-5 shadow-xl shadow-black/20">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Hash className="h-5 w-5 text-primary" /> Release Identifiers
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {identifierRows.map((row) => (
+                    <div
+                      key={row.label}
+                      className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-1"
+                    >
+                      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                        {row.label}
+                      </p>
+                      <p className="text-sm font-mono text-white/90 break-all">{row.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Artists & profiles */}
-            {(release.primaryArtists?.length || socialLinks.length > 0) && (
+            {release.primaryArtists && release.primaryArtists.length > 0 && (
               <div className="bg-[#0A0A0B] border border-white/5 rounded-[32px] p-6 space-y-5 shadow-xl shadow-black/20">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" /> Artists & Profiles
                 </h3>
                 {release.primaryArtists && release.primaryArtists.length > 0 && (
                   <div className="space-y-3">
-                    {release.primaryArtists.map((artist, artistIdx) => (
+                    {release.primaryArtists.map((artist, artistIdx) => {
+                      const instagramHref = ensureExternalSocialUrl(artist.instagramProfile);
+                      const facebookHref = ensureExternalSocialUrl(artist.facebookProfile);
+
+                      return (
                       <div
                         key={`${artist.name}-${artistIdx}`}
                         className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-2"
@@ -463,34 +512,29 @@ export default function ReleaseDetailsPage() {
                               YouTube Music
                             </a>
                           )}
-                          {artist.instagramProfile && (
-                            <span className="px-2.5 py-1 rounded-full bg-white/5 text-white/50">
-                              Instagram: {artist.instagramProfile}
-                            </span>
+                          {instagramHref && (
+                            <a
+                              href={instagramHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-full bg-white/5 text-white/60 hover:text-primary transition-colors"
+                            >
+                              Instagram
+                            </a>
                           )}
-                          {artist.facebookProfile && (
-                            <span className="px-2.5 py-1 rounded-full bg-white/5 text-white/50">
-                              Facebook: {artist.facebookProfile}
-                            </span>
+                          {facebookHref && (
+                            <a
+                              href={facebookHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-full bg-white/5 text-white/60 hover:text-primary transition-colors"
+                            >
+                              Facebook
+                            </a>
                           )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-                {socialLinks.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {socialLinks.map((link) => (
-                      <a
-                        key={link.label}
-                        href={String(link.value)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
-                      >
-                        {link.label}
-                      </a>
-                    ))}
+                    )})}
                   </div>
                 )}
               </div>
