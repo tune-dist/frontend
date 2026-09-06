@@ -50,6 +50,7 @@ export interface ArtistUsage {
 }
 
 export interface ProfileWithPlan extends User {
+  hasPaidPlanAccess?: boolean;
   planDetails: Plan | null;
   activePlanMapping: UserPlanMapping | null;
   activeAddons: UserPlanMapping[];

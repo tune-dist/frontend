@@ -125,12 +125,11 @@ export default function BillingPage() {
     const activeMapping = profile?.activePlanMapping;
     const planEndDate = activeMapping?.endDate ?? (profile as any)?.planEndDate ?? null;
     const subscriptionStatus =
-        activeMapping?.status ?? (profile as any)?.subscriptionStatus ?? 'inactive';
-    const isFreePlan = currentPlanKey === 'free';
+        profile?.subscriptionStatus ?? user?.subscriptionStatus ?? 'inactive';
+    const hasPaidPlanAccess =
+        profile?.hasPaidPlanAccess ?? user?.hasPaidPlanAccess === true;
     const isSubscriptionActiveBackend =
-        !isFreePlan &&
-        subscriptionStatus === 'active' &&
-        ((profile as any)?.isSubscriptionActive ?? true);
+        hasPaidPlanAccess && subscriptionStatus === 'active';
     const isCurrentPlanLocked = (planKey: string) =>
         planKey === currentPlanKey && isSubscriptionActiveBackend;
     const isCurrentPlanRenewable = (planKey: string) =>

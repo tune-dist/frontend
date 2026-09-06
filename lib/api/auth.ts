@@ -103,6 +103,8 @@ export interface User {
   avatarUrl?: string;
   isSubscriptionActive?: boolean;
   subscriptionStatus?: string;
+  /** Set by GET /auth/me — single source for paid-plan access. */
+  hasPaidPlanAccess?: boolean;
 }
 
 export interface AuthResponse {
