@@ -26,24 +26,35 @@ import { useUI } from '@/contexts/UIContext'
 import { Tooltip } from '@/components/ui/tooltip'
 import { S3Image } from '@/components/ui/s3-image'
 import { canAccessNavItem, canAccessYouTubeService } from '@/lib/permissions'
+import { DASHBOARD_PERMISSION_NAV } from '@/lib/dashboard-navigation'
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'My Releases', href: '/dashboard/releases', icon: Music, permission: 'VIEW_RELEASES' },
-  { name: 'Upload Music', href: '/dashboard/upload', icon: Upload, permission: 'UPLOAD_RELEASE' },
-  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard, permission: 'VIEW_BILLING' },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, permission: 'VIEW_ANALYTICS' },
-  { name: 'Finance', href: '/dashboard/finance', icon: Wallet, permission: 'VIEW_BILLING' },
-  { name: 'Promotion', href: '/dashboard/promotion', icon: Sparkles, permission: 'MANAGE_PROMOTION' },
-  { name: 'Testimonials', href: '/dashboard/admin/testimonials', icon: Quote, permission: 'MANAGE_TESTIMONIALS' },
-  { name: 'Inquiries', href: '/dashboard/admin/inquiries', icon: MessageSquare, permission: 'VIEW_CONTACT_INQUIRIES' },
-  { name: 'Stream Imports', href: '/dashboard/admin/stream-imports', icon: FileSpreadsheet, permission: 'MANAGE_STREAM_IMPORTS' },
-  { name: 'Profile', href: '/dashboard/profile', icon: User, permission: 'PROFILE' },
-  { name: 'YouTube Service', href: '/dashboard/youtube-service', icon: Youtube, permission: 'USE_YOUTUBE_SERVICE' },
-  { name: 'Verifications', href: '/dashboard/verifications', icon: Shield, permission: 'APPROVE_RELEASE' },
-  { name: 'Users', href: '/dashboard/users', icon: User, permission: 'VIEW_USERS' },
-  { name: 'Plan Management', href: '/dashboard/admin/plans', icon: Settings, permission: 'MANAGE_PLANS' },
-  { name: 'Permissions', href: '/dashboard/admin/permissions', icon: Shield, permission: 'VIEW_PERMISSIONS' },
+  ...DASHBOARD_PERMISSION_NAV.map((item) => {
+    const icons: Record<string, typeof Music> = {
+      '/dashboard/releases': Music,
+      '/dashboard/upload': Upload,
+      '/dashboard/billing': CreditCard,
+      '/dashboard/analytics': BarChart3,
+      '/dashboard/finance': Wallet,
+      '/dashboard/promotion': Sparkles,
+      '/dashboard/admin/testimonials': Quote,
+      '/dashboard/admin/inquiries': MessageSquare,
+      '/dashboard/admin/stream-imports': FileSpreadsheet,
+      '/dashboard/profile': User,
+      '/dashboard/youtube-service': Youtube,
+      '/dashboard/verifications': Shield,
+      '/dashboard/users': User,
+      '/dashboard/admin/plans': Settings,
+      '/dashboard/admin/permissions': Shield,
+    }
+    return {
+      name: item.name,
+      href: item.href,
+      icon: icons[item.href] ?? LayoutDashboard,
+      permission: item.permission,
+    }
+  }),
 ]
 
 export default function Sidebar() {

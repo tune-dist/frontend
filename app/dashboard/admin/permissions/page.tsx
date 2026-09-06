@@ -43,7 +43,8 @@ import { getRoles, updateRole, Role } from "@/lib/api/roles";
 import { getUsers, updateUserPermissions } from "@/lib/api/users";
 import { User } from "@/lib/api/auth";
 import { canManagePermissions, canViewPermissions } from "@/lib/permissions";
-import { formatRoleLabel, formatPermissionLabel } from "@/lib/rbac-labels";
+import { formatRoleLabel, formatPermissionLabel, sortPermissionsForDisplay } from "@/lib/rbac-labels";
+import { NAV_PERMISSION_SLUGS } from "@/lib/dashboard-navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import {
@@ -253,13 +254,18 @@ export default function PermissionsPageContent() {
         return <PageLoading />;
     }
 
+    const sortedPermissions = sortPermissionsForDisplay(permissions);
+
     return (
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Permissions Matrix</h1>
                         <p className="text-muted-foreground mt-2">
-                            Manage role-based and user-specific permissions.
+                            Manage role-based and user-specific permissions. Sidebar pages map to the permissions marked below.
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {sortedPermissions.length} permissions · {NAV_PERMISSION_SLUGS.length} used in sidebar navigation
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -379,10 +385,15 @@ export default function PermissionsPageContent() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {permissions.map((permission) => (
+                                            {sortedPermissions.map((permission) => (
                                                 <TableRow key={permission._id}>
                                                     <TableCell className="font-medium">
-                                                        {formatPermissionLabel(permission)}
+                                                        <div>{formatPermissionLabel(permission)}</div>
+                                                        {NAV_PERMISSION_SLUGS.includes(permission.slug as typeof NAV_PERMISSION_SLUGS[number]) && (
+                                                            <Badge variant="outline" className="mt-1 text-[10px] font-normal">
+                                                                Sidebar
+                                                            </Badge>
+                                                        )}
                                                     </TableCell>
                                                     {roles.map((role) => {
                                                         const toggleKey = `role-${role._id}-${permission.slug}`;
@@ -411,7 +422,7 @@ export default function PermissionsPageContent() {
                                                     })}
                                                 </TableRow>
                                             ))}
-                                            {permissions.length === 0 && (
+                                            {sortedPermissions.length === 0 && (
                                                 <TableRow>
                                                     <TableCell colSpan={roles.length + 1} className="text-center py-8 text-muted-foreground">
                                                         No permissions found. Create one to get started.
@@ -486,7 +497,7 @@ export default function PermissionsPageContent() {
                                                 <TableRow>
                                                     <TableHead className="sticky left-0 z-10 bg-background w-[250px]">User</TableHead>
                                                     <TableHead className="sticky left-[250px] z-10 bg-background w-[150px]">Role</TableHead>
-                                                    {permissions.map((permission) => (
+                                                    {sortedPermissions.map((permission) => (
                                                         <TableHead key={permission._id} className="text-center">
                                                             <div className="min-w-[120px]">
                                                                 <div className="text-xs">{formatPermissionLabel(permission)}</div>
@@ -507,7 +518,7 @@ export default function PermissionsPageContent() {
                                                         <TableCell className="sticky left-[250px] z-10 bg-background">
                                                             <span className="text-sm">{formatRoleLabel(user.role)}</span>
                                                         </TableCell>
-                                                        {permissions.map((permission) => {
+                                                        {sortedPermissions.map((permission) => {
                                                             const state = getUserPermissionState(user, permission.slug, roles);
                                                             const toggleKey = `user-${user._id}-${permission.slug}`;
                                                             return (
@@ -547,7 +558,7 @@ export default function PermissionsPageContent() {
                                                 ))}
                                                 {users.length === 0 && (
                                                     <TableRow>
-                                                        <TableCell colSpan={permissions.length + 2} className="text-center py-8 text-muted-foreground">
+                                                        <TableCell colSpan={sortedPermissions.length + 2} className="text-center py-8 text-muted-foreground">
                                                             No users found. Try adjusting your search or filters.
                                                         </TableCell>
                                                     </TableRow>

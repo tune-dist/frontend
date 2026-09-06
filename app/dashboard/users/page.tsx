@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, LogOut } from 'lucide-react';
+import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, LogOut, Loader2 } from 'lucide-react';
 import { canViewUsers, canManageUsers } from '@/lib/permissions';
-import { getUsers, getUsersOverview, updateUserStatus, logoutAllUsers } from '@/lib/api/users';
+import { getUsers, getUsersOverview, updateUserStatus, logoutAllUsers, createUser } from '@/lib/api/users';
 import { getAllPlans } from '@/lib/api/plans';
 import { formatPlanDisplayName } from '@/lib/plans-display';
 import { getUserAccountStatus, getUserStatusDotClass } from '@/lib/user-status';
@@ -26,6 +25,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 function escapeCsvValue(value: string | number | null | undefined): string {
     const text = value == null ? '' : String(value);
@@ -65,6 +74,15 @@ export default function UsersPage() {
     const limit = 10;
     const [totalUsers, setTotalUsers] = useState(0);
     const [isMounted, setIsMounted] = useState(false);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [isCreatingUser, setIsCreatingUser] = useState(false);
+    const [newUser, setNewUser] = useState({
+        fullName: '',
+        email: '',
+        password: '',
+        role: 'artist',
+        plan: 'free',
+    });
 
     useEffect(() => {
         setIsMounted(true);
@@ -288,6 +306,74 @@ export default function UsersPage() {
         setPage(1);
     };
 
+    const resetNewUserForm = () => {
+        setNewUser({
+            fullName: '',
+            email: '',
+            password: '',
+            role: 'artist',
+            plan: planOptions[0]?.key ?? 'free',
+        });
+    };
+
+    const openCreateUserDialog = () => {
+        resetNewUserForm();
+        setIsCreateDialogOpen(true);
+    };
+
+    const handleCreateUser = async () => {
+        const fullName = newUser.fullName.trim();
+        const email = newUser.email.trim();
+        const password = newUser.password;
+
+        if (fullName.length < 2) {
+            toast.error('Full name must be at least 2 characters');
+            return;
+        }
+        if (!email) {
+            toast.error('Email is required');
+            return;
+        }
+        if (password.length < 6) {
+            toast.error('Password must be at least 6 characters');
+            return;
+        }
+
+        setIsCreatingUser(true);
+        try {
+            await createUser({
+                fullName,
+                email,
+                password,
+                role: newUser.role,
+                plan: newUser.plan,
+            });
+            toast.success('User created and login details sent by email');
+            setIsCreateDialogOpen(false);
+            resetNewUserForm();
+            fetchUsers();
+            const overview = await getUsersOverview();
+            setStats({
+                total: overview.stats.total,
+                new: overview.stats.newSignups24h,
+                pending: overview.stats.pendingApprovals,
+                flagged: overview.stats.flaggedAccounts,
+                totalGrowthPercent: overview.stats.totalGrowthPercent,
+                newSignupsGrowthPercent: overview.stats.newSignupsGrowthPercent,
+            });
+        } catch (error) {
+            console.error('Failed to create user:', error);
+            toast.error(getErrorMessage(error, 'Failed to create user'));
+        } finally {
+            setIsCreatingUser(false);
+        }
+    };
+
+    const assignableRoles =
+        currentUser?.role === 'super_admin'
+            ? ['artist', 'release_manager', 'admin', 'super_admin']
+            : ['artist', 'release_manager', 'admin'];
+
 
     return (
         <div className="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
@@ -319,11 +405,15 @@ export default function UsersPage() {
                             <FileDown className="w-5 h-5" />
                             <span className="text-sm font-bold">{exporting ? 'Exporting...' : 'Export CSV'}</span>
                         </button>
-                        <Link href="/auth"
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-background-dark hover:bg-primary/90 transition-colors shadow-[0_0_15px_rgba(51,230,122,0.3)]">
-                            <Plus className="w-5 h-5" />
-                            <span className="text-sm font-bold">Add New User</span>
-                        </Link>
+                        {canManageUsers(currentUser) && (
+                            <button
+                                type="button"
+                                onClick={openCreateUserDialog}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-background-dark hover:bg-primary/90 transition-colors shadow-[0_0_15px_rgba(51,230,122,0.3)]">
+                                <Plus className="w-5 h-5" />
+                                <span className="text-sm font-bold">Add New User</span>
+                            </button>
+                        )}
                     </div>
                 </div>
                 {/* Stats Grid */}
@@ -579,6 +669,101 @@ export default function UsersPage() {
                         </div>
                     </div>
                 </div>
+
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle>Add New User</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="create-fullName">Full Name</Label>
+                                <Input
+                                    id="create-fullName"
+                                    value={newUser.fullName}
+                                    onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                                    placeholder="Jane Doe"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="create-email">Email</Label>
+                                <Input
+                                    id="create-email"
+                                    type="email"
+                                    value={newUser.email}
+                                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                    placeholder="jane@example.com"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="create-password">Password</Label>
+                                <Input
+                                    id="create-password"
+                                    type="password"
+                                    value={newUser.password}
+                                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                                    placeholder="Minimum 6 characters"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="create-role">Role</Label>
+                                <Select
+                                    value={newUser.role}
+                                    onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+                                >
+                                    <SelectTrigger id="create-role" className="w-full">
+                                        <SelectValue placeholder="Select role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {assignableRoles.map((role) => (
+                                            <SelectItem key={role} value={role}>
+                                                {role.replace(/_/g, ' ')}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="create-plan">Plan</Label>
+                                <Select
+                                    value={newUser.plan}
+                                    onValueChange={(value) => setNewUser({ ...newUser, plan: value })}
+                                >
+                                    <SelectTrigger id="create-plan" className="w-full">
+                                        <SelectValue placeholder="Select plan" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {planOptions.map((plan) => (
+                                            <SelectItem key={plan.key} value={plan.key}>
+                                                {plan.title || formatPlanDisplayName(plan.key)}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsCreateDialogOpen(false)}
+                                disabled={isCreatingUser}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="button" onClick={handleCreateUser} disabled={isCreatingUser}>
+                                {isCreatingUser ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Creating...
+                                    </>
+                                ) : (
+                                    'Create User'
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );

@@ -13,6 +13,7 @@ import PhoneVerificationModal from '@/components/dashboard/phone-verification-mo
 import { useState, useEffect } from 'react'
 import Cookies from 'js-cookie'
 import { dispatchAuthUserUpdated } from '@/lib/auth-session'
+import { config } from '@/lib/config'
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { isUpgradeModalOpen, closeUpgradeModal, isSidebarCollapsed } = useUI()
@@ -21,7 +22,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const needsPhoneVerification = Boolean(
     user && !user.isPhoneVerified && !user.isPhoneNumberVerified,
   )
-  const showPhoneVerification = needsPhoneVerification && !needsPlanSelection
+  const showPhoneVerification =
+    needsPhoneVerification && !needsPlanSelection && !config.skipPhoneVerification
   const [isPlanExpiredModalOpen, setIsPlanExpiredModalOpen] = useState(false)
   const [isExpiringSoonBannerOpen, setIsExpiringSoonBannerOpen] = useState(false)
   const [daysRemaining, setDaysRemaining] = useState(0)
@@ -111,7 +113,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         onClose={() => setIsPlanExpiredModalOpen(false)}
       />
       <PhoneVerificationModal
-        active={needsPhoneVerification}
+        active={needsPhoneVerification && !config.skipPhoneVerification}
         isOpen={showPhoneVerification}
         onVerified={handlePhoneVerified}
       />

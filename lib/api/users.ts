@@ -173,6 +173,19 @@ export const updateUserPermissions = async (userId: string, permissions: string[
   return response.data;
 };
 
+export interface CreateUserData {
+  fullName: string;
+  email: string;
+  password: string;
+  role?: string;
+  plan?: string;
+}
+
+export const createUser = async (data: CreateUserData): Promise<User> => {
+  const response = await apiClient.post<User>('/users', data);
+  return response.data;
+};
+
 // Verify phone via MSG91 widget access token
 export const verifyMsg91PhoneToken = async (
   accessToken: string,
