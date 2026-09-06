@@ -74,6 +74,7 @@ import {
   getReleaseStatusColor,
   isRmEditableRelease,
   isReleaseStaff,
+  isReleaseOnDistributionPlatforms,
 } from "@/lib/release-status";
 import { formatReleaseCodeDisplay, formatUpcDisplay, formatIsrcListDisplay } from "@/lib/release-codes";
 import {
@@ -785,9 +786,13 @@ export default function ReleasesPage() {
                                 <PlatformReleaseIcons
                                   platforms={release.releasedOn.platforms}
                                   className="flex items-center gap-1.5 flex-wrap max-w-[180px]"
-                                  emptyFallback={release.pdlAlbumId ? "Yes" : "-"}
+                                  emptyFallback={
+                                    isReleaseOnDistributionPlatforms(release.status)
+                                      ? "Yes"
+                                      : "-"
+                                  }
                                 />
-                              ) : release.pdlAlbumId ? (
+                              ) : isReleaseOnDistributionPlatforms(release.status) ? (
                                 "Yes"
                               ) : (
                                 "-"

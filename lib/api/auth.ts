@@ -105,6 +105,10 @@ export interface User {
   subscriptionStatus?: string;
   /** Set by GET /auth/me — single source for paid-plan access. */
   hasPaidPlanAccess?: boolean;
+  savedLabelName?: string;
+  savedCopyright?: string;
+  savedPublisher?: string;
+  releaseMetadataLocked?: boolean;
 }
 
 export interface AuthResponse {
@@ -174,6 +178,17 @@ export const refreshToken = async (token: string): Promise<RefreshResponse> => {
     `${config.apiUrl}/auth/refresh`,
     { refresh_token: token },
     { headers: { 'Content-Type': 'application/json' } },
+  );
+  return response.data;
+};
+
+// Exchange one-time OAuth code for session tokens
+export const exchangeOAuthCode = async (
+  code: string,
+): Promise<{ access_token: string; refresh_token: string }> => {
+  const response = await apiClient.post<{ access_token: string; refresh_token: string }>(
+    '/auth/oauth/exchange',
+    { code },
   );
   return response.data;
 };

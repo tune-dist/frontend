@@ -1,8 +1,4 @@
-'use client'
-
-import { useEffect, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { Suspense } from 'react'
 import Navbar from '@/components/navbar'
 import Hero from '@/components/hero'
 import Features from '@/components/features'
@@ -12,31 +8,12 @@ import HomePricingSection from '@/components/home-pricing-section'
 import Contact from '@/components/contact'
 import FaqSection from '@/components/faq-section'
 import Footer from '@/components/footer'
+import HomeAuthRedirect from '@/components/home-auth-redirect'
 
 export default function HomePage() {
-  const router = useRouter()
-  const { isAuthenticated, loading } = useAuth()
-
-  useEffect(() => {
-    if (!loading && isAuthenticated) {
-      router.push('/dashboard')
-    }
-  }, [isAuthenticated, loading, router])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-      </div>
-    )
-  }
-
-  if (isAuthenticated) {
-    return null
-  }
-
   return (
     <main className="min-h-screen">
+      <HomeAuthRedirect />
       <Navbar />
       <Hero />
       <Features />

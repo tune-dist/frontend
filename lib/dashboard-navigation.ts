@@ -15,6 +15,7 @@ export const DASHBOARD_PERMISSION_NAV: DashboardNavItem[] = [
   { name: 'Finance', href: '/dashboard/finance', permission: 'VIEW_BILLING' },
   { name: 'Promotion', href: '/dashboard/promotion', permission: 'MANAGE_PROMOTION' },
   { name: 'Testimonials', href: '/dashboard/admin/testimonials', permission: 'MANAGE_TESTIMONIALS' },
+  { name: 'Blogs', href: '/dashboard/admin/blogs', permission: 'MANAGE_BLOGS' },
   { name: 'Inquiries', href: '/dashboard/admin/inquiries', permission: 'VIEW_CONTACT_INQUIRIES' },
   { name: 'Stream Imports', href: '/dashboard/admin/stream-imports', permission: 'MANAGE_STREAM_IMPORTS' },
   { name: 'Profile', href: '/dashboard/profile', permission: 'PROFILE' },

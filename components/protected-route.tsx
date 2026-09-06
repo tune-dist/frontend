@@ -8,14 +8,12 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
-  // Bypass login for testing is removed. Real auth check enabled.
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/auth');
+      router.replace('/auth');
     }
   }, [isAuthenticated, loading, router]);
 
-  // Show loading state while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -24,7 +22,6 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     );
   }
 
-  // If not authenticated, don't render children
   if (!isAuthenticated) {
     return null;
   }

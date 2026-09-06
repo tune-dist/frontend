@@ -7,17 +7,20 @@ import {
   triggerPlanInactive,
 } from './plan-inactive';
 import { dispatchAuthUserUpdated } from './auth-session';
+import {
+  clearAuthCookies,
+  setAuthTokens,
+  setAuthUserCookie,
+} from './auth-cookies';
 import type { User } from './api/auth';
 
 type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
 
-// Bare client for token refresh — avoids interceptor loops and duplicate refresh calls.
 const refreshClient = axios.create({
   baseURL: config.apiUrl,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: config.apiUrl,
   headers: {
@@ -26,7 +29,6 @@ const apiClient: AxiosInstance = axios.create({
   withCredentials: false,
 });
 
-// Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (requestConfig: InternalAxiosRequestConfig) => {
     const token = Cookies.get(config.tokenKey);
@@ -35,35 +37,31 @@ apiClient.interceptors.request.use(
     }
     return requestConfig;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error),
 );
 
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
-    } else {
+    } else if (token) {
       prom.resolve(token);
     }
   });
-
   failedQueue = [];
 };
 
-// Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<{ code?: string; reason?: string; message?: string }>) => {
     const originalRequest = error.config as RetryableRequest;
 
-    // Handle 403 from ActivePlanGuard (cancelled/halted/expired subscription).
-    // Show the global subscribe-modal and reject with a tagged error so call
-    // sites can skip their own toast.
     if (error.response?.status === 403 && error.response?.data?.code === PLAN_INACTIVE_CODE) {
       const payload = {
         reason: error.response.data.reason,
@@ -73,7 +71,6 @@ apiClient.interceptors.response.use(
       return Promise.reject(new PlanInactiveError(payload));
     }
 
-    // Handle 401 errors (unauthorized)
     if (
       error.response?.status === 401 &&
       originalRequest &&
@@ -82,13 +79,12 @@ apiClient.interceptors.response.use(
       !originalRequest.url?.includes('/auth/login')
     ) {
       if (isRefreshing) {
-        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
             if (originalRequest.headers) {
-              originalRequest.headers.Authorization = 'Bearer ' + token;
+              originalRequest.headers.Authorization = `Bearer ${token}`;
             }
             return apiClient(originalRequest);
           })
@@ -99,75 +95,48 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       const refresh_token = Cookies.get('refresh_token');
-      if (refresh_token) {
-        try {
-          const { data } = await refreshClient.post<{
-            access_token: string;
-            refresh_token: string;
-            user?: User;
-          }>(
-            '/auth/refresh',
-            { refresh_token },
-          );
+      if (!refresh_token) {
+        isRefreshing = false;
+        processQueue(error, null);
+        return Promise.reject(error);
+      }
 
-          const cookieOptions = {
-            expires: 7,
-            sameSite: 'lax' as const,
-          };
+      try {
+        const { data } = await refreshClient.post<{
+          access_token: string;
+          refresh_token: string;
+          user?: User;
+        }>('/auth/refresh', { refresh_token });
 
-          Cookies.set(config.tokenKey, data.access_token, cookieOptions);
-          Cookies.set('refresh_token', data.refresh_token, cookieOptions);
+        setAuthTokens(data.access_token, data.refresh_token);
 
-          if (data.user) {
-            Cookies.set('user', JSON.stringify(data.user), cookieOptions);
-            dispatchAuthUserUpdated(data.user);
-          }
-
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
-          }
-
-          processQueue(null, data.access_token);
-          return apiClient(originalRequest);
-        } catch (refreshError: any) {
-          processQueue(refreshError, null);
-          if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
-            Cookies.remove(config.tokenKey);
-            Cookies.remove('refresh_token');
-            Cookies.remove('user');
-            if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-              window.location.href = '/auth';
-            }
-          }
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
+        if (data.user) {
+          setAuthUserCookie(data.user);
+          dispatchAuthUserUpdated(data.user);
         }
-      }
 
-      isRefreshing = false;
-      processQueue(new Error('No refresh token available'), null);
-      Cookies.remove(config.tokenKey);
-      Cookies.remove('user');
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-        window.location.href = '/auth';
-      }
-      return Promise.reject(error);
-    } else if (error.response?.status === 401) {
-      // Session expired and refresh already failed or was skipped.
-      Cookies.remove(config.tokenKey);
-      Cookies.remove('refresh_token');
-      Cookies.remove('user');
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
-        window.location.href = '/auth';
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
+        }
+
+        processQueue(null, data.access_token);
+        return apiClient(originalRequest);
+      } catch (refreshError: unknown) {
+        processQueue(refreshError, null);
+        const status = (refreshError as { response?: { status?: number } })?.response?.status;
+        if (status === 401 || status === 403) {
+          clearAuthCookies();
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;
 
 export { getErrorMessage } from './get-error-message';
-

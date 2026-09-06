@@ -11,8 +11,8 @@ import PlanExpiredModal from '@/components/dashboard/plan-expired-modal'
 import PlanExpiringSoonBanner from '@/components/dashboard/plan-expiring-soon-banner'
 import PhoneVerificationModal from '@/components/dashboard/phone-verification-modal'
 import { useState, useEffect } from 'react'
-import Cookies from 'js-cookie'
 import { dispatchAuthUserUpdated } from '@/lib/auth-session'
+import { setAuthUserCookie } from '@/lib/auth-cookies'
 import { config } from '@/lib/config'
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
@@ -64,10 +64,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handlePhoneVerified = (updatedUser: Parameters<typeof dispatchAuthUserUpdated>[0]) => {
     dispatchAuthUserUpdated(updatedUser)
-    Cookies.set('user', JSON.stringify(updatedUser), {
-      expires: 7,
-      sameSite: 'lax',
-    })
+    setAuthUserCookie(updatedUser)
   }
 
   return (

@@ -1,14 +1,15 @@
-'use client'
-
-import { Loader2 } from 'lucide-react'
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
 import TestimonialCard from '@/components/testimonial-card'
-import { useTestimonials } from '@/lib/api/testimonials'
+import type { Testimonial } from '@/lib/api/testimonials'
 
-export default function TestimonialsContent() {
-  const { testimonials, loading } = useTestimonials()
+type TestimonialsContentProps = {
+  testimonials: Testimonial[]
+}
 
+export default function TestimonialsContent({
+  testimonials,
+}: TestimonialsContentProps) {
   return (
     <main className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -21,18 +22,17 @@ export default function TestimonialsContent() {
           <div className="text-center mb-10 md:mb-16 pt-2 md:pt-12">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 font_heading tracking-tight">
               Artist Testimonials <br />
-              <span className="animated-gradient">Why Indie Musicians Trust KratoLib</span>
+              <span className="animated-gradient">
+                Why Indie Musicians Trust KratoLib
+              </span>
             </h1>
             <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              See what artists and creators around the world are saying about their experience with KratoLib.
+              See what artists and creators around the world are saying about
+              their experience with KratoLib.
             </p>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-24">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-          ) : testimonials.length === 0 ? (
+          {testimonials.length === 0 ? (
             <div className="text-center py-24 text-muted-foreground">
               <p className="text-lg">No testimonials available yet.</p>
             </div>

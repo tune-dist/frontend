@@ -1,21 +1,10 @@
-'use client'
-
-import React from 'react'
-import ContentPageLayout from '@/components/content-page-layout'
-import { motion } from 'framer-motion'
+import MarketingPageShell from '@/components/marketing-page-shell'
 
 export default function TermsContent() {
-  const fadeIn = {
-    initial: { opacity: 0, y: 10 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.5 }
-  }
-
   return (
-    <ContentPageLayout
+    <MarketingPageShell
       title="Music Distribution Terms of Service - Artist Rights & Copyright Protection"
     >
-      <motion.div {...fadeIn}>
         <section className="prose prose-invert max-w-none prose-headings:font_heading prose-p:text-muted-foreground prose-li:text-muted-foreground pt-5 pb-32">
           <p className="text-base leading-relaxed mb-4">
             <b>Effective Date:</b> October 2025<br />
@@ -306,7 +295,6 @@ export default function TermsContent() {
             These Terms of Service are governed by the laws of India. © 2026 KratoLib. All rights reserved.
           </p>
         </section>
-      </motion.div>
-    </ContentPageLayout>
+    </MarketingPageShell>
   )
 }

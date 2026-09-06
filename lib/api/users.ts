@@ -95,6 +95,19 @@ export const updateUserProfile = async (data: UpdateProfileData): Promise<User> 
   return response.data;
 };
 
+export interface SaveReleaseMetadataPayload {
+  labelName: string;
+  copyright: string;
+  publisher: string;
+}
+
+export const saveReleaseMetadata = async (
+  data: SaveReleaseMetadataPayload,
+): Promise<User> => {
+  const response = await apiClient.patch<User>('/users/profile/release-metadata', data);
+  return response.data;
+};
+
 export interface PaginatedUsersResponse {
   users: User[];
   total: number;

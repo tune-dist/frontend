@@ -5,6 +5,8 @@ import { validateLocalWavFile } from '@/lib/upload/validate-local-wav-file'
 import { isPlanInactiveError } from '@/lib/plan-inactive'
 import { getErrorMessage } from '@/lib/get-error-message'
 import { getMinTrackDurationError } from './crbt-validation'
+import { getMaxPlanAudioDurationError } from '@/lib/upload/plan-audio-duration'
+import { useAuth } from '@/contexts/AuthContext'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
 
@@ -19,7 +21,7 @@ import { motion } from 'framer-motion'
 interface AudioFileStepProps {
     formData?: UploadFormData
     setFormData?: (data: UploadFormData) => void
-    /** In Process PDL sync cannot add/remove album tracks yet — only replace audio per track. */
+    /** In-process releases cannot add/remove album tracks yet — only replace audio per track. */
     lockTrackStructure?: boolean
 }
 
@@ -28,7 +30,9 @@ export default function AudioFileStep({
     setFormData: propSetFormData,
     lockTrackStructure = false,
 }: AudioFileStepProps) {
-    const { setValue, watch, getValues, formState: { errors } } = useFormContext<UploadFormData>()
+    const { setValue, watch, getValues, formState: { errors }, setError, clearErrors } = useFormContext<UploadFormData>()
+    const { user } = useAuth()
+    const planKey = user?.plan || 'free'
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
     const [isUploading, setIsUploading] = useState(false)
     const [activeFileId, setActiveFileId] = useState<string | null>(null)
@@ -41,6 +45,21 @@ export default function AudioFileStep({
         'Audio file'
     const audioFiles = watch('audioFiles') || []
     const tracks = watch('tracks') || []
+    const audioDurationError = watch('audioDurationError')
+
+    const rejectAudioDuration = (fileName: string, message: string) => {
+        setValue('audioDurationError', message, { shouldValidate: true })
+        setError('audioFile', { type: 'manual', message })
+        toast.error(`${fileName}: ${message}`)
+    }
+
+    const clearAudioDurationError = () => {
+        setValue('audioDurationError', '', { shouldValidate: true })
+        clearErrors('audioFile')
+    }
+
+    const getPlanDurationError = (durationSec?: number) =>
+        getMaxPlanAudioDurationError(planKey, durationSec)
 
     const formatAudioValidationError = (fileName: string, error: unknown) =>
         `${fileName}: ${getErrorMessage(
@@ -85,7 +104,13 @@ export default function AudioFileStep({
                     continue;
                 }
 
-                // Upload complete, update form
+                const planDurationError = getPlanDurationError(result.metaData?.duration);
+                if (planDurationError) {
+                    rejectAudioDuration(file.name, planDurationError);
+                    continue;
+                }
+
+                clearAudioDurationError();
                 if (format === 'single' || !format) {
                     const previousPath =
                         (audioFile as AudioFile | null)?.path ||
@@ -210,6 +235,7 @@ export default function AudioFileStep({
         setValue('audioDuplicateDetected', false);
         setValue('audioWarningMessage', '');
         setValue('audioConsent', false);
+        clearAudioDurationError();
     }
 
     const handleRemoveTrack = (index: number) => {
@@ -252,6 +278,14 @@ export default function AudioFileStep({
             toast.error(`${file.name}: ${durationError}`);
             return null;
         }
+
+        const planDurationError = getPlanDurationError(result.metaData?.duration);
+        if (planDurationError) {
+            rejectAudioDuration(file.name, planDurationError);
+            return null;
+        }
+
+        clearAudioDurationError();
 
         return {
             file,
@@ -406,6 +440,12 @@ export default function AudioFileStep({
                                 </div>
                             )}
                             {errors.audioFile && <p className="text-xs text-red-500 mt-2">{String(errors.audioFile.message)}</p>}
+                            {audioDurationError && (
+                                <div className="mt-3 p-3 rounded-lg border border-red-500/30 bg-red-500/5 flex items-start gap-2">
+                                    <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                                    <p className="text-sm text-red-400">{audioDurationError}</p>
+                                </div>
+                            )}
                         </>
                     ) : (
                         // Multi-track Mode (EP/Album)
@@ -471,7 +511,7 @@ export default function AudioFileStep({
                             {lockTrackStructure && (
                                 <div className="p-3 rounded-lg border border-blue-500/20 bg-blue-500/5 text-sm text-blue-300/90">
                                     In Process releases can replace each track&apos;s audio with <strong>Change File</strong>.
-                                    Adding or removing tracks is not synced to COSMOS yet.
+                                    Adding or removing tracks is not synced to the distribution catalog yet.
                                 </div>
                             )}
 
@@ -507,6 +547,13 @@ export default function AudioFileStep({
                                 </p>
                             </div>
                             )}
+                        </div>
+                    )}
+
+                    {format !== 'single' && audioDurationError && (
+                        <div className="mt-3 p-3 rounded-lg border border-red-500/30 bg-red-500/5 flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                            <p className="text-sm text-red-400">{audioDurationError}</p>
                         </div>
                     )}
                 </div>

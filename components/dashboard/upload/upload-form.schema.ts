@@ -185,6 +185,7 @@ export const uploadFormSchema = z.object({
     audioConsent: z.boolean().default(false),
     audioDuplicateDetected: z.boolean().default(false),
     audioWarningMessage: z.string().optional(),
+    audioDurationError: z.string().optional(),
     dolbyAtmos: z.string().optional(),
 
     // Multi-track support

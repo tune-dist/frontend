@@ -1,4 +1,7 @@
-import ContactContent from '@/components/contact-page-content'
+import { Suspense } from 'react'
+import Navbar from '@/components/navbar'
+import Footer from '@/components/footer'
+import Contact from '@/components/contact'
 import { createPageMetadata } from '@/lib/site-metadata'
 
 export const metadata = createPageMetadata(
@@ -7,5 +10,15 @@ export const metadata = createPageMetadata(
 )
 
 export default function ContactPage() {
-  return <ContactContent />
+  return (
+    <main className="min-h-screen bg-background flex flex-col pt-16">
+      <Navbar />
+      <div className="flex-grow">
+        <Suspense fallback={null}>
+          <Contact />
+        </Suspense>
+      </div>
+      <Footer />
+    </main>
+  )
 }

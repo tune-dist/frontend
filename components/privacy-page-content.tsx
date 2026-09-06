@@ -1,21 +1,10 @@
-'use client'
-
-import React from 'react'
-import ContentPageLayout from '@/components/content-page-layout'
-import { motion } from 'framer-motion'
+import MarketingPageShell from '@/components/marketing-page-shell'
 
 export default function PrivacyContent() {
-  const fadeIn = {
-    initial: { opacity: 0, y: 10 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.5 }
-  }
-
   return (
-    <ContentPageLayout
+    <MarketingPageShell
       title="Privacy Policy - Protecting Your Data & Artist Information | KratoLib"
     >
-      <motion.div {...fadeIn}>
         <section className="prose prose-invert max-w-none prose-headings:font_heading prose-p:text-muted-foreground prose-li:text-muted-foreground pt-5 pb-32">
           <p className="text-base leading-relaxed mb-4"><b>Effective Date:</b> April 2025<br />
             <b>Last Updated:</b> April 2025
@@ -209,7 +198,6 @@ export default function PrivacyContent() {
             This Privacy Policy is governed by the laws of India. Any disputes shall be subject to the jurisdiction of courts in Ahmedabad, Gujarat, India.
           </p>
         </section>
-      </motion.div>
-    </ContentPageLayout>
+    </MarketingPageShell>
   )
 }

@@ -47,7 +47,7 @@ import {
     rosterArtistName,
 } from '@/lib/integrations/artist-form-state.util'
 import ArtistPlatformPicker from '@/components/dashboard/upload/artist-platform-picker'
-import { getDefaultLabelName } from '@/lib/validation/label-name'
+import ReleaseMetadataBlock from '@/components/dashboard/upload/release-metadata-block'
 
 // Plan key for artist add-on checkout — price comes from profile.addonEligibility.
 const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
@@ -142,17 +142,7 @@ export default function BasicInfoStep({
 
     // Check if featured artists are allowed by plan fieldRules
     const areFeaturedArtistsAllowed = fieldRules.featuredArtists?.allow !== false
-    const isLabelNameAllowed = planKey !== 'free'
-    const defaultLabelName = getDefaultLabelName()
-    const labelNameValue = watch('labelName')
     const isExplicitAllowed = fieldRules.isExplicit?.allow !== false
-
-    // Free plan: keep label locked to the platform default (blocks paste/typing bypass).
-    useEffect(() => {
-        if (!isLabelNameAllowed && labelNameValue !== defaultLabelName) {
-            setValue('labelName', defaultLabelName, { shouldValidate: true })
-        }
-    }, [isLabelNameAllowed, labelNameValue, defaultLabelName, setValue])
 
     // Check if main artist name should be locked (Limit reached, including any purchased add-on slots)
     const isArtistLocked = !!planLimits && planLimits.artistLimit < 9999 && usedArtists.length >= effectiveArtistLimit;
@@ -989,52 +979,8 @@ export default function BasicInfoStep({
                     )}
                     {errors.releaseDate && <p className="text-xs text-red-500 mt-1">{errors.releaseDate.message}</p>}
                 </div>
-                {/* Label Name Field - editable on paid plans; locked to default on free */}
-                <div className="space-y-3 pt-6 border-t border-border">
-                    <Label htmlFor="labelName" className="text-lg font-semibold">
-                        Label Name <span className="text-red-500">*</span>
-                    </Label>
-                    <Controller
-                        name="labelName"
-                        control={control}
-                        render={({ field }) => (
-                            <Input
-                                id="labelName"
-                                placeholder="Enter Label Name"
-                                value={isLabelNameAllowed ? (field.value ?? '') : defaultLabelName}
-                                onChange={(event) => {
-                                    if (!isLabelNameAllowed) {
-                                        field.onChange(defaultLabelName)
-                                        return
-                                    }
-                                    field.onChange(event.target.value)
-                                }}
-                                onBlur={field.onBlur}
-                                onPaste={(event) => {
-                                    if (!isLabelNameAllowed) {
-                                        event.preventDefault()
-                                    }
-                                }}
-                                onKeyDown={(event) => {
-                                    if (!isLabelNameAllowed) {
-                                        event.preventDefault()
-                                    }
-                                }}
-                                readOnly={!isLabelNameAllowed}
-                                className={errors.labelName ? 'border-red-500' : ''}
-                            />
-                        )}
-                    />
-                    {!isLabelNameAllowed && (
-                        <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
-                            <Info className="h-3 w-3 mt-0.5" />
-                            <span>Free plan releases use the default label ({defaultLabelName}). Upgrade to set a custom label name.</span>
-                        </div>
-                    )}
-                    {errors.labelName && (
-                        <p className="text-xs text-red-500 mt-1">{errors.labelName.message}</p>
-                    )}
-                </div>
+
+                <ReleaseMetadataBlock />
 
                 {/* Add-on dialog: shown on the second-to-last plan, lets the user buy 1 extra artist slot */}
                 <Dialog open={showAddonDialog} onOpenChange={(open) => !isPurchasingAddon && setShowAddonDialog(open)}>
