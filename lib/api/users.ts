@@ -59,22 +59,6 @@ export interface ProfileWithPlan extends User {
   artistUsage?: ArtistUsage;
 }
 
-export interface UsageStats {
-  releases: {
-    used: number;
-    total: number;
-    limit: number;
-    canUpload: boolean;
-  };
-  storage: {
-    used: number;
-    usedFormatted: string;
-  };
-  plan: string;
-  revenueEarned?: number;
-  totalStreams?: number;
-}
-
 export interface UpdateProfileData {
   fullName?: string;
   phoneNumber?: string;
@@ -97,12 +81,6 @@ export interface UpdateProfileData {
   avatar?: string;
 }
 
-// Get user profile (raw user document — without enriched plan mapping)
-export const getUserProfile = async (): Promise<User> => {
-  const response = await apiClient.get<User>('/users/profile');
-  return response.data;
-};
-
 // Get user profile enriched with active plan mapping, addons and effective limits.
 // Backed by GET /users/profile -> getProfileWithPlan(). The enriched fields are
 // the source of truth for the billing UI; user.plan can be stale on legacy rows.
@@ -117,9 +95,16 @@ export const updateUserProfile = async (data: UpdateProfileData): Promise<User> 
   return response.data;
 };
 
-// Get usage statistics
-export const getUsageStats = async (): Promise<UsageStats> => {
-  const response = await apiClient.get<UsageStats>('/users/usage');
+export interface SaveReleaseMetadataPayload {
+  labelName: string;
+  copyright: string;
+  publisher: string;
+}
+
+export const saveReleaseMetadata = async (
+  data: SaveReleaseMetadataPayload,
+): Promise<User> => {
+  const response = await apiClient.patch<User>('/users/profile/release-metadata', data);
   return response.data;
 };
 
@@ -130,7 +115,6 @@ export interface PaginatedUsersResponse {
   limit: number;
 }
 
-// Get list of users with filters
 export const getUsers = async (params: {
   page?: number;
   limit?: number;
@@ -202,15 +186,16 @@ export const updateUserPermissions = async (userId: string, permissions: string[
   return response.data;
 };
 
-// Send OTP to phone number
-export const sendPhoneOTP = async (phoneNumber: string): Promise<{ success: boolean; message: string; otp?: string }> => {
-  const response = await apiClient.post<{ success: boolean; message: string; otp?: string }>('/users/phone/send-otp', { phoneNumber });
-  return response.data;
-};
+export interface CreateUserData {
+  fullName: string;
+  email: string;
+  password: string;
+  role?: string;
+  plan?: string;
+}
 
-// Verify phone OTP
-export const verifyPhoneOTP = async (otp: string): Promise<{ success: boolean; message: string }> => {
-  const response = await apiClient.post<{ success: boolean; message: string }>('/users/phone/verify-otp', { otp });
+export const createUser = async (data: CreateUserData): Promise<User> => {
+  const response = await apiClient.post<User>('/users', data);
   return response.data;
 };
 
@@ -223,11 +208,5 @@ export const verifyMsg91PhoneToken = async (
     accessToken,
     phoneNumber,
   });
-  return response.data;
-};
-
-// Update address
-export const updateAddress = async (address: string): Promise<User> => {
-  const response = await apiClient.patch<User>('/users/profile/address', { address });
   return response.data;
 };

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
 import { S3Image } from '@/components/ui/s3-image'
-import { formatPlanDisplayName } from '@/lib/utils'
+import { formatPlanDisplayName } from '@/lib/plans-display'
 
 export default function TopNavbar() {
   const { user, logout } = useAuth()

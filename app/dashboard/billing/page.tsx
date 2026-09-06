@@ -2,16 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import PageLoading from "@/components/dashboard/page-loading";
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-    CreditCard,
-    Calendar,
     CheckCircle2,
-    Download,
-    Zap,
     TrendingUp,
     Loader2,
     Mail,
@@ -19,6 +16,15 @@ import {
     Layers,
     Disc3,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { getAllPlans, Plan, currencySymbol, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans';
+import { isEnterprisePlan, resolvePlanPriceDisplay, resolvePlanPeriodLabel } from '@/lib/plans-display';
+import { PlanGstNote } from '@/components/plans/plan-gst-note';
+import { BillingTypeToggle } from '@/components/plans/billing-type-toggle';
+import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users';
+import { useRazorpay } from '@/hooks/useRazorpay';
+import toast from 'react-hot-toast';
+import { getErrorMessage } from '@/lib/get-error-message';
 
 function formatLimitValue(value?: number) {
     if (value === -1) return 'Unlimited';
@@ -36,18 +42,8 @@ function formatPlanFormatLabel(format: string) {
     };
     return labels[format.toLowerCase()] || format.charAt(0).toUpperCase() + format.slice(1);
 }
-import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
-import { getAllPlans, Plan, currencySymbol, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans';
-import { isEnterprisePlan, resolvePlanPriceDisplay, resolvePlanPeriodLabel } from '@/lib/plans-display';
-import { PlanGstNote } from '@/components/plans/plan-gst-note';
-import { BillingTypeToggle } from '@/components/plans/billing-type-toggle';
-import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users';
-import { useRazorpay } from '@/hooks/useRazorpay';
-import toast from 'react-hot-toast';
-import { getErrorMessage } from '@/lib/get-error-message';
 
-export default function BillingPage() {
+export default function BillingPageContent() {
     const { user, refreshUser, loading: authLoading, isAuthenticated } = useAuth();
     const router = useRouter();
     const { initiatePayment, isLoading: paymentLoading } = useRazorpay();
@@ -311,7 +307,6 @@ export default function BillingPage() {
                             className="lg:col-span-5 flex lg:flex-col gap-3 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto lg:max-h-[600px] pb-4 lg:pb-0 pr-0 lg:pr-2 custom-scrollbar flex-nowrap scrollbar-thin"
                         >
                             {filteredPlans.map((plan) => {
-                                const isCurrent = plan.key === currentPlanKey;
                                 const isLocked = isCurrentPlanLocked(plan.key);
                                 const isRenewable = isCurrentPlanRenewable(plan.key);
                                 const isContactSales = isEnterprisePlan(plan);
@@ -389,7 +384,6 @@ export default function BillingPage() {
                         <div className="lg:col-span-7 lg:sticky lg:top-24">
                             {selectedPlan ? (() => {
                                 const plan = selectedPlan;
-                                const isCurrent = plan.key === currentPlanKey;
                                 const isLocked = isCurrentPlanLocked(plan.key);
                                 const isRenewable = isCurrentPlanRenewable(plan.key);
                                 const isContactSales = isEnterprisePlan(plan);

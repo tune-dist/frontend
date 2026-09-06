@@ -30,40 +30,24 @@ import {
 import {
     cancelMainSubscription,
     getPaymentHistory,
+    getActiveSubscriptions,
     PaymentHistoryItem,
     CancelSubscriptionResponse,
+    ActiveSubscriptionItem,
 } from '@/lib/api/payments'
 import { getAllPlans, Plan, getPlanTotalWithGst, findPlanByKey, resolvePlanTitle } from '@/lib/api/plans'
 import { PlanGstNote } from '@/components/plans/plan-gst-note'
 import { getUserProfileWithPlan, ProfileWithPlan } from '@/lib/api/users'
-import apiClient from '@/lib/api-client'
 import { useRazorpay } from '@/hooks/useRazorpay'
 import { useAuth } from '@/contexts/AuthContext'
+import { ARTIST_ADDON_PLAN_KEY } from '@/lib/plan-keys'
 import UpgradePlanModal from '@/components/dashboard/upgrade-plan-modal'
 import toast from 'react-hot-toast'
-
-// Inlined API calls — payments.ts is mid-merge and does not currently export these.
-// Kept here to keep this resolution scoped to page.tsx; can be promoted to payments.ts
-// once that file's merge is resolved.
-async function fetchActiveSubscriptions(): Promise<any[]> {
-    const response = await apiClient.get<any[]>('/payments/active-subscriptions')
-    return response.data
-}
-
-async function cancelSubscriptionById(
-    subscriptionId?: string,
-): Promise<CancelSubscriptionResponse> {
-    const response = await apiClient.post<CancelSubscriptionResponse>(
-        '/payments/cancel-subscription',
-        { subscriptionId },
-    )
-    return response.data
-}
 
 function applyCancelToLocalState(
     result: CancelSubscriptionResponse,
     setProfile: Dispatch<SetStateAction<ProfileWithPlan | null>>,
-    setActiveSubscriptions: Dispatch<SetStateAction<any[]>>,
+    setActiveSubscriptions: Dispatch<SetStateAction<ActiveSubscriptionItem[]>>,
     cancellingType: 'plan' | 'addon',
     selectedSubId?: string,
 ) {
@@ -93,7 +77,6 @@ function applyCancelToLocalState(
     )
 }
 
-const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
 const ENTERPRISE_CONTACT_EMAIL = 'sales@iguru.com' // TODO: replace with the real sales inbox
 
 export default function SubscriptionPage() {
@@ -101,7 +84,7 @@ export default function SubscriptionPage() {
     const [profile, setProfile] = useState<ProfileWithPlan | null>(null)
     const [payments, setPayments] = useState<PaymentHistoryItem[]>([])
     const [allPlans, setAllPlans] = useState<Plan[]>([])
-    const [activeSubscriptions, setActiveSubscriptions] = useState<any[]>([])
+    const [activeSubscriptions, setActiveSubscriptions] = useState<ActiveSubscriptionItem[]>([])
     const [loading, setLoading] = useState(true)
     const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const [showCancelDialog, setShowCancelDialog] = useState(false)
@@ -124,12 +107,11 @@ export default function SubscriptionPage() {
         setProfile(nextProfile)
         setPayments(history)
         setAllPlans(plans)
-        return { profile: nextProfile, history, plans }
     }, [])
 
     const reloadActiveSubscriptions = useCallback(async () => {
         try {
-            const subs = await fetchActiveSubscriptions()
+            const subs = await getActiveSubscriptions()
             setActiveSubscriptions(subs)
             return subs
         } catch (err) {
@@ -204,7 +186,7 @@ export default function SubscriptionPage() {
         try {
             const result =
                 cancellingType === 'addon'
-                    ? await cancelSubscriptionById(selectedSubId)
+                    ? await cancelMainSubscription(selectedSubId)
                     : await cancelMainSubscription()
             if (result?.success) {
                 applyCancelToLocalState(

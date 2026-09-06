@@ -40,7 +40,7 @@ export default function PhoneVerificationModal({
   const [reqId, setReqId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [timer, setTimer] = useState(0)
-  const [canResend, setCanResend] = useState(false)
+  const canResend = step === 'otp' && timer <= 0
 
   useEffect(() => {
     if (!isOpen) {
@@ -50,15 +50,11 @@ export default function PhoneVerificationModal({
       setReqId(null)
       setLoading(false)
       setTimer(0)
-      setCanResend(false)
     }
   }, [isOpen])
 
   useEffect(() => {
     if (step !== 'otp' || timer <= 0) {
-      if (timer === 0 && step === 'otp') {
-        setCanResend(true)
-      }
       return
     }
 
@@ -100,14 +96,12 @@ export default function PhoneVerificationModal({
     window.sendOtp(
       identifier,
       (data) => {
-        console.debug('MSG91 sendOtp success:', data)
         const nextReqId = extractMsg91ReqId(data)
 
         setReqId(nextReqId)
         setStep('otp')
         setOtp('')
         setTimer(120)
-        setCanResend(false)
         setLoading(false)
         toast.success('OTP sent to your mobile number')
       },
@@ -134,7 +128,6 @@ export default function PhoneVerificationModal({
     window.verifyOtp(
       otp.trim(),
       async (data) => {
-        console.debug('MSG91 verifyOtp success:', data)
         try {
           const accessToken = extractMsg91AccessToken(data)
           if (!accessToken) {
@@ -172,7 +165,6 @@ export default function PhoneVerificationModal({
       null,
       () => {
         setTimer(120)
-        setCanResend(false)
         setLoading(false)
         toast.success('OTP resent successfully')
       },
@@ -185,13 +177,11 @@ export default function PhoneVerificationModal({
     )
   }
 
-  if (!active) {
+  if (!active || !isOpen) {
     return null
   }
 
   return (
-    <>
-      {isOpen && (
       <AnimatePresence>
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
           <motion.div
@@ -374,7 +364,5 @@ export default function PhoneVerificationModal({
           </motion.div>
         </div>
       </AnimatePresence>
-      )}
-    </>
   )
 }

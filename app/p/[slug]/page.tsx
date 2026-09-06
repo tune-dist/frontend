@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Music, Play } from "lucide-react";
 import { getPublicPromotionBySlug, getPromoTemplates } from "@/lib/api/promotions";
 import { PromotionShareButtons } from "@/components/promotion/promotion-share-buttons";
@@ -10,7 +10,7 @@ import { getPromotionShareText, getPromotionUrl } from "@/lib/promotion-share";
 import { PLATFORM_BADGES } from "@/config/platform-badges";
 import { PROMO_TEMPLATES } from "@/config/promo-templates";
 import { getDisplayUrl } from "@/lib/api/s3";
-import Preloader from "@/components/Preloader";
+import PageLoader from "@/components/page-loader";
 
 export default function PublicPromotionPage() {
     const params = useParams();
@@ -36,9 +36,6 @@ export default function PublicPromotionPage() {
                     getPromoTemplates()
                 ]);
 
-                console.log('Fetched Promotion Data:', promo);
-                console.log('Fetched Templates:', fetchedTemplates);
-
                 setData(promo);
                 setTemplates(fetchedTemplates);
 
@@ -58,12 +55,9 @@ export default function PublicPromotionPage() {
                 const currentTemplates = fetchedTemplates.length > 0 ? fetchedTemplates : PROMO_TEMPLATES;
                 const template = currentTemplates.find((t: any) => t.id === templateId) || currentTemplates[0];
 
-                console.log('Active Template from DB:', template?.id);
-
                 if (template?.background?.image) {
                     try {
                         const url = await getDisplayUrl(template.background.image);
-                        console.log('Resolved Template BG from DB path:', url);
                         setBgUrl(url);
                     } catch (e) {
                         console.error('Failed to resolve template bg:', e);
@@ -102,7 +96,7 @@ export default function PublicPromotionPage() {
     }, [data, templates]); // Depend on templates for correct initial calculation
 
     if (loading) {
-        return <Preloader />;
+        return <PageLoader />;
     }
 
     if (error || !data) {

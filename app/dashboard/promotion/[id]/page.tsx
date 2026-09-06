@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Resizable } from "re-resizable";
 import toast from "react-hot-toast";
 import {
     Loader2,
@@ -19,9 +18,6 @@ import {
     Smartphone,
     Check,
     Eye,
-    Instagram,
-    Music,
-    Share2,
     ExternalLink,
     Badge as BadgeIcon
 } from "lucide-react";
@@ -38,9 +34,7 @@ import { toPng } from 'html-to-image';
 import download from 'downloadjs';
 import { getDisplayUrl } from "@/lib/api/s3";
 import { PLATFORM_BADGES } from "@/config/platform-badges";
-import { PromoTemplate, PromoElement } from "@/config/promo-templates";
-
-
+import { PromoTemplate } from "@/config/promo-templates";
 
 const PLATFORMS = [
     { id: 'spotify', name: 'Spotify', color: '#1DB954' },
@@ -55,6 +49,7 @@ const PLATFORMS = [
 export default function PromotionEditorPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const releaseId = params.id as string;
 
     const [release, setRelease] = useState<Release | null>(null);
@@ -137,7 +132,6 @@ export default function PromotionEditorPage() {
                             setElementOverrides(promo.customization.elementOverrides);
                         }
                         if (promo.customization?.backgroundOverride) {
-                            console.log('innner')
                             setBackgroundOverride(promo.customization.backgroundOverride);
                         }
                     } else if (formatParam) {
@@ -193,8 +187,6 @@ export default function PromotionEditorPage() {
         fetchData();
     }, [releaseId]);
 
-    // Handle format selection from URL
-    const searchParams = useSearchParams();
     useEffect(() => {
         const format = searchParams.get('format');
         if (format && (format === 'story' || format === 'post')) {
@@ -401,13 +393,7 @@ export default function PromotionEditorPage() {
                                                         key={temp.id}
                                                         onClick={() => {
                                                             setActiveTemplate(temp);
-                                                            // handleResetLayout(); // Optional: Keep overrides or reset? Usually reset on template switch is safer for layout, but keeping text is nice.
-                                                            // Let's keep specific reset call or user deciding.
-                                                            // Usually switching template resets positions but keeps text.
-                                                            // Current logic: handleResetLayout() resets everything including text overrides.
-                                                            // Maybe better to just reset positions?
                                                             setElementOverrides(prev => {
-                                                                // preserve text/badges, reset x/y/scale
                                                                 const newOverrides: any = {};
                                                                 Object.keys(prev).forEach(key => {
                                                                     if (prev[key].text) newOverrides[key] = { text: prev[key].text };
@@ -503,7 +489,7 @@ export default function PromotionEditorPage() {
                                                     variant={backgroundOverride.imageUrl === release?.coverArt?.url ? "default" : "outline"}
                                                     size="sm"
                                                     className="w-full text-[10px]"
-                                                    onClick={() => { console.log(release?.coverArt?.url), setBackgroundOverride(prev => ({ ...prev, imageUrl: release?.coverArt?.url })) }}
+                                                    onClick={() => setBackgroundOverride(prev => ({ ...prev, imageUrl: release?.coverArt?.url }))}
                                                 >
                                                     Release Cover
                                                 </Button>

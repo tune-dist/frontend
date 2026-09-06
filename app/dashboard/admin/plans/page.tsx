@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,20 +10,10 @@ import {
     Plus,
     Eye,
     CheckCircle2,
-    AlertCircle,
     BarChart3,
-    Users,
     Save,
     Trash2,
-    X,
-    CreditCard,
     Zap,
-    Shield,
-    Layers,
-    HelpCircle,
-    Globe,
-    Upload,
-    PieChart,
 } from 'lucide-react';
 import { Plan, adminGetAllPlans, adminUpdatePlan, adminCreatePlan, adminDeletePlan, adminSyncRazorpayPlan, derivePlanKey, BillingPeriod, currencySymbol, derivePeriodLabel, calculateTotalWithGst, getGstPercent, isGstIncluded, getPlanTotalWithGst, formatPlanUserCount, formatPlanGrowthPercent } from '@/lib/api/plans';
 import { resolveArtistKeepPercent } from '@/lib/plans-display';
@@ -32,7 +21,7 @@ import toast from 'react-hot-toast';
 import { getErrorMessage } from '@/lib/get-error-message';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     Dialog,
     DialogContent,
@@ -67,11 +56,16 @@ const emptyNewPlan: Partial<Plan> = {
 
 const BILLING_PERIODS: BillingPeriod[] = ['daily', 'weekly', 'monthly', 'yearly'];
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'] as const;
+const PERIOD_FROM_BILLING: Record<string, string> = {
+    daily: '/day',
+    weekly: '/week',
+    monthly: '/month',
+    yearly: '/year',
+};
 
-export default function PlanManagementPage() {
+export default function PlansPageContent() {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [editForm, setEditForm] = useState<Partial<Plan>>({});
     const [activeTab, setActiveTab] = useState('general');
@@ -155,23 +149,12 @@ export default function PlanManagementPage() {
         }
     };
 
-    const getCurrencySymbol = (curr: string) => {
-        switch (curr) {
-            case 'USD': return '$';
-            case 'EUR': return '€';
-            case 'GBP': return '£';
-            case 'INR': return '₹';
-            default: return '₹';
-        }
-    };
-
     useEffect(() => {
         fetchPlans();
     }, []);
 
     const fetchPlans = async (): Promise<Plan[]> => {
         try {
-            setIsLoading(true);
             const data = await adminGetAllPlans();
             setPlans(data);
             if (data.length > 0 && !selectedPlan) {
@@ -181,8 +164,6 @@ export default function PlanManagementPage() {
         } catch (error) {
             toast.error(getErrorMessage(error, 'Failed to load plans'));
             return [];
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -232,13 +213,7 @@ export default function PlanManagementPage() {
         // must NOT store "/year". Admin can still override these from the edit panel.
         const priceValue = newPlan.pricePerYear ?? 0;
         const priceDisplay = (newPlan.priceDisplay || '').trim() ||
-            `${getCurrencySymbol(currency)}${priceValue}`;
-        const PERIOD_FROM_BILLING: Record<string, string> = {
-            daily: '/day',
-            weekly: '/week',
-            monthly: '/month',
-            yearly: '/year',
-        };
+            `${currencySymbol(currency)}${priceValue}`;
         const periodFallback = PERIOD_FROM_BILLING[newPlan.billingPeriod ?? 'yearly'] ?? '/year';
         const period = (newPlan.period || '').trim() || periodFallback;
 
@@ -302,29 +277,20 @@ export default function PlanManagementPage() {
         const priceValue = planUpdates.pricePerYear ?? 0;
         const displayRaw = (planUpdates.priceDisplay || '').trim();
         if (priceValue > 0 && displayRaw.toLowerCase() === 'custom') {
-            planUpdates.priceDisplay = `${getCurrencySymbol(planUpdates.currency || 'INR')}${priceValue.toLocaleString('en-IN')}`;
+            planUpdates.priceDisplay = `${currencySymbol(planUpdates.currency || 'INR')}${priceValue.toLocaleString('en-IN')}`;
         }
         if (priceValue > 0 && (!(planUpdates.period || '').trim() || (planUpdates.period || '').trim() === 'pricing')) {
-            const PERIOD_FROM_BILLING: Record<string, string> = {
-                daily: '/day',
-                weekly: '/week',
-                monthly: '/month',
-                yearly: '/year',
-            };
             planUpdates.period = PERIOD_FROM_BILLING[planUpdates.billingPeriod ?? 'yearly'] ?? '/year';
         }
 
         try {
             setIsSaving(true);
-            console.log('Sending update:', planUpdates);
             await adminUpdatePlan(selectedPlan.key, planUpdates);
             toast.success('Plan updated successfully');
             const refreshed = await fetchPlans();
             const updated = refreshed.find((p) => p.key === selectedPlan.key) ?? selectedPlan;
             await promptRazorpaySync(updated, { billingChanged });
         } catch (error: any) {
-            console.error('Update error:', error);
-            console.error('Error response:', error.response?.data);
             toast.error(getErrorMessage(error, 'Failed to update plan'));
         } finally {
             setIsSaving(false);
@@ -545,7 +511,7 @@ export default function PlanManagementPage() {
                                         <div className="space-y-2">
                                             <Label className="text-muted-foreground font-semibold">Monthly Price</Label>
                                             <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">{getCurrencySymbol(currency)}</span>
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol(currency)}</span>
                                                 <Input
                                                     type="number"
                                                     value={editForm.pricePerYear ? (editForm.pricePerYear / 12).toFixed(2) : '0'}
@@ -557,7 +523,7 @@ export default function PlanManagementPage() {
                                         <div className="space-y-2">
                                             <Label className="text-muted-foreground font-semibold">Annual Price (Discounted)</Label>
                                             <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">{getCurrencySymbol(currency)}</span>
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol(currency)}</span>
                                                 <Input
                                                     type="number"
                                                     value={editForm.pricePerYear || 0}
@@ -589,7 +555,7 @@ export default function PlanManagementPage() {
                                             </select>
                                             {(editForm.pricePerYear ?? 0) > 0 && (editForm.gstPercent ?? 0) > 0 && (
                                                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                                                    Checkout total: {getCurrencySymbol(currency)}
+                                                    Checkout total: {currencySymbol(currency)}
                                                     {calculateTotalWithGst(
                                                         editForm.pricePerYear ?? 0,
                                                         getGstPercent(editForm),
@@ -859,7 +825,7 @@ export default function PlanManagementPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Annual Price ({getCurrencySymbol(currency)})</Label>
+                                <Label>Annual Price ({currencySymbol(currency)})</Label>
                                 <Input
                                     type="number"
                                     min={0}
@@ -905,7 +871,7 @@ export default function PlanManagementPage() {
                                 </select>
                                 {(newPlan.pricePerYear ?? 0) > 0 && (newPlan.gstPercent ?? 0) > 0 && (
                                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                                        Customer pays: {getCurrencySymbol(newPlan.currency || 'INR')}
+                                        Customer pays: {currencySymbol(newPlan.currency || 'INR')}
                                         {calculateTotalWithGst(
                                             newPlan.pricePerYear ?? 0,
                                             getGstPercent(newPlan),

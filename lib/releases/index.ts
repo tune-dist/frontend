@@ -1,4 +1,4 @@
-export * from './types';
+export * from './release.types';
 export {
   isV2ReleaseListItem,
   toReleaseDetailResponse,

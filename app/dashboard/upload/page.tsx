@@ -20,16 +20,15 @@ import {
 } from "lucide-react";
 
 // React Hook Form & Zod
-import { useForm, FormProvider, useFormContext, Controller, type FieldErrors } from "react-hook-form";
+import { useForm, FormProvider, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import TrackEditModal from "@/components/dashboard/upload/track-edit-modal";
 import {
   UploadFormData,
   uploadFormSchema,
-  Songwriter,
   MandatoryChecks,
   Track,
-} from "@/components/dashboard/upload/types";
+} from "@/components/dashboard/upload/upload-form.schema";
 import { getDefaultLabelName } from "@/lib/validation/label-name";
 
 // Child Components
@@ -129,7 +128,6 @@ export default function UploadPage() {
   const [showCancelEditDialog, setShowCancelEditDialog] = useState(false);
   const [releaseDateAutoCorrected, setReleaseDateAutoCorrected] = useState(false);
   const [editReleaseStatus, setEditReleaseStatus] = useState<string | null>(null);
-  const isHydratingRef = useRef(false);
   const editBaselineRef = useRef<ReleaseWriteSnapshot | null>(null);
 
   useEffect(() => {
@@ -254,7 +252,6 @@ export default function UploadPage() {
         }
 
         editBaselineRef.current = releaseToWriteSnapshot(release as unknown as Record<string, unknown>);
-        isHydratingRef.current = true;
         form.reset({
           ...formValues,
           releaseDate,
@@ -315,7 +312,6 @@ export default function UploadPage() {
           }
         }
 
-        isHydratingRef.current = false;
       } catch (error) {
         if (!cancelled) {
           toast.error(getErrorMessage(error, "Failed to load release for editing"));
@@ -369,9 +365,9 @@ export default function UploadPage() {
 
   // Fetch used artists and field rules on mount
   useEffect(() => {
-    if (user) {
-      // Fetch artists
-      getArtistUsage()
+    if (!user) return;
+
+    getArtistUsage()
         .then((data) =>
           setUsedArtists(
             (data.artists || []).filter((artist) => {
@@ -388,14 +384,30 @@ export default function UploadPage() {
       getPlanFieldRules(planKey)
         .then((rules) => {
           setFieldRules(rules);
+          if (isEditMode) return;
+
           if (planKey === "free") {
             form.setValue("labelName", getDefaultLabelName(), { shouldValidate: true });
+            form.setValue("copyright", getDefaultLabelName(), { shouldValidate: true });
+            form.setValue("producers", [getDefaultLabelName()], { shouldValidate: true });
+          } else if (user.savedLabelName) {
+            form.setValue("labelName", user.savedLabelName, { shouldValidate: true });
+            form.setValue("copyright", user.savedCopyright || user.savedLabelName, {
+              shouldValidate: true,
+            });
+            form.setValue(
+              "producers",
+              [user.savedPublisher || user.savedLabelName],
+              { shouldValidate: true },
+            );
+          } else {
+            form.setValue("labelName", "", { shouldValidate: false });
+            form.setValue("copyright", "", { shouldValidate: false });
+            form.setValue("producers", [""], { shouldValidate: false });
           }
         })
         .catch((err) => console.error("Failed to fetch field rules", err));
-
-    }
-  }, [user]);
+  }, [user, form, isEditMode]);
 
   // Watch for bridging to old components
   const formData = form.watch();
@@ -457,7 +469,7 @@ export default function UploadPage() {
       "featuringArtist",
       "artists",
     ];
-    const step2 = ["audioFile", "audioFiles", "audioConsent"];
+    const step2 = ["audioFile", "audioFiles", "audioConsent", "audioDurationError"];
     const step3 = [
       "primaryGenre",
       "secondaryGenre",
@@ -527,6 +539,16 @@ export default function UploadPage() {
             form.setValue("labelName", getDefaultLabelName(), { shouldValidate: true });
           }
 
+          const isPaidPlan = planKey !== "free";
+          if (isPaidPlan && !user?.releaseMetadataLocked) {
+            toast.error("Save your Label, C-Line, and P-Line before continuing.");
+            document
+              .getElementById("release-metadata-block")
+              ?.scrollIntoView({ behavior: "smooth", block: "center" });
+            isValid = false;
+            break;
+          }
+
           isValid = await form.trigger(fieldsToValidate as any);
 
           // Manually check featuredArtist if required by plan
@@ -593,6 +615,15 @@ export default function UploadPage() {
           break;
         }
         case 2: // Audio
+          if (formData.audioDurationError?.trim()) {
+            form.setError("audioFile", {
+              type: "manual",
+              message: formData.audioDurationError,
+            });
+            toast.error(formData.audioDurationError);
+            isValid = false;
+            break;
+          }
           if (formData.format === "single") {
             // For single, we need audioFile.
             // Note: 'audioFile' in zod is 'any'. We manually check if it's null.
@@ -1486,40 +1517,7 @@ export default function UploadPage() {
                 {currentStep === 3 && (
                   <Card className="mt-4 border-border/50 bg-card/50 backdrop-blur-sm">
                     <CardContent className="pt-3">
-                      {/* Copyright - always show if allowed */}
-                      {fieldRules.copyright?.allow !== false && (
-                        <div className="space-y-1">
-                          <Label htmlFor="copyright">
-                            C-Line ©{fieldRules.copyright?.required && " *"}
-                          </Label>
-                          <Controller
-                            name="copyright"
-                            control={form.control}
-                            render={({ field }) => (
-                              <Input
-                                id="copyright"
-                                placeholder="© Your label name"
-                                readOnly={user?.plan === "free"}
-                                {...field}
-                                value={field.value ?? ""}
-                              />
-                            )}
-                          />
-                          {user?.plan === "free" && (
-                            <p className="text-xs text-amber-600 mt-1">
-                              Purchase a paid plan to customize Copyright.
-                            </p>
-                          )}
-                          {errors.copyright && (
-                            <p className="text-xs text-red-500 mt-1">
-                              {errors.copyright.message}
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Recording Year - between C-Line and P-Line */}
-                      <div className="space-y-1 mt-4">
+                      <div className="space-y-1">
                         <Label htmlFor="recordingYear">
                           Recording Year <span className="text-red-500 ml-1">*</span>
                         </Label>
@@ -1538,40 +1536,6 @@ export default function UploadPage() {
                           </p>
                         )}
                       </div>
-
-                      {/* Producers - always show if allowed */}
-                      {fieldRules.producers?.allow !== false && (
-                        <div className="space-y-2 mt-4">
-                          <Label htmlFor="producers">
-                            P-Line ℗{fieldRules.producers?.required && " *"}
-                          </Label>
-                          <Controller
-                            name="producers.0"
-                            control={form.control}
-                            render={({ field }) => (
-                              <Input
-                                id="producers"
-                                placeholder="℗ Your label Name"
-                                readOnly={user?.plan === "free"}
-                                {...field}
-                                value={field.value ?? ""}
-                              />
-                            )}
-                          />
-                          {user?.plan === "free" && (
-                            <p className="text-xs text-amber-600 mt-1">
-                              Purchase a paid plan to customize Producers.
-                            </p>
-                          )}
-                          {errors.producers && (
-                            <p className="text-xs text-red-500 mt-1">
-                              {errors.producers.message ||
-                                (Array.isArray(errors.producers) &&
-                                  errors.producers[0]?.message)}
-                            </p>
-                          )}
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -1609,7 +1573,7 @@ export default function UploadPage() {
 
                   <div className="flex gap-2">
                     {currentStep < 5 ? (
-                      <Button type="submit" disabled={isProcessing || isSubmitting} className="rounded-xl px-8 animated-gradient-bg text-white">
+                      <Button type="submit" disabled={isProcessing || isSubmitting || (currentStep === 2 && !!formData.audioDurationError?.trim())} className="rounded-xl px-8 animated-gradient-bg text-white">
                         {isProcessing ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />

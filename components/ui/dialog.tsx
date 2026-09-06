@@ -3,7 +3,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/class-names";
 
 // Simple Dialog context
 const DialogContext = React.createContext<{

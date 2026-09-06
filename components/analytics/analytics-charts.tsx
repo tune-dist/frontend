@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,7 +13,7 @@ import {
   ChartOptions,
 } from "chart.js";
 import { Bar, Doughnut } from "react-chartjs-2";
-import { Download, Loader2, Search } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ import {
 } from "@/lib/api/analytics";
 import { ANALYTICS_PLATFORMS } from "@/lib/platform-logos";
 import { PlatformFilterButton } from "@/components/analytics/platform-icon";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/class-names";
 
 ChartJS.register(
   CategoryScale,
