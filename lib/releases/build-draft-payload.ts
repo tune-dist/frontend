@@ -20,6 +20,7 @@ import type {
 import { buildProfilesFromFlatFields, toPlatformRef } from './platform-ref.util';
 import { getDefaultLabelName } from '@/lib/validation/label-name';
 import { toTitleCase } from '@/lib/validation/title-case';
+import type { TrackMainArtistFormValue } from './track-main-artists.util';
 import {
   createUploadSession,
   recordUploadedKey,
@@ -504,6 +505,28 @@ export async function buildDraftPayload(
       title: toTitleCase(trackTitle),
       version: track.version || null,
       artistName: track.artistName || form.artistName || null,
+      ...(() => {
+        const mains = (track as { trackMainArtists?: TrackMainArtistFormValue[] })
+          .trackMainArtists;
+        if (!Array.isArray(mains) || mains.length === 0) return {};
+        return {
+          trackMainArtists: mains
+            .filter((a: TrackMainArtistFormValue) => a.name?.trim())
+            .map((artist: TrackMainArtistFormValue) => ({
+              name: artist.name.trim(),
+              ...(artist.cosmosArtistId?.trim()
+                ? { cosmosId: artist.cosmosArtistId.trim() }
+                : {}),
+              profiles: buildProfilesFromFlatFields({
+                spotifyProfile: artist.spotifyProfile,
+                appleMusicProfile: artist.appleMusicProfile,
+                youtubeMusicProfile: artist.youtubeMusicProfile,
+                instagramUrl: artist.instagramProfile ?? undefined,
+                facebookUrl: artist.facebookProfile ?? undefined,
+              }),
+            })),
+        };
+      })(),
       language:
         resolveTrackLanguage(
           primaryGenre,

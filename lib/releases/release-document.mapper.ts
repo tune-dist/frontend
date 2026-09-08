@@ -116,6 +116,11 @@ function mapMongoTrack(
     title: track.title || document.title || 'Untitled',
     version: track.version || null,
     artistName: track.artistName || document.artistName || null,
+    ...(Array.isArray(track.trackMainArtists) && track.trackMainArtists.length > 0
+      ? {
+          trackMainArtists: track.trackMainArtists.map(mapMongoArtist),
+        }
+      : {}),
     language: track.language || document.language || 'Hindi',
     genre: {
       primary: primaryGenre,

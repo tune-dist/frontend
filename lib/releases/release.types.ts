@@ -99,6 +99,8 @@ export interface DraftTrack {
   title: string;
   version?: string | null;
   artistName?: string | null;
+  /** Optional per-track COSMOS track_main_artist override. */
+  trackMainArtists?: DraftArtist[];
   language: string;
   genre: DraftGenre;
   mood: string;
@@ -366,6 +368,15 @@ export interface MongoReleaseTrack {
   title?: string;
   version?: string;
   artistName?: string;
+  trackMainArtists?: Array<{
+    name: string;
+    cosmosId?: string;
+    spotifyProfile?: unknown;
+    appleMusicProfile?: unknown;
+    youtubeMusicProfile?: unknown;
+    instagramProfile?: string;
+    facebookProfile?: string;
+  }>;
   language?: string;
   primaryGenre?: string;
   secondaryGenre?: string;

@@ -143,6 +143,19 @@ function mapDraftTrackToWrite(track: DraftTrack, index: number, fallbackArtist?:
     trackOrder: track.order ?? index + 1,
     title: track.title,
     artistName: track.artistName || fallbackArtist,
+    ...(track.trackMainArtists?.length
+      ? {
+          trackMainArtists: track.trackMainArtists.map((artist) => ({
+            name: artist.name,
+            cosmosId: artist.cosmosId,
+            spotifyProfile: artist.profiles?.spotify,
+            appleMusicProfile: artist.profiles?.appleMusic,
+            youtubeMusicProfile: artist.profiles?.youtubeMusic,
+            instagramProfile: artist.profiles?.instagram?.url,
+            facebookProfile: artist.profiles?.facebook?.url,
+          })),
+        }
+      : {}),
     audioFile: {
       url: track.audio.storageKey,
       filename: track.audio.filename,

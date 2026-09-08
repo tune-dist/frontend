@@ -7,6 +7,7 @@ import { Track, PlatformProfileFormValue } from './upload-form.schema'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Music, X, Loader2, Plus, Info, UserCheck } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tooltip } from '@/components/ui/tooltip'
 import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/lib/api/genres'
 import { useAuth } from '@/contexts/AuthContext'
 import { getPlanLimits } from '@/lib/api/plans'
@@ -29,6 +30,11 @@ import { rosterArtistName } from '@/lib/integrations/artist-form-state.util'
 import { toTitleCase } from '@/lib/validation/title-case'
 import { IsrcCodeSection, type IsrcMode } from './isrc-code-section'
 import { cn } from '@/lib/class-names'
+import type { TrackMainArtistFormValue } from '@/lib/releases/track-main-artists.util'
+import {
+    seedTrackMainArtistsForModal,
+} from '@/lib/releases/track-main-artists.util'
+import TrackMainArtistsEditor from './track-main-artists-editor'
 
 function profileValueToInputString(value: unknown): string {
     if (value == null) return ''
@@ -59,9 +65,11 @@ interface TrackEditModalProps {
     }
     fieldRules?: Record<string, any>
     audioFiles?: any[]
+    /** Release-level Primary Artists (copied for Track Main Artist defaults). */
+    releasePrimaryArtists?: TrackMainArtistFormValue[]
 }
 
-export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave, usedArtists = [], allTracks = [], mainArtistName = '', featuringArtists = [], mainArtistProfiles = {}, fieldRules = {}, audioFiles = [] }: TrackEditModalProps) {
+export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave, usedArtists = [], allTracks = [], mainArtistName = '', featuringArtists = [], mainArtistProfiles = {}, fieldRules = {}, audioFiles = [], releasePrimaryArtists = [] }: TrackEditModalProps) {
     const { user } = useAuth()
     const [planLimits, setPlanLimits] = useState({ artistLimit: 1, allowConcurrent: false, allowedFormats: ['single'] })
 
@@ -111,6 +119,11 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
     // Local state for modal editing
     const [modalArtistSearch, setModalArtistSearch] = useState(track?.artistName || '')
+    const [modalTrackMainArtists, setModalTrackMainArtists] = useState<
+        TrackMainArtistFormValue[]
+    >([])
+    const [trackMainArtistDraft, setTrackMainArtistDraft] = useState('')
+    const [showTrackMainArtistAdd, setShowTrackMainArtistAdd] = useState(false)
     const [isSearching, setIsSearching] = useState(false)
     const [creatingNewArtist, setCreatingNewArtist] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
@@ -303,6 +316,13 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setModalFeaturingArtist(track.featuringArtist || '')
             setMood(track.mood || '')
 
+            // Seed Track Main Artists without wiping existing single-artist tracks.
+            setModalTrackMainArtists(
+                seedTrackMainArtistsForModal(track, releasePrimaryArtists),
+            )
+            setTrackMainArtistDraft('')
+            setShowTrackMainArtistAdd(false)
+
             // If restricted plan, force mainArtistName AND profiles
             if (totalAllowedArtists === 1 && mainArtistName) {
                 setModalArtistSearch(mainArtistName)
@@ -368,7 +388,13 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             setSearchResults(emptySearchResults())
             setHasSearched(false)
         } else if (isOpen) {
-            // New track or empty state
+            // New track or empty state — default Track Main Artists from release primaries.
+            setModalTrackMainArtists(
+                releasePrimaryArtists.map((artist) => ({ ...artist })),
+            )
+            setTrackMainArtistDraft('')
+            setShowTrackMainArtistAdd(false)
+
             if (totalAllowedArtists === 1) {
                 // Determine the correct name to use:
                 // 1. mainArtistName prop (passed from parent)
@@ -413,7 +439,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 handleModalArtistSearch(name)
             }
         }
-    }, [track, trackIndex, isOpen, user, totalAllowedArtists, mainArtistName, mainArtistProfiles])
+    }, [track, trackIndex, isOpen, user, totalAllowedArtists, mainArtistName, mainArtistProfiles, releasePrimaryArtists])
 
     // Lock body scroll when modal is open
     useEffect(() => {
@@ -511,8 +537,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 return
             }
 
-            if (!modalArtistSearch.trim()) {
-                toast.error("Artist name is required")
+            if (!modalTrackMainArtists.some((a) => a.name?.trim())) {
+                toast.error("At least one Track Main Artist is required")
                 return
             }
 
@@ -609,9 +635,11 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
 
                 releaseArtists.push(...otherTracksArtists);
 
-                // Add the new artist name for this track
-                if (modalArtistSearch.trim()) {
-                    releaseArtists.push(modalArtistSearch.trim());
+                // Add track main artists for this track
+                for (const artist of modalTrackMainArtists) {
+                    if (artist.name?.trim()) {
+                        releaseArtists.push(artist.name.trim())
+                    }
                 }
 
                 // Get unique artists in this release
@@ -640,11 +668,17 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
             }
 
             const normalizedTrackTitle = toTitleCase(trackTitle)
+            const savedMains = modalTrackMainArtists
+                .filter((a) => a.name?.trim())
+                .map((artist) => ({ ...artist, name: artist.name.trim() }))
+            const primary = savedMains[0]
 
             const updatedTrack: Track = {
                 ...track,
                 title: normalizedTrackTitle,
-                artistName: modalArtistSearch,
+                // Legacy single field stays in sync with the first Track Main Artist.
+                artistName: primary?.name || '',
+                trackMainArtists: savedMains,
                 language: (() => {
                     const lang = resolveLanguage(primaryGenre, language, instrumental)
                     return lang
@@ -656,11 +690,11 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 secondaryGenre,
                 previewClipStartTime: isCrbtEligible ? previewClipStartTime : '',
                 version,
-                spotifyProfile: modalSpotifyProfile,
-                appleMusicProfile: modalAppleMusicProfile,
-                youtubeMusicProfile: '',
-                instagramProfile: instagramUrl,
-                facebookProfile: facebookUrl,
+                spotifyProfile: primary?.spotifyProfile,
+                appleMusicProfile: primary?.appleMusicProfile,
+                youtubeMusicProfile: primary?.youtubeMusicProfile || '',
+                instagramProfile: primary?.instagramProfile || '',
+                facebookProfile: primary?.facebookProfile || '',
                 isExplicit: isNoLyricsTrack ? false : isExplicit,
                 isInstrumental: isNoLyricsTrack ? 'yes' : instrumental,
                 featuringArtist: modalFeaturingArtist,
@@ -714,558 +748,15 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         />
                     </div>
 
-                    {/* Artist Name with Rich Search UI */}
-                    {/* Artist Selection Section - Styled like BasicInfoStep */}
-                    <div className="space-y-4 rounded-lg border-2 border-border p-4 bg-card/30">
-                        <div className="flex items-center justify-between">
-                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Track Artist</Label>
-                            {/* If an artist is selected and we want to change it */}
-                            {(!!modalSpotifyProfile || !!modalAppleMusicProfile) && planLimits.artistLimit !== 1 && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        handleModalArtistSearch('')
-                                        setModalSpotifyProfile('')
-                                        setModalAppleMusicProfile('')
-                                        setInstagramStatus('no')
-                                        setFacebookStatus('no')
-                                        setInstagramUrl('')
-                                        setFacebookUrl('')
-                                    }}
-                                    className="text-xs text-primary hover:text-primary/80 font-medium"
-                                >
-                                    Change Artist
-                                </button>
-                            )}
-                        </div>
+                    {/* Track Main Artists — multi-artist COSMOS track_main_artist */}
+                    <TrackMainArtistsEditor
+                        artists={modalTrackMainArtists}
+                        onChange={setModalTrackMainArtists}
+                        releasePrimaryArtists={releasePrimaryArtists}
+                        usedArtists={usedArtists}
+                        artistLimit={totalAllowedArtists}
+                    />
 
-                        <div className="relative space-y-2">
-                            {/* Select from Roster — always shown until user picks "Create New Artist" */}
-                            {!(!!modalSpotifyProfile || !!modalAppleMusicProfile) && !creatingNewArtist && (modalArtistSearch === '' || usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch)) && (
-                                <Select
-                                    value={usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch) ? modalArtistSearch : ''}
-                                    onValueChange={(val) => {
-                                        if (val === 'new') {
-                                            handleModalArtistSearch('')
-                                            setModalSpotifyProfile('')
-                                            setModalAppleMusicProfile('')
-                                            setCreatingNewArtist(true)
-                                        } else {
-                                            const selectedArtist = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === val)
-                                            if (selectedArtist) {
-                                                const name = typeof selectedArtist === 'string' ? selectedArtist : selectedArtist.name
-                                                handleModalArtistSearch(name)
-                                                setCreatingNewArtist(false)
-
-                                                if (typeof selectedArtist === 'object') {
-                                                    if (selectedArtist.spotifyProfile) setModalSpotifyProfile(selectedArtist.spotifyProfile)
-                                                    if (selectedArtist.appleMusicProfile) setModalAppleMusicProfile(selectedArtist.appleMusicProfile)
-
-                                                    if (selectedArtist.instagramProfile) {
-                                                        if (typeof selectedArtist.instagramProfile === 'string' && selectedArtist.instagramProfile.startsWith('http')) {
-                                                            setInstagramStatus('yes')
-                                                            setInstagramUrl(selectedArtist.instagramProfile)
-                                                        } else {
-                                                            setInstagramStatus(selectedArtist.instagramProfile)
-                                                        }
-                                                    }
-                                                    if (selectedArtist.facebookProfile) {
-                                                        if (typeof selectedArtist.facebookProfile === 'string' && selectedArtist.facebookProfile.startsWith('http')) {
-                                                            setFacebookStatus('yes')
-                                                            setFacebookUrl(selectedArtist.facebookProfile)
-                                                        } else {
-                                                            setFacebookStatus(selectedArtist.facebookProfile)
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }}
-                                    disabled={planLimits.artistLimit === 1}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select an artist" />
-                                    </SelectTrigger>
-                                    <SelectContent className="z-[999]">
-                                        {usedArtists.map((artist, i) => {
-                                            const name = rosterArtistName(artist)
-                                            if (!name) return null
-                                            return (
-                                                <SelectItem key={i} value={name}>
-                                                    <div className="flex items-center gap-2">
-                                                        <UserCheck className="h-4 w-4 text-primary" />
-                                                        <span>{name}</span>
-                                                    </div>
-                                                </SelectItem>
-                                            )
-                                        })}
-                                        <SelectItem value="new">
-                                            <div className="flex items-center gap-2 text-muted-foreground">
-                                                <Plus className="h-4 w-4" />
-                                                <span>Create New Artist</span>
-                                            </div>
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            )}
-
-                            {/* Manual Search Input (only after user selects "Create New Artist" or enters a custom name) */}
-                            {(creatingNewArtist || (modalArtistSearch !== '' && !usedArtists.some(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch)) || (!!modalSpotifyProfile || !!modalAppleMusicProfile)) && (
-                                <div className="relative">
-                                    <Input
-                                        id="track-artist"
-                                        placeholder="Search for artist..."
-                                        value={modalArtistSearch}
-                                        onChange={(e) => handleModalArtistSearch(e.target.value)}
-                                        className={`${isSearching ? 'pr-10' : ''} ${(planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile) ? 'bg-muted text-muted-foreground cursor-not-allowed pr-10' : ''}`}
-                                        readOnly={planLimits.artistLimit === 1 || !!modalSpotifyProfile || !!modalAppleMusicProfile}
-                                    />
-                                    {isSearching && !(!!modalSpotifyProfile || !!modalAppleMusicProfile) && (
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Legacy artist-not-found message */}
-                        {hasSearched && !isSearching &&
-                            searchResults.spotify.length === 0 &&
-                            searchResults.apple.length === 0 &&
-                            modalArtistSearch.length > 2 && (
-                                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-                                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                                        Artist not found. Please upload music via a distributor to create a Spotify profile
-                                    </p>
-                                </div>
-                            )}
-
-                        {/* Legacy platform search UI — disabled while testing COSMOS-only flow */}
-                        {modalArtistSearch && modalArtistSearch.length > 2 && !isSearching && (searchResults.spotify.length > 0 || searchResults.apple.length > 0 || modalSpotifyProfile || modalAppleMusicProfile) && (
-                            <div className="space-y-6 pt-4 border-t border-border/50">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="font-semibold text-sm text-foreground">
-                                        We found this artist on other platforms. Is this you?
-                                    </h4>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Spotify Results */}
-                                    {(searchResults.spotify.length > 0 || modalSpotifyProfile) && (
-                                        <div className="space-y-3 flex flex-col h-full">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <svg className="h-5 w-5 text-[#1DB954] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                                                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                                                    </svg>
-                                                    <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">Spotify</span>
-                                                </div>
-                                            </div>
-
-                                            {!modalSpotifyProfile ? (
-                                                <>
-                                                    {searchResults.spotify.map((artist: any) => (
-                                                        <div
-                                                            key={artist.id}
-                                                            className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
-                                                            onClick={() => setModalSpotifyProfile(artist.id)}
-                                                        >
-                                                            <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                                <div className="h-2 w-2 rounded-full hidden" />
-                                                            </div>
-                                                            {artist.image ? (
-                                                                <img src={artist.image} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
-                                                            ) : (
-                                                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                                    <Music className="h-5 w-5 text-muted-foreground" />
-                                                                </div>
-                                                            )}
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-foreground">{artist.name}</p>
-                                                                <p className="text-sm text-muted-foreground">{(artist.followers || 0).toLocaleString()} followers</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-
-                                                    <div className="space-y-2 mt-4">
-                                                        <div
-                                                            className="flex items-center gap-3 p-3 rounded-md hover:bg-accent cursor-pointer transition-colors"
-                                                            onClick={() => setModalSpotifyProfile('new')}
-                                                        >
-                                                            <div className="h-10 w-10 rounded-full border border-dashed border-primary flex items-center justify-center bg-primary/5">
-                                                                <Plus className="h-5 w-5 text-primary" />
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-foreground">Create New Profile</p>
-                                                                <p className="text-sm text-muted-foreground">Create a new Spotify profile for <strong>{modalArtistSearch}</strong></p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="bg-primary/10 border border-primary rounded-md p-3">
-                                                    {modalSpotifyProfile === 'new' ? (
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-10 w-10 rounded-full border border-dashed border-primary flex items-center justify-center bg-primary/5">
-                                                                <Plus className="h-5 w-5 text-primary" />
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-primary">New Spotify Profile</p>
-                                                                <p className="text-sm text-muted-foreground">Creating a new profile for {modalArtistSearch}</p>
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                                {!['free', 'solo'].includes(user?.plan || '') && (
-                                                                    <button
-                                                                        onClick={() => setModalSpotifyProfile('')}
-                                                                        className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500 font-medium"
-                                                                        type="button"
-                                                                    >
-                                                                        Change
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        (() => {
-                                                            // Resolve the selected profile object or string
-                                                            let selected: any = null;
-
-                                                            if (typeof modalSpotifyProfile === 'object' && modalSpotifyProfile !== null) {
-                                                                selected = modalSpotifyProfile;
-                                                            }
-
-                                                            if (!selected && typeof modalSpotifyProfile === 'string' && modalSpotifyProfile.length > 0 && modalSpotifyProfile !== 'new') {
-                                                                selected = searchResults.spotify.find(a => a.id === modalSpotifyProfile || a.externalUrl === modalSpotifyProfile);
-
-                                                                if (!selected && modalArtistSearch === mainArtistName && mainArtistProfiles?.spotify) {
-                                                                    if (typeof mainArtistProfiles.spotify === 'object' && (mainArtistProfiles.spotify.id === modalSpotifyProfile || mainArtistProfiles.spotify.url === modalSpotifyProfile || mainArtistProfiles.spotify.externalUrl === modalSpotifyProfile)) {
-                                                                        selected = mainArtistProfiles.spotify;
-                                                                    }
-                                                                }
-
-                                                                if (!selected && usedArtists && usedArtists.length > 0) {
-                                                                    const ua = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch);
-                                                                    if (ua && typeof ua === 'object' && typeof ua.spotifyProfile === 'object' && ua.spotifyProfile !== null) {
-                                                                        if (ua.spotifyProfile.id === modalSpotifyProfile || ua.spotifyProfile.url === modalSpotifyProfile || ua.spotifyProfile.externalUrl === modalSpotifyProfile) {
-                                                                            selected = ua.spotifyProfile;
-                                                                        }
-                                                                    }
-                                                                }
-
-                                                                if (!selected) {
-                                                                    selected = modalSpotifyProfile;
-                                                                }
-                                                            }
-
-                                                            if (!selected) return null;
-
-                                                            // String/URL Case
-                                                            if (typeof selected === 'string') {
-                                                                return (
-                                                                    <div className="flex items-center gap-3">
-                                                                        <a
-                                                                            href={selected.startsWith('http') ? selected : undefined}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                                                                            style={{ cursor: selected.startsWith('http') ? 'pointer' : 'default' }}
-                                                                        >
-                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                                                                <svg className="h-5 w-5 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
-                                                                                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                                                                                </svg>
-                                                                            </div>
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <p className="font-medium text-primary hover:underline">{modalArtistSearch || 'Profile Linked'}</p>
-                                                                                <p className="text-sm text-muted-foreground truncate" title={selected}>Profile Linked: {selected}</p>
-                                                                            </div>
-                                                                        </a>
-                                                                        <div className="flex items-center gap-1 shrink-0">
-                                                                            <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                                            {!['free', 'solo'].includes(user?.plan || '') && (
-                                                                                <button
-                                                                                    onClick={() => setModalSpotifyProfile('')}
-                                                                                    className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500 font-medium"
-                                                                                    type="button"
-                                                                                >
-                                                                                    Change
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            // Object Case
-                                                            const profileUrl = selected.externalUrl || selected.url || selected.channelUrl;
-                                                            return (
-                                                                <div className="flex items-center gap-3">
-                                                                    <a
-                                                                        href={profileUrl || undefined}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                                                                        style={{ cursor: profileUrl ? 'pointer' : 'default' }}
-                                                                    >
-                                                                        {selected.image ? (
-                                                                            <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
-                                                                        ) : (
-                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                                                                <Music className="h-5 w-5 text-muted-foreground" />
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <p className={`font-medium text-primary ${profileUrl ? 'hover:underline' : ''} truncate`}>{selected.name}</p>
-                                                                            <p className="text-sm text-muted-foreground truncate">{(selected.followers || 0).toLocaleString()} followers</p>
-                                                                        </div>
-                                                                    </a>
-                                                                    <div className="flex items-center gap-1 shrink-0">
-                                                                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                                        {!['free', 'solo'].includes(user?.plan || '') && (
-                                                                            <button
-                                                                                onClick={() => setModalSpotifyProfile('')}
-                                                                                className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500 font-medium"
-                                                                                type="button"
-                                                                            >
-                                                                                Change
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            )
-                                                        })()
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Apple Music Section */}
-                                    {(searchResults.apple.length > 0 || modalAppleMusicProfile) && (
-                                        <div className="space-y-3 flex flex-col h-full">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <svg className="h-5 w-5 text-[#FA243C] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                                                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.227 15.653c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08z" />
-                                                    </svg>
-                                                    <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">Apple Music</span>
-                                                </div>
-                                            </div>
-
-                                            {!modalAppleMusicProfile ? (
-                                                <>
-                                                    {searchResults.apple.map((artist: any) => (
-                                                        <div
-                                                            key={artist.id}
-                                                            className="flex items-center gap-3 p-3 rounded-md bg-background hover:bg-accent transition-colors cursor-pointer"
-                                                            onClick={() => setModalAppleMusicProfile(artist.id)}
-                                                        >
-                                                            <div className="h-4 w-4 rounded-full border border-primary flex items-center justify-center">
-                                                                <div className="h-2 w-2 rounded-full hidden" />
-                                                            </div>
-                                                            {artist.image ? (
-                                                                <img src={artist.image} alt={artist.name} className="h-10 w-10 rounded-full object-cover" />
-                                                            ) : (
-                                                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                                                    <Music className="h-5 w-5 text-muted-foreground" />
-                                                                </div>
-                                                            )}
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-foreground">{artist.name}</p>
-                                                                <p className="text-sm text-muted-foreground">{artist.track || 'Apple Music Artist'}</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-
-                                                    <div className="space-y-2 mt-4">
-                                                        <div
-                                                            className="flex items-center gap-3 p-3 rounded-md hover:bg-accent cursor-pointer transition-colors"
-                                                            onClick={() => setModalAppleMusicProfile('new')}
-                                                        >
-                                                            <div className="h-10 w-10 rounded-full border border-dashed border-primary flex items-center justify-center bg-primary/5">
-                                                                <Plus className="h-5 w-5 text-primary" />
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-foreground">Create New Profile</p>
-                                                                <p className="text-sm text-muted-foreground">Create a new Apple Music profile for <strong>{modalArtistSearch}</strong></p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="bg-primary/10 border border-primary rounded-md p-3">
-                                                    {modalAppleMusicProfile === 'new' ? (
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-10 w-10 rounded-full border border-dashed border-primary flex items-center justify-center bg-primary/5">
-                                                                <Plus className="h-5 w-5 text-primary" />
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="font-medium text-primary">New Apple Music Profile</p>
-                                                                <p className="text-sm text-muted-foreground">Creating a new profile for {modalArtistSearch}</p>
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                                {!['free', 'solo'].includes(user?.plan || '') && (
-                                                                    <button
-                                                                        onClick={() => setModalAppleMusicProfile('')}
-                                                                        className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500 font-medium"
-                                                                        type="button"
-                                                                    >
-                                                                        Change
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        (() => {
-                                                            let selected: any = null;
-
-                                                            if (typeof modalAppleMusicProfile === 'object' && modalAppleMusicProfile !== null) {
-                                                                selected = modalAppleMusicProfile;
-                                                            }
-
-                                                            if (!selected && typeof modalAppleMusicProfile === 'string' && modalAppleMusicProfile.length > 0 && modalAppleMusicProfile !== 'new') {
-                                                                selected = searchResults.apple.find(a => a.id === modalAppleMusicProfile || a.url === modalAppleMusicProfile);
-
-                                                                if (!selected && modalArtistSearch === mainArtistName && mainArtistProfiles?.apple) {
-                                                                    if (typeof mainArtistProfiles.apple === 'object' && (mainArtistProfiles.apple.id === modalAppleMusicProfile || mainArtistProfiles.apple.url === modalAppleMusicProfile)) {
-                                                                        selected = mainArtistProfiles.apple;
-                                                                    }
-                                                                }
-
-                                                                if (!selected && usedArtists && usedArtists.length > 0) {
-                                                                    const ua = usedArtists.find(a => (typeof a === 'string' ? a : a.name) === modalArtistSearch);
-                                                                    if (ua && typeof ua === 'object' && typeof ua.appleMusicProfile === 'object' && ua.appleMusicProfile !== null) {
-                                                                        if (ua.appleMusicProfile.id === modalAppleMusicProfile || ua.appleMusicProfile.url === modalAppleMusicProfile) {
-                                                                            selected = ua.appleMusicProfile;
-                                                                        }
-                                                                    }
-                                                                }
-
-                                                                if (!selected) {
-                                                                    selected = modalAppleMusicProfile;
-                                                                }
-                                                            }
-
-                                                            if (!selected) return null;
-
-                                                            if (typeof selected === 'string') {
-                                                                return (
-                                                                    <div className="flex items-center gap-3">
-                                                                        <a
-                                                                            href={selected.startsWith('http') ? selected : undefined}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                                                                            style={{ cursor: selected.startsWith('http') ? 'pointer' : 'default' }}
-                                                                        >
-                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                                                                <svg className="h-5 w-5 text-[#FA243C]" viewBox="0 0 24 24" fill="currentColor">
-                                                                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm3.227 15.653c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08zm-1.893-1.013c-.347.187-.773.053-.96-.293l-1.36-2.587c-.187-.347-.053-.773.293-.96l.16-.08c.347-.187.773-.053.96.293l1.36 2.587c.187.347.053.773-.293.96l-.16.08z" />
-                                                                                </svg>
-                                                                            </div>
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <p className="font-medium text-primary hover:underline">{modalArtistSearch || 'Profile Linked'}</p>
-                                                                                <p className="text-sm text-muted-foreground truncate" title={selected}>Profile Linked: {selected}</p>
-                                                                            </div>
-                                                                        </a>
-                                                                        <div className="flex items-center gap-1 shrink-0">
-                                                                            <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                                            {!['free', 'solo'].includes(user?.plan || '') && (
-                                                                                <button
-                                                                                    onClick={() => setModalAppleMusicProfile('')}
-                                                                                    className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500 font-medium"
-                                                                                    type="button"
-                                                                                >
-                                                                                    Change
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            }
-
-                                                            const profileUrl = selected.externalUrl || selected.url || selected.channelUrl;
-                                                            return (
-                                                                <div className="flex items-center gap-3">
-                                                                    <a
-                                                                        href={profileUrl || undefined}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
-                                                                        style={{ cursor: profileUrl ? 'pointer' : 'default' }}
-                                                                    >
-                                                                        {selected.image ? (
-                                                                            <img src={selected.image} alt={selected.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
-                                                                        ) : (
-                                                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                                                                <Music className="h-5 w-5 text-muted-foreground" />
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <p className={`font-medium text-primary ${profileUrl ? 'hover:underline' : ''} truncate`}>{selected.name}</p>
-                                                                            <p className="text-sm text-muted-foreground truncate">{selected.track || 'Apple Music Artist'}</p>
-                                                                        </div>
-                                                                    </a>
-                                                                    <div className="flex items-center gap-1 shrink-0">
-                                                                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">Selected</span>
-                                                                        {!['free', 'solo'].includes(user?.plan || '') && (
-                                                                            <button
-                                                                                onClick={() => setModalAppleMusicProfile('')}
-                                                                                className="h-7 px-1.5 text-[10px] text-muted-foreground hover:text-red-500 font-medium"
-                                                                                type="button"
-                                                                            >
-                                                                                Change
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            )
-                                                        })()
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                </div>
-                            </div>
-                        )}
-                        {/* Social Profiles Grid - Styled like BasicInfoStep */}
-                        <div className="pt-4 border-t border-border/50">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Instagram */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm font-medium flex items-center gap-2">
-                                        <span className="text-[#E4405F] font-bold">Instagram</span>
-                                        <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
-                                    </Label>
-                                    <Input
-                                        placeholder="https://instagram.com/..."
-                                        value={instagramUrl}
-                                        onChange={(e) => setInstagramUrl(e.target.value)}
-                                        className="text-sm"
-                                    />
-                                </div>
-
-                                {/* Facebook */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm font-medium flex items-center gap-2">
-                                        <span className="text-[#1877F2] font-bold">Facebook</span>
-                                        <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
-                                    </Label>
-                                    <Input
-                                        placeholder="https://facebook.com/..."
-                                        value={facebookUrl}
-                                        onChange={(e) => setFacebookUrl(e.target.value)}
-                                        className="text-sm"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     {/* Instrumental — first so genre & language follow this choice */}
                     <div className="space-y-3 pt-4 border-t border-border">
                         <Label className="text-lg font-semibold">Is Instrumental?</Label>
