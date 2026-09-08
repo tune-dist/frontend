@@ -17,6 +17,7 @@ import toast from 'react-hot-toast'
 import { UploadFormData, AudioFile, Track } from './upload-form.schema'
 import { useFormContext } from 'react-hook-form'
 import { motion } from 'framer-motion'
+import { copyReleasePrimaryArtistsFromForm } from '@/lib/releases/track-main-artists.util'
 
 interface AudioFileStepProps {
     formData?: UploadFormData
@@ -154,6 +155,9 @@ export default function AudioFileStep({
                 } else {
                     const currentAudioFiles = getValues('audioFiles') || []
                     const currentTracks = getValues('tracks') || []
+                    const releasePrimaries = copyReleasePrimaryArtistsFromForm(
+                        getValues(),
+                    )
 
                     const newAudioFile: AudioFile = {
                         id: fileId,
@@ -166,6 +170,7 @@ export default function AudioFileStep({
                         hash: result.metaData?.hash,
                         fingerprint: result.metaData?.fingerprint
                     }
+
                     setValue('audioFiles', [...currentAudioFiles, newAudioFile], { shouldValidate: true })
 
                     const newTrack: Track = {
@@ -175,6 +180,8 @@ export default function AudioFileStep({
                         writers: [],
                         composers: [],
                         mood: "",
+                        // Copy release primaries so later release edits don't rewrite this track.
+                        trackMainArtists: releasePrimaries,
                     }
                     setValue('tracks', [...currentTracks, newTrack], { shouldValidate: true })
                 }

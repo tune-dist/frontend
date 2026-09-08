@@ -79,7 +79,21 @@ export const trackSchema = z.object({
     id: z.string(),
     title: z.string().min(1, 'Track title is required'),
     audioFileId: z.string(), // Reference to audioFiles array
-    artistName: z.string().optional(), // Per-track artist name
+    artistName: z.string().optional(), // Per-track artist name (legacy display / fallback)
+    /** Per-track COSMOS Track Main Artists; defaults from release Primary Artists. */
+    trackMainArtists: z
+        .array(
+            z.object({
+                name: z.string().min(1, 'Artist name is required'),
+                cosmosArtistId: z.string().optional(),
+                spotifyProfile: platformProfileFormSchema,
+                appleMusicProfile: platformProfileFormSchema,
+                youtubeMusicProfile: platformProfileFormSchema,
+                instagramProfile: z.string().optional().nullable(),
+                facebookProfile: z.string().optional().nullable(),
+            }),
+        )
+        .optional(),
     language: z.string().optional(), // Per-track language
     isrc: z.string().optional().refine((val) => {
         if (!val || val.trim() === '') return true;

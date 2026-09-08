@@ -30,6 +30,7 @@ import {
   Track,
 } from "@/components/dashboard/upload/upload-form.schema";
 import { getDefaultLabelName } from "@/lib/validation/label-name";
+import { copyReleasePrimaryArtistsFromForm } from "@/lib/releases/track-main-artists.util";
 
 // Child Components
 import BasicInfoStep from "@/components/dashboard/upload/basic-info-step";
@@ -1643,6 +1644,18 @@ export default function UploadPage() {
         allTracks={form.getValues("tracks") || []}
         mainArtistName={watch("artistName")}
         featuringArtists={watch("artists")}
+        releasePrimaryArtists={copyReleasePrimaryArtistsFromForm({
+          artistName: watch("artistName"),
+          cosmosArtistId: watch("cosmosArtistId"),
+          spotifyProfile: watch("spotifyProfile"),
+          appleMusicProfile: watch("appleMusicProfile"),
+          youtubeMusicProfile: watch("youtubeMusicProfile"),
+          instagramProfile: watch("instagramProfile"),
+          instagramProfileUrl: watch("instagramProfileUrl"),
+          facebookProfile: watch("facebookProfile"),
+          facebookProfileUrl: watch("facebookProfileUrl"),
+          artists: watch("artists"),
+        })}
         mainArtistProfiles={{
           spotify: watch("spotifyProfile") ?? undefined,
           apple: watch("appleMusicProfile") ?? undefined,

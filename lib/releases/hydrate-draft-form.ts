@@ -111,6 +111,24 @@ function hydrateFromDetail(
       title: track.title,
       audioFileId: audio?.id || '',
       artistName: track.artistName || mainArtist?.name,
+      ...(Array.isArray(track.trackMainArtists) && track.trackMainArtists.length > 0
+        ? {
+            trackMainArtists: track.trackMainArtists.map((artist) => {
+              const social = profilesToFormFields(artist.profiles);
+              return {
+                name: artist.name,
+                cosmosArtistId: artist.cosmosId,
+                spotifyProfile: social.spotifyProfile as Track['spotifyProfile'],
+                appleMusicProfile:
+                  social.appleMusicProfile as Track['appleMusicProfile'],
+                youtubeMusicProfile:
+                  social.youtubeMusicProfile as Track['youtubeMusicProfile'],
+                instagramProfile: social.instagramProfileUrl ?? null,
+                facebookProfile: social.facebookProfileUrl ?? null,
+              };
+            }),
+          }
+        : {}),
       language: track.language,
       version: track.version || undefined,
       isrc: track.isrc || undefined,
