@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import {
+    ContactRecaptchaNotice,
+    executeRecaptcha,
+    isRecaptchaConfigured,
+} from '@/components/contact-recaptcha'
+import {
     Mail,
     Send,
     Loader2,
@@ -18,6 +23,9 @@ import {
     MapPin,
     Phone
 } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { getErrorMessage } from '@/lib/get-error-message'
+import { sendContactMessage } from '@/lib/api/contact'
 
 const SpotifyIcon = ({ className }: { className?: string }) => (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -30,9 +38,6 @@ const XIcon = ({ className }: { className?: string }) => (
         <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.292 19.49h2.039L6.486 3.24H4.298l13.311 17.403z" />
     </svg>
 )
-import toast from 'react-hot-toast'
-import { getErrorMessage } from '@/lib/get-error-message'
-
 const contactInfo = [
     {
         icon: Mail,
@@ -61,13 +66,6 @@ const socialLinks = [
     { icon: Linkedin, label: 'LinkedIn', href: '#', color: 'hover:text-blue-600' },
     { icon: XIcon, label: 'X (Twitter)', href: '#', color: 'hover:text-foreground' },
 ]
-
-import { sendContactMessage } from '@/lib/api/contact'
-import {
-    ContactRecaptchaNotice,
-    executeRecaptcha,
-    isRecaptchaConfigured,
-} from '@/components/contact-recaptcha'
 
 export default function Contact() {
     const searchParams = useSearchParams()

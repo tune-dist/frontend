@@ -6,7 +6,6 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { PlanInactiveProvider } from '@/contexts/PlanInactiveContext'
 import QueryProvider from '@/components/providers/query-provider'
 import { Toaster } from 'react-hot-toast'
-import VersionNotifier from '@/components/VersionNotifier'
 import { Outfit } from 'next/font/google'
 import SmoothScrollProvider from '@/components/SmoothScrollProvider'
 
@@ -59,7 +58,6 @@ export default function RootLayout({
           <AuthProvider>
           <PlanInactiveProvider>
             <SmoothScrollProvider>
-              {/* <VersionNotifier /> */}
               {children}
             <Toaster
               position="top-right"

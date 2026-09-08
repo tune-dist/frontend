@@ -1,4 +1,4 @@
-import PrivacyContent from '@/components/PrivacyContent'
+import PrivacyContent from '@/components/privacy-page-content'
 import { createPageMetadata } from '@/lib/site-metadata'
 
 export const metadata = createPageMetadata(

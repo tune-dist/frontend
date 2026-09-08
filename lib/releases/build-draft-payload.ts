@@ -1,4 +1,4 @@
-import type { UploadFormData } from '@/components/dashboard/upload/types';
+import type { UploadFormData } from '@/components/dashboard/upload/upload-form.schema';
 import type { ReleaseFormData } from '@/lib/api/releases';
 import { isInstrumentalRelease, resolveLanguage } from '@/components/dashboard/upload/genre-language';
 import { isTrackEligibleForCrbt } from '@/components/dashboard/upload/crbt-validation';
@@ -16,7 +16,7 @@ import type {
   DraftMediaAsset,
   DraftTrack,
   ReleaseType,
-} from './types';
+} from './release.types';
 import { buildProfilesFromFlatFields, toPlatformRef } from './platform-ref.util';
 import { getDefaultLabelName } from '@/lib/validation/label-name';
 import { toTitleCase } from '@/lib/validation/title-case';

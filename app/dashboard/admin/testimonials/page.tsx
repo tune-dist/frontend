@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Quote, Trash2, Loader2, Plus, Edit, Save } from 'lucide-react';
+import { Quote, Trash2, Loader2, Plus, Edit } from 'lucide-react';
 import { testimonialsApi, Testimonial } from '@/lib/api/testimonials';
 import toast from 'react-hot-toast';
 import {
@@ -28,7 +28,7 @@ import { Label } from '@/components/ui/label';
 import { S3Image } from '@/components/ui/s3-image';
 import ImageCropper from '@/components/dashboard/testimonials/image-cropper';
 
-export default function TestimonialsAdminPage() {
+export default function TestimonialsPageContent() {
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -137,7 +137,6 @@ export default function TestimonialsAdminPage() {
         try {
             setSelectedImage(null);
             setIsUploading(true);
-            console.log('Cropped blob size:', croppedBlob.size);
 
             // Convert Blob to File
             const file = new File([croppedBlob], 'testimonial-image.jpg', { type: 'image/jpeg' });

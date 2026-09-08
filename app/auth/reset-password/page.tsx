@@ -1,19 +1,19 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Lock, ArrowLeft, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react'
+import { Lock, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { resetPassword } from '@/lib/api/auth'
-import { getErrorMessage } from '@/lib/api-client'
+import { getErrorMessage } from '@/lib/get-error-message'
 import toast from 'react-hot-toast'
 
 const resetPasswordSchema = z.object({
@@ -27,7 +27,6 @@ const resetPasswordSchema = z.object({
 type ResetPasswordData = z.infer<typeof resetPasswordSchema>
 
 function ResetPasswordContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   

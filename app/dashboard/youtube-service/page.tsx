@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { useAuth } from "@/contexts/AuthContext";
-import PageLoading from "@/components/dashboard/page-loading";
 import {
     Card,
     CardContent,
@@ -35,14 +34,13 @@ import {
     Loader2,
     Plus,
     Youtube,
-    Music,
 } from "lucide-react";
 import { YouTubeServiceRequest, updateYouTubeRequestStatus, YouTubeRequestStatus, buildYouTubeExportRows, getStatusLabel, getReleaseIdDisplay } from "@/lib/api/youtube-service";
 import { useYouTubeRequests } from "@/hooks/use-youtube-requests";
 import { isStaffUser } from "@/lib/permissions";
 import RequestModal from "@/components/dashboard/youtube-service/request-modal";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
-import { CheckCircle, XCircle, Ban, MessageSquare, Download, FileSpreadsheet } from "lucide-react";
+import { CheckCircle, Ban, MessageSquare, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const containerVariants = {

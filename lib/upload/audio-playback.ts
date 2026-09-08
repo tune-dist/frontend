@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AudioFile, Track, UploadFormData } from "@/components/dashboard/upload/types";
+import type { AudioFile, Track, UploadFormData } from "@/components/dashboard/upload/upload-form.schema";
 import { getSignedUrl } from "@/lib/api/s3";
 
 type FormAudio = UploadFormData["audioFile"] | AudioFile | null | undefined;

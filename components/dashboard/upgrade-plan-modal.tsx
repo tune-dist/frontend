@@ -78,7 +78,7 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
             }
             fetchPlans()
         }
-    }, [isOpen, currentPlanKey, targetPlanKey])
+    }, [isOpen, targetPlanKey])
 
     const isCurrentPlan = (plan: Plan) => {
         if (requireSelection) return false
@@ -97,7 +97,6 @@ export default function UpgradePlanModal({ isOpen, onClose, currentPlanKey = 'fr
         return current ? current.pricePerYear : 0
     })()
 
-    const isPlanUpgrade = (plan: Plan) => plan.pricePerYear > currentPlanPrice
     const isPlanDowngrade = (plan: Plan) =>
         !isCurrentPlan(plan) && !isEnterprisePlan(plan) && plan.pricePerYear < currentPlanPrice
 

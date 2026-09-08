@@ -9,18 +9,9 @@ import PageLoading from "@/components/dashboard/page-loading";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { TrendingUp, Music, ListMusic, Activity, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +19,6 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { isPlanInactiveError } from "@/lib/plan-inactive";
-import { formatReleaseStatus, getReleaseStatusColor } from "@/lib/release-status";
 import { ReleaseCoverArt } from "@/components/releases/release-cover-art";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import {
@@ -40,7 +30,7 @@ import {
   resolveTrendQueryParams,
 } from "@/lib/api/analytics";
 import { queryKeys } from "@/lib/query-keys";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/class-names";
 import { PLATFORM_COLORS } from "@/lib/platform-logos";
 import { PlatformLegendItem } from "@/components/analytics/platform-icon";
 import {
@@ -49,7 +39,6 @@ import {
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   ArcElement,
   Title,
   Tooltip,
@@ -63,7 +52,6 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   ArcElement,
   Title,
   Tooltip,
@@ -133,7 +121,7 @@ function formatStreamAxisTick(value: number | string) {
   return num.toLocaleString();
 }
 
-export default function DashboardPage() {
+export default function DashboardPageContent() {
   const { user } = useAuth();
   const { stats, latestReleases, topTracks, loading } = useDashboardData(6, 4);
   const userId = user?._id ?? "";
@@ -212,9 +200,6 @@ export default function DashboardPage() {
     });
     setTrendPeriod("custom");
   };
-
-  const getStatusColor = getReleaseStatusColor;
-  const formatStatus = formatReleaseStatus;
 
   if (loading) {
     return <PageLoading />;
@@ -695,58 +680,6 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
         </div>
-
-        <motion.div variants={itemVariants}>
-          <Card className="glass-card hidden">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Music className="h-5 w-5" />
-                Recent Releases
-              </CardTitle>
-              <CardDescription>Your latest music releases and their status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Artist</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {latestReleases.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                          No releases yet. Start by uploading your first track!
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      latestReleases.map((release) => (
-                        <TableRow key={release.id}>
-                          <TableCell className="font-medium">{release.title}</TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">{release.artistName}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
-                                release.status,
-                              )}`}
-                            >
-                              {formatStatus(release.status)}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
       </motion.div>
   );
 }

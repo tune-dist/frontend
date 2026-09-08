@@ -5,14 +5,12 @@ import {
   getPlatformBadge,
   getPlatformOpenUrl,
 } from "@/lib/releases/platform-release-links";
-import type { ReleasedOnPlatform } from "@/lib/releases/types";
+import type { ReleasedOnPlatform } from "@/lib/releases/release.types";
 
 interface PlatformReleaseIconsProps {
   platforms?: ReleasedOnPlatform[] | null;
   className?: string;
   iconClassName?: string;
-  /** @deprecated Logos are always filtered to known badge assets. */
-  iconsOnly?: boolean;
   /** Shown when no known-logo platforms remain (list cells). */
   emptyFallback?: ReactNode;
 }
@@ -41,20 +39,13 @@ export function PlatformReleaseIcons({
         const badge = getPlatformBadge(platform.key);
         const href = getPlatformOpenUrl(platform);
         const label = platform.name || badge?.name || platform.key;
-        const content = badge ? (
+        const content = (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={badge.logoUrl}
+            src={badge!.logoUrl}
             alt={label}
             className={`${iconClassName} rounded-full object-cover border border-border/60 bg-background`}
           />
-        ) : (
-          <span
-            className={`inline-flex ${iconClassName} items-center justify-center rounded-full bg-muted text-[9px] font-black uppercase`}
-            title={label}
-          >
-            {label.slice(0, 2)}
-          </span>
         );
 
         if (!href) {

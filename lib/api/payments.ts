@@ -37,6 +37,16 @@ export interface PaymentHistoryItem {
     createdAt: string;
 }
 
+export interface ActiveSubscriptionItem {
+    id: string;
+    planKey: string;
+    type: 'subscription' | 'addon';
+    status: 'active' | 'cancelled' | 'expired' | 'pending';
+    isRecurring: boolean;
+    startDate?: string;
+    endDate?: string | null;
+}
+
 /**
  * Create a Razorpay order or subscription for a plan purchase.
  *
@@ -108,11 +118,8 @@ export async function getPaymentHistory(): Promise<PaymentHistoryItem[]> {
     return response.data;
 }
 
-/**
- * Get specific payment details
- */
-export async function getPaymentById(paymentId: string): Promise<PaymentHistoryItem> {
-    const response = await apiClient.get<PaymentHistoryItem>(`/payments/${paymentId}`);
+export async function getActiveSubscriptions(): Promise<ActiveSubscriptionItem[]> {
+    const response = await apiClient.get<ActiveSubscriptionItem[]>('/payments/active-subscriptions');
     return response.data;
 }
 
@@ -128,7 +135,27 @@ export interface CancelSubscriptionResponse {
  * Cancel the user's main Razorpay subscription (cancel-at-end). Cascades to
  * deactivate every addon for the user — addons cannot outlive the main plan.
  */
-export async function cancelMainSubscription(): Promise<CancelSubscriptionResponse> {
-    const response = await apiClient.post<CancelSubscriptionResponse>('/payments/cancel-subscription', {});
+export async function cancelMainSubscription(
+    subscriptionId?: string,
+): Promise<CancelSubscriptionResponse> {
+    const response = await apiClient.post<CancelSubscriptionResponse>(
+        '/payments/cancel-subscription',
+        subscriptionId ? { subscriptionId } : {},
+    );
+    return response.data;
+}
+
+export interface ResumeSubscriptionResponse {
+    success: boolean;
+    message: string;
+}
+
+export async function resumeSubscription(
+    subscriptionId?: string,
+): Promise<ResumeSubscriptionResponse> {
+    const response = await apiClient.post<ResumeSubscriptionResponse>(
+        '/payments/resume-subscription',
+        subscriptionId ? { subscriptionId } : {},
+    );
     return response.data;
 }

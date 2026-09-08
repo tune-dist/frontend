@@ -3,6 +3,7 @@
 import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { exchangeOAuthCode } from '@/lib/api/auth'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -12,23 +13,26 @@ function CallbackContent() {
     const { loginWithToken } = useAuth()
 
     useEffect(() => {
-        const token = searchParams.get('token')
-        const refreshToken = searchParams.get('refresh_token')
+        const code = searchParams.get('code')
 
-        if (token) {
-            loginWithToken(token, refreshToken || undefined)
-                .then(() => {
-                    toast.success('Successfully logged in!')
-                })
-                .catch((error) => {
-                    console.error('Auth callback error:', error)
-                    toast.error('Authentication failed')
-                    router.push('/auth')
-                })
-        } else {
-            toast.error('No token found')
+        if (!code) {
+            toast.error('No authorization code found')
             router.push('/auth')
+            return
         }
+
+        exchangeOAuthCode(code)
+            .then(({ access_token, refresh_token }) =>
+                loginWithToken(access_token, refresh_token),
+            )
+            .then(() => {
+                toast.success('Successfully logged in!')
+            })
+            .catch((error) => {
+                console.error('Auth callback error:', error)
+                toast.error('Authentication failed')
+                router.push('/auth')
+            })
     }, [searchParams, loginWithToken, router])
 
     return (

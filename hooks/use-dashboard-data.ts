@@ -20,7 +20,6 @@ interface UseDashboardDataResult {
   latestReleases: DashboardLatestRelease[];
   topTracks: DashboardLatestRelease[];
   loading: boolean;
-  isFetching: boolean;
 }
 
 export function useDashboardData(
@@ -67,14 +66,10 @@ export function useDashboardData(
     enabled &&
     (statsQuery.isPending || latestQuery.isPending || topTracksQuery.isPending);
 
-  const isFetching =
-    statsQuery.isFetching || latestQuery.isFetching || topTracksQuery.isFetching;
-
   return {
     stats: statsQuery.data ?? null,
     latestReleases: latestQuery.data?.releases ?? [],
     topTracks: topTracksQuery.data?.releases ?? [],
     loading,
-    isFetching,
   };
 }

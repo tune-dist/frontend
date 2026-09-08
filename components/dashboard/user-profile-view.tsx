@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { User } from '@/lib/api/auth';
-import { formatPlanDisplayName } from '@/lib/utils';
+import { formatPlanDisplayName } from '@/lib/plans-display';
 import { getUserAccountStatus } from '@/lib/user-status';
 import { formatRoleLabel, formatPermissionLabel } from '@/lib/rbac-labels';
 import { getDisplayUrl } from '@/lib/api/s3';

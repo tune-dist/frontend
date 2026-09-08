@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, useAnimationFrame, useMotionValue } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useTestimonials } from '@/lib/api/testimonials'
-import TestiCard from './TestiCard'
+import TestimonialCard from './testimonial-card'
 
 export default function Testimonials() {
   const { testimonials, loading } = useTestimonials()
@@ -75,7 +75,7 @@ export default function Testimonials() {
           key={testimonial._id}
           className="w-[calc(100vw-48px)] sm:w-[350px] md:w-[400px] shrink-0 px-2"
         >
-          <TestiCard testimonial={testimonial} />
+          <TestimonialCard testimonial={testimonial} />
         </div>
       ))}
     </>

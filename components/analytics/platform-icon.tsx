@@ -1,11 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/class-names";
 import {
   getPlatformColor,
   getPlatformLogo,
-  PlatformDspKey,
   PlatformMeta,
 } from "@/lib/platform-logos";
 
@@ -140,5 +139,3 @@ export function PlatformLegendItem({ dsp, label, className }: PlatformLegendItem
     </div>
   );
 }
-
-export type { PlatformDspKey };

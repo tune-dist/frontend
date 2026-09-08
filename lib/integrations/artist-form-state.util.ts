@@ -1,5 +1,5 @@
 import type { UseFormSetValue } from 'react-hook-form';
-import type { UploadFormData } from '@/components/dashboard/upload/types';
+import type { UploadFormData } from '@/components/dashboard/upload/upload-form.schema';
 
 /** Clear platform + social fields for the main artist (roster switch / change artist). */
 export function clearMainArtistFormProfiles(

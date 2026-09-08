@@ -1,5 +1,5 @@
 import { PLATFORM_BADGES } from '@/config/platform-badges';
-import type { ReleasedOnPlatform } from '@/lib/releases/types';
+import type { ReleasedOnPlatform } from '@/lib/releases/release.types';
 
 /** Resolve badge asset for a COSMOS-synced platform key (exact id match only). */
 export function getPlatformBadge(platformKey: string) {

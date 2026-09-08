@@ -57,7 +57,7 @@ function matchesInquirySearch(inquiry: ContactInquiry, query: string) {
   ].some((field) => field.toLowerCase().includes(q));
 }
 
-export default function ContactInquiriesPage() {
+export default function InquiriesPageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [inquiries, setInquiries] = useState<ContactInquiry[]>([]);

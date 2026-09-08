@@ -1,6 +1,5 @@
 import apiClient from '../api-client';
 
-export type StreamImportStatus = 'processing' | 'completed' | 'failed';
 export type StreamImportFormat = 'long' | 'wide';
 
 export interface StreamImportRecord {
@@ -21,42 +20,6 @@ export interface StreamImportRecord {
   matched: boolean;
   uploadedAt: string;
   createdAt: string;
-}
-
-export interface StreamBulkImport {
-  id: string;
-  originalFilename: string;
-  uploadedBy?: string;
-  status: StreamImportStatus;
-  totalRows: number;
-  importedRows: number;
-  skippedRows: number;
-  matchedRows: number;
-  unmatchedRows: number;
-  batchCount: number;
-  importFormat?: StreamImportFormat;
-  dayLabels?: string[];
-  errorMessage?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface StreamImportBatchSummary {
-  id: string;
-  importKey: string;
-  dsp: string;
-  dataDate: string;
-  status: StreamImportStatus;
-  totalRows: number;
-  matchedRows: number;
-  unmatchedRows: number;
-  skippedLines: number;
-  errorMessage?: string;
-}
-
-export interface StreamBulkImportDetail extends StreamBulkImport {
-  records: StreamImportRecord[];
-  batches: StreamImportBatchSummary[];
 }
 
 export interface StreamImportListResponse {
@@ -99,11 +62,6 @@ export const streamImportsApi = {
     const response = await apiClient.get<StreamImportListResponse>('/admin/stream-imports', {
       params: { page, limit, search: search?.trim() || undefined },
     });
-    return response.data;
-  },
-
-  getById: async (id: string): Promise<StreamBulkImportDetail> => {
-    const response = await apiClient.get<StreamBulkImportDetail>(`/admin/stream-imports/${id}`);
     return response.data;
   },
 

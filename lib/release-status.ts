@@ -44,6 +44,16 @@ export function isPromotableRelease(status: string): boolean {
   );
 }
 
+/** True when a release is in the distribution pipeline (platform column fallback). */
+export function isReleaseOnDistributionPlatforms(status: string): boolean {
+  return (
+    status === 'Submitted' ||
+    status === 'In Process' ||
+    status === LEGACY_APPROVED ||
+    status === 'Released'
+  );
+}
+
 export const RM_EDITABLE_RELEASE_STATUSES: ReleaseStatus[] = ['Draft', 'In Process'];
 
 export function isRmEditableRelease(status: string): boolean {

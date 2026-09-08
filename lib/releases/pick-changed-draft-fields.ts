@@ -1,4 +1,4 @@
-import type { CreateReleaseDraftRequest, DraftTrack, ReleaseType } from './types';
+import type { CreateReleaseDraftRequest, DraftTrack, ReleaseType } from './release.types';
 
 /** Mirrors backend RELEASE_WRITE_DIFF_KEYS — top-level Mongo keys PUT may change. */
 export const RELEASE_WRITE_DIFF_KEYS = [

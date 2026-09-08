@@ -2,7 +2,7 @@
 
 import { Music } from 'lucide-react';
 import { S3Image } from '@/components/ui/s3-image';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/class-names';
 
 interface ReleaseCoverArtProps {
   coverArtUrl?: string | null;

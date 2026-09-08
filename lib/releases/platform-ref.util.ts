@@ -1,4 +1,4 @@
-import type { AppleMusicPlatformRef, ArtistProfiles, PlatformRef } from './types';
+import type { AppleMusicPlatformRef, ArtistProfiles, PlatformRef } from './release.types';
 
 const SENTINEL_VALUES = new Set(['yes', 'no', 'new']);
 
@@ -8,14 +8,6 @@ export function ensureExternalSocialUrl(url?: string | null): string | undefined
   if (!trimmed || SENTINEL_VALUES.has(trimmed.toLowerCase())) return undefined;
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
-}
-
-/** @deprecated Prefer ensureExternalSocialUrl(profileUrl). Kept for stale bundles. */
-export function resolveSocialProfileUrl(
-  _profile: unknown,
-  profileUrl?: string | null,
-): string | undefined {
-  return ensureExternalSocialUrl(profileUrl);
 }
 
 /** Normalize flat profile values (string URL, rich object, or sentinel) to v2 PlatformRef. */

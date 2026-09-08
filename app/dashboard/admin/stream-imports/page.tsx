@@ -31,7 +31,7 @@ import {
 } from '@/lib/api/stream-imports';
 import { PageSearchBar, PageSearchSection } from '@/components/dashboard/page-search-bar';
 
-export default function StreamImportsPage() {
+export default function StreamImportsPageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -1,6 +1,6 @@
 import type { UseFormSetError, FieldPath } from 'react-hook-form';
 import { extractApiFieldErrors, type ApiFieldError } from './get-error-message';
-import type { UploadFormData } from '@/components/dashboard/upload/types';
+import type { UploadFormData } from '@/components/dashboard/upload/upload-form.schema';
 
 const API_TO_FORM_FIELD: Record<string, FieldPath<UploadFormData>> = {
   releaseType: 'format',

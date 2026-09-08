@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Mail, Phone, MapPin, Music, Instagram, Twitter, Youtube, Linkedin } from 'lucide-react'
+import { Mail, MapPin, Instagram, Youtube, Linkedin } from 'lucide-react'
 
 const SpotifyIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -48,7 +48,6 @@ export default function Footer() {
 
   const contactDetails = [
     { icon: Mail, text: 'info@kratolib.com', href: 'mailto:info@kratolib.com' },
-    // { icon: Phone, text: '02717448117', href: 'tel:+02717448117' },
     { icon: MapPin, text: '4044, The Retail Park, Rajyash City,<br /> Bopal, Ahmedabad, Gujarat - 380058', href: 'https://maps.app.goo.gl/cBdE7266yixTmdHA6' },
   ]
 

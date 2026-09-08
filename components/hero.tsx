@@ -1,9 +1,8 @@
 'use client'
 
 import { motion, useReducedMotion } from 'framer-motion'
-import { useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Play, Music2, Music, Youtube, Instagram, DollarSign, Copyright, Diamond } from 'lucide-react'
+import { ArrowRight, Play } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -98,20 +97,6 @@ const OrbitIcon = ({ angle, radius, color, icon: Icon, size = 48, orbitSpeed, de
 };
 
 const OrbitalAnimation = () => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = true;
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // Autoplay was prevented — silently ignore
-      });
-    }
-  }, []);
-
   return (
     <div className="relative w-full aspect-square flex items-center justify-center max-w-[500px] mx-auto scale-75 sm:scale-90 lg:scale-100">
       {/* Central Logo */}
@@ -120,23 +105,7 @@ const OrbitalAnimation = () => {
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
-        {/* <Music2 className="text-white w-1/2 h-1/2" /> */}
         <img src="/assets/images/globe-kratolib.gif" alt="" className='w-full h-full object-cover scale-[1.28]' />
-        {/* <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          poster="/assets/videos/globe-poster.jpg"
-          controls={false}
-          preload="auto"
-          disablePictureInPicture
-          disableRemotePlayback
-          className="w-full h-full object-cover scale-[1.28] pointer-events-none hidden"
-        >
-          <source src="/assets/videos/globe-krato-hero.mp4" type="video/mp4" />
-        </video> */}
         {/* Subtle glow rings */}
         <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-20" />
       </motion.div>
@@ -265,7 +234,6 @@ export default function Hero() {
           </div>
         </Link>
       </motion.div>
-      {/* <div className='hero_bg_gredient'></div> */}
     </section>
   )
 }

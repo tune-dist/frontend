@@ -1,4 +1,4 @@
-import TermsContent from '@/components/TermsContent'
+import TermsContent from '@/components/terms-page-content'
 import { createPageMetadata } from '@/lib/site-metadata'
 
 export const metadata = createPageMetadata(

@@ -1,5 +1,5 @@
-import type { UploadFormData, AudioFile, Track } from '@/components/dashboard/upload/types';
-import type { ReleaseDetailResponse } from './types';
+import type { UploadFormData, AudioFile, Track } from '@/components/dashboard/upload/upload-form.schema';
+import type { ReleaseDetailResponse } from './release.types';
 import { toReleaseDetailResponse } from './release-document.mapper';
 import { profilesToFormFields } from './platform-ref.util';
 import { getDefaultLabelName } from '@/lib/validation/label-name';

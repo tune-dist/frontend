@@ -1,40 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { tokenKey } from './lib/config';
 
-// Define protected routes
-const protectedRoutes = ['/dashboard'];
-
-export function middleware(request: NextRequest) {
-    const token = request.cookies.get(tokenKey)?.value;
-    const { pathname } = request.nextUrl;
-
-    // Check if the requested path is a protected route
-    const isProtectedRoute = protectedRoutes.some((route) =>
-        pathname.startsWith(route)
-    );
-
-    // If it's a protected route and no token exists, redirect to login
-    if (isProtectedRoute && !token) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/auth';
-        url.searchParams.set('redirect', pathname); // Optional: preserve redirect
-        return NextResponse.redirect(url);
-    }
-
-    return NextResponse.next();
+// Auth is enforced client-side (AuthContext + ProtectedRoute).
+// Server middleware cannot reliably read js-cookie session state on every
+// refresh, so we do not redirect here — avoids false logouts on hard refresh.
+export function middleware(_request: NextRequest) {
+  return NextResponse.next();
 }
 
 export const config = {
-    matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - api (API routes)
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * - auth (authentication routes)
-         */
-        '/dashboard/:path*',
-    ],
+  matcher: ['/dashboard/:path*'],
 };

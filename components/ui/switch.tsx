@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/class-names"
 
 interface SwitchProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     checked?: boolean

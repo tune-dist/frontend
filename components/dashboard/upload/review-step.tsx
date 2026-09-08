@@ -1,4 +1,4 @@
-import { UploadFormData, MandatoryChecks } from './types'
+import { UploadFormData, MandatoryChecks } from './upload-form.schema'
 import { useFormContext } from 'react-hook-form'
 import {
     Music,
@@ -18,7 +18,7 @@ import {
     Layers,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { isReleaseNoLyrics } from './genre-language'

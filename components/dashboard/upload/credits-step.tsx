@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UploadFormData, Songwriter, Track } from "./types";
+import { UploadFormData, Track } from "./upload-form.schema";
 import { useFormContext, useFieldArray, Controller } from "react-hook-form";
 import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
 import { Music, Pencil, Trash2, Info } from "lucide-react";
@@ -15,12 +15,12 @@ import {
 } from "@/lib/api/genres";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
-import WaveformTrimmer from "./WaveformTrimmer";
+import WaveformTrimmer from "./waveform-trimmer";
 import { isTrackEligibleForCrbt } from "./crbt-validation";
 import { LEGAL_PERSON_NAME_COMPOSER_HINT, LEGAL_PERSON_NAME_HINT } from "@/lib/validation/legal-person-name";
 import { useResolvedCrbtPlayback } from "@/lib/upload/audio-playback";
 import { IsrcCodeSection, type IsrcMode } from "./isrc-code-section";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/class-names";
 import {
   INSTRUMENTAL_LANGUAGE,
   filterGenresForInstrumentalChoice,

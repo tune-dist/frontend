@@ -11,7 +11,7 @@ import {
   releaseToWriteSnapshot,
   type ReleaseWriteSnapshot,
 } from './pick-changed-draft-fields';
-import type { CreateReleaseDraftRequest, MongoReleaseDocument } from './types';
+import type { CreateReleaseDraftRequest, MongoReleaseDocument } from './release.types';
 
 /** Realistic single saved in Mongo — root fields duplicated on tracks[0]. */
 function buildSavedSingle(

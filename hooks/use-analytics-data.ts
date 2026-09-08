@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { isPlanInactiveError } from "@/lib/plan-inactive";
 import {
-  BreakdownDimension,
   BreakdownResponse,
   getBreakdown,
   getStreamingTrends,
@@ -33,11 +32,6 @@ interface UseAnalyticsDataResult {
   genres: BreakdownResponse | null;
   loading: boolean;
   trendsLoading: boolean;
-  refreshTrends: (filters: TrendFilters) => Promise<void>;
-  refreshBreakdown: (
-    dimension: BreakdownDimension,
-    limit: number,
-  ) => Promise<BreakdownResponse | null>;
 }
 
 function fetchTrends(filters: TrendFilters) {
@@ -55,7 +49,6 @@ export function useAnalyticsData(
   genreLimit = 7,
 ): UseAnalyticsDataResult {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const userId = user?._id ?? "";
   const enabled = !!userId;
 
@@ -99,42 +92,6 @@ export function useAnalyticsData(
     }
   }, [trendsQuery.isError, trendsQuery.error]);
 
-  const refreshTrends = useCallback(
-    async (filters: TrendFilters) => {
-      if (!userId) return;
-      await queryClient.fetchQuery({
-        queryKey: queryKeys.analytics.trends(
-          userId,
-          filters.period,
-          filters.dsp,
-          filters.startDate,
-          filters.endDate,
-        ),
-        queryFn: () => fetchTrends(filters),
-      });
-    },
-    [queryClient, userId],
-  );
-
-  const refreshBreakdown = useCallback(
-    async (dimension: BreakdownDimension, limit: number) => {
-      if (!userId) return null;
-      try {
-        return await queryClient.fetchQuery({
-          queryKey: queryKeys.analytics.breakdown(userId, dimension, limit),
-          queryFn: () => getBreakdown(dimension, limit),
-        });
-      } catch (error) {
-        if (!isPlanInactiveError(error)) {
-          toast.error(getErrorMessage(error, `Failed to load ${dimension} breakdown`));
-        }
-        console.error(error);
-        return null;
-      }
-    },
-    [queryClient, userId],
-  );
-
   const loading =
     enabled &&
     trendsQuery.isPending &&
@@ -149,8 +106,6 @@ export function useAnalyticsData(
     genres: genresQuery.data ?? null,
     loading,
     trendsLoading,
-    refreshTrends,
-    refreshBreakdown,
   };
 }
 

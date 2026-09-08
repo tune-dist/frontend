@@ -1,19 +1,9 @@
 'use client'
 
 import Lenis from 'lenis'
-import { useEffect, useRef, createContext, useContext, ReactNode } from 'react'
+import { useEffect, ReactNode } from 'react'
 
-// ── Context so any child can access the Lenis instance if needed ──────────────
-const LenisContext = createContext<Lenis | null>(null)
-
-export function useLenis() {
-    return useContext(LenisContext)
-}
-
-// ── Provider ──────────────────────────────────────────────────────────────────
 export default function SmoothScrollProvider({ children }: { children: ReactNode }) {
-    const lenisRef = useRef<Lenis | null>(null)
-
     useEffect(() => {
         // iOS/touch devices have native momentum scroll — Lenis conflicts with it
         const isTouchDevice = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
@@ -28,8 +18,6 @@ export default function SmoothScrollProvider({ children }: { children: ReactNode
             wheelMultiplier: 1,
             touchMultiplier: 2,
         })
-
-        lenisRef.current = lenis
 
         // RAF loop
         let rafId: number
@@ -64,9 +52,5 @@ export default function SmoothScrollProvider({ children }: { children: ReactNode
         }
     }, [])
 
-    return (
-        <LenisContext.Provider value={lenisRef.current}>
-            {children}
-        </LenisContext.Provider>
-    )
+    return children
 }

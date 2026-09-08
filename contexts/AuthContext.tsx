@@ -7,6 +7,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { User, login as apiLogin, register as apiRegister, getMe, forgotPassword as apiForgotPassword, resetPassword as apiResetPassword, verifyOtp as apiVerifyOtp, resendOtp as apiResendOtp, LoginResponse } from '@/lib/api/auth';
 import { config } from '@/lib/config';
 import { AUTH_USER_UPDATED_EVENT } from '@/lib/auth-session';
+import {
+  clearAuthCookies,
+  getCachedUser,
+  hasAuthToken,
+  setAuthTokens,
+  setAuthUserCookie,
+} from '@/lib/auth-cookies';
 
 interface AuthContextType {
   user: User | null;
@@ -28,34 +35,65 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // Check if user is authenticated on mount
-  useEffect(() => {
-    const initAuth = async () => {
-      const token = Cookies.get(config.tokenKey);
+  const logout = React.useCallback(() => {
+    clearAuthCookies();
+    setUser(null);
+    setIsAuthenticated(false);
+    queryClient.clear();
+    router.push('/auth');
+  }, [queryClient, router]);
 
-      if (token) {
-        try {
-          const userData = await getMe();
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrapAuth = async () => {
+      const token = Cookies.get(config.tokenKey);
+      const cachedUser = getCachedUser();
+      const authenticated = Boolean(token);
+
+      if (!cancelled) {
+        setIsAuthenticated(authenticated);
+        if (cachedUser) {
+          setUser(cachedUser);
+        } else if (!token) {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        const userData = await getMe();
+        if (!cancelled) {
           setUser(userData);
-        } catch (error: any) {
-          // Only clear session if it's a 401/403 (unauthorized/forbidden)
-          // If it's a network error or server error, don't logout automatically
-          if (error.response?.status === 401 || error.response?.status === 403) {
-            Cookies.remove(config.tokenKey);
-            Cookies.remove('refresh_token');
+          setIsAuthenticated(true);
+          setAuthUserCookie(userData);
+        }
+      } catch (error: unknown) {
+        const status = (error as { response?: { status?: number } })?.response?.status;
+        if ((status === 401 || status === 403) && !cancelled) {
+          if (!cachedUser) {
+            clearAuthCookies();
             setUser(null);
+            setIsAuthenticated(false);
             queryClient.clear();
           }
         }
       }
-
-      setLoading(false);
     };
 
-    initAuth();
+    bootstrapAuth();
+
+    return () => {
+      cancelled = true;
+    };
   }, [queryClient]);
 
   useEffect(() => {
@@ -63,6 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const detail = (event as CustomEvent<User>).detail;
       if (detail) {
         setUser(detail);
+        setIsAuthenticated(true);
       }
     };
 
@@ -71,163 +110,83 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = React.useCallback(async (email: string, password: string, redirectUrl?: string) => {
-    try {
-      const response = await apiLogin({ email, password });
+    const response = await apiLogin({ email, password });
 
-      if (response.requireOtp) {
-        return response;
-      }
-
-      // If no OTP required (legacy or OAuth direct), store tokens
-      if (response.access_token && response.refresh_token && response.user) {
-        // Store tokens in cookie
-        Cookies.set(config.tokenKey, response.access_token, {
-          expires: 7, // 7 days
-          sameSite: 'lax',
-        });
-
-        Cookies.set('refresh_token', response.refresh_token, {
-          expires: 7,
-          sameSite: 'lax',
-        });
-
-        // Store user info in cookie for subscription page
-        Cookies.set('user', JSON.stringify(response.user), {
-          expires: 7,
-          sameSite: 'lax',
-        });
-
-        setUser(response.user);
-        router.push(redirectUrl || '/dashboard');
-      }
+    if (response.requireOtp) {
       return response;
-    } catch (error) {
-      throw error;
     }
+
+    if (response.access_token && response.refresh_token && response.user) {
+      setAuthTokens(response.access_token, response.refresh_token);
+      setAuthUserCookie(response.user);
+      setUser(response.user);
+      setIsAuthenticated(true);
+      router.push(redirectUrl || '/dashboard');
+    }
+    return response;
   }, [router]);
 
   const verifyOtp = React.useCallback(async (email: string, otp: string, redirectUrl?: string) => {
-    try {
-      const response = await apiVerifyOtp({ email, otp });
+    const response = await apiVerifyOtp({ email, otp });
 
-      // Store tokens in cookie
-      Cookies.set(config.tokenKey, response.access_token, {
-        expires: 7, // 7 days
-        sameSite: 'lax',
-      });
-
-      Cookies.set('refresh_token', response.refresh_token, {
-        expires: 7,
-        sameSite: 'lax',
-      });
-
-      // Store user info in cookie for subscription page
-      Cookies.set('user', JSON.stringify(response.user), {
-        expires: 7,
-        sameSite: 'lax',
-      });
-
-      setUser(response.user);
-      router.push(redirectUrl || '/dashboard');
-    } catch (error) {
-      throw error;
-    }
+    setAuthTokens(response.access_token, response.refresh_token);
+    setAuthUserCookie(response.user);
+    setUser(response.user);
+    setIsAuthenticated(true);
+    router.push(redirectUrl || '/dashboard');
   }, [router]);
 
   const register = React.useCallback(async (email: string, password: string, fullName: string, _role?: string, googleId?: string, spotifyId?: string, avatar?: string, redirectUrl?: string, verificationToken?: string) => {
-    try {
-      const response = await apiRegister({ email, password, fullName, googleId, spotifyId, avatar, verificationToken });
+    const response = await apiRegister({ email, password, fullName, googleId, spotifyId, avatar, verificationToken });
 
-      // If registration returns tokens, log the user in directly (skipping OTP)
-      if (response.access_token && response.refresh_token) {
-        // Store tokens in cookie
-        Cookies.set(config.tokenKey, response.access_token, {
-          expires: 7, // 7 days
-          sameSite: 'lax',
-        });
-
-        Cookies.set('refresh_token', response.refresh_token, {
-          expires: 7,
-          sameSite: 'lax',
-        });
-
-        // Store user info in cookie for subscription page
-        Cookies.set('user', JSON.stringify(response.user), {
-          expires: 7,
-          sameSite: 'lax',
-        });
-
-        setUser(response.user);
-        router.push(redirectUrl || '/dashboard');
-      } else {
-        // Fallback to login if no tokens returned (should not happen with new backend)
-        await login(email, password, redirectUrl);
-      }
-    } catch (error) {
-      throw error;
+    if (response.access_token && response.refresh_token) {
+      setAuthTokens(response.access_token, response.refresh_token);
+      setAuthUserCookie(response.user);
+      setUser(response.user);
+      setIsAuthenticated(true);
+      router.push(redirectUrl || '/dashboard');
+    } else {
+      await login(email, password, redirectUrl);
     }
   }, [login, router]);
 
-  const logout = React.useCallback(() => {
-    Cookies.remove(config.tokenKey);
-    Cookies.remove('refresh_token');
-    Cookies.remove('user');
-    setUser(null);
-    queryClient.clear();
-    router.push('/auth');
-  }, [queryClient, router]);
-
   const refreshUser = React.useCallback(async () => {
+    if (!hasAuthToken()) return;
+
     try {
       const userData = await getMe();
       setUser(userData);
-      // Keep the 'user' cookie in sync so other surfaces (e.g. subscription page
-      // reading from cookie) see the latest data including extraArtistSlots.
-      Cookies.set('user', JSON.stringify(userData), {
-        expires: 7,
-        sameSite: 'lax',
-      });
-    } catch (error) {
-      // If refresh fails, logout
-      logout();
+      setIsAuthenticated(true);
+      setAuthUserCookie(userData);
+    } catch (error: unknown) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 401 || status === 403) {
+        const cachedUser = getCachedUser();
+        if (!cachedUser) {
+          logout();
+        }
+      }
     }
   }, [logout]);
 
   const loginWithToken = React.useCallback(async (token: string, refreshToken?: string) => {
-    try {
-      // Store tokens in cookie
-      Cookies.set(config.tokenKey, token, {
-        expires: 7, // 7 days
-        sameSite: 'lax',
-      });
+    setAuthTokens(token, refreshToken);
 
-      if (refreshToken) {
-        Cookies.set('refresh_token', refreshToken, {
-          expires: 7,
-          sameSite: 'lax',
-        });
-      }
-
-      const userData = await getMe();
-      setUser(userData);
-      router.push('/dashboard');
-    } catch (error) {
-      throw error;
-    }
+    const userData = await getMe();
+    setUser(userData);
+    setIsAuthenticated(true);
+    setAuthUserCookie(userData);
+    router.push('/dashboard');
   }, [router]);
 
   const resendOtp = React.useCallback(async (email: string) => {
-    try {
-      await apiResendOtp({ email });
-    } catch (error) {
-      throw error;
-    }
+    await apiResendOtp({ email });
   }, []);
 
   const value = React.useMemo(() => ({
     user,
     loading,
-    isAuthenticated: !!user,
+    isAuthenticated,
     login,
     register,
     logout,
@@ -237,7 +196,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     resetPassword: apiResetPassword,
     verifyOtp,
     resendOtp,
-  }), [user, loading, login, register, logout, refreshUser, loginWithToken, verifyOtp, resendOtp]);
+  }), [user, loading, isAuthenticated, login, register, logout, refreshUser, loginWithToken, verifyOtp, resendOtp]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
@@ -249,4 +208,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

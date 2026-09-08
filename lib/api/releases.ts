@@ -413,10 +413,6 @@ export const updateRelease = async (
   return normalizeRelease(payload);
 };
 
-
-
-
-
 // Delete release (draft only)
 export const deleteRelease = async (
   id: string
@@ -424,12 +420,6 @@ export const deleteRelease = async (
   const response = await apiClient.delete<{ message: string }>(
     `/releases/${id}`
   );
-  return response.data;
-};
-
-// Approve release (Admin only)
-export const approveRelease = async (id: string): Promise<Release> => {
-  const response = await apiClient.post<Release>(`/releases/${id}/approve`);
   return response.data;
 };
 
@@ -488,8 +478,6 @@ export const pdlSubmit = async (id: string, data: any = {}): Promise<any> => {
   const response = await apiClient.post(`/releases/${id}/pdl-submit`, data);
   return response.data;
 };
-
-
 
 // Get artist usage
 export const getArtistUsage = async (): Promise<{ artists: any[] }> => {
