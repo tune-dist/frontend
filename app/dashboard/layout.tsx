@@ -14,11 +14,13 @@ import { useState, useEffect } from 'react'
 import { dispatchAuthUserUpdated } from '@/lib/auth-session'
 import { setAuthUserCookie } from '@/lib/auth-cookies'
 import { config } from '@/lib/config'
+import { isPlanExemptUser } from '@/lib/plan-access'
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { isUpgradeModalOpen, closeUpgradeModal, isSidebarCollapsed } = useUI()
   const { user, refreshUser } = useAuth()
-  const needsPlanSelection = user?.planSelected === false
+  const needsPlanSelection =
+    user?.planSelected === false && !isPlanExemptUser(user)
   const needsPhoneVerification = Boolean(
     user && !user.isPhoneVerified && !user.isPhoneNumberVerified,
   )
@@ -29,7 +31,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [daysRemaining, setDaysRemaining] = useState(0)
 
   useEffect(() => {
-    if (user?.planEndDate) {
+    if (!user?.planEndDate || isPlanExemptUser(user)) {
+      return
+    }
       const expiryDate = new Date(user.planEndDate)
       const now = new Date()
 
@@ -52,7 +56,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           }
         }
       }
-    }
   }, [user])
 
   const handleCloseExpiringSoon = () => {

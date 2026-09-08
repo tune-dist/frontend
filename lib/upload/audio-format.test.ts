@@ -12,6 +12,23 @@ describe('validateWavAudioSpecs', () => {
     expect(validateWavAudioSpecs({ ...base, channels: 2 }).valid).toBe(true);
   });
 
+  it('accepts 16-bit WAV at 48kHz', () => {
+    expect(
+      validateWavAudioSpecs({ sampleRate: 48000, bitDepth: 16, channels: 2 })
+        .valid,
+    ).toBe(true);
+  });
+
+  it('rejects 16-bit WAV at unsupported HD sample rates', () => {
+    const result = validateWavAudioSpecs({
+      sampleRate: 96000,
+      bitDepth: 16,
+      channels: 2,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/44\.1kHz or 48kHz/);
+  });
+
   it('rejects multi-channel WAV', () => {
     const result = validateWavAudioSpecs({ ...base, channels: 6 });
     expect(result.valid).toBe(false);

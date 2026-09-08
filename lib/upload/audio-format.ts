@@ -1,6 +1,6 @@
 export const ALLOWED_WAV_BIT_DEPTHS = [16, 24] as const;
 export const ALLOWED_WAV_CHANNELS = [1, 2] as const;
-export const ALLOWED_16BIT_SAMPLE_RATES_HZ = [44100] as const;
+export const ALLOWED_16BIT_SAMPLE_RATES_HZ = [44100, 48000] as const;
 export const ALLOWED_24BIT_SAMPLE_RATES_HZ = [44100, 48000, 88200, 96000, 192000] as const;
 
 export function isAllowedWavBitDepth(bitDepth: number): boolean {
@@ -29,7 +29,7 @@ export function validateWavAudioSpecs(params: {
     if (!(ALLOWED_16BIT_SAMPLE_RATES_HZ as readonly number[]).includes(sampleRate)) {
       return {
         valid: false,
-        error: `This file is ${sampleRate.toLocaleString()}Hz. 16-bit WAV files must be 44.1kHz (44,100Hz). Re-export at the correct sample rate and try again.`,
+        error: `This file is ${sampleRate.toLocaleString()}Hz. 16-bit WAV files must be 44.1kHz or 48kHz. Re-export at a supported sample rate and try again.`,
       };
     }
   } else if (bitDepth === 24) {

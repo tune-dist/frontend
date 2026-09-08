@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip } from '@/components/ui/tooltip'
 import { getGenres, getSubGenresByGenreId, type Genre, type SubGenre } from '@/lib/api/genres'
 import { useAuth } from '@/contexts/AuthContext'
+import { resolveEffectivePlanKey, isEffectiveFreePlan } from '@/lib/plan-access'
 import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
 import WaveformTrimmer from './waveform-trimmer'
@@ -660,7 +661,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 // Check if total would exceed limit
                 const totalUsedCount = usedArtists.length;
                 if ((totalUsedCount + newArtistsCount) > totalAllowedArtists) {
-                    const planKey = (user?.plan as string) || 'free';
+                    const planKey = resolveEffectivePlanKey(user);
                     const planName = planKey === 'creator_plus' ? 'Creator+' : planKey.charAt(0).toUpperCase() + planKey.slice(1);
                     toast.error(`You have reached your artist limit (${totalAllowedArtists}) for the ${planName} plan.`);
                     return;
@@ -820,7 +821,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         value={isrc}
                         onChange={handleISRCChange}
                         error={isrcError}
-                        isFreePlan={user?.plan === 'free'}
+                        isFreePlan={isEffectiveFreePlan(user)}
                         onFreePlanAttempt={() =>
                             toast.error('Upgrade to paid plan to use custom ISRC', { id: 'isrc-warning' })
                         }

@@ -21,6 +21,7 @@ import { saveReleaseMetadata } from '@/lib/api/users'
 import { getErrorMessage } from '@/lib/get-error-message'
 import { dispatchAuthUserUpdated } from '@/lib/auth-session'
 import { setAuthUserCookie } from '@/lib/auth-cookies'
+import { isEffectiveFreePlan, isPlanExemptUser } from '@/lib/plan-access'
 
 export default function ReleaseMetadataBlock() {
   const { user } = useAuth()
@@ -34,13 +35,15 @@ export default function ReleaseMetadataBlock() {
   const [isSaving, setIsSaving] = useState(false)
 
   const planKey = user?.plan || 'free'
-  const isFreePlan = planKey === 'free'
+  const isStaffUser = isPlanExemptUser(user)
+  const isFreePlan = isEffectiveFreePlan(user)
   const defaultLabel = getDefaultLabelName()
-  const isLocked = isFreePlan || Boolean(user?.releaseMetadataLocked)
-  const canSave = !isFreePlan && !user?.releaseMetadataLocked
+  const isLocked =
+    isFreePlan || (Boolean(user?.releaseMetadataLocked) && !isStaffUser)
+  const canSave = !isFreePlan && (isStaffUser || !user?.releaseMetadataLocked)
   const hasSavedMetadata = Boolean(user?.savedLabelName)
-  const isFirstTimePaidSetup = canSave && !hasSavedMetadata
-  const isPaidUpgradeReedit = canSave && hasSavedMetadata
+  const isFirstTimePaidSetup = !isStaffUser && canSave && !hasSavedMetadata
+  const isPaidUpgradeReedit = !isStaffUser && canSave && hasSavedMetadata
 
   const handleSave = async (event?: React.MouseEvent<HTMLButtonElement>) => {
     event?.preventDefault()
@@ -60,7 +63,11 @@ export default function ReleaseMetadataBlock() {
       const updatedUser = await saveReleaseMetadata({ labelName, copyright, publisher })
       setAuthUserCookie(updatedUser)
       dispatchAuthUserUpdated(updatedUser)
-      toast.success('Saved. These values are now locked for all your releases.')
+      toast.success(
+        isStaffUser
+          ? 'Label, C-Line, and P-Line saved.'
+          : 'Saved. These values are now locked for all your releases.',
+      )
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to save release metadata'))
     } finally {
@@ -90,7 +97,9 @@ export default function ReleaseMetadataBlock() {
             )}
           </h4>
           <p className="text-sm text-muted-foreground mt-1">
-            Set once for all your releases. Free plan uses the default label.
+            {isStaffUser
+              ? 'Update label and copyright defaults for your releases. Staff accounts can change these anytime.'
+              : 'Set once for all your releases. Free plan uses the default label.'}
           </p>
         </div>
         <Button
@@ -196,6 +205,8 @@ export default function ReleaseMetadataBlock() {
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving…
                 </>
+              ) : isStaffUser ? (
+                'Save'
               ) : (
                 'Save & Lock'
               )}

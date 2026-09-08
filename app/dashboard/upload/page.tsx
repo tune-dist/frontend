@@ -74,6 +74,7 @@ import {
 } from "@/lib/api/plans";
 import { canEditReleases, hasPermission } from "@/lib/permissions";
 import { isRmEditableRelease } from "@/lib/release-status";
+import { resolveEffectivePlanKey, isPlanExemptUser } from "@/lib/plan-access";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -381,7 +382,7 @@ export default function UploadPage() {
         .catch((err) => console.error("Failed to fetch artist usage", err));
 
       // Fetch field rules
-      const planKey = (user.plan as string) || "free";
+      const planKey = resolveEffectivePlanKey(user);
       getPlanFieldRules(planKey)
         .then((rules) => {
           setFieldRules(rules);
@@ -522,7 +523,7 @@ export default function UploadPage() {
         case 1: {
           // Basic Info
           // Fetch plan data first to know what fields are required
-          const planKey = (user?.plan as string) || "free";
+          const planKey = resolveEffectivePlanKey(user);
           const [limits, fieldRules] = await Promise.all([
             getPlanLimits(planKey),
             getPlanFieldRules(planKey),
@@ -541,7 +542,7 @@ export default function UploadPage() {
           }
 
           const isPaidPlan = planKey !== "free";
-          if (isPaidPlan && !user?.releaseMetadataLocked) {
+          if (isPaidPlan && !user?.releaseMetadataLocked && !isPlanExemptUser(user)) {
             toast.error("Save your Label, C-Line, and P-Line before continuing.");
             document
               .getElementById("release-metadata-block")
@@ -913,7 +914,7 @@ export default function UploadPage() {
 
           // Validate Artist Limit for all formats
           if (isValid) {
-            const planKey = (user?.plan as string) || "free";
+            const planKey = resolveEffectivePlanKey(user);
             const limits = await getPlanLimits(planKey);
 
             if (limits.artistLimit < 9999) {
@@ -1316,7 +1317,7 @@ export default function UploadPage() {
         return;
       }
 
-      const planKey = (user?.plan as string) || "free";
+            const planKey = resolveEffectivePlanKey(user);
 
       try {
         const limits = await getPlanLimits(planKey);

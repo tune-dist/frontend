@@ -14,6 +14,7 @@ import {
   type SubGenre,
 } from "@/lib/api/genres";
 import { useAuth } from "@/contexts/AuthContext";
+import { isEffectiveFreePlan } from "@/lib/plan-access";
 import toast from "react-hot-toast";
 import WaveformTrimmer from "./waveform-trimmer";
 import { isTrackEligibleForCrbt } from "./crbt-validation";
@@ -696,7 +697,7 @@ export default function CreditsStep({
                     ? String(errors.isrc.message)
                     : undefined
                 }
-                isFreePlan={user?.plan === "free"}
+                isFreePlan={isEffectiveFreePlan(user)}
                 onFreePlanAttempt={() =>
                   toast.error("Upgrade to paid plan to use custom ISRC", {
                     id: "isrc-warning",

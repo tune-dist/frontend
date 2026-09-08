@@ -48,6 +48,7 @@ import {
 } from '@/lib/integrations/artist-form-state.util'
 import ArtistPlatformPicker from '@/components/dashboard/upload/artist-platform-picker'
 import ReleaseMetadataBlock from '@/components/dashboard/upload/release-metadata-block'
+import { resolveEffectivePlanKey, isEffectiveFreePlan } from '@/lib/plan-access'
 
 // Plan key for artist add-on checkout — price comes from profile.addonEligibility.
 const ARTIST_ADDON_PLAN_KEY = 'artist_addon'
@@ -98,7 +99,7 @@ export default function BasicInfoStep({
     const [creatingNewMain, setCreatingNewMain] = useState(false)
     const [pendingProfileNotice, setPendingProfileNotice] = useState(false)
     const [creatingNewSecondary, setCreatingNewSecondary] = useState<Record<number, boolean>>({})
-    const planKey = user?.plan || 'free'
+    const planKey = resolveEffectivePlanKey(user)
     const allowedFormats = planLimits?.allowedFormats || ['single']
 
     const syncSingleTrackTitle = (nextTitle: string) => {
@@ -165,7 +166,7 @@ export default function BasicInfoStep({
     // Artist platform search (single BE-driven flow)
     const {
         searchResults,
-        isSearching,
+        isSearchingForIndex,
         hasSearched,
         activeSearchIndex,
         setActiveSearchIndex,
@@ -223,7 +224,7 @@ export default function BasicInfoStep({
         }
 
         const currentArtists = artists || []
-        setValue('artists', [...currentArtists, { name: '' }], { shouldValidate: true })
+        setValue('artists', [...currentArtists, emptySecondaryArtistSlot('')], { shouldValidate: true })
     }
 
     // Purchase one extra artist slot via Razorpay (uses generic /payments/create-order with addon key)
@@ -238,7 +239,7 @@ export default function BasicInfoStep({
                 toast.success('Extra artist slot added!')
                 await refreshUser()
                 setShowAddonDialog(false)
-                setValue('artists', [...(artists || []), { name: '' }], { shouldValidate: true })
+                setValue('artists', [...(artists || []), emptySecondaryArtistSlot('')], { shouldValidate: true })
             }
         } catch (err) {
             // useRazorpay already surfaces toasts on errors
@@ -340,7 +341,7 @@ export default function BasicInfoStep({
             hydrateProfile('apple', appleMusicProfile)
         }
 
-        if (!isSearching && artistName) {
+        if (!isSearchingForIndex('main') && artistName) {
             const cached = getCachedSearch('main', artistName)
             if (cached?.hasSearched || (activeSearchIndex === 'main' && hasSearched)) {
                 hydrateMainProfiles(cached?.results ?? searchResults)
@@ -350,7 +351,7 @@ export default function BasicInfoStep({
         searchResults,
         getCachedSearch,
         hasSearched,
-        isSearching,
+        isSearchingForIndex,
         activeSearchIndex,
         spotifyProfile,
         appleMusicProfile,
@@ -425,27 +426,29 @@ export default function BasicInfoStep({
         if (!currentName || currentName.length < 2) return null
 
         const indexResults = getIndexResults(index, currentName)
+        const indexIsSearching = isSearchingForIndex(index)
         const isActiveSearch = activeSearchIndex === index
         const hasSearchedForIndex = indexHasSearched(index, currentName)
 
         const getCurrentProfile = (platform: PlatformKey) => {
             if (index === 'main') {
-                if (platform === 'spotify') return spotifyProfile
-                return appleMusicProfile
+                if (platform === 'spotify') return getValues('spotifyProfile')
+                return getValues('appleMusicProfile')
             }
-            if (!artists || !artists[index]) return ''
-            if (platform === 'spotify') return artists[index].spotifyProfile
-            return artists[index].appleMusicProfile
+            const currentArtists = getValues('artists') || []
+            if (!currentArtists[index]) return ''
+            if (platform === 'spotify') return currentArtists[index].spotifyProfile
+            return currentArtists[index].appleMusicProfile
         }
 
         const setCosmosArtistIdForIndex = (cosmosId: string) => {
             if (index === 'main') {
                 setValue('cosmosArtistId', cosmosId, { shouldValidate: true })
-            } else {
-                const currentArtists = [...(artists || [])]
-                currentArtists[index] = { ...currentArtists[index], cosmosArtistId: cosmosId }
-                setValue('artists', currentArtists, { shouldValidate: true })
+                return
             }
+            const currentArtists = [...(getValues('artists') || [])]
+            currentArtists[index] = { ...currentArtists[index], cosmosArtistId: cosmosId }
+            setValue('artists', currentArtists, { shouldValidate: true })
         }
 
         const handleSelectProfile = (platform: PlatformKey, profile: unknown | 'new' | '') => {
@@ -462,7 +465,8 @@ export default function BasicInfoStep({
             if (index === 'main') {
                 setValue(field, valueToSave as UploadFormData[typeof field], { shouldValidate: true })
             } else {
-                const currentArtists = [...(artists || [])]
+                const currentArtists = [...(getValues('artists') || [])]
+                if (!currentArtists[index]) return
                 currentArtists[index] = { ...currentArtists[index], [field]: valueToSave }
                 setValue('artists', currentArtists, { shouldValidate: true })
             }
@@ -485,7 +489,7 @@ export default function BasicInfoStep({
             <ArtistPlatformPicker
                 artistName={currentName}
                 results={indexResults}
-                isSearching={isSearching}
+                isSearching={indexIsSearching}
                 isActiveSearch={isActiveSearch}
                 hasSearchedForIndex={hasSearchedForIndex}
                 spotifyProfile={getCurrentProfile('spotify')}
@@ -677,7 +681,7 @@ export default function BasicInfoStep({
 
 
                         {/* Artist Not Found Message */}
-                        {getCachedSearch('main', artistName)?.hasSearched && !isSearching &&
+                        {getCachedSearch('main', artistName)?.hasSearched && !isSearchingForIndex('main') &&
                             (getCachedSearch('main', artistName)?.results.spotify.length ?? 0) === 0 &&
                             (getCachedSearch('main', artistName)?.results.apple.length ?? 0) === 0 &&
                             artistName.length >= 2 &&
@@ -891,7 +895,7 @@ export default function BasicInfoStep({
                 )}
 
                 {/* Upgrade Message for Free Users */}
-                {(user?.plan === 'free' && artists.length === 0) || (!areFeaturedArtistsAllowed && artists.length === 0) && (
+                {(isEffectiveFreePlan(user) && artists.length === 0) || (!areFeaturedArtistsAllowed && artists.length === 0) && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
