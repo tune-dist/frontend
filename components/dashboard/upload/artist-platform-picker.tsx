@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import type { ArtistSearchResponse } from '@/lib/api/artist-search';
 import { resolvePlatformProfile } from '@/lib/integrations/platform-profile.util';
 import type { PlatformKey } from '@/lib/integrations/apply-artist-profile-selection';
+import { shouldShowArtistSearchSkeleton } from '@/lib/integrations/use-artist-platform-search';
 
 type ArtistPlatformPickerProps = {
   artistName: string;
@@ -353,7 +354,11 @@ export default function ArtistPlatformPicker({
   const showBlock = hasAnySelection || hasSearchedForIndex || isActiveSearch;
   if (!showBlock) return null;
 
-  const showLoadingSkeleton = isSearching && isActiveSearch && !hasAnySelection;
+  const showLoadingSkeleton = shouldShowArtistSearchSkeleton(
+    isSearching,
+    isActiveSearch,
+    hasAnySelection,
+  );
 
   return (
     <motion.div

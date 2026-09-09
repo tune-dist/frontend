@@ -9,6 +9,7 @@ import { getMaxPlanAudioDurationError } from '@/lib/upload/plan-audio-duration'
 import { useAuth } from '@/contexts/AuthContext'
 import Cookies from 'js-cookie'
 import { config } from '@/lib/config'
+import { resolveEffectivePlanKey } from '@/lib/plan-access'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -33,7 +34,7 @@ export default function AudioFileStep({
 }: AudioFileStepProps) {
     const { setValue, watch, getValues, formState: { errors }, setError, clearErrors } = useFormContext<UploadFormData>()
     const { user } = useAuth()
-    const planKey = user?.plan || 'free'
+    const planKey = resolveEffectivePlanKey(user)
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
     const [isUploading, setIsUploading] = useState(false)
     const [activeFileId, setActiveFileId] = useState<string | null>(null)
@@ -359,7 +360,7 @@ export default function AudioFileStep({
                 {/* Audio File Upload */}
                 <div className="space-y-3 pt-6 border-t border-border">
                     <h4 className="text-base font-semibold">
-                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV: 16-bit 44.1kHz, or 24-bit HD 44.1k/48k/88.2k/96k/192kHz, Mono or Stereo)</span>
+                        Upload your audio file <span className="text-muted-foreground font-normal">(WAV: 16-bit 44.1k/48kHz, or 24-bit HD 44.1k/48k/88.2k/96k/192kHz, Mono or Stereo)</span>
                     </h4>
 
                     {format === 'single' ? (

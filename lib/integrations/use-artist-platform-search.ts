@@ -20,6 +20,15 @@ export function buildArtistSearchCacheKey(
   return `${searchIndexKey(index)}:${name.trim().toLowerCase()}`;
 }
 
+/** Per-index loading skeleton — avoids blocking other artists during search. */
+export function shouldShowArtistSearchSkeleton(
+  isSearchingThisIndex: boolean,
+  isActiveSearch: boolean,
+  hasAnySelection: boolean,
+): boolean {
+  return isSearchingThisIndex && isActiveSearch && !hasAnySelection;
+}
+
 export function useArtistPlatformSearch() {
   const [searchResults, setSearchResults] = useState<ArtistSearchResults>(
     emptySearchResults(),
@@ -27,7 +36,9 @@ export function useArtistPlatformSearch() {
   const [searchCache, setSearchCache] = useState<
     Record<string, { results: ArtistSearchResults; hasSearched: boolean }>
   >({});
-  const [isSearching, setIsSearching] = useState(false);
+  const [searchingIndex, setSearchingIndex] = useState<ArtistSearchIndex | null>(
+    null,
+  );
   const [hasSearched, setHasSearched] = useState(false);
   const [activeSearchIndex, setActiveSearchIndex] =
     useState<ArtistSearchIndex | null>(null);
@@ -36,6 +47,7 @@ export function useArtistPlatformSearch() {
     name: string;
   } | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlightIndex = useRef<ArtistSearchIndex | null>(null);
 
   const handleSearch = useCallback((name: string, index: ArtistSearchIndex) => {
     if (searchTimeout.current) {
@@ -47,11 +59,12 @@ export function useArtistPlatformSearch() {
     setActiveSearchQuery(trimmed ? { index, name: trimmed } : null);
 
     if (trimmed.length >= 2) {
+      setSearchingIndex(index);
       setSearchResults(emptySearchResults());
-      setIsSearching(true);
       setHasSearched(false);
 
       searchTimeout.current = setTimeout(async () => {
+        inFlightIndex.current = index;
         const cacheKey = buildArtistSearchCacheKey(index, trimmed);
         try {
           const results = await searchArtistProfiles(trimmed, {
@@ -59,30 +72,41 @@ export function useArtistPlatformSearch() {
             appleLimit: 15,
             cosmosLimit: 15,
           });
-          setSearchResults(results);
           setSearchCache((prev) => ({
             ...prev,
             [cacheKey]: { results, hasSearched: true },
           }));
+          if (inFlightIndex.current === index) {
+            setSearchResults(results);
+          }
         } catch (error) {
           console.error('Search error:', error);
           const results = emptySearchResults();
-          setSearchResults(results);
           setSearchCache((prev) => ({
             ...prev,
             [cacheKey]: { results, hasSearched: true },
           }));
+          if (inFlightIndex.current === index) {
+            setSearchResults(results);
+          }
         } finally {
-          setIsSearching(false);
-          setHasSearched(true);
+          if (inFlightIndex.current === index) {
+            setSearchingIndex(null);
+            setHasSearched(true);
+          }
         }
       }, 1000);
     } else {
+      setSearchingIndex(null);
       setSearchResults(emptySearchResults());
-      setIsSearching(false);
       setHasSearched(false);
     }
   }, []);
+
+  const isSearchingForIndex = useCallback(
+    (index: ArtistSearchIndex): boolean => searchingIndex === index,
+    [searchingIndex],
+  );
 
   const getIndexResults = useCallback(
     (index: ArtistSearchIndex, name: string): ArtistSearchResults => {
@@ -95,12 +119,18 @@ export function useArtistPlatformSearch() {
         activeSearchQuery?.index === index &&
         activeSearchQuery.name.toLowerCase() === trimmed.toLowerCase();
 
-      if (isActiveQuery && (isSearching || hasSearched)) {
+      if (isActiveQuery && (searchingIndex === index || hasSearched)) {
         return searchResults;
       }
       return cached?.results ?? emptySearchResults();
     },
-    [activeSearchQuery, hasSearched, isSearching, searchCache, searchResults],
+    [
+      activeSearchQuery,
+      hasSearched,
+      searchingIndex,
+      searchCache,
+      searchResults,
+    ],
   );
 
   const indexHasSearched = useCallback(
@@ -114,7 +144,9 @@ export function useArtistPlatformSearch() {
         activeSearchQuery?.index === index &&
         activeSearchQuery.name.toLowerCase() === trimmed.toLowerCase();
 
-      return Boolean(cached?.hasSearched || (isActiveQuery && hasSearched));
+      return Boolean(
+        cached?.hasSearched || (isActiveQuery && hasSearched),
+      );
     },
     [activeSearchQuery, hasSearched, searchCache],
   );
@@ -132,14 +164,17 @@ export function useArtistPlatformSearch() {
     setActiveSearchIndex(index);
     setActiveSearchQuery(null);
     setSearchResults(emptySearchResults());
-    setIsSearching(false);
+    setSearchingIndex(null);
     setHasSearched(false);
+    inFlightIndex.current = null;
   }, []);
 
   return {
     searchResults,
     searchCache,
-    isSearching,
+    /** @deprecated Prefer isSearchingForIndex — global flag is true for any in-flight search */
+    isSearching: searchingIndex !== null,
+    isSearchingForIndex,
     hasSearched,
     activeSearchIndex,
     setActiveSearchIndex,

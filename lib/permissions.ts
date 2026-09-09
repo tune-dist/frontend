@@ -5,9 +5,10 @@ export const RELEASE_STAFF_ROLES = STAFF_ROLES;
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
+type RoleUser = Pick<User, 'role'> | null | undefined;
 type PermissionUser = Pick<User, 'role' | 'permissions'> | null | undefined;
 
-export function isReleaseStaff(user: PermissionUser): boolean {
+export function isReleaseStaff(user: RoleUser): boolean {
   if (!user?.role) return false;
   return (RELEASE_STAFF_ROLES as readonly string[]).includes(user.role);
 }
