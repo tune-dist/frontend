@@ -7,11 +7,12 @@ import { Play, Pause, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/class-names";
 import {
-  CRBT_CLIP_DURATION_SEC,
-  CRBT_MIN_TRACK_DURATION_SEC,
-  getCrbtIneligibilityMessage,
-  isTrackEligibleForCrbt,
+    CRBT_CLIP_DURATION_SEC,
+    CRBT_MIN_TRACK_DURATION_SEC,
+    getCrbtIneligibilityMessage,
+    isTrackEligibleForCrbt,
 } from "./crbt-validation";
+import { createWaveformObjectUrl } from "@/lib/upload/audio-playback";
 
 interface WaveformTrimmerProps {
   audioFile: File | string | null;
@@ -163,24 +164,24 @@ export default function WaveformTrimmer({
     waveSurferRef.current = ws;
 
     let objectUrl = "";
+    const abortController = new AbortController();
 
     const loadAudio = async () => {
       try {
-        if (typeof audioFile === "string") {
-          await ws.load(audioFile);
-        } else {
-          objectUrl = URL.createObjectURL(audioFile);
-          await ws.load(objectUrl);
+        const loaded = await createWaveformObjectUrl(audioFile, abortController.signal);
+        if (loaded.shouldRevoke) {
+          objectUrl = loaded.url;
         }
+        await ws.load(loaded.url);
       } catch (err: unknown) {
-        if (err instanceof Error && err.name !== "AbortError") {
-          console.error("WaveSurfer load error:", err);
-          setLoadError("Could not render the audio waveform. Try re-opening this step.");
-        }
+        if (abortController.signal.aborted) return;
+        if (err instanceof Error && err.name === "AbortError") return;
+        console.error("WaveSurfer load error:", err);
+        setLoadError("Could not render the audio waveform. Try re-opening this step.");
       }
     };
 
-    loadAudio();
+    void loadAudio();
 
     ws.on("ready", () => {
       const totalDur = ws.getDuration();
@@ -267,6 +268,7 @@ export default function WaveformTrimmer({
     });
 
     return () => {
+      abortController.abort();
       isClipPlaybackRef.current = false;
       setIsReady(false);
       setIsPlaying(false);

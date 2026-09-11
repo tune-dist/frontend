@@ -253,6 +253,12 @@ function stringifyMessages(value: unknown): string | null {
 function extractFromApiBody(data: ApiErrorBody | undefined): string | null {
   if (!data) return null;
 
+  const structured = collectStructuredErrors(data.errors);
+  const fieldSpecific = structured.filter((item) => item.field !== 'global');
+  if (fieldSpecific.length > 0) {
+    return formatApiFieldErrorsForDisplay(fieldSpecific);
+  }
+
   const fromMessage = stringifyMessages(data.message);
   if (fromMessage) return fromMessage;
 

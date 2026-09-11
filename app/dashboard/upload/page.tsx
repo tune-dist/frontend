@@ -1211,9 +1211,11 @@ export default function UploadPage() {
           setCurrentStep(targetStep);
         }
 
-        if (globalErrors.length > 0) {
+        if (fieldErrors.length > 0) {
+          toast.error(fieldErrors.map((item) => item.message).join(". "));
+        } else if (globalErrors.length > 0) {
           toast.error(globalErrors.map((item) => item.message).join(". "));
-        } else if (fieldErrors.length === 0) {
+        } else {
           toast.error(
             getErrorMessage(
               error,

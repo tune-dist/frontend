@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AudioFile, Track, UploadFormData } from "@/components/dashboard/upload/upload-form.schema";
-import { getSignedUrl } from "@/lib/api/s3";
+import { getDisplayUrl, getS3ObjectBlob, getSignedUrl, isS3Key, toStorageKey } from "@/lib/api/s3";
 
 type FormAudio = UploadFormData["audioFile"] | AudioFile | null | undefined;
 
@@ -8,23 +8,70 @@ function isFile(value: unknown): value is File {
   return typeof File !== "undefined" && value instanceof File;
 }
 
+function isHttpUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value);
+}
+
+/** Sign a stored S3 key. Never treat the raw key as a fetchable website URL. */
+export async function resolveAudioPlaybackUrl(
+  record: AudioFile | FormAudio,
+): Promise<string | null> {
+  const audio = record as AudioFile;
+  const path = audio.path?.trim() || "";
+  const playbackUrl = audio.playbackUrl?.trim() || "";
+
+  if (path && isS3Key(path)) {
+    const signed = await getSignedUrl(path);
+    if (signed && isHttpUrl(signed)) return signed;
+  }
+
+  const candidate = playbackUrl || path;
+  if (!candidate) return null;
+  if (isHttpUrl(candidate)) return candidate;
+
+  const resolved = await getDisplayUrl(candidate);
+  if (resolved && isHttpUrl(resolved)) return resolved;
+  return null;
+}
+
 export async function attachSignedPlaybackUrl(
   audio: AudioFile | null | undefined,
 ): Promise<AudioFile | null | undefined> {
-  if (!audio?.path) return audio;
-  if (audio.playbackUrl) return audio;
-  if (audio.path.startsWith("http")) {
-    return { ...audio, playbackUrl: audio.path };
-  }
+  if (!audio) return audio;
+  if (!audio.path && !audio.playbackUrl) return audio;
 
   try {
-    const playbackUrl = await getSignedUrl(audio.path);
+    const playbackUrl = await resolveAudioPlaybackUrl(audio);
     if (!playbackUrl) return audio;
     return { ...audio, playbackUrl };
   } catch (error) {
     console.error("Failed to resolve signed audio playback URL", error);
     return audio;
   }
+}
+
+/**
+ * Load audio through the API so the browser never fetches S3 directly.
+ * Signed S3 URLs fail here because bucket CORS is not set for WebAudio/fetch.
+ */
+export async function createWaveformObjectUrl(
+  audioFile: File | string,
+  signal?: AbortSignal,
+): Promise<{ url: string; shouldRevoke: boolean }> {
+  if (typeof audioFile !== "string") {
+    return { url: URL.createObjectURL(audioFile), shouldRevoke: true };
+  }
+  if (audioFile.startsWith("blob:")) {
+    return { url: audioFile, shouldRevoke: false };
+  }
+
+  const key = toStorageKey(audioFile);
+  if (!key) {
+    throw new Error("Could not load the saved audio file for clip selection.");
+  }
+
+  const blob = await getS3ObjectBlob(key, signal);
+  return { url: URL.createObjectURL(blob), shouldRevoke: true };
 }
 
 export async function attachSignedPlaybackUrls(
@@ -61,34 +108,17 @@ export function resolveCrbtTrackDuration(
   return null;
 }
 
-async function resolvePlaybackUrl(record: AudioFile | FormAudio): Promise<string | null> {
-  const audio = record as AudioFile;
-  if (audio.playbackUrl?.trim()) return audio.playbackUrl;
-  if (!audio.path?.trim()) return null;
-
-  if (audio.path.startsWith("http")) {
-    return audio.path;
-  }
-
-  const hydrated = await attachSignedPlaybackUrl(audio);
-  return hydrated?.playbackUrl?.trim() || null;
-}
-
 async function toWaveformSource(record: AudioFile | FormAudio): Promise<File | string | null> {
   if (isFile((record as AudioFile).file)) {
     return (record as AudioFile).file as File;
   }
 
-  const playbackUrl = await resolvePlaybackUrl(record);
-  if (!playbackUrl) return null;
+  const audio = record as AudioFile;
+  const source = audio.path?.trim() || audio.playbackUrl?.trim() || "";
+  if (!source) return null;
 
-  const response = await fetch(playbackUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to load audio (${response.status})`);
-  }
-
-  const blob = await response.blob();
-  return URL.createObjectURL(blob);
+  const loaded = await createWaveformObjectUrl(source);
+  return loaded.url;
 }
 
 export function useResolvedCrbtPlayback(

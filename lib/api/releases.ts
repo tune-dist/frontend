@@ -25,7 +25,7 @@ export type { ReleaseWriteSnapshot };
 
 export type SubmitReleaseOptions = {
   onProgress?: SubmitProgressCallback;
-  /** Edit-mode baseline write snapshot; only changed keys are PUTed. */
+  /** Edit-mode baseline; used only to skip PUT when nothing changed. */
   baseline?: ReleaseWriteSnapshot;
   /** Called after files upload to S3 but before the release API save succeeds. */
   onMediaUploaded?: (updates: FormMediaUpdates) => void;
@@ -324,7 +324,7 @@ export const submitNewRelease = async (
   }
 };
 
-// Update an existing Draft / In Process release (PUT sparse patch of changed fields)
+// Update an existing Draft / In Process release (PUT full v2 draft, same shape as create)
 export const submitReleaseUpdate = async (
   id: string,
   formData: ReleaseFormData,
@@ -337,19 +337,9 @@ export const submitReleaseUpdate = async (
   try {
     const built = await buildCreateReleaseData(formData, token, onProgress, uploadSession);
     const writeSnapshot = draftRequestToWriteSnapshot(built.payload);
-    const patch = pickChangedDraftFields(options?.baseline ?? {}, writeSnapshot);
+    const changedFields = pickChangedDraftFields(options?.baseline ?? {}, writeSnapshot);
 
-    if (patch.publisher !== undefined && patch.producers === undefined) {
-      patch.producers = [String(patch.publisher)];
-    }
-    if (patch.producers !== undefined && patch.publisher === undefined) {
-      const first = Array.isArray(patch.producers) ? patch.producers[0] : undefined;
-      if (typeof first === 'string' && first.trim()) {
-        patch.publisher = first.trim();
-      }
-    }
-
-    if (Object.keys(patch).length === 0) {
+    if (Object.keys(changedFields).length === 0) {
       options?.onMediaUploaded?.(built.formMediaUpdates);
       await finalizeUploadSession(uploadSession);
       onProgress?.({ percent: 100, label: "Complete" });
@@ -359,7 +349,7 @@ export const submitReleaseUpdate = async (
     }
 
     onProgress?.({ percent: 92, label: "Saving release…" });
-    const result = await updateRelease(id, patch);
+    const result = await updateRelease(id, built.payload);
     options?.onMediaUploaded?.(built.formMediaUpdates);
     await finalizeUploadSession(uploadSession);
     onProgress?.({ percent: 100, label: "Complete" });
@@ -400,10 +390,10 @@ export const createRelease = async (
   return normalizeRelease(response.data);
 };
 
-// Update release (draft only) — accepts full v2 draft or sparse flat write patch
+// Update release (draft only) — same v2 draft body as POST /releases
 export const updateRelease = async (
   id: string,
-  data: CreateReleaseDraftRequest | Record<string, unknown>,
+  data: CreateReleaseDraftRequest,
 ): Promise<Release & { pdlSynced?: boolean; pdlMessage?: string }> => {
   const response = await apiClient.put(`/releases/${id}`, data);
   const payload = response.data;
