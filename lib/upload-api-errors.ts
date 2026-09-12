@@ -75,7 +75,13 @@ export function applyUploadApiErrors(
   }
 
   const targetStep = fieldErrors.reduce<number | null>((min, { field }) => {
-    const step = FIELD_TO_STEP[field] ?? 5;
+    let step = FIELD_TO_STEP[field];
+    if (step === undefined && field.startsWith('tracks.')) {
+      step = 3;
+    }
+    if (step === undefined) {
+      step = 5;
+    }
     return min === null ? step : Math.min(min, step);
   }, null);
 

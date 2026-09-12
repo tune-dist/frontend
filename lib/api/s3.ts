@@ -89,3 +89,54 @@ export const getDisplayUrl = async (url: string | undefined): Promise<string> =>
   if (isS3Key(url)) return getSignedUrl(url);
   return url;
 };
+
+export function toStorageKey(urlOrKey: string): string {
+  const trimmed = urlOrKey.trim();
+  if (!trimmed || trimmed.startsWith('blob:')) return '';
+
+  let key = trimmed;
+  if (key.startsWith('s3://')) key = key.slice(5);
+  if (/^https?:\/\//i.test(key)) {
+    try {
+      key = decodeURIComponent(new URL(key).pathname.replace(/^\/+/, ''));
+    } catch {
+      return '';
+    }
+  } else {
+    key = key.replace(/^\//, '');
+  }
+
+  const tracksAt = key.indexOf('tracks/');
+  if (tracksAt > 0) {
+    return key.slice(tracksAt);
+  }
+  const usersAt = key.indexOf('users/');
+  if (usersAt > 0) {
+    return key.slice(usersAt);
+  }
+  return key;
+}
+
+export async function getS3ObjectBlob(
+  key: string,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  try {
+    const response = await apiClient.get<Blob>('/s3/object', {
+      params: { key },
+      responseType: 'blob',
+      signal,
+    });
+    return response.data;
+  } catch (error) {
+    if (isPlanInactiveError(error)) {
+      throw error;
+    }
+    const status = (error as { response?: { status?: number } })?.response
+      ?.status;
+    if (status) {
+      throw new Error(`Failed to load audio (${status})`);
+    }
+    throw error;
+  }
+}

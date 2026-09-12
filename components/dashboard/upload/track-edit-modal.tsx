@@ -15,6 +15,7 @@ import { getPlanLimits } from '@/lib/api/plans'
 import { toast } from 'react-hot-toast'
 import WaveformTrimmer from './waveform-trimmer'
 import { getCrbtIneligibilityMessage, isTrackEligibleForCrbt } from './crbt-validation'
+import { useResolvedCrbtPlayback } from '@/lib/upload/audio-playback'
 import { getLegalPersonNameError, LEGAL_PERSON_NAME_COMPOSER_HINT, LEGAL_PERSON_NAME_HINT } from '@/lib/validation/legal-person-name'
 import {
     INSTRUMENTAL_LANGUAGE,
@@ -112,8 +113,13 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         () => audioFiles.find((af) => af.id === track?.audioFileId),
         [audioFiles, track?.audioFileId],
     )
-    const trackDurationSec =
-        typeof linkedAudioFile?.duration === 'number' ? linkedAudioFile.duration : null
+    const {
+        hasAudio: hasCrbtAudio,
+        playbackSource,
+        isResolving: isResolvingCrbtAudio,
+        resolveError: crbtAudioError,
+        trackDurationSec,
+    } = useResolvedCrbtPlayback(linkedAudioFile, audioFiles, track ? [track] : [])
     const isCrbtEligible = isTrackEligibleForCrbt(trackDurationSec)
 
     const areFeaturedArtistsAllowed = (fieldRules || {}).featuredArtists?.allow !== false
@@ -1132,12 +1138,33 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         </Label>
 
                         <div className="mt-4">
-                            <WaveformTrimmer
-                                audioFile={linkedAudioFile?.playbackUrl ?? linkedAudioFile?.file ?? null}
-                                trackDurationSec={trackDurationSec}
-                                initialStartTime={previewClipStartTime}
-                                onTimeChange={(time) => setPreviewClipStartTime(time)}
-                            />
+                            {!hasCrbtAudio ? (
+                                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+                                    <p className="text-sm text-amber-200/90">
+                                        Upload or load the audio file first to choose a song highlight clip.
+                                    </p>
+                                </div>
+                            ) : isResolvingCrbtAudio ? (
+                                <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-8 text-center">
+                                    <p className="text-sm text-muted-foreground">
+                                        Loading audio waveform...
+                                    </p>
+                                </div>
+                            ) : crbtAudioError ? (
+                                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
+                                    <p className="text-sm text-red-200/90">{crbtAudioError}</p>
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                        Go back to the Audio step and confirm the file is validated, then return here.
+                                    </p>
+                                </div>
+                            ) : playbackSource ? (
+                                <WaveformTrimmer
+                                    audioFile={playbackSource}
+                                    trackDurationSec={trackDurationSec}
+                                    initialStartTime={previewClipStartTime}
+                                    onTimeChange={(time) => setPreviewClipStartTime(time)}
+                                />
+                            ) : null}
                         </div>
                     </div>
                 </div>

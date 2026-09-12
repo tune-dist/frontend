@@ -391,6 +391,35 @@ describe('resolveDraftPublisher', () => {
 });
 
 describe('Single release edit round-trip', () => {
+  it('edit save body uses v2 draft keys, not Mongo write snapshot keys', () => {
+    const form = hydrateDraftForm(buildSavedSingle());
+    const draft = formToDraftRequest(form, 'single');
+    const snapshot = draftRequestToWriteSnapshot(draft);
+
+    expect(draft.release.releaseDate).toBe('2026-06-01');
+    expect(draft.tracks[0].order).toBe(1);
+    expect(draft.tracks[0].audio.storageKey).toBeTruthy();
+    expect(draft.tracks[0].previouslyReleased).toBe(false);
+    expect(draft.tracks[0].genre.primary).toBe('Pop');
+    expect(draft.tracks[0].credits.writers).toEqual(['Writer One']);
+
+    expect(draft).not.toHaveProperty('releaseDate');
+    expect(draft).not.toHaveProperty('primaryArtists');
+    expect(draft).not.toHaveProperty('previewClipStartTime');
+    expect(draft.tracks[0]).not.toHaveProperty('trackOrder');
+    expect(draft.tracks[0]).not.toHaveProperty('audioFile');
+    expect(draft.tracks[0]).not.toHaveProperty('previewStartTime');
+    expect(draft.tracks[0]).not.toHaveProperty('primaryGenre');
+    expect(draft.tracks[0]).not.toHaveProperty('writers');
+
+    expect(snapshot.releaseDate).toBe('2026-06-01');
+    expect(snapshot.primaryArtists?.[0]).toMatchObject({ name: 'AAMIR MIR' });
+    expect(snapshot.tracks?.[0]).toMatchObject({
+      trackOrder: 1,
+      previouslyReleased: 'no',
+    });
+  });
+
   it('hydrate restores P-Line separately from copyright', () => {
     const form = hydrateDraftForm(buildSavedSingle());
     expect(form.producers).toEqual(['2026 Vidhi Vision Production']);

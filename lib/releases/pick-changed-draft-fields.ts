@@ -1,6 +1,6 @@
 import type { CreateReleaseDraftRequest, DraftTrack, ReleaseType } from './release.types';
 
-/** Mirrors backend RELEASE_WRITE_DIFF_KEYS — top-level Mongo keys PUT may change. */
+/** Mirrors backend RELEASE_WRITE_DIFF_KEYS — used to detect whether an edit changed anything. */
 export const RELEASE_WRITE_DIFF_KEYS = [
   'title',
   'artistName',
