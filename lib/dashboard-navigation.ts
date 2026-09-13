@@ -18,6 +18,7 @@ export const DASHBOARD_PERMISSION_NAV: DashboardNavItem[] = [
   { name: 'Blogs', href: '/dashboard/admin/blogs', permission: 'MANAGE_BLOGS' },
   { name: 'Inquiries', href: '/dashboard/admin/inquiries', permission: 'VIEW_CONTACT_INQUIRIES' },
   { name: 'Stream Imports', href: '/dashboard/admin/stream-imports', permission: 'MANAGE_STREAM_IMPORTS' },
+  { name: 'Documents', href: '/dashboard/documents', permission: 'PROFILE' },
   { name: 'Profile', href: '/dashboard/profile', permission: 'PROFILE' },
   { name: 'YouTube Service', href: '/dashboard/youtube-service', permission: 'USE_YOUTUBE_SERVICE' },
   { name: 'Verifications', href: '/dashboard/verifications', permission: 'APPROVE_RELEASE' },
