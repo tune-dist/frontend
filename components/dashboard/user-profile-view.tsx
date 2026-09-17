@@ -26,6 +26,7 @@ import { getUserAccountStatus } from '@/lib/user-status';
 import { formatRoleLabel, formatPermissionLabel } from '@/lib/rbac-labels';
 import { getDisplayUrl } from '@/lib/api/s3';
 import { S3Image } from '@/components/ui/s3-image';
+import { formatIdentityDetailLines, IdentityDocumentDetails } from '@/lib/verification-details';
 import toast from 'react-hot-toast';
 
 const containerVariants = {
@@ -69,7 +70,11 @@ function ReadOnlyVerificationDocCard({
   isVerified,
 }: {
   label: string;
-  document?: { url: string; filename: string; uploadedAt: string };
+  document?: {
+    url: string;
+    filename: string;
+    uploadedAt: string;
+  } & IdentityDocumentDetails;
   isVerified?: boolean;
 }) {
   const [opening, setOpening] = useState(false);
@@ -101,6 +106,14 @@ function ReadOnlyVerificationDocCard({
           <span className="text-xs font-medium text-muted-foreground">Not uploaded</span>
         )}
       </div>
+
+      {formatIdentityDetailLines(document).length > 0 ? (
+        <div className="space-y-1 text-xs text-muted-foreground">
+          {formatIdentityDetailLines(document).map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+      ) : null}
 
       {document ? (
         <Button size="sm" variant="outline" onClick={handleView} disabled={opening}>

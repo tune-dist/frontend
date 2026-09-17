@@ -17,3 +17,15 @@ export const VERIFICATION_FILE_ACCEPT = 'image/*,.pdf';
 
 export const VERIFICATION_FILE_HINT =
   'Upload a clear image (JPG, PNG, WEBP) or PDF';
+
+export const MAX_VERIFICATION_DOC_BYTES = 15 * 1024 * 1024;
+
+export function getVerificationFileError(file: File): string | null {
+  if (!isAllowedVerificationFile(file)) {
+    return 'Please upload an image (JPG, PNG, WEBP) or PDF file';
+  }
+  if (file.size > MAX_VERIFICATION_DOC_BYTES) {
+    return 'Document must be 15MB or smaller';
+  }
+  return null;
+}

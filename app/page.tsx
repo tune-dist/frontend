@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import HomePage from '@/components/home-page'
+import { DigilockerReturnRedirect } from '@/components/digilocker-return-redirect'
 import { createPageMetadata } from '@/lib/site-metadata'
 
 export const metadata = createPageMetadata(
@@ -7,5 +9,12 @@ export const metadata = createPageMetadata(
 )
 
 export default function Home() {
-  return <HomePage />
+  return (
+    <>
+      <Suspense fallback={null}>
+        <DigilockerReturnRedirect />
+      </Suspense>
+      <HomePage />
+    </>
+  )
 }

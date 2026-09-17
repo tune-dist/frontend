@@ -79,12 +79,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (error: unknown) {
         const status = (error as { response?: { status?: number } })?.response?.status;
         if ((status === 401 || status === 403) && !cancelled) {
-          if (!cachedUser) {
-            clearAuthCookies();
-            setUser(null);
-            setIsAuthenticated(false);
-            queryClient.clear();
-          }
+          clearAuthCookies();
+          setUser(null);
+          setIsAuthenticated(false);
+          queryClient.clear();
         }
       }
     };
@@ -161,10 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: unknown) {
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status === 401 || status === 403) {
-        const cachedUser = getCachedUser();
-        if (!cachedUser) {
-          logout();
-        }
+        logout();
       }
     }
   }, [logout]);

@@ -51,6 +51,7 @@ import {
 } from "@/lib/api/profile-verifications";
 import { getDisplayUrl } from "@/lib/api/s3";
 import { PageSearchBar, PageSearchSection } from "@/components/dashboard/page-search-bar";
+import { formatIdentityDetailLines } from "@/lib/verification-details";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -98,8 +99,11 @@ function matchesVerificationSearch(
   const documentType = getDocumentTypeLabel(request.documentType).toLowerCase();
   const status = getVerificationStatusLabel(request.status).toLowerCase();
   const comment = (request.rejectionReason || "").toLowerCase();
+  const details = formatIdentityDetailLines(request.extractedDetails)
+    .join(" ")
+    .toLowerCase();
 
-  return [userName, userEmail, documentType, status, comment].some((field) =>
+  return [userName, userEmail, documentType, status, comment, details].some((field) =>
     field.includes(q),
   );
 }
@@ -259,6 +263,7 @@ export default function VerificationsPage() {
                       <TableRow>
                         <TableHead>ARTIST</TableHead>
                         <TableHead>DOCUMENT</TableHead>
+                        <TableHead>DETAILS</TableHead>
                         <TableHead>FILE</TableHead>
                         <TableHead>STATUS</TableHead>
                         <TableHead>MESSAGE</TableHead>
@@ -269,7 +274,7 @@ export default function VerificationsPage() {
                       {filteredRequests.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={6}
+                            colSpan={7}
                             className="text-center text-muted-foreground py-12"
                           >
                             <div className="flex flex-col items-center gap-2">
@@ -283,7 +288,11 @@ export default function VerificationsPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredRequests.map((request) => (
+                        filteredRequests.map((request) => {
+                          const detailLines = formatIdentityDetailLines(
+                            request.extractedDetails,
+                          );
+                          return (
                           <TableRow key={request.id}>
                             <TableCell>
                               <div className="flex flex-col">
@@ -297,6 +306,17 @@ export default function VerificationsPage() {
                             </TableCell>
                             <TableCell className="text-sm font-medium">
                               {getDocumentTypeLabel(request.documentType)}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                              {detailLines.length > 0 ? (
+                                <div className="space-y-0.5">
+                                  {detailLines.map((line) => (
+                                    <p key={line}>{line}</p>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground/30">-</span>
+                              )}
                             </TableCell>
                             <TableCell className="text-sm max-w-[180px]">
                               <div className="flex items-center gap-2">
@@ -376,7 +396,8 @@ export default function VerificationsPage() {
                               )}
                             </TableCell>
                           </TableRow>
-                        ))
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>

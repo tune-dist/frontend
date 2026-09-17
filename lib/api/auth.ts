@@ -1,6 +1,7 @@
 import apiClient from '../api-client';
 import axios from 'axios';
 import { config } from '../config';
+import type { IdentityDocumentDetails } from '../verification-details';
 
 export interface RegisterData {
   email: string;
@@ -93,12 +94,12 @@ export interface User {
     url: string;
     filename: string;
     uploadedAt: string;
-  };
+  } & IdentityDocumentDetails;
   aadhar?: {
     url: string;
     filename: string;
     uploadedAt: string;
-  };
+  } & IdentityDocumentDetails;
   avatar?: string;
   avatarUrl?: string;
   isSubscriptionActive?: boolean;
