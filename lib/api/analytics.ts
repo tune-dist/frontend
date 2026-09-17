@@ -34,7 +34,7 @@ export interface BreakdownResponse {
 }
 
 export type BreakdownDimension = BreakdownResponse['dimension'];
-export type SupportedDspFilter = 'total' | 'spotify' | 'applemusic' | 'amazon' | 'gaana' | 'jiosaavn' | 'facebook';
+export type SupportedDspFilter = 'total' | 'spotify' | 'applemusic' | 'amazon' | 'gaana' | 'jiosaavn' | 'facebook' | 'youtube';
 
 export interface TrendQueryParams {
   period: TrendPeriod;
