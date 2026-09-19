@@ -5,6 +5,7 @@ import GaanaLogo from "@/public/assets/images/platform-img/gaana-logo.png";
 import JioSaavnLogo from "@/public/assets/images/platform-img/jiosaavan-logo.png";
 import MetaLogo from "@/public/assets/images/platform-img/meta-logo.png";
 import SpotifyLogo from "@/public/assets/images/platform-img/spotify-logo.png";
+import YoutubeMusicLogo from "@/public/assets/images/platform-img/youtube-music-logo.png";
 
 export type PlatformDspKey =
   | "total"
@@ -13,7 +14,8 @@ export type PlatformDspKey =
   | "amazon"
   | "gaana"
   | "jiosaavn"
-  | "facebook";
+  | "facebook"
+  | "youtube";
 
 export interface PlatformMeta {
   key: PlatformDspKey;
@@ -29,6 +31,7 @@ export const PLATFORM_LOGOS: Partial<Record<PlatformDspKey, StaticImageData>> = 
   gaana: GaanaLogo,
   jiosaavn: JioSaavnLogo,
   facebook: MetaLogo,
+  youtube: YoutubeMusicLogo,
 };
 
 export const PLATFORM_COLORS: Record<string, string> = {
@@ -38,6 +41,7 @@ export const PLATFORM_COLORS: Record<string, string> = {
   gaana: "#E72C2C",
   jiosaavn: "#2C99C9",
   facebook: "#0081FB",
+  youtube: "#FF0000",
 };
 
 export const PLATFORM_LABELS: Record<string, string> = {
@@ -47,6 +51,7 @@ export const PLATFORM_LABELS: Record<string, string> = {
   gaana: "Gaana",
   jiosaavn: "JioSaavn",
   facebook: "Meta",
+  youtube: "YouTube",
 };
 
 export const ANALYTICS_PLATFORMS: PlatformMeta[] = [
@@ -57,6 +62,7 @@ export const ANALYTICS_PLATFORMS: PlatformMeta[] = [
   { key: "spotify", label: "Spotify", color: PLATFORM_COLORS.spotify, logo: SpotifyLogo },
   { key: "amazon", label: "Amazon Music", color: PLATFORM_COLORS.amazon, logo: AmazonLogo },
   { key: "facebook", label: "Meta", color: PLATFORM_COLORS.facebook, logo: MetaLogo },
+  { key: "youtube", label: "YouTube", color: PLATFORM_COLORS.youtube, logo: YoutubeMusicLogo },
 ];
 
 export function getPlatformLogo(dsp: string): StaticImageData | undefined {

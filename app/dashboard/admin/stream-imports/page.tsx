@@ -30,6 +30,7 @@ import {
   StreamImportRecord,
 } from '@/lib/api/stream-imports';
 import { PageSearchBar, PageSearchSection } from '@/components/dashboard/page-search-bar';
+import { getPlatformLabel } from '@/lib/platform-logos';
 
 export default function StreamImportsPageContent() {
   const router = useRouter();
@@ -163,7 +164,9 @@ export default function StreamImportsPageContent() {
           <CardTitle>Upload CSV</CardTitle>
           <CardDescription>
             Consolidated format: isrc, dsp, song_name, album_name, singer, language, genre, date,
-            play_count. Platform monthly Excel exports are also supported.
+            play_count. Supported dsp values: spotify, applemusic, amazon, gaana, jiosaavn,
+            facebook, youtube. Platform monthly Excel exports (including YouTube) are also
+            supported.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-3">
@@ -271,7 +274,7 @@ export default function StreamImportsPageContent() {
                       <TableCell className="max-w-[140px] truncate">{record.singer || '—'}</TableCell>
                       <TableCell>{record.language || '—'}</TableCell>
                       <TableCell className="max-w-[140px] truncate">{record.genre || '—'}</TableCell>
-                      <TableCell className="capitalize">{record.dsp}</TableCell>
+                      <TableCell>{getPlatformLabel(record.dsp)}</TableCell>
                       {dayLabels.map((label) => (
                         <TableCell key={`${record.id}-${label}`} className="text-center">
                           {record.dailyPlays?.[label] ?? 0}
@@ -302,7 +305,7 @@ export default function StreamImportsPageContent() {
                   {records.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-mono text-xs">{record.isrc}</TableCell>
-                      <TableCell className="capitalize">{record.dsp}</TableCell>
+                      <TableCell>{getPlatformLabel(record.dsp)}</TableCell>
                       <TableCell className="max-w-[180px] truncate">{record.songName || '—'}</TableCell>
                       <TableCell className="max-w-[180px] truncate">{record.albumName || '—'}</TableCell>
                       <TableCell className="max-w-[140px] truncate">{record.singer || '—'}</TableCell>
