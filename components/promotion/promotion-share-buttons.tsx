@@ -133,7 +133,7 @@ export function PromotionShareButtons({
     if (variant === "public") {
         return (
             <div className={`flex flex-col items-center gap-4 ${className}`}>
-                <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
+                <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em]">
                     Share this release
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
