@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Music, Play } from "lucide-react";
+import { Music, Play, ExternalLink } from "lucide-react";
 import { getPublicPromotionBySlug, getPromoTemplates } from "@/lib/api/promotions";
 import { PromotionShareButtons } from "@/components/promotion/promotion-share-buttons";
 import { getPromotionShareText, getPromotionUrl } from "@/lib/promotion-share";
@@ -119,13 +119,13 @@ export default function PublicPromotionPage() {
     const finalBgUrl = overrideUrl || bgUrl || coverUrl;
 
     return (
-        <div className="min-h-screen bg-[#050505] relative flex flex-col items-center overflow-x-hidden pt-12 pb-24">
+        <div className="min-h-screen bg-[#050505] relative flex flex-col items-center overflow-x-hidden pt-6 pb-16">
             {/* Background with blurred immersive splash */}
             <div
                 className="fixed inset-0 bg-cover bg-center scale-150 transform-gpu"
                 style={{
-                    backgroundImage: `url(${finalBgUrl})`,
-                    filter: 'blur(100px) brightness(0.6)',
+                    backgroundImage: `url('${coverUrl || finalBgUrl}')`,
+                    filter: 'blur(10px) brightness(0.8)',
                     opacity: 0.6
                 }}
             />
@@ -135,7 +135,7 @@ export default function PublicPromotionPage() {
             <main className="relative z-10 w-full max-w-lg mx-auto px-4 flex flex-col items-center">
 
                 {/* Header/Brand */}
-                <div className="mb-10 flex items-center justify-center">
+                <div className="mb-3 flex items-center justify-center">
                     <img src="/logo.png" alt="KratoLib" className="h-8 w-auto object-contain" />
                 </div>
 
@@ -143,7 +143,7 @@ export default function PublicPromotionPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-md bg-black rounded-[40px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] border border-white/10"
+                    className="w-full max-w-md bg-transparent rounded-[40px] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] border border-white/10"
                 >
                     {/* Creative Container */}
                     <div ref={containerRef} className="relative w-full overflow-hidden" style={{
@@ -176,38 +176,7 @@ export default function PublicPromotionPage() {
                             {/* Elements Layer */}
                             <div className="absolute inset-0 z-10 w-full h-full">
                                 {(() => {
-                                    // Helper to explode specific elements (like badges) into multiple renderable items
-                                    const getRenderableElements = () => {
-                                        const renderable: any[] = [];
-                                        activeTemplate.elements.forEach((element: any) => {
-                                            if (element.type === 'image' && element.source === 'platform_logo') {
-                                                const selectedBadges = elementOverrides.logo?.selectedBadges || ['spotify', 'apple-music', 'youtube-music'];
-                                                const gap = 50;
-                                                const badgeBoxSize = 200;
-                                                const step = badgeBoxSize + gap;
-                                                const totalRowWidth = (selectedBadges.length * badgeBoxSize) + ((selectedBadges.length - 1) * gap);
-                                                const centerX = activeTemplate.canvas.width / 2;
-                                                const startX = centerX - (totalRowWidth / 2);
-
-                                                selectedBadges.forEach((badgeId: string, index: number) => {
-                                                    renderable.push({
-                                                        ...element,
-                                                        id: `logo-${badgeId}`,
-                                                        source: 'platform_badge_single',
-                                                        badgeId: badgeId,
-                                                        size: { width: badgeBoxSize, height: badgeBoxSize },
-                                                        defaultX: startX + (index * step),
-                                                        defaultY: activeTemplate.canvas.height - 300
-                                                    });
-                                                });
-                                            } else {
-                                                renderable.push(element);
-                                            }
-                                        });
-                                        return renderable;
-                                    };
-
-                                    return getRenderableElements().map((element: any) => {
+                                    return activeTemplate.elements.map((element: any) => {
                                         const override = elementOverrides[element.id] || {};
                                         // Use exploded default position if available, otherwise template default
                                         const defaultX = element.defaultX !== undefined ? element.defaultX : element.position.x;
@@ -215,8 +184,11 @@ export default function PublicPromotionPage() {
 
                                         const x = defaultX + (override.x || 0);
                                         const y = defaultY + (override.y || 0);
-                                        const width = override.sizeWidth || element.size?.width || 'auto';
-                                        const height = override.sizeHeight || element.size?.height || 'auto';
+                                        let width = override.sizeWidth || element.size?.width || (element.sizeOptions && element.sizeOptions[0]?.width) || 'max-content';
+                                        if (element.source === 'platform_logo' && typeof width === 'number' && width < 400) {
+                                            width = 600;
+                                        }
+                                        // const height = override.sizeHeight || element.size?.height || (element.sizeOptions && element.sizeOptions[0]?.height) || 'auto';
 
                                         const getTextContent = () => {
                                             if (override.text) return override.text;
@@ -258,11 +230,15 @@ export default function PublicPromotionPage() {
                                                 }}
                                                 style={{
                                                     position: 'absolute',
-                                                    left: x,
-                                                    top: y,
+                                                    left: element.source === 'platform_logo' ? '50%' : x,
+                                                    top: element.source === 'platform_logo' ? 'auto' : y,
+                                                    bottom: element.source === 'platform_logo' ? '20px' : 'auto',
                                                     width: width,
-                                                    height: height,
+                                                    maxWidth: element.type === 'text' ? `${activeTemplate.canvas.width * 0.9}px` : undefined,
+                                                    height: 'auto',
                                                     zIndex: 10,
+                                                    x: (element.type === 'text' || element.source === 'platform_logo') ? "-50%" : 0,
+                                                    y: 0,
                                                     transformOrigin: 'center'
                                                 }}
                                             >
@@ -276,25 +252,19 @@ export default function PublicPromotionPage() {
                                                         />
                                                     )}
 
-                                                    {element.source === 'platform_badge_single' && (
+                                                    {element.type === 'image' && element.source === 'platform_logo' && (
                                                         <div
-                                                            className="flex justify-center items-center h-full"
+                                                            className="flex justify-center items-center w-full"
                                                             style={{
                                                                 transform: `scale(${override.scale || 1})`,
                                                                 transformOrigin: 'center'
                                                             }}
                                                         >
-                                                            {(() => {
-                                                                const badge = PLATFORM_BADGES.find(b => b.id === element.badgeId);
-                                                                if (!badge) return null;
-                                                                return (
-                                                                    <img
-                                                                        src={badge.logoUrl}
-                                                                        alt={badge.name}
-                                                                        className="h-24 w-auto object-contain filter drop-shadow-2xl brightness-200"
-                                                                    />
-                                                                );
-                                                            })()}
+                                                            <img
+                                                                src="/assets/images/promotion-sociallogo-group.png"
+                                                                alt="Platform Logos"
+                                                                className="w-[350px] h-auto object-contain filter drop-shadow-2xl"
+                                                            />
                                                         </div>
                                                     )}
 
@@ -326,8 +296,8 @@ export default function PublicPromotionPage() {
                     </div>
 
                     {/* Platforms List */}
-                    <div className="bg-[#080808]/90 backdrop-blur-3xl border-t border-white/5 p-6 space-y-3">
-                        <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-2 mb-4">Choose your service</p>
+                    <div className="bg-white/10 backdrop-blur-2xl border-t border-white/20 p-6 space-y-2">
+                        <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] ml-2 mb-4 hidden">Choose your service</p>
 
                         {streamingLinks.filter((l: any) => l.isActive).map((link: any, idx: number) => (
                             <motion.a
@@ -335,36 +305,39 @@ export default function PublicPromotionPage() {
                                 href={link.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)" }}
-                                whileTap={{ scale: 0.98 }}
-                                className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 transition-all group"
+                                whileHover={{ scale: 1.01, backgroundColor: "rgba(0,0,0,0.6)" }}
+                                whileTap={{ scale: 0.99 }}
+                                className="flex items-center justify-between p-2.5 rounded-[20px] bg-black/40 border border-white/5 transition-all group"
                             >
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3.5">
                                     {(() => {
                                         const badge = PLATFORM_BADGES.find(b =>
                                             b.name.toLowerCase() === link.platform.toLowerCase() ||
                                             b.id === link.platform.toLowerCase().replace(/\s+/g, '-')
                                         );
                                         return badge ? (
-                                            <div className="w-10 h-10 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-lg">
+                                            <div className="w-12 h-12 rounded-[100px] overflow-hidden flex items-center justify-center bg-black/20 shrink-0">
                                                 <img
                                                     src={badge.logoUrl}
                                                     alt={badge.name}
-                                                    className="w-full h-full object-contain"
+                                                    className="w-full h-full object-cover"
                                                 />
                                             </div>
                                         ) : (
-                                            <div className="w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center font-bold text-[10px] text-primary">
+                                            <div className="w-12 h-12 rounded-[100px] bg-black border border-white/10 flex items-center justify-center font-bold text-xs text-white shrink-0">
                                                 {link.platform.substring(0, 2).toUpperCase()}
                                             </div>
                                         );
                                     })()}
-                                    <span className="font-bold text-white tracking-tight text-sm">{link.platform}</span>
+                                    <div className="flex flex-col items-start">
+                                        <span className="font-semibold text-white tracking-tight text-[15px] leading-tight">{link.platform}</span>
+                                        <span className="text-[11px] text-white/50 font-medium mt-0.5">Listen on {link.platform}</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[10px] font-black text-primary tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">Listen</span>
-                                    <div className="p-2.5 rounded-full bg-primary text-black shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                                        <Play className="h-3 w-3 fill-current ml-0.5" />
+                                <div className="flex items-center pr-1">
+                                    <div className="px-4 py-1.5 rounded-full bg-white text-black font-bold text-[13px] flex items-center gap-1.5 group-hover:bg-gray-200 transition-colors">
+                                        Play
+                                        <ExternalLink className="h-3.5 w-3.5 text-black/80 stroke-[2.5px]" />
                                     </div>
                                 </div>
                             </motion.a>
@@ -379,7 +352,7 @@ export default function PublicPromotionPage() {
                         url={getPromotionUrl(slug)}
                         shareText={getPromotionShareText(release?.title, release?.artistName)}
                     />
-                    <p className="text-white/10 text-[10px] font-black uppercase tracking-[0.3em]">
+                    <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em]">
                         &copy; 2026 KratoLib &bull; Advanced Music Experiences
                     </p>
                 </footer>
