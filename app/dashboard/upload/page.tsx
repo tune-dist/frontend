@@ -29,7 +29,7 @@ import {
   MandatoryChecks,
   Track,
 } from "@/components/dashboard/upload/upload-form.schema";
-import { getDefaultLabelName } from "@/lib/validation/label-name";
+import { releaseMetadataForPlan } from "@/lib/releases/release-metadata-for-plan";
 import { copyReleasePrimaryArtistsFromForm } from "@/lib/releases/track-main-artists.util";
 
 // Child Components
@@ -209,8 +209,8 @@ export default function UploadPage() {
       instrumental: "no",
       writers: [],
       composers: [],
-      copyright: getDefaultLabelName(),
-      producers: [getDefaultLabelName()],
+      copyright: "",
+      producers: [""],
       recordingYear: new Date().getFullYear(),
       mood: "",
       coverArtChanged: false,
@@ -272,6 +272,34 @@ export default function UploadPage() {
           form.setValue("copyright", formValues.copyright, {
             shouldValidate: true,
             shouldDirty: false,
+          });
+        }
+
+        const paidMetadata = releaseMetadataForPlan({
+          planKey: resolveEffectivePlanKey(user),
+          isStaff: isPlanExemptUser(user),
+          savedLabelName: user.savedLabelName,
+          savedCopyright: user.savedCopyright,
+          savedPublisher: user.savedPublisher,
+          replaceDefaultOnly: true,
+          current: {
+            labelName: formValues.labelName,
+            copyright: formValues.copyright,
+            producers: formValues.producers,
+          },
+        });
+        if (paidMetadata) {
+          form.setValue("labelName", paidMetadata.labelName, {
+            shouldValidate: false,
+            shouldDirty: true,
+          });
+          form.setValue("copyright", paidMetadata.copyright, {
+            shouldValidate: false,
+            shouldDirty: true,
+          });
+          form.setValue("producers", paidMetadata.producers, {
+            shouldValidate: false,
+            shouldDirty: true,
           });
         }
         setReleaseDateAutoCorrected(didAutoCorrectReleaseDate);
@@ -369,46 +397,47 @@ export default function UploadPage() {
   useEffect(() => {
     if (!user) return;
 
+    let cancelled = false;
+
     getArtistUsage()
-        .then((data) =>
+        .then((data) => {
+          if (cancelled) return;
           setUsedArtists(
             (data.artists || []).filter((artist) => {
               if (artist == null) return false;
               if (typeof artist === 'string') return artist.trim().length > 0;
               return typeof artist.name === 'string' && artist.name.trim().length > 0;
             }),
-          ),
-        )
+          );
+        })
         .catch((err) => console.error("Failed to fetch artist usage", err));
 
-      // Fetch field rules
       const planKey = resolveEffectivePlanKey(user);
       getPlanFieldRules(planKey)
         .then((rules) => {
+          if (cancelled) return;
           setFieldRules(rules);
           if (isEditMode) return;
 
-          if (planKey === "free") {
-            form.setValue("labelName", getDefaultLabelName(), { shouldValidate: true });
-            form.setValue("copyright", getDefaultLabelName(), { shouldValidate: true });
-            form.setValue("producers", [getDefaultLabelName()], { shouldValidate: true });
-          } else if (user.savedLabelName) {
-            form.setValue("labelName", user.savedLabelName, { shouldValidate: true });
-            form.setValue("copyright", user.savedCopyright || user.savedLabelName, {
-              shouldValidate: true,
-            });
-            form.setValue(
-              "producers",
-              [user.savedPublisher || user.savedLabelName],
-              { shouldValidate: true },
-            );
-          } else {
-            form.setValue("labelName", "", { shouldValidate: false });
-            form.setValue("copyright", "", { shouldValidate: false });
-            form.setValue("producers", [""], { shouldValidate: false });
-          }
+          const metadata = releaseMetadataForPlan({
+            planKey,
+            isStaff: isPlanExemptUser(user),
+            savedLabelName: user.savedLabelName,
+            savedCopyright: user.savedCopyright,
+            savedPublisher: user.savedPublisher,
+          });
+          if (!metadata) return;
+
+          const shouldValidate = metadata.labelName.length > 0;
+          form.setValue("labelName", metadata.labelName, { shouldValidate });
+          form.setValue("copyright", metadata.copyright, { shouldValidate });
+          form.setValue("producers", metadata.producers, { shouldValidate });
         })
         .catch((err) => console.error("Failed to fetch field rules", err));
+
+      return () => {
+        cancelled = true;
+      };
   }, [user, form, isEditMode]);
 
   // Watch for bridging to old components
@@ -538,7 +567,12 @@ export default function UploadPage() {
           }
 
           if (planKey === "free") {
-            form.setValue("labelName", getDefaultLabelName(), { shouldValidate: true });
+            const metadata = releaseMetadataForPlan({ planKey });
+            if (metadata) {
+              form.setValue("labelName", metadata.labelName, { shouldValidate: true });
+              form.setValue("copyright", metadata.copyright, { shouldValidate: true });
+              form.setValue("producers", metadata.producers, { shouldValidate: true });
+            }
           }
 
           const isPaidPlan = planKey !== "free";

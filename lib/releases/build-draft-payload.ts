@@ -18,7 +18,6 @@ import type {
   ReleaseType,
 } from './release.types';
 import { buildProfilesFromFlatFields, toPlatformRef } from './platform-ref.util';
-import { getDefaultLabelName } from '@/lib/validation/label-name';
 import { toTitleCase } from '@/lib/validation/title-case';
 import type { TrackMainArtistFormValue } from './track-main-artists.util';
 import {
@@ -78,11 +77,11 @@ export function resolveDraftPublisher(input: {
   publisher?: string;
   labelName?: string;
 }): string {
-  const defaultLabel = getDefaultLabelName();
   return (
     input.producers?.[0]?.trim() ||
     input.publisher?.trim() ||
-    defaultLabel
+    input.labelName?.trim() ||
+    ''
   );
 }
 
@@ -570,7 +569,6 @@ export async function buildDraftPayload(
     form.mandatoryChecks?.ownershipConfirmation === true ||
     form.rightsAccepted === true;
 
-  const defaultLabel = getDefaultLabelName();
   const publisher = resolveDraftPublisher({
     producers: form.producers,
     publisher: form.publisher,
@@ -583,7 +581,7 @@ export async function buildDraftPayload(
         title: toTitleCase(form.title),
         version: form.version || null,
         type: releaseType,
-        labelName: form.labelName || defaultLabel,
+        labelName: form.labelName?.trim() || '',
         releaseDate: form.releaseDate || new Date().toISOString().slice(0, 10),
         originalReleaseDate: form.originalReleaseDate || null,
         previouslyReleased: yesNo(form.previouslyReleased),

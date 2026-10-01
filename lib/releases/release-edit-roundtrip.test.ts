@@ -312,7 +312,7 @@ function formToDraftRequest(
       title: form.title,
       version: form.version || null,
       type: releaseType,
-      labelName: form.labelName || 'KratoLib',
+      labelName: form.labelName?.trim() || '',
       releaseDate: form.releaseDate || '2026-06-01',
       originalReleaseDate: form.originalReleaseDate || null,
       previouslyReleased: form.previouslyReleased === 'yes',
@@ -379,14 +379,24 @@ describe('resolveDraftPublisher', () => {
     ).toBe('2026 Vidhi Vision Production');
   });
 
-  it('falls back to default label when producers and publisher are empty', () => {
+  it('falls back to the release label when producers and publisher are empty', () => {
     expect(
       resolveDraftPublisher({
         producers: [],
         publisher: undefined,
-        labelName: 'KratoLib',
+        labelName: 'My Label',
       }),
-    ).toBe('KratoLib');
+    ).toBe('My Label');
+  });
+
+  it('does not invent KratoLib when label, producers, and publisher are empty', () => {
+    expect(
+      resolveDraftPublisher({
+        producers: [],
+        publisher: undefined,
+        labelName: '',
+      }),
+    ).toBe('');
   });
 });
 
