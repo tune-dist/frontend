@@ -1,12 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Image as ImageIcon, Loader2, UploadCloud, Lightbulb, CheckCircle2, ClipboardCheck, Info, XCircle, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { UploadFormData } from './upload-form.schema'
 import { useFormContext } from 'react-hook-form'
-import { uploadFileInChunks, uploadFileDirectly } from '@/lib/upload/chunk-uploader'
-import Cookies from 'js-cookie'
-import { config } from '@/lib/config'
+import { uploadReleaseFileToS3 } from '@/lib/upload/chunk-uploader'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -15,7 +13,6 @@ import {
     validateCoverArtFile,
     validateCoverArtDimensions,
     loadCoverArtImage,
-    validateCoverArt,
     isExistingUnchangedCoverArt,
     COVER_ART_MIN_DIMENSION_PX,
     COVER_ART_MAX_DIMENSION_PX,
@@ -26,14 +23,20 @@ interface CoverArtStepProps {
     formData?: UploadFormData
     setFormData?: (data: UploadFormData) => void
     fieldRules?: Record<string, any>
+    onUploadingChange?: (uploading: boolean) => void
 }
 
 type RequirementStatus = 'pending' | 'success' | 'error';
 
-export default function CoverArtStep({ formData: propFormData, setFormData: propSetFormData, fieldRules = {} }: CoverArtStepProps) {
+export default function CoverArtStep({ formData: propFormData, setFormData: propSetFormData, fieldRules = {}, onUploadingChange }: CoverArtStepProps) {
     const { setValue, watch, formState: { errors }, getValues, setError, clearErrors } = useFormContext<UploadFormData>()
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
+
+    useEffect(() => {
+        onUploadingChange?.(isUploading)
+        return () => onUploadingChange?.(false)
+    }, [isUploading, onUploadingChange])
     const [isValidating, setIsValidating] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState<number>(1);
 
@@ -73,7 +76,11 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
         };
     };
 
-    const applyValidationResult = (validationResult: Awaited<ReturnType<typeof validateCoverArt>>) => {
+    const applyValidationResult = (validationResult: {
+        status: 'approved' | 'rejected' | 'warned' | 'warning';
+        issues?: Array<{ code?: string; message: string; severity?: string }>;
+        errors?: Array<{ code?: string; message: string; severity?: string }>;
+    }) => {
         setValue('coverArtValidationStatus', validationResult.status);
         setValue(
             'coverArtValidationIssues',
@@ -196,8 +203,23 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
             setIsValidating(true);
             setUploadProgress(0);
 
-            const validationResult = await validateCoverArt(file, validationMetadata);
-            applyValidationResult(validationResult);
+            const result = await uploadReleaseFileToS3(
+                file,
+                'coverart',
+                setUploadProgress,
+                validationMetadata.artistName,
+                validationMetadata.trackTitle,
+            );
+            const status = (result.status || 'approved') as
+                | 'approved'
+                | 'rejected'
+                | 'warned'
+                | 'warning';
+            applyValidationResult({
+                status,
+                issues: result.issues,
+                errors: result.issues,
+            });
 
             setValue('coverArtPreview', imageData.previewDataUrl, { shouldValidate: true });
             const currentCover = getValues('coverArt') as
@@ -214,6 +236,9 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
                 },
                 format: file.type.split('/')[1] || 'jpg',
                 ...(replacedPath ? { replacedPath } : {}),
+                ...(status !== 'rejected' && result.path
+                    ? { path: result.path, storageKey: result.path }
+                    : {}),
             } as any, { shouldValidate: true });
         } catch (error) {
             console.error('[CoverArt] Upload/Validation failed:', error);

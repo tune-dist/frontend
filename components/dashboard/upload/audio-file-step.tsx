@@ -1,14 +1,13 @@
 
-import { useState } from 'react'
-import { validateAudioOnBackend } from '@/lib/upload/chunk-uploader'
+import { useEffect, useState } from 'react'
+import { uploadReleaseFileToS3 } from '@/lib/upload/chunk-uploader'
+import { abandonUploadKeys } from '@/lib/upload/upload-session'
 import { validateLocalWavFile } from '@/lib/upload/validate-local-wav-file'
 import { isPlanInactiveError } from '@/lib/plan-inactive'
 import { getErrorMessage } from '@/lib/get-error-message'
 import { getMinTrackDurationError } from './crbt-validation'
 import { getMaxPlanAudioDurationError } from '@/lib/upload/plan-audio-duration'
 import { useAuth } from '@/contexts/AuthContext'
-import Cookies from 'js-cookie'
-import { config } from '@/lib/config'
 import { resolveEffectivePlanKey } from '@/lib/plan-access'
 
 import { Button } from '@/components/ui/button'
@@ -25,12 +24,14 @@ interface AudioFileStepProps {
     setFormData?: (data: UploadFormData) => void
     /** In-process releases cannot add/remove album tracks yet — only replace audio per track. */
     lockTrackStructure?: boolean
+    onUploadingChange?: (uploading: boolean) => void
 }
 
 export default function AudioFileStep({
     formData: propFormData,
     setFormData: propSetFormData,
     lockTrackStructure = false,
+    onUploadingChange,
 }: AudioFileStepProps) {
     const { setValue, watch, getValues, formState: { errors }, setError, clearErrors } = useFormContext<UploadFormData>()
     const { user } = useAuth()
@@ -38,6 +39,11 @@ export default function AudioFileStep({
     const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
     const [isUploading, setIsUploading] = useState(false)
     const [activeFileId, setActiveFileId] = useState<string | null>(null)
+
+    useEffect(() => {
+        onUploadingChange?.(isUploading)
+        return () => onUploadingChange?.(false)
+    }, [isUploading, onUploadingChange])
     const format = watch('format')
     const audioFile = watch('audioFile')
     const releaseTitle = watch('title')
@@ -85,32 +91,10 @@ export default function AudioFileStep({
             setUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
 
             try {
-                // Start Validation-only Backend Call
-                const token = Cookies.get(config.tokenKey) || ''
-                const result = await validateAudioOnBackend(
-                    file,
-                    token,
-                    format === 'single' ? getValues('title') : undefined,
-                    watch('audioConsent')
-                );
-
-                if (result.status === 'duplicate_warning') {
-                    setValue('audioDuplicateDetected', true);
-                    setValue('audioWarningMessage', result.message);
-                    toast.error(`Duplicate audio detected: ${file.name}. Please review the warning below.`, { duration: 6000 });
-                }
-
-                const durationError = getMinTrackDurationError(result.metaData?.duration);
-                if (durationError) {
-                    toast.error(`${file.name}: ${durationError}`);
-                    continue;
-                }
-
-                const planDurationError = getPlanDurationError(result.metaData?.duration);
-                if (planDurationError) {
-                    rejectAudioDuration(file.name, planDurationError);
-                    continue;
-                }
+                const prepared = await validateAndPrepareAudioFile(file, (percent) => {
+                    setUploadProgress((prev) => ({ ...prev, [fileId]: percent }))
+                })
+                if (!prepared) continue
 
                 clearAudioDurationError();
                 if (format === 'single' || !format) {
@@ -120,15 +104,8 @@ export default function AudioFileStep({
                         '';
                     const newAudioFile: AudioFile = {
                         id: (audioFile as AudioFile | null)?.id || crypto.randomUUID(),
-                        file: file,
-                        fileName: file.name,
-                        size: file.size,
-                        path: '',
+                        ...prepared,
                         ...(previousPath ? { replacedPath: previousPath } : {}),
-                        duration: result.metaData?.duration,
-                        resolution: result.metaData?.resolution,
-                        hash: result.metaData?.hash,
-                        fingerprint: result.metaData?.fingerprint,
                     }
                     setValue('audioFile', newAudioFile, { shouldValidate: true })
                     setValue('audioFileName', file.name, { shouldValidate: true })
@@ -162,14 +139,7 @@ export default function AudioFileStep({
 
                     const newAudioFile: AudioFile = {
                         id: fileId,
-                        file: file,
-                        fileName: file.name,
-                        size: file.size,
-                        path: '',
-                        duration: result.metaData?.duration,
-                        resolution: result.metaData?.resolution,
-                        hash: result.metaData?.hash,
-                        fingerprint: result.metaData?.fingerprint
+                        ...prepared,
                     }
 
                     setValue('audioFiles', [...currentAudioFiles, newAudioFile], { shouldValidate: true })
@@ -263,17 +233,23 @@ export default function AudioFileStep({
         }
     }
 
-    const validateAndPrepareAudioFile = async (file: File) => {
+    const validateAndPrepareAudioFile = async (
+        file: File,
+        onProgress?: (percent: number) => void,
+    ) => {
         const wavHeader = await validateLocalWavFile(file)
         if (!wavHeader) return null
 
-        const token = Cookies.get(config.tokenKey) || ''
-        const result = await validateAudioOnBackend(
+        const trackTitle =
+            format === 'single' ? getValues('title') : file.name.replace(/\.[^.]+$/, '')
+        const result = await uploadReleaseFileToS3(
             file,
-            token,
-            format === 'single' ? getValues('title') : undefined,
-            watch('audioConsent')
-        );
+            'audio',
+            onProgress,
+            getValues('artistName'),
+            trackTitle,
+            watch('audioConsent'),
+        )
 
         if (result.status === 'duplicate_warning') {
             setValue('audioDuplicateDetected', true);
@@ -283,14 +259,20 @@ export default function AudioFileStep({
 
         const durationError = getMinTrackDurationError(result.metaData?.duration);
         if (durationError) {
+            if (result.path) await abandonUploadKeys([result.path])
             toast.error(`${file.name}: ${durationError}`);
             return null;
         }
 
         const planDurationError = getPlanDurationError(result.metaData?.duration);
         if (planDurationError) {
+            if (result.path) await abandonUploadKeys([result.path])
             rejectAudioDuration(file.name, planDurationError);
             return null;
+        }
+
+        if (!result.path) {
+            throw new Error('Upload completed but no path returned.')
         }
 
         clearAudioDurationError();
@@ -299,7 +281,7 @@ export default function AudioFileStep({
             file,
             fileName: file.name,
             size: file.size,
-            path: '',
+            path: result.path,
             duration: result.metaData?.duration,
             resolution: result.metaData?.resolution,
             hash: result.metaData?.hash,

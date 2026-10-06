@@ -29,11 +29,27 @@ export function recordUploadedKey(
   }
 }
 
+export async function abandonUploadKeys(keys: string[]): Promise<void> {
+  const uniqueKeys: string[] = [];
+  for (const key of keys) {
+    const trimmed = key.trim();
+    if (!trimmed || uniqueKeys.includes(trimmed)) continue;
+    uniqueKeys.push(trimmed);
+  }
+  if (uniqueKeys.length === 0) return;
+
+  try {
+    await apiClient.post('/chunk_files/abandon', { keys: uniqueKeys });
+  } catch (error) {
+    console.warn('[upload] Failed to abandon orphaned S3 keys', error);
+  }
+}
+
 export async function abandonUploadSession(session: UploadSession): Promise<void> {
   if (session.newKeys.length === 0) return;
 
   try {
-    await apiClient.post('/chunk_files/abandon', { keys: session.newKeys });
+    await abandonUploadKeys(session.newKeys);
   } catch (error) {
     console.warn('[upload] Failed to abandon orphaned S3 keys', error);
   } finally {

@@ -24,20 +24,18 @@ export function formatReleaseCodeDisplay(
 export function getTrackIsrcs(
   release: ReleaseCodeSource & { tracks?: Array<{ isrc?: string }> },
 ): string[] {
-  const codes = new Set<string>();
+  const codes: string[] = [];
 
   for (const track of release.tracks ?? []) {
-    if (track.isrc?.trim()) {
-      codes.add(track.isrc.trim());
-    }
+    const isrc = track.isrc?.trim();
+    if (isrc && !codes.includes(isrc)) codes.push(isrc);
   }
 
   // Legacy root isrc fallback
-  if (release.isrc?.trim()) {
-    codes.add(release.isrc.trim());
-  }
+  const releaseIsrc = release.isrc?.trim();
+  if (releaseIsrc && !codes.includes(releaseIsrc)) codes.push(releaseIsrc);
 
-  return Array.from(codes);
+  return codes;
 }
 
 export function formatUpcDisplay(

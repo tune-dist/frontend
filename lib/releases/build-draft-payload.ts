@@ -3,7 +3,7 @@ import type { ReleaseFormData } from '@/lib/api/releases';
 import { isInstrumentalRelease, resolveLanguage } from '@/components/dashboard/upload/genre-language';
 import { isTrackEligibleForCrbt } from '@/components/dashboard/upload/crbt-validation';
 import { resolveAudioUploadTitle } from '@/lib/upload/audio-upload-title';
-import { uploadFileInChunks } from '@/lib/upload/chunk-uploader';
+import { uploadReleaseFileToS3 } from '@/lib/upload/chunk-uploader';
 import { getImageMetadata } from '@/lib/upload/media-metadata';
 import {
   createSubmitProgressTracker,
@@ -158,7 +158,6 @@ async function ensureAudioUploaded(
   audioFiles: FormAudioFile[],
   tracks: UploadFormData['tracks'],
   form: BuildDraftPayloadInput,
-  token: string,
   runUpload: FileUploadRunner,
   uploadSession: UploadSession,
 ): Promise<Map<string, FormAudioFile>> {
@@ -166,16 +165,16 @@ async function ensureAudioUploaded(
 
   for (let i = 0; i < audioFiles.length; i++) {
     const af = audioFiles[i];
-    if (af.file instanceof File && !toStorageKey(af.path)) {
+    const existingKey = toStorageKey(af.path);
+    if (af.file instanceof File && !existingKey) {
       const uploadTitle = resolveAudioUploadTitle(af, tracks, i, form.title);
       const replaceKey =
         toStorageKey(af.replacedPath) || toStorageKey(af.path);
       await runUpload(`Uploading ${uploadTitle}…`, (onFileProgress) =>
-        uploadFileInChunks(
+        uploadReleaseFileToS3(
           af.file!,
-          token,
-          onFileProgress,
           'audio',
+          onFileProgress,
           form.artistName,
           uploadTitle,
           form.audioConsent,
@@ -187,6 +186,8 @@ async function ensureAudioUploaded(
           af.fingerprint = result.metaData?.fingerprint;
         }),
       );
+    } else if (af.file instanceof File && existingKey) {
+      recordUploadedKey(uploadSession, existingKey, toStorageKey(af.replacedPath));
     }
     if (af.id) map.set(af.id, af);
   }
@@ -252,7 +253,6 @@ function buildArtists(form: BuildDraftPayloadInput): CreateReleaseDraftRequest['
 
 async function resolveCoverArt(
   form: BuildDraftPayloadInput,
-  token: string,
   runUpload: FileUploadRunner,
   uploadSession: UploadSession,
 ): Promise<{ coverArt: DraftCoverArt; coverArtFormValue: Record<string, unknown> | null }> {
@@ -262,6 +262,7 @@ async function resolveCoverArt(
   }
 
   let storageKey: string;
+  let uploadedCoverNow = false;
   let coverMeta: Record<string, unknown> =
     typeof coverArtData === 'object' && !(coverArtData instanceof File)
       ? { ...coverArtData }
@@ -280,6 +281,7 @@ async function resolveCoverArt(
   ) {
     storageKey = toStorageKey(coverMeta.url)!;
   } else if (form.coverArt instanceof File || coverMeta.file instanceof File) {
+    uploadedCoverNow = true;
     const fileToUpload =
       form.coverArt instanceof File ? form.coverArt : (coverMeta.file as File);
     const replaceKey =
@@ -288,11 +290,10 @@ async function resolveCoverArt(
       toStorageKey(typeof coverMeta.storageKey === 'string' ? coverMeta.storageKey : undefined);
     let uploadedKey = '';
     await runUpload('Uploading cover art…', (onFileProgress) =>
-      uploadFileInChunks(
+      uploadReleaseFileToS3(
         fileToUpload,
-        token,
-        onFileProgress,
         'coverart',
+        onFileProgress,
         form.artistName,
         form.title,
         form.coverArtConsent,
@@ -313,6 +314,18 @@ async function resolveCoverArt(
     storageKey = uploadedKey;
   } else {
     throw new Error('Invalid cover art data. Please re-upload your cover art.');
+  }
+
+  const coverFile =
+    form.coverArt instanceof File
+      ? form.coverArt
+      : coverMeta.file instanceof File
+        ? coverMeta.file
+        : null;
+  if (!uploadedCoverNow && coverFile) {
+    const replaceKey =
+      toStorageKey(typeof coverMeta.replacedPath === 'string' ? coverMeta.replacedPath : undefined);
+    recordUploadedKey(uploadSession, storageKey, replaceKey);
   }
 
   let dimensions = coverMeta.dimensions as { width: number; height: number } | undefined;
@@ -357,7 +370,7 @@ async function resolveCoverArt(
 /** Build canonical v2 draft request from upload form (uploads files when needed). */
 export async function buildDraftPayload(
   form: BuildDraftPayloadInput,
-  token: string,
+  _token: string,
   onProgress?: SubmitProgressCallback,
   uploadSession: UploadSession = createUploadSession(),
 ): Promise<BuildDraftPayloadResult> {
@@ -377,7 +390,6 @@ export async function buildDraftPayload(
     audioFiles,
     form.tracks || [],
     form,
-    token,
     runUpload,
     uploadSession,
   );
@@ -436,11 +448,10 @@ export async function buildDraftPayload(
           const replaceKey =
             toStorageKey(rootAudioFile.replacedPath) || toStorageKey(rootAudioFile.path);
           await runUpload(`Uploading ${uploadTitle}…`, (onFileProgress) =>
-            uploadFileInChunks(
+            uploadReleaseFileToS3(
               rootAudioFile.file!,
-              token,
-              onFileProgress,
               'audio',
+              onFileProgress,
               form.artistName,
               uploadTitle,
               form.audioConsent,
@@ -451,6 +462,12 @@ export async function buildDraftPayload(
               rootAudioFile.hash = result.metaData?.hash;
               rootAudioFile.fingerprint = result.metaData?.fingerprint;
             }),
+          );
+        } else if (rootAudioFile.file instanceof File && rootStorageKey) {
+          recordUploadedKey(
+            uploadSession,
+            rootStorageKey,
+            toStorageKey(rootAudioFile.replacedPath),
           );
         }
         linked = rootAudioFile;
@@ -558,7 +575,6 @@ export async function buildDraftPayload(
 
   const { coverArt, coverArtFormValue } = await resolveCoverArt(
     form,
-    token,
     runUpload,
     uploadSession,
   );

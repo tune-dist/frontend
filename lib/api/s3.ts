@@ -63,7 +63,11 @@ export const getSignedUrl = async (s3Key: string): Promise<string> => {
 };
 
 export const getSignedUrls = async (s3Keys: string[]): Promise<Map<string, string>> => {
-  const uniqueKeys = Array.from(new Set(s3Keys.filter((key) => key && isS3Key(key))));
+  const uniqueKeys: string[] = [];
+  for (const key of s3Keys) {
+    if (!key || !isS3Key(key) || uniqueKeys.includes(key)) continue;
+    uniqueKeys.push(key);
+  }
   const entries = await Promise.all(
     uniqueKeys.map(async (key) => [key, await getSignedUrl(key)] as const),
   );

@@ -128,14 +128,14 @@ function collectGenresFromTracks(
     genre?: { primary?: string; secondary?: string };
   }>,
 ): string[] {
-  const names = new Set<string>();
+  const names: string[] = [];
   for (const track of tracks) {
     const primary = track.primaryGenre?.trim() || track.genre?.primary?.trim();
     const secondary = track.secondaryGenre?.trim() || track.genre?.secondary?.trim();
-    if (primary) names.add(primary);
-    if (secondary) names.add(secondary);
+    if (primary && !names.includes(primary)) names.push(primary);
+    if (secondary && !names.includes(secondary)) names.push(secondary);
   }
-  return Array.from(names);
+  return names;
 }
 
 function mapDraftTrackToWrite(track: DraftTrack, index: number, fallbackArtist?: string) {
