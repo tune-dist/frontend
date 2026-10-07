@@ -95,12 +95,11 @@ export default function UsersPage() {
                     plans.map((plan) => [plan.key, plan.title]),
                 );
 
-                const mergedKeys = Array.from(
-                    new Set([
-                        ...overview.planKeys,
-                        ...plans.map((plan) => plan.key),
-                    ]),
-                ).sort((a, b) => {
+                const mergedKeys: string[] = [];
+                for (const key of [...overview.planKeys, ...plans.map((plan) => plan.key)]) {
+                    if (!mergedKeys.includes(key)) mergedKeys.push(key);
+                }
+                mergedKeys.sort((a, b) => {
                     const labelA = planTitleByKey.get(a) || formatPlanDisplayName(a);
                     const labelB = planTitleByKey.get(b) || formatPlanDisplayName(b);
                     return labelA.localeCompare(labelB);

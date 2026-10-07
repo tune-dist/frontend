@@ -11,6 +11,7 @@ interface UploadCompleteResponse {
     path: string;
     status?: string;
     message?: string;
+    issues?: Array<{ code?: string; message: string; severity?: string }>;
     metaData: {
         duration?: number;
         resolution?: { width: number; height: number };
@@ -197,4 +198,158 @@ export const validateAudioOnBackend = async (
     }
 
     throw new Error('Validation completed but no status returned.');
+};
+
+function releaseFileContentType(file: File, type: 'audio' | 'coverart'): string {
+    const raw = file.type?.split(';')[0].trim().toLowerCase();
+    if (raw && raw !== 'application/octet-stream') {
+        if (raw === 'image/jpg') return 'image/jpeg';
+        if (raw === 'audio/wave' || raw === 'audio/x-wav') return 'audio/wav';
+        return raw;
+    }
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (type === 'audio') {
+        if (extension === 'mp3') return 'audio/mpeg';
+        if (extension === 'flac') return 'audio/flac';
+        if (extension === 'aiff') return 'audio/aiff';
+        if (extension === 'm4a') return 'audio/mp4';
+        return 'audio/wav';
+    }
+    if (extension === 'png') return 'image/png';
+    if (extension === 'webp') return 'image/webp';
+    return 'image/jpeg';
+}
+
+function putFileToS3(
+    url: string,
+    file: File,
+    contentType: string,
+    onProgress?: UploadProgressCallback,
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', url);
+        xhr.setRequestHeader('Content-Type', contentType);
+        xhr.upload.onprogress = (event) => {
+            if (!onProgress || !event.lengthComputable) return;
+            onProgress(Math.round((event.loaded * 100) / event.total));
+        };
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve();
+                return;
+            }
+            reject(new Error(`S3 upload failed (${xhr.status})`));
+        };
+        xhr.onerror = () => reject(new Error('S3 upload failed'));
+        xhr.send(file);
+    });
+}
+
+function toUploadResponse(data: {
+    path?: string;
+    status?: string;
+    message?: string;
+    issues?: UploadCompleteResponse['issues'];
+    errors?: UploadCompleteResponse['issues'];
+    metaData?: UploadCompleteResponse['metaData'];
+}): UploadCompleteResponse {
+    return {
+        path: data.path || '',
+        status: data.status,
+        message: data.message,
+        issues: data.issues || data.errors,
+        metaData: {
+            duration: data.metaData?.duration,
+            resolution: data.metaData?.resolution,
+            hash: data.metaData?.hash,
+            fingerprint: data.metaData?.fingerprint,
+            size: data.metaData?.size,
+        },
+    };
+}
+
+type ReleaseUploadError = {
+    response?: {
+        status?: number;
+        headers?: { 'retry-after'?: string };
+        data?: { message?: string };
+    };
+};
+
+function releaseUploadErrorMessage(error: unknown, fallback: string): string {
+    const message = (error as ReleaseUploadError).response?.data?.message;
+    return message || fallback;
+}
+
+function throttleRetryDelayMs(error: unknown): number | null {
+    const response = (error as ReleaseUploadError).response;
+    if (response?.status !== 429) return null;
+    const retryAfter = Number(response.headers?.['retry-after']);
+    if (Number.isFinite(retryAfter) && retryAfter > 0) {
+        return Math.min(retryAfter, 65) * 1000;
+    }
+    return 2000;
+}
+
+async function postReleaseUpload(url: string, body: Record<string, unknown>, fallback: string) {
+    let attempt = 0;
+    while (attempt < 3) {
+        try {
+            return await apiClient.post(url, body);
+        } catch (error) {
+            if (isPlanInactiveError(error)) throw error;
+            const delayMs = throttleRetryDelayMs(error);
+            if (delayMs != null && attempt < 2) {
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                attempt += 1;
+                continue;
+            }
+            throw new Error(releaseUploadErrorMessage(error, fallback));
+        }
+    }
+    throw new Error(fallback);
+}
+
+/** Release audio and cover: presign, PUT to S3, then server checks that object. */
+export const uploadReleaseFileToS3 = async (
+    file: File,
+    type: 'audio' | 'coverart',
+    onProgress?: UploadProgressCallback,
+    artistName?: string,
+    trackTitle?: string,
+    consent?: boolean,
+): Promise<UploadCompleteResponse> => {
+    const contentType = releaseFileContentType(file, type);
+    const presign = await postReleaseUpload(
+        '/chunk_files/presign',
+        {
+            type,
+            filename: file.name,
+            contentType,
+            size: file.size,
+            artistName,
+            trackTitle,
+        },
+        'Could not start upload',
+    );
+
+    const signedType = presign.data.headers?.['Content-Type'] || contentType;
+    await putFileToS3(presign.data.url, file, signedType, onProgress);
+
+    const response = await postReleaseUpload(
+        '/chunk_files/complete',
+        {
+            type,
+            key: presign.data.key,
+            contentType: signedType,
+            size: file.size,
+            artistName,
+            trackTitle,
+            ...(consent ? { consent: 'true' } : {}),
+        },
+        'Upload check failed',
+    );
+    return toUploadResponse(response.data);
 };

@@ -650,7 +650,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 }
 
                 // Get unique artists in this release
-                const uniqueArtistsInRelease = new Set(releaseArtists);
+                const seenArtistsInRelease: string[] = [];
 
                 // Count how many NEW artists this would introduce
                 let newArtistsCount = 0;
@@ -658,7 +658,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     typeof a === 'string' ? a.toLowerCase().trim() : a.name?.toLowerCase().trim()
                 ).filter(Boolean);
 
-                for (const artist of Array.from(uniqueArtistsInRelease)) {
+                for (const artist of releaseArtists) {
+                    if (seenArtistsInRelease.includes(artist)) continue;
+                    seenArtistsInRelease.push(artist);
                     if (!usedArtistNames.includes(artist.toLowerCase().trim())) {
                         newArtistsCount++;
                     }
@@ -724,7 +726,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                     </Button>
                 </div>
 
-                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 overscroll-contain" data-lenis-prevent="true">
+                <div className="space-y-4 max-h-[70vh] overflow-y-auto py-1 pl-1.5 pr-2 overscroll-contain" data-lenis-prevent="true">
                     <p className="text-sm text-muted-foreground">Configure metadata for this track</p>
 
                     {/* Track Title */}

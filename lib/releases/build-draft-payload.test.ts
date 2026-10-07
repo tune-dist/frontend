@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildDraftPayload } from './build-draft-payload';
+import { uploadReleaseFileToS3 } from '@/lib/upload/chunk-uploader';
+
+vi.mock('@/lib/upload/chunk-uploader', () => ({
+  uploadReleaseFileToS3: vi.fn(),
+}));
 
 function buildSingleCreateForm(overrides: Record<string, unknown> = {}) {
   return {
@@ -153,5 +158,44 @@ describe('buildDraftPayload — create release submit', () => {
     );
 
     expect(payload.tracks[0].previewClip).toBeUndefined();
+  });
+
+  it('does not upload again when the audio file already has a storage key', async () => {
+    const file = new File([new Uint8Array([1, 2, 3])], 'song.wav', {
+      type: 'audio/wav',
+    });
+
+    await buildDraftPayload(
+      buildSingleCreateForm({
+        audioFile: {
+          file,
+          fileName: 'song.wav',
+          path: 'tracks/user/audio/song.wav',
+          duration: 180,
+          size: file.size,
+        },
+        audioFiles: [
+          {
+            id: 'af1',
+            file,
+            fileName: 'song.wav',
+            path: 'tracks/user/audio/song.wav',
+            duration: 180,
+            size: file.size,
+          },
+        ],
+        coverArt: {
+          file,
+          path: 'tracks/user/coverart/cover.jpg',
+          fileName: 'cover.jpg',
+          size: 3,
+          dimensions: { width: 3000, height: 3000 },
+          format: 'jpeg',
+        },
+      }),
+      'test-token',
+    );
+
+    expect(uploadReleaseFileToS3).not.toHaveBeenCalled();
   });
 });

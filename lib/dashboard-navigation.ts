@@ -27,8 +27,9 @@ export const DASHBOARD_PERMISSION_NAV: DashboardNavItem[] = [
 ];
 
 /** Unique permission slugs used by dashboard navigation (sidebar order). */
-export const NAV_PERMISSION_SLUGS = Array.from(
-  new Set(
-    DASHBOARD_PERMISSION_NAV.map((item) => item.permission).filter(Boolean),
-  ),
-) as PermissionSlug[];
+const navPermissionSlugs: PermissionSlug[] = [];
+for (const item of DASHBOARD_PERMISSION_NAV) {
+  if (!item.permission || navPermissionSlugs.includes(item.permission)) continue;
+  navPermissionSlugs.push(item.permission);
+}
+export const NAV_PERMISSION_SLUGS = navPermissionSlugs;

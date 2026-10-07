@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import PageLoading from "@/components/dashboard/page-loading";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWarnOnPageLeave, confirmLeaveDuringUpload } from "@/hooks/use-warn-on-page-leave";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -125,7 +126,9 @@ export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fileUploadActive, setFileUploadActive] = useState(false);
   const [submitProgress, setSubmitProgress] = useState({ percent: 0, label: "" });
+  useWarnOnPageLeave(fileUploadActive || isSubmitting);
   const [isLoadingEdit, setIsLoadingEdit] = useState(isEditMode);
   const [showCancelEditDialog, setShowCancelEditDialog] = useState(false);
   const [releaseDateAutoCorrected, setReleaseDateAutoCorrected] = useState(false);
@@ -615,9 +618,11 @@ export default function UploadPage() {
 
               // Count how many NEW artists are being introduced
               let newArtistsCount = 0;
-              const uniqueCurrentArtists = new Set(currentArtists);
+              const seenCurrentArtists: string[] = [];
 
-              for (const artist of Array.from(uniqueCurrentArtists)) {
+              for (const artist of currentArtists) {
+                if (seenCurrentArtists.includes(artist)) continue;
+                seenCurrentArtists.push(artist);
                 // Normalize check (case insensitive or exact? backend uses distinct so exact usually, but let's assume exact for now)
                 const isUsed = usedArtists.some((used) => {
                   const usedName = typeof used === "string" ? used : used.name;
@@ -979,11 +984,13 @@ export default function UploadPage() {
               }
 
               // Get unique artists
-              const uniqueArtists = new Set(releaseArtists);
+              const seenArtists: string[] = [];
 
               // Count new artists
               let newArtistsCount = 0;
-              for (const artist of Array.from(uniqueArtists)) {
+              for (const artist of releaseArtists) {
+                if (seenArtists.includes(artist)) continue;
+                seenArtists.push(artist);
                 // Normalize check: usedArtists can be string[] or object[]
                 const isUsed = usedArtists.some((used) => {
                   const usedName = typeof used === "string" ? used : used.name;
@@ -1132,9 +1139,9 @@ export default function UploadPage() {
   };
 
   const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep <= 1) return;
+    if (fileUploadActive && !confirmLeaveDuringUpload()) return;
+    setCurrentStep(currentStep - 1);
   };
 
   const exitEditMode = () => {
@@ -1142,6 +1149,7 @@ export default function UploadPage() {
   };
 
   const requestCancelEdit = () => {
+    if (fileUploadActive && !confirmLeaveDuringUpload()) return;
     if (isDirty) {
       setShowCancelEditDialog(true);
       return;
@@ -1302,6 +1310,7 @@ export default function UploadPage() {
           <AudioFileStep
             {...commonProps}
             lockTrackStructure={isEditMode && editReleaseStatus === "In Process" && form.watch("format") !== "single"}
+            onUploadingChange={setFileUploadActive}
           />
         );
       case 3:
@@ -1318,7 +1327,7 @@ export default function UploadPage() {
           />
         );
       case 4:
-        return <CoverArtStep {...commonProps} fieldRules={fieldRules} />;
+        return <CoverArtStep {...commonProps} fieldRules={fieldRules} onUploadingChange={setFileUploadActive} />;
       case 5:
         return (
           <ReviewStep
