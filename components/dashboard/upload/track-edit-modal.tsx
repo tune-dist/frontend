@@ -37,6 +37,11 @@ import {
     seedTrackMainArtistsForModal,
 } from '@/lib/releases/track-main-artists.util'
 import TrackMainArtistsEditor from './track-main-artists-editor'
+import {
+    copyAllMetadataFromPreviousTrack,
+    copyArtistsFromPreviousTrack,
+    type PreviousTrackCredits,
+} from '@/lib/releases/copy-previous-track.util'
 
 function profileValueToInputString(value: unknown): string {
     if (value == null) return ''
@@ -714,16 +719,60 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         }
     }
 
+    const previousTrack = trackIndex !== null && trackIndex > 0 ? allTracks[trackIndex - 1] : null
+
+    const applyCopiedCredits = (credits: PreviousTrackCredits) => {
+        setModalTrackMainArtists(credits.trackMainArtists)
+        setModalArtistSearch(credits.trackMainArtists[0]?.name || '')
+        setModalWriters(credits.writers)
+        setWriterErrors([])
+        setModalComposers(credits.composers)
+        setComposerErrors([])
+        setModalFeaturingArtist(credits.featuringArtist)
+    }
+
+    const copyArtists = () => {
+        if (!previousTrack) return
+        applyCopiedCredits(copyArtistsFromPreviousTrack(previousTrack))
+    }
+
+    const copyAllMetadata = () => {
+        if (!previousTrack) return
+        const metadata = copyAllMetadataFromPreviousTrack(previousTrack)
+        applyCopiedCredits(metadata)
+        setTrackTitle(metadata.title)
+        setVersion(metadata.version)
+        setLanguage(metadata.language)
+        setPrimaryGenre(metadata.primaryGenre)
+        setSecondaryGenre(metadata.secondaryGenre)
+        setMood(metadata.mood)
+        setIsExplicit(metadata.isExplicit)
+        setInstrumental(metadata.isInstrumental)
+        setPreviewClipStartTime(metadata.previewClipStartTime)
+    }
+
     if (!isOpen || !track || trackIndex === null) return null
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[999] p-4 backdrop-blur-sm">
             <div className="bg-[#1a1c23] border border-border/50 shadow-2xl rounded-xl max-w-4xl w-full my-8 p-6 animate-in fade-in zoom-in duration-200">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center gap-3 mb-4">
                     <h3 className="text-xl font-semibold">Edit Track Metadata</h3>
-                    <Button variant="ghost" size="sm" onClick={onClose} type="button">
-                        <X className="h-5 w-5" />
-                    </Button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                        {previousTrack && (
+                            <>
+                                <Button type="button" variant="outline" size="sm" onClick={copyArtists}>
+                                    Copy Artists
+                                </Button>
+                                <Button type="button" variant="outline" size="sm" onClick={copyAllMetadata}>
+                                    Copy All Metadata
+                                </Button>
+                            </>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={onClose} type="button">
+                            <X className="h-5 w-5" />
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto py-1 pl-1.5 pr-2 overscroll-contain" data-lenis-prevent="true">

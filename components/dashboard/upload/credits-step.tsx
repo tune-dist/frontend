@@ -31,6 +31,7 @@ import {
   LANGUAGE_OPTIONS,
   resolveInstrumentalPrimaryGenre,
 } from "./genre-language";
+import { applyPreviousTrackCopy } from "@/lib/releases/copy-previous-track.util";
 
 const LanguageSelect = memo(function LanguageSelect({
   control,
@@ -232,6 +233,7 @@ export default function CreditsStep({
     control,
     watch,
     setValue,
+    getValues,
     clearErrors,
     formState: { errors },
   } = useFormContext<UploadFormData>();
@@ -559,13 +561,31 @@ export default function CreditsStep({
               Click on a track to edit its metadata
             </p>
             {tracks.map((track, index) => {
+              const copyFromPrevious = (mode: "artists" | "all") => {
+                const currentTracks = getValues("tracks") || [];
+                const previous = currentTracks[index - 1];
+                const current = currentTracks[index];
+                if (!previous || !current) return;
+                const updatedTracks = [...currentTracks];
+                updatedTracks[index] = applyPreviousTrackCopy(current, previous, mode);
+                setValue("tracks", updatedTracks, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                });
+                toast.success(
+                  mode === "artists"
+                    ? "Copied artists from the previous track"
+                    : "Copied all metadata from the previous track",
+                );
+              };
+
               return (
                 <div
                   key={track.id || index}
                   className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50"
                 >
-                  <Music className="h-8 w-8 text-primary" />
-                  <div className="flex-1">
+                  <Music className="h-8 w-8 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium">
                       {index + 1}. {track.title || "Untitled Track"}
                     </p>
@@ -573,7 +593,27 @@ export default function CreditsStep({
                       {track.artistName || "No artist set"}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
+                    {index > 0 && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyFromPrevious("artists")}
+                        >
+                          Copy Artists
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyFromPrevious("all")}
+                        >
+                          Copy All Metadata
+                        </Button>
+                      </>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
