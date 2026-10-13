@@ -263,7 +263,12 @@ function formToDraftRequest(
           : releaseType === 'single' && index === 0
             ? form.composers || []
             : [],
-      featuring: track.featuringArtist || form.featuringArtist || null,
+      featuring: (() => {
+        const isSingle = releaseType === 'single';
+        const raw = isSingle ? form.featuringArtist : track.featuringArtist;
+        const trimmed = typeof raw === 'string' ? raw.trim() : '';
+        return trimmed || null;
+      })(),
     },
     audio: {
       storageKey:
@@ -324,7 +329,18 @@ function formToDraftRequest(
     },
     artists: {
       main: [mainArtist],
-      featured: form.featuringArtist ? [form.featuringArtist] : [],
+      featured: (() => {
+        if (releaseType === 'single') {
+          const name = form.featuringArtist?.trim();
+          return name ? [name] : [];
+        }
+        const names: string[] = [];
+        for (const track of tracks) {
+          const name = track.credits.featuring?.trim();
+          if (name && !names.includes(name)) names.push(name);
+        }
+        return names;
+      })(),
     },
     coverArt: {
       storageKey: form.coverArt?.path || 'tracks/u/cover.jpg',

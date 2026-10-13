@@ -245,10 +245,45 @@ function buildArtists(form: BuildDraftPayloadInput): CreateReleaseDraftRequest['
     });
   }
 
-  const featured: string[] = [];
-  if (form.featuringArtist?.trim()) featured.push(form.featuringArtist.trim());
+  return { main, featured: [] };
+}
 
-  return { main, featured };
+/**
+ * Featuring credit source of truth:
+ * - single → Credits form field (`form.featuringArtist`)
+ * - album  → per-track field (`track.featuringArtist`)
+ *
+ * Never OR the two: hydration fills both, and clearing one left the other
+ * stale value leaking back into the submit/update payload.
+ */
+export function resolveDraftFeaturing(
+  isSingle: boolean,
+  trackFeaturing: string | null | undefined,
+  formFeaturing: string | null | undefined,
+): string | null {
+  const raw = isSingle ? formFeaturing : trackFeaturing;
+  const trimmed = typeof raw === 'string' ? raw.trim() : '';
+  return trimmed || null;
+}
+
+function buildFeaturedArtists(
+  isSingle: boolean,
+  formFeaturing: string | null | undefined,
+  trackFeaturings: Array<string | null | undefined>,
+): string[] {
+  if (isSingle) {
+    const name = resolveDraftFeaturing(true, null, formFeaturing);
+    return name ? [name] : [];
+  }
+
+  const featured: string[] = [];
+  for (const value of trackFeaturings) {
+    const name = resolveDraftFeaturing(false, value, null);
+    if (name && !featured.includes(name)) {
+      featured.push(name);
+    }
+  }
+  return featured;
 }
 
 async function resolveCoverArt(
@@ -563,7 +598,11 @@ export async function buildDraftPayload(
       credits: {
         writers,
         composers,
-        featuring: track.featuringArtist || form.featuringArtist || null,
+        featuring: resolveDraftFeaturing(
+          isSingle,
+          track.featuringArtist,
+          form.featuringArtist,
+        ),
       },
       audio,
       previewClip:
@@ -610,7 +649,14 @@ export async function buildDraftPayload(
             ? form.recordingYear
             : parseInt(String(form.recordingYear || new Date().getFullYear()), 10),
       },
-      artists: buildArtists(form),
+      artists: {
+        ...buildArtists(form),
+        featured: buildFeaturedArtists(
+          isSingle,
+          form.featuringArtist,
+          tracks.map((track) => track.credits.featuring),
+        ),
+      },
       coverArt,
       tracks,
       submission: {

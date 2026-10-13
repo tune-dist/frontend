@@ -115,6 +115,79 @@ describe('buildDraftPayload — create release submit', () => {
     expect(payload.tracks[0].genre.primary).toBe('Pop');
   });
 
+  it('clears single featuring when form field is empty even if track still has a stale name', async () => {
+    const { payload } = await buildDraftPayload(
+      buildSingleCreateForm({
+        featuringArtist: '',
+        tracks: [
+          {
+            id: 't1',
+            title: 'Test Song',
+            audioFileId: 'af1',
+            primaryGenre: 'Pop',
+            secondaryGenre: 'Indian Pop',
+            mood: 'Happy',
+            featuringArtist: 'Stale Guest',
+          },
+        ],
+      }),
+      'test-token',
+    );
+
+    expect(payload.artists.featured).toEqual([]);
+    expect(payload.tracks[0].credits.featuring).toBeNull();
+  });
+
+  it('clears album track featuring without falling back to form featuringArtist', async () => {
+    const { payload } = await buildDraftPayload(
+      buildSingleCreateForm({
+        format: 'album',
+        releaseType: 'album',
+        featuringArtist: 'Stale Album Guest',
+        tracks: [
+          {
+            id: 't1',
+            title: 'Track One',
+            audioFileId: 'af1',
+            primaryGenre: 'Pop',
+            secondaryGenre: 'Indian Pop',
+            mood: 'Happy',
+            featuringArtist: '',
+          },
+        ],
+      }),
+      'test-token',
+    );
+
+    expect(payload.tracks[0].credits.featuring).toBeNull();
+    expect(payload.artists.featured).toEqual([]);
+  });
+
+  it('keeps album featuring from the track field when form featuring is empty', async () => {
+    const { payload } = await buildDraftPayload(
+      buildSingleCreateForm({
+        format: 'album',
+        releaseType: 'album',
+        featuringArtist: '',
+        tracks: [
+          {
+            id: 't1',
+            title: 'Track One',
+            audioFileId: 'af1',
+            primaryGenre: 'Pop',
+            secondaryGenre: 'Indian Pop',
+            mood: 'Happy',
+            featuringArtist: 'Real Guest',
+          },
+        ],
+      }),
+      'test-token',
+    );
+
+    expect(payload.tracks[0].credits.featuring).toBe('Real Guest');
+    expect(payload.artists.featured).toEqual(['Real Guest']);
+  });
+
   it('clears writers for instrumental album tracks', async () => {
     const { payload } = await buildDraftPayload(
       buildSingleCreateForm({
