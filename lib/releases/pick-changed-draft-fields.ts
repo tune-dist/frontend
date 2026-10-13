@@ -175,7 +175,10 @@ function mapDraftTrackToWrite(track: DraftTrack, index: number, fallbackArtist?:
     language: track.language,
     writers: track.credits.writers,
     composers: track.credits.composers,
-    featuringArtist: track.credits.featuring || undefined,
+    // null = explicit clear (must not become undefined or JSON diffs omit the key).
+    featuringArtist: track.credits.featuring?.trim()
+      ? track.credits.featuring.trim()
+      : null,
     mood: track.mood,
     originalReleaseDate: track.originalReleaseDate || undefined,
   };
