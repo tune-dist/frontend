@@ -339,7 +339,6 @@ export default function PromotionEditorPage() {
                             <TabsList className="w-full mb-4">
                                 <TabsTrigger value="design" className="flex-1">Design</TabsTrigger>
                                 <TabsTrigger value="background" className="flex-1 text-[10px]">Background</TabsTrigger>
-                                <TabsTrigger value="badges" className="flex-1">Badges</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="design" className="space-y-6">
@@ -440,24 +439,6 @@ export default function PromotionEditorPage() {
                                     </CardContent>
                                 </Card>
 
-                                <Card className="border-border/50 bg-card/50">
-                                    <CardHeader className="pb-3">
-                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                            <Type className="h-4 w-4" />
-                                            Custom Text
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-xs">Main Status (Header)</Label>
-                                            <Input
-                                                value={elementOverrides.header?.text || ""}
-                                                onChange={(e) => handleElementOverride('header', { text: e.target.value })}
-                                                placeholder="e.g. OUT NOW, TEASER..."
-                                            />
-                                        </div>
-                                    </CardContent>
-                                </Card>
 
 
                             </TabsContent>
@@ -572,61 +553,6 @@ export default function PromotionEditorPage() {
                                 </Card>
                             </TabsContent>
 
-                            <TabsContent value="badges" className="space-y-4">
-                                <Card className="border-border/50 bg-card/50">
-                                    <CardHeader className="pb-3">
-                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                            <BadgeIcon className="h-4 w-4" />
-                                            Platform Badges
-                                        </CardTitle>
-                                        <CardDescription className="text-xs">
-                                            Select badges to display.
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {(() => {
-                                                const logoElement = activeTemplate?.elements?.find(e => e.source === 'platform_logo');
-                                                const allowedBadges = (logoElement?.allowed && logoElement.allowed.length > 0)
-                                                    ? logoElement.allowed
-                                                    : PLATFORM_BADGES.map(b => b.id);
-
-                                                return allowedBadges.map((platformId) => {
-                                                    const badge = PLATFORM_BADGES.find(b => b.id === platformId);
-                                                    if (!badge) return null;
-                                                    const isSelected = (elementOverrides?.logo?.selectedBadges || []).includes(badge.id);
-                                                    return (
-                                                        <button
-                                                            key={badge.id}
-                                                            onClick={() => toggleBadge(badge.id)}
-                                                            className={`relative p-3 rounded-lg border flex flex-col items-center justify-center gap-2 transition-all h-24 ${isSelected
-                                                                ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                                                                : 'border-border hover:bg-accent'
-                                                                }`}
-                                                        >
-                                                            <div className="h-8 w-auto relative flex items-center justify-center">
-                                                                <img
-                                                                    src={badge.logoUrl}
-                                                                    alt={badge.name}
-                                                                    className="max-h-full max-w-full object-contain filter drop-shadow-sm invert dark:invert-0"
-                                                                />
-                                                            </div>
-                                                            <span className="text-[10px] font-medium text-center truncate w-full">
-                                                                {badge.name}
-                                                            </span>
-                                                            {isSelected && (
-                                                                <div className="absolute top-1 right-1">
-                                                                    <Check className="h-3 w-3 text-primary" />
-                                                                </div>
-                                                            )}
-                                                        </button>
-                                                    );
-                                                });
-                                            })()}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
                         </Tabs>
                     </div>
 
@@ -695,40 +621,7 @@ export default function PromotionEditorPage() {
                                         >
                                             <AnimatePresence mode="wait">
                                                 {(() => {
-                                                    // Helper to explode specific elements (like badges) into multiple renderable items
-                                                    const getRenderableElements = () => {
-                                                        const renderable: any[] = [];
-                                                        activeTemplate.elements.forEach(element => {
-                                                            if (element.type === 'image' && element.source === 'platform_logo') {
-                                                                const selectedBadges = elementOverrides.logo?.selectedBadges || ['spotify', 'apple-music', 'youtube-music'];
-                                                                const gap = 50;
-                                                                const badgeBoxSize = 200;
-                                                                const step = badgeBoxSize + gap;
-                                                                const totalRowWidth = (selectedBadges.length * badgeBoxSize) + ((selectedBadges.length - 1) * gap);
-                                                                const centerX = activeTemplate.canvas.width / 2;
-                                                                // Start X is center minus half total width.
-                                                                // Note: Position is usually top-left. So for the first item:
-                                                                const startX = centerX - (totalRowWidth / 2);
-
-                                                                selectedBadges.forEach((badgeId: string, index: number) => {
-                                                                    renderable.push({
-                                                                        ...element,
-                                                                        id: `logo-${badgeId}`,
-                                                                        source: 'platform_badge_single',
-                                                                        badgeId: badgeId,
-                                                                        size: { width: badgeBoxSize, height: badgeBoxSize }, // Fixed square box
-                                                                        defaultX: startX + (index * step),
-                                                                        defaultY: activeTemplate.canvas.height - 300 // slightly higher to fit 200px box
-                                                                    });
-                                                                });
-                                                            } else {
-                                                                renderable.push(element);
-                                                            }
-                                                        });
-                                                        return renderable;
-                                                    };
-
-                                                    return getRenderableElements().map((element) => {
+                                                    return activeTemplate.elements.map((element) => {
                                                         const override = elementOverrides[element.id] || {};
 
                                                         // Use exploded default position if available, otherwise template default
@@ -738,8 +631,11 @@ export default function PromotionEditorPage() {
                                                         const x = defaultX + (override.x || 0);
                                                         const y = defaultY + (override.y || 0);
 
-                                                        const width = override.sizeWidth || element.size?.width || 'auto';
-                                                        const height = override.sizeHeight || element.size?.height || 'auto';
+                                                        let width = override.sizeWidth || element.size?.width || (element.sizeOptions && element.sizeOptions[0]?.width) || 'max-content';
+                                                        if (element.source === 'platform_logo' && typeof width === 'number' && width < 400) {
+                                                            width = 600;
+                                                        }
+                                                        const height = override.sizeHeight || element.size?.height || (element.sizeOptions && element.sizeOptions[0]?.height) || 'auto';
                                                         const isSelected = selectedElement === element.id;
 
                                                         const getTextContent = () => {
@@ -755,36 +651,16 @@ export default function PromotionEditorPage() {
                                                         return (
                                                             <motion.div
                                                                 key={`${activeTemplate.id}-${element.id}`}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedElement(element.id);
-                                                                }}
-                                                                drag={element.source !== 'cover_art'}
-                                                                dragMomentum={false}
-                                                                dragElastic={0}
-                                                                onDragEnd={(event, info) => {
-                                                                    if (element.source === 'cover_art') return;
-
-                                                                    const scale = activeTemplate.canvas.width < activeTemplate.canvas.height
-                                                                        ? 280 / activeTemplate.canvas.width
-                                                                        : 400 / activeTemplate.canvas.width;
-
-                                                                    const deltaX = info.offset.x / scale;
-                                                                    const deltaY = info.offset.y / scale;
-
-                                                                    handleElementOverride(element.id, {
-                                                                        x: (override.x || 0) + deltaX,
-                                                                        y: (override.y || 0) + deltaY
-                                                                    });
-                                                                }}
                                                                 style={{
                                                                     position: 'absolute',
-                                                                    left: x,
-                                                                    top: y,
+                                                                    left: element.source === 'platform_logo' ? '50%' : x,
+                                                                    top: element.source === 'platform_logo' ? 'auto' : y,
+                                                                    bottom: element.source === 'platform_logo' ? '40px' : 'auto',
                                                                     width: width,
+                                                                    maxWidth: element.type === 'text' ? `${activeTemplate.canvas.width * 0.9}px` : undefined,
                                                                     height: height,
-                                                                    zIndex: isSelected ? 50 : 10,
-                                                                    x: 0,
+                                                                    zIndex: 10,
+                                                                    x: (element.type === 'text' || element.source === 'platform_logo') ? "-50%" : 0,
                                                                     y: 0
                                                                 }}
                                                                 initial={(() => {
@@ -812,9 +688,8 @@ export default function PromotionEditorPage() {
                                                                     duration: element.animation?.mp4?.duration || 0.5,
                                                                     ease: "easeOut"
                                                                 }}
-                                                                className={`${element.source !== 'cover_art' ? 'cursor-move' : ''} group`}
                                                             >
-                                                                <div className={`w-full h-full relative ${isSelected ? 'ring-4 ring-primary ring-offset-4' : 'group-hover:ring-2 group-hover:ring-white/40'}`}>
+                                                                <div className="w-full h-full relative">
                                                                     {element.type === 'image' && element.source === 'cover_art' && (
                                                                         <img
                                                                             src={coverUrl}
@@ -824,48 +699,19 @@ export default function PromotionEditorPage() {
                                                                         />
                                                                     )}
 
-                                                                    {element.source === 'platform_badge_single' && (
-                                                                        <div
-                                                                            className="flex justify-center items-center h-full"
-                                                                            style={{
-                                                                                transform: `scale(${override.scale || 1})`,
-                                                                                transformOrigin: 'center'
-                                                                            }}
-                                                                        >
-                                                                            {(() => {
-                                                                                const badge = PLATFORM_BADGES.find(b => b.id === element.badgeId);
-                                                                                if (!badge) return null;
-                                                                                return (
-                                                                                    <img
-                                                                                        src={badge.logoUrl}
-                                                                                        alt={badge.name}
-                                                                                        className="h-24 w-auto object-contain filter drop-shadow-2xl"
-                                                                                    />
-                                                                                );
-                                                                            })()}
-                                                                        </div>
-                                                                    )}
-
                                                                     {element.type === 'image' && element.source === 'platform_logo' && (
                                                                         <div
-                                                                            className="flex flex-wrap gap-8 justify-center items-center h-full"
+                                                                            className="flex justify-center items-center w-full"
                                                                             style={{
                                                                                 transform: `scale(${override.scale || 1})`,
                                                                                 transformOrigin: 'center'
                                                                             }}
                                                                         >
-                                                                            {(override.selectedBadges || []).map((badgeId: string) => {
-                                                                                const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
-                                                                                if (!badge) return null;
-                                                                                return (
-                                                                                    <img
-                                                                                        key={badgeId}
-                                                                                        src={badge.logoUrl}
-                                                                                        alt={badge.name}
-                                                                                        className="h-20 w-auto object-contain filter drop-shadow-2xl"
-                                                                                    />
-                                                                                );
-                                                                            })}
+                                                                            <img
+                                                                                src="/assets/images/promotion-sociallogo-group.png"
+                                                                                alt="Platform Logos"
+                                                                                className="w-full h-auto object-contain filter drop-shadow-2xl"
+                                                                            />
                                                                         </div>
                                                                     )}
 
@@ -876,10 +722,12 @@ export default function PromotionEditorPage() {
                                                                                 color: element.style?.color || '#fff',
                                                                                 fontSize: `${element.style?.size || 16}px`,
                                                                                 textAlign: (element.style?.align as any) || 'center',
-                                                                                fontFamily: 'Inter, sans-serif',
-                                                                                fontWeight: element.style?.font?.includes('Bold') ? 900 : 400,
+                                                                                fontFamily: 'Inter, system-ui, sans-serif',
+                                                                                fontWeight: (element.id === 'artist_name' || element.id === 'track_name' || element.style?.font?.includes('Bold')) ? 900 : 700,
                                                                                 textTransform: 'uppercase',
-                                                                                textShadow: '0 8px 24px rgba(0,0,0,0.8)'
+                                                                                letterSpacing: (element.id === 'artist_name' || element.id === 'track_name') ? '-0.02em' : '0.1em',
+                                                                                textShadow: '0 4px 12px rgba(0,0,0,0.5), 0 12px 32px rgba(0,0,0,0.4)',
+                                                                                lineHeight: 1.1
                                                                             }}
                                                                         >
                                                                             {getTextContent()}
@@ -1000,76 +848,7 @@ export default function PromotionEditorPage() {
                             </CardContent>
                         </Card>
 
-                        {selectedElement && activeTemplate?.elements?.find(e => {
-                            if (selectedElement.startsWith('logo-')) return e.source === 'platform_logo';
-                            return e.id === selectedElement;
-                        })?.source !== 'cover_art' && (
-                                <Card className="border-border/50 bg-card/50 border-l-4 border-l-primary/50">
-                                    <CardHeader className="pb-3">
-                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                                            {(() => {
-                                                if (selectedElement.startsWith('logo-')) {
-                                                    const badgeId = selectedElement.replace('logo-', '');
-                                                    const badge = PLATFORM_BADGES.find(b => b.id === badgeId);
-                                                    return `${badge?.name || 'Badge'} Position`;
-                                                }
-                                                const el = activeTemplate?.elements.find(e => e.id === selectedElement);
-                                                return `Adjust ${el?.source === 'artist_name' ? 'Artist Name' : (el?.source === 'track_name' ? 'Track Title' : 'Element')}`;
-                                            })()}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center">
-                                                <Label className="text-xs">Horizontal Position (X)</Label>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="-500"
-                                                max="500"
-                                                value={elementOverrides[selectedElement]?.x || 0}
-                                                onChange={(e) => handleElementOverride(selectedElement, { x: parseInt(e.target.value) })}
-                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
-                                            />
 
-                                            <div className="flex justify-between items-center pt-2">
-                                                <Label className="text-xs">Vertical Position (Y)</Label>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="-500"
-                                                max="500"
-                                                value={elementOverrides[selectedElement]?.y || 0}
-                                                onChange={(e) => handleElementOverride(selectedElement, { y: parseInt(e.target.value) })}
-                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
-                                            />
-
-                                            <div className="flex justify-between items-center pt-2">
-                                                <Label className="text-xs">Size Scale ({(elementOverrides[selectedElement]?.scale || 1).toFixed(1)}x)</Label>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="0.1"
-                                                max="5"
-                                                step="0.1"
-                                                value={elementOverrides[selectedElement]?.scale || 1}
-                                                onChange={(e) => handleElementOverride(selectedElement, { scale: parseFloat(e.target.value) })}
-                                                className="w-full h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
-                                            />
-                                        </div>
-
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full text-xs"
-                                            onClick={() => handleElementOverride(selectedElement, { x: 0, y: 0, scale: 1 })}
-                                        >
-                                            Reset Element
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            )}
                     </div>
                 </div>
             </div >

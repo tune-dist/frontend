@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from "framer-motion";
-import { Music, Play, Share2 } from "lucide-react";
+import { Music, Play, Share2, ExternalLink } from "lucide-react";
 import { PLATFORM_BADGES } from "@/config/platform-badges";
 import { PromoTemplate } from "@/config/promo-templates";
 import { getDisplayUrl } from "@/lib/api/s3";
@@ -139,35 +139,18 @@ export const LandingPagePreview = ({
                             {/* Elements Layer */}
                             <div className="absolute inset-0 z-10 w-full h-full">
                                 {(() => {
-                                    const renderable: any[] = [];
-                                    activeTemplate.elements.forEach((element: any) => {
-                                        if (element.type === 'image' && element.source === 'platform_logo') {
-                                            // Ignore old platform logos
-                                        } else {
-                                            renderable.push(element);
-                                        }
-                                    });
-
-                                    // Add static logos - smaller for post format to avoid overlap
-                                    const isStory = activeTemplate.format === 'story';
-                                    renderable.push({
-                                        id: 'static_logos_fixed',
-                                        type: 'image',
-                                        source: 'static_promotion_logos',
-                                        defaultX: 0,
-                                        defaultY: isStory ? activeTemplate.canvas.height - 300 : activeTemplate.canvas.height - 80,
-                                        size: { width: '100%', height: isStory ? 280 : 70 }
-                                    });
-
-                                    return renderable.map((element: any) => {
+                                    return activeTemplate.elements.map((element: any) => {
                                         const override = elementOverrides[element.id] || {};
                                         const defaultX = element.defaultX !== undefined ? element.defaultX : element.position.x;
                                         const defaultY = element.defaultY !== undefined ? element.defaultY : element.position.y;
 
                                         const x = defaultX + (override.x || 0);
                                         const y = defaultY + (override.y || 0);
-                                        const width = element.type === 'text' ? activeTemplate.canvas.width : (override.sizeWidth || element.size?.width || 'auto');
-                                        const height = override.sizeHeight || element.size?.height || 'auto';
+                                        let width = override.sizeWidth || element.size?.width || (element.sizeOptions && element.sizeOptions[0]?.width) || 'max-content';
+                                        if (element.source === 'platform_logo' && typeof width === 'number' && width < 400) {
+                                            width = 600;
+                                        }
+                                        const height = override.sizeHeight || element.size?.height || (element.sizeOptions && element.sizeOptions[0]?.height) || 'auto';
 
                                         const getTextContent = () => {
                                             if (override.text) return override.text;
@@ -184,13 +167,15 @@ export const LandingPagePreview = ({
                                                 key={`${activeTemplate.id}-${element.id}`}
                                                 style={{
                                                     position: 'absolute',
-                                                    left: element.source === 'static_promotion_logos' ? 0 : x,
-                                                    top: y,
+                                                    left: element.source === 'platform_logo' ? '50%' : x,
+                                                    top: element.source === 'platform_logo' ? 'auto' : y,
+                                                    bottom: element.source === 'platform_logo' ? '40px' : 'auto',
                                                     width: width,
+                                                    maxWidth: element.type === 'text' ? `${activeTemplate.canvas.width * 0.9}px` : undefined,
                                                     height: height,
                                                     zIndex: element.source === 'static_promotion_logos' ? 50 : 10,
                                                     transformOrigin: 'center',
-                                                    transform: element.type === 'text' ? 'translateX(-50%)' : 'none'
+                                                    transform: (element.type === 'text' || element.source === 'platform_logo') ? 'translateX(-50%)' : 'none'
                                                 }}
                                             >
                                                 <div className="w-full h-full relative flex items-center justify-center">
@@ -203,12 +188,12 @@ export const LandingPagePreview = ({
                                                         />
                                                     )}
 
-                                                    {element.source === 'static_promotion_logos' && (
-                                                        <div className="flex justify-center items-center h-full w-full">
+                                                    {element.type === 'image' && element.source === 'platform_logo' && (
+                                                        <div className="flex justify-center items-center w-full">
                                                             <img
                                                                 src="/assets/images/promotion-sociallogo-group.png"
                                                                 alt="Platforms"
-                                                                className="h-full w-full object-contain filter drop-shadow-2xl"
+                                                                className="w-full h-auto object-contain filter drop-shadow-2xl"
                                                             />
                                                         </div>
                                                     )}
@@ -241,9 +226,9 @@ export const LandingPagePreview = ({
 
                     {/* Platforms List */}
                     <div className="w-full mt-2 bg-[#080808]/90 backdrop-blur-3xl border border-white/5 rounded-3xl p-3 shadow-2xl shrink-0 flex flex-col max-h-[160px]">
-                        <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-2 mb-2 shrink-0">Choose your service</p>
+                        <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-2 mb-2 shrink-0 hidden">Choose your service</p>
 
-                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
                             {streamingLinks.length === 0 ? (
                                 <div className="p-4 rounded-xl bg-white/5 border border-dashed border-white/10 text-center">
                                     <p className="text-[10px] text-white/40">No platforms added yet</p>
@@ -251,32 +236,38 @@ export const LandingPagePreview = ({
                             ) : streamingLinks.map((link: any, idx: number) => (
                                 <div
                                     key={idx}
-                                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 shrink-0"
+                                    className="flex items-center justify-between p-2 rounded-[16px] bg-black/40 border border-white/5 shrink-0"
                                 >
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2.5">
                                         {(() => {
                                             const badge = PLATFORM_BADGES.find(b =>
                                                 b.name.toLowerCase().replace(/\s+/g, '') === link.platform.toLowerCase().replace(/\s+/g, '') ||
                                                 b.id.toLowerCase() === link.platform.toLowerCase().replace(/\s+/g, '-')
                                             );
                                             return badge ? (
-                                                <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-gray-700 p-1 flex items-center justify-center shadow-lg">
+                                                <div className="w-8 h-8 rounded-[100px] overflow-hidden flex items-center justify-center bg-black/20 shrink-0">
                                                     <img
                                                         src={badge.logoUrl}
                                                         alt={badge.name}
-                                                        className="w-full h-full object-contain"
+                                                        className="w-full h-full object-cover"
                                                     />
                                                 </div>
                                             ) : (
-                                                <div className="w-8 h-8 rounded-lg bg-black border border-white/10 flex items-center justify-center font-bold text-[8px] text-primary">
+                                                <div className="w-8 h-8 rounded-[100px] bg-black border border-white/10 flex items-center justify-center font-bold text-[8px] text-white shrink-0">
                                                     {link.platform.substring(0, 2).toUpperCase()}
                                                 </div>
                                             );
                                         })()}
-                                        <span className="font-bold text-white tracking-tight text-xs">{link.platform}</span>
+                                        <div className="flex flex-col items-start">
+                                            <span className="font-semibold text-white tracking-tight text-[11px] leading-tight">{link.platform}</span>
+                                            <span className="text-[8px] text-white/50 font-medium mt-0.5">Listen on {link.platform}</span>
+                                        </div>
                                     </div>
-                                    <div className="p-2 rounded-full bg-primary text-black">
-                                        <Play className="h-2 w-2 fill-current ml-0.5 cursor-pointer" />
+                                    <div className="flex items-center pr-0.5">
+                                        <div className="px-3 py-1 rounded-full bg-white text-black font-bold text-[9px] flex items-center gap-1">
+                                            Play
+                                            <ExternalLink className="h-2.5 w-2.5 text-black/80 stroke-[2.5px]" />
+                                        </div>
                                     </div>
                                 </div>
                             ))}

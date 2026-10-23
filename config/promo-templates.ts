@@ -50,6 +50,8 @@ export interface PromoElement {
     animation?: PromoElementAnimation;
     allowed?: string[];
     sizeOptions?: PromoSizeOption[];
+    defaultX?: number;
+    defaultY?: number;
 }
 
 export interface PromoTemplate {
@@ -136,8 +138,8 @@ export const PROMO_TEMPLATES: PromoTemplate[] = [
                 animation: { mp4: { type: 'fade_in', start: 0.8, duration: 0.8 } }
             },
             {
-                id: "logo", type: "image", source: "platform_logo", position: { x: 440, y: 960 },
-                sizeOptions: [{ label: "std", width: 200, height: 200 }],
+                id: "logo", type: "image", source: "platform_logo", position: { x: 540, y: 960 },
+                sizeOptions: [{ label: "std", width: 600, height: 60 }],
                 animation: { mp4: { type: 'fade_in', start: 1.0, duration: 0.8 } }
             }
         ]
@@ -166,8 +168,8 @@ export const PROMO_TEMPLATES: PromoTemplate[] = [
                 animation: { mp4: { type: 'slide_up', start: 0.8, duration: 0.6 } }
             },
             {
-                id: "logo", type: "image", source: "platform_logo", position: { x: 440, y: 1200 },
-                sizeOptions: [{ label: "std", width: 180, height: 180 }],
+                id: "logo", type: "image", source: "platform_logo", position: { x: 540, y: 1200 },
+                sizeOptions: [{ label: "std", width: 600, height: 60 }],
                 animation: { mp4: { type: 'fade_in', start: 1.0, duration: 0.8 } }
             }
         ]
@@ -196,8 +198,8 @@ export const PROMO_TEMPLATES: PromoTemplate[] = [
                 animation: { mp4: { type: 'slide_down', start: 0.8, duration: 0.6 } }
             },
             {
-                id: "logo", type: "image", source: "platform_logo", position: { x: 1300, y: 650 },
-                sizeOptions: [{ label: "std", width: 250, height: 250 }],
+                id: "logo", type: "image", source: "platform_logo", position: { x: 1400, y: 650 },
+                sizeOptions: [{ label: "std", width: 700, height: 70 }],
                 animation: { mp4: { type: 'fade_in', start: 1.0, duration: 0.8 } }
             }
         ]
@@ -226,8 +228,8 @@ export const PROMO_TEMPLATES: PromoTemplate[] = [
                 animation: { mp4: { type: 'slide_down', start: 1.0, duration: 0.8 } }
             },
             {
-                id: "logo", type: "image", source: "platform_logo", position: { x: 440, y: 1600 },
-                sizeOptions: [{ label: "std", width: 120, height: 120 }],
+                id: "logo", type: "image", source: "platform_logo", position: { x: 540, y: 1600 },
+                sizeOptions: [{ label: "std", width: 500, height: 50 }],
                 animation: { mp4: { type: 'fade_in', start: 1.2, duration: 0.8 } }
             }
         ]
@@ -256,8 +258,8 @@ export const PROMO_TEMPLATES: PromoTemplate[] = [
                 animation: { mp4: { type: 'slide_up', start: 0.8, duration: 0.6 } }
             },
             {
-                id: "logo", type: "image", source: "platform_logo", position: { x: 415, y: 1550 },
-                sizeOptions: [{ label: "std", width: 250, height: 250 }],
+                id: "logo", type: "image", source: "platform_logo", position: { x: 540, y: 1550 },
+                sizeOptions: [{ label: "std", width: 600, height: 60 }],
                 animation: { mp4: { type: 'fade_in', start: 1.0, duration: 0.8 } }
             }
         ]
@@ -286,8 +288,8 @@ export const PROMO_TEMPLATES: PromoTemplate[] = [
                 animation: { mp4: { type: 'slide_up', start: 0.8, duration: 0.6 } }
             },
             {
-                id: "logo", type: "image", source: "platform_logo", position: { x: 440, y: 1550 },
-                sizeOptions: [{ label: "std", width: 200, height: 200 }],
+                id: "logo", type: "image", source: "platform_logo", position: { x: 540, y: 1550 },
+                sizeOptions: [{ label: "std", width: 500, height: 50 }],
                 animation: { mp4: { type: 'fade_in', start: 1.0, duration: 0.8 } }
             }
         ]
@@ -316,8 +318,8 @@ export const PROMO_TEMPLATES: PromoTemplate[] = [
                 animation: { mp4: { type: 'slide_down', start: 0.4, duration: 0.6 } }
             },
             {
-                id: "logo", type: "image", source: "platform_logo", position: { x: 440, y: 1600 },
-                sizeOptions: [{ label: "std", width: 200, height: 200 }],
+                id: "logo", type: "image", source: "platform_logo", position: { x: 540, y: 1600 },
+                sizeOptions: [{ label: "std", width: 500, height: 50 }],
                 animation: { mp4: { type: 'fade_in', start: 1.2, duration: 0.8 } }
             }
         ]
@@ -346,8 +348,8 @@ export const PROMO_TEMPLATES: PromoTemplate[] = [
                 animation: { mp4: { type: 'slide_up', start: 0.8, duration: 0.6 } }
             },
             {
-                id: "logo", type: "image", source: "platform_logo", position: { x: 440, y: 1600 },
-                sizeOptions: [{ label: "std", width: 200, height: 200 }],
+                id: "logo", type: "image", source: "platform_logo", position: { x: 540, y: 1600 },
+                sizeOptions: [{ label: "std", width: 600, height: 60 }],
                 animation: { mp4: { type: 'fade_in', start: 1.0, duration: 0.8 } }
             }
         ]
@@ -376,9 +378,9 @@ export const PROMO_TEMPLATES: PromoTemplate[] = [
                 animation: { mp4: { type: 'slide_up', start: 0.8, duration: 0.6 } }
             },
             {
-                id: "logo", type: "image", source: "platform_logo", position: { x: 440, y: 1600 },
-                sizeOptions: [{ label: "std", width: 200, height: 200 }],
-                animation: { mp4: { type: 'fade_in', start: 1.0, duration: 0.8 } }
+                id: "logo", type: "image", source: "platform_logo", position: { x: 540, y: 1600 },
+                sizeOptions: [{ label: "std", width: 500, height: 50 }],
+                animation: { mp4: { type: 'fade_in', start: 1.2, duration: 0.8 } }
             }
         ]
     }
