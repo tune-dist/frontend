@@ -108,6 +108,9 @@ export interface User {
   savedLabelName?: string;
   savedCopyright?: string;
   savedPublisher?: string;
+  savedLabelNames?: string[];
+  savedCopyrights?: string[];
+  savedPublishers?: string[];
   releaseMetadataLocked?: boolean;
 }
 

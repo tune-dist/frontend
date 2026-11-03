@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { releaseMetadataForPlan } from './release-metadata-for-plan';
+import {
+  isActiveEnterpriseCatalog,
+  releaseMetadataForPlan,
+  usesDefaultReleaseMetadata,
+} from './release-metadata-for-plan';
 
 describe('releaseMetadataForPlan', () => {
   it('uses KratoLib for a free plan', () => {
@@ -69,6 +73,64 @@ describe('releaseMetadataForPlan', () => {
       labelName: '',
       copyright: '',
       producers: [''],
+    });
+  });
+
+  it('uses the default label after enterprise access ends', () => {
+    expect(
+      releaseMetadataForPlan({
+        planKey: 'enterprise',
+        hasPaidPlanAccess: false,
+        savedLabelName: 'Nova Records',
+        savedCopyright: 'test c line',
+        savedPublisher: 'test p line',
+      }),
+    ).toEqual({
+      labelName: 'KratoLib',
+      copyright: 'KratoLib',
+      producers: ['KratoLib'],
+    });
+  });
+
+  it('keeps saved enterprise lines while access is active', () => {
+    expect(isActiveEnterpriseCatalog({
+      planKey: 'enterprise',
+      hasPaidPlanAccess: true,
+    })).toBe(true);
+    expect(usesDefaultReleaseMetadata({
+      planKey: 'enterprise',
+      hasPaidPlanAccess: true,
+    })).toBe(false);
+    expect(
+      releaseMetadataForPlan({
+        planKey: 'enterprise',
+        hasPaidPlanAccess: true,
+        savedLabelName: 'Nova Records',
+        savedCopyright: 'test c line',
+        savedPublisher: 'test p line',
+      }),
+    ).toEqual({
+      labelName: 'Nova Records',
+      copyright: 'test c line',
+      producers: ['test p line'],
+    });
+  });
+
+  it('keeps a paid plan on its saved line after leaving enterprise', () => {
+    expect(isActiveEnterpriseCatalog({ planKey: 'solo', hasPaidPlanAccess: true })).toBe(false);
+    expect(usesDefaultReleaseMetadata({ planKey: 'solo', hasPaidPlanAccess: true })).toBe(false);
+    expect(
+      releaseMetadataForPlan({
+        planKey: 'solo',
+        hasPaidPlanAccess: true,
+        savedLabelName: 'Nova Records',
+        savedCopyright: 'test c line',
+        savedPublisher: 'test p line',
+      }),
+    ).toEqual({
+      labelName: 'Nova Records',
+      copyright: 'test c line',
+      producers: ['test p line'],
     });
   });
 

@@ -7,14 +7,14 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@/lib/api/auth';
 import { getUserById, updateUserStatus } from '@/lib/api/users';
-import { canManageUsers, canViewUsers } from '@/lib/permissions';
+import { canEditUserPlan, canManageUsers, canViewUsers } from '@/lib/permissions';
 import { getErrorMessage } from '@/lib/get-error-message';
 import UserProfileView from '@/components/dashboard/user-profile-view';
 
 export default function UserDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { user: currentUser, loading: authLoading } = useAuth();
+  const { user: currentUser, loading: authLoading, refreshUser } = useAuth();
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -45,6 +45,13 @@ export default function UserDetailPage() {
       loadUser();
     }
   }, [params.id, authLoading, currentUser, router]);
+
+  const handlePlanUpdated = (updated: User) => {
+    setProfile(updated);
+    if (currentUser?._id === updated._id) {
+      void refreshUser();
+    }
+  };
 
   const handleToggleSuspend = async () => {
     if (!profile) return;
@@ -87,6 +94,8 @@ export default function UserDetailPage() {
       isSelf={currentUser?._id === profile._id}
       updatingStatus={updatingStatus}
       onToggleSuspend={handleToggleSuspend}
+      canEditPlan={canEditUserPlan(currentUser)}
+      onPlanUpdated={handlePlanUpdated}
     />
   );
 }

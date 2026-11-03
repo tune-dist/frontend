@@ -17,11 +17,20 @@ import {
 } from '@/components/ui/dialog'
 import { UploadFormData } from './upload-form.schema'
 import { getDefaultLabelName } from '@/lib/validation/label-name'
-import { saveReleaseMetadata } from '@/lib/api/users'
+import { addReleaseMetadataOption, saveReleaseMetadata } from '@/lib/api/users'
+import {
+  canonicalMetadataValue,
+  releaseMetadataOptions,
+} from '@/lib/releases/release-metadata-options'
+import ReleaseMetadataCombobox from './release-metadata-combobox'
 import { getErrorMessage } from '@/lib/get-error-message'
 import { dispatchAuthUserUpdated } from '@/lib/auth-session'
 import { setAuthUserCookie } from '@/lib/auth-cookies'
-import { isEffectiveFreePlan, isPlanExemptUser } from '@/lib/plan-access'
+import { isPlanExemptUser } from '@/lib/plan-access'
+import {
+  isActiveEnterpriseCatalog,
+  usesDefaultReleaseMetadata,
+} from '@/lib/releases/release-metadata-for-plan'
 
 export default function ReleaseMetadataBlock() {
   const { user } = useAuth()
@@ -36,14 +45,66 @@ export default function ReleaseMetadataBlock() {
 
   const planKey = user?.plan || 'free'
   const isStaffUser = isPlanExemptUser(user)
-  const isFreePlan = isEffectiveFreePlan(user)
+  const metadataPlan = {
+    planKey,
+    isStaff: isStaffUser,
+    hasPaidPlanAccess: user?.hasPaidPlanAccess,
+  }
+  const isEnterpriseCatalog = isActiveEnterpriseCatalog(metadataPlan)
+  const usesDefaultMetadata = usesDefaultReleaseMetadata(metadataPlan)
   const defaultLabel = getDefaultLabelName()
   const isLocked =
-    isFreePlan || (Boolean(user?.releaseMetadataLocked) && !isStaffUser)
-  const canSave = !isFreePlan && (isStaffUser || !user?.releaseMetadataLocked)
+    usesDefaultMetadata ||
+    (!isEnterpriseCatalog && Boolean(user?.releaseMetadataLocked) && !isStaffUser)
+  const canSave =
+    !isEnterpriseCatalog &&
+    !usesDefaultMetadata &&
+    (isStaffUser || !user?.releaseMetadataLocked)
+  const labelOptions = releaseMetadataOptions(user?.savedLabelNames, user?.savedLabelName)
+  const copyrightOptions = releaseMetadataOptions(user?.savedCopyrights, user?.savedCopyright)
+  const publisherOptions = releaseMetadataOptions(user?.savedPublishers, user?.savedPublisher)
+  let metadataHint = 'Set these once. After you save, they stay locked on every release.'
+  if (isEnterpriseCatalog) {
+    metadataHint = 'Search a saved label, C-Line, or P-Line. Add it first, then select it on a release.'
+  } else if (usesDefaultMetadata && planKey === 'enterprise') {
+    metadataHint = 'Enterprise access has ended. Releases use the default label until the plan is active again.'
+  } else if (usesDefaultMetadata) {
+    metadataHint = 'Free plan uses the default label.'
+  } else if (isStaffUser) {
+    metadataHint = 'Update label and copyright defaults for your releases. Staff accounts can change these anytime.'
+  }
   const hasSavedMetadata = Boolean(user?.savedLabelName)
   const isFirstTimePaidSetup = !isStaffUser && canSave && !hasSavedMetadata
   const isPaidUpgradeReedit = !isStaffUser && canSave && hasSavedMetadata
+
+  const handleAddOption = async (
+    field: 'labelName' | 'copyright' | 'publisher',
+    value: string,
+    options: string[],
+  ) => {
+    const updatedUser = await addReleaseMetadataOption({ field, value })
+    setAuthUserCookie(updatedUser)
+    dispatchAuthUserUpdated(updatedUser)
+
+    let savedOptions = releaseMetadataOptions(
+      updatedUser.savedPublishers,
+      updatedUser.savedPublisher,
+    )
+    if (field === 'labelName') {
+      savedOptions = releaseMetadataOptions(
+        updatedUser.savedLabelNames,
+        updatedUser.savedLabelName,
+      )
+    } else if (field === 'copyright') {
+      savedOptions = releaseMetadataOptions(
+        updatedUser.savedCopyrights,
+        updatedUser.savedCopyright,
+      )
+    }
+
+    const source = savedOptions.length > 0 ? savedOptions : options
+    return canonicalMetadataValue(source, value)
+  }
 
   const handleSave = async (event?: React.MouseEvent<HTMLButtonElement>) => {
     event?.preventDefault()
@@ -92,15 +153,11 @@ export default function ReleaseMetadataBlock() {
         <div>
           <h4 className="text-lg font-semibold flex items-center gap-2">
             Label &amp; Copyright Details
-            {isLocked && !isFreePlan && (
+            {isLocked && !usesDefaultMetadata && (
               <Lock className="h-4 w-4 text-muted-foreground" aria-label="Locked" />
             )}
           </h4>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isStaffUser
-              ? 'Update label and copyright defaults for your releases. Staff accounts can change these anytime.'
-              : 'Set once for all your releases. Free plan uses the default label.'}
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">{metadataHint}</p>
         </div>
         <Button
           type="button"
@@ -122,20 +179,32 @@ export default function ReleaseMetadataBlock() {
           <Controller
             name="labelName"
             control={control}
-            render={({ field }) => (
-              <Input
-                id="labelName"
-                placeholder="Enter label name"
-                value={isFreePlan ? defaultLabel : (field.value ?? '')}
-                onChange={(event) => {
-                  if (isLocked) return
-                  field.onChange(event.target.value)
-                }}
-                onBlur={field.onBlur}
-                {...lockFieldProps}
-                className={errors.labelName ? 'border-red-500' : ''}
-              />
-            )}
+            render={({ field }) =>
+              isEnterpriseCatalog ? (
+                <ReleaseMetadataCombobox
+                  id="labelName"
+                  value={field.value ?? ''}
+                  options={labelOptions}
+                  placeholder="Search or add a label"
+                  invalid={Boolean(errors.labelName)}
+                  onSelect={field.onChange}
+                  onAdd={(value) => handleAddOption('labelName', value, labelOptions)}
+                />
+              ) : (
+                <Input
+                  id="labelName"
+                  placeholder="Enter label name"
+                  value={usesDefaultMetadata ? defaultLabel : (field.value ?? '')}
+                  onChange={(event) => {
+                    if (isLocked) return
+                    field.onChange(event.target.value)
+                  }}
+                  onBlur={field.onBlur}
+                  {...lockFieldProps}
+                  className={errors.labelName ? 'border-red-500' : ''}
+                />
+              )
+            }
           />
           {errors.labelName && (
             <p className="text-xs text-red-500">{errors.labelName.message}</p>
@@ -147,20 +216,32 @@ export default function ReleaseMetadataBlock() {
           <Controller
             name="copyright"
             control={control}
-            render={({ field }) => (
-              <Input
-                id="copyright"
-                placeholder="© Your label name"
-                value={isFreePlan ? defaultLabel : (field.value ?? '')}
-                onChange={(event) => {
-                  if (isLocked) return
-                  field.onChange(event.target.value)
-                }}
-                onBlur={field.onBlur}
-                {...lockFieldProps}
-                className={errors.copyright ? 'border-red-500' : ''}
-              />
-            )}
+            render={({ field }) =>
+              isEnterpriseCatalog ? (
+                <ReleaseMetadataCombobox
+                  id="copyright"
+                  value={field.value ?? ''}
+                  options={copyrightOptions}
+                  placeholder="Search or add a C-Line"
+                  invalid={Boolean(errors.copyright)}
+                  onSelect={field.onChange}
+                  onAdd={(value) => handleAddOption('copyright', value, copyrightOptions)}
+                />
+              ) : (
+                <Input
+                  id="copyright"
+                  placeholder="© Your label name"
+                  value={usesDefaultMetadata ? defaultLabel : (field.value ?? '')}
+                  onChange={(event) => {
+                    if (isLocked) return
+                    field.onChange(event.target.value)
+                  }}
+                  onBlur={field.onBlur}
+                  {...lockFieldProps}
+                  className={errors.copyright ? 'border-red-500' : ''}
+                />
+              )
+            }
           />
           {errors.copyright && (
             <p className="text-xs text-red-500">{errors.copyright.message}</p>
@@ -172,19 +253,31 @@ export default function ReleaseMetadataBlock() {
           <Controller
             name="producers.0"
             control={control}
-            render={({ field }) => (
-              <Input
-                id="producers"
-                placeholder="℗ Your label name"
-                value={isFreePlan ? defaultLabel : (field.value ?? '')}
-                onChange={(event) => {
-                  if (isLocked) return
-                  field.onChange(event.target.value)
-                }}
-                onBlur={field.onBlur}
-                {...lockFieldProps}
-              />
-            )}
+            render={({ field }) =>
+              isEnterpriseCatalog ? (
+                <ReleaseMetadataCombobox
+                  id="producers"
+                  value={field.value ?? ''}
+                  options={publisherOptions}
+                  placeholder="Search or add a P-Line"
+                  invalid={Boolean(errors.producers)}
+                  onSelect={field.onChange}
+                  onAdd={(value) => handleAddOption('publisher', value, publisherOptions)}
+                />
+              ) : (
+                <Input
+                  id="producers"
+                  placeholder="℗ Your label name"
+                  value={usesDefaultMetadata ? defaultLabel : (field.value ?? '')}
+                  onChange={(event) => {
+                    if (isLocked) return
+                    field.onChange(event.target.value)
+                  }}
+                  onBlur={field.onBlur}
+                  {...lockFieldProps}
+                />
+              )
+            }
           />
           {errors.producers && (
             <p className="text-xs text-red-500">
@@ -214,7 +307,14 @@ export default function ReleaseMetadataBlock() {
           </div>
         )}
 
-        {isFreePlan && (
+        {usesDefaultMetadata && planKey === 'enterprise' && (
+          <p className="text-xs text-muted-foreground">
+            Saved labels, C-Lines, and P-Lines stay on the account and come back when Enterprise
+            is active again.
+          </p>
+        )}
+
+        {usesDefaultMetadata && planKey !== 'enterprise' && (
           <p className="text-xs text-muted-foreground">
             Free plan releases use the default label ({defaultLabel}). Upgrade to set your own
             label, C-Line, and P-Line.
@@ -260,8 +360,21 @@ export default function ReleaseMetadataBlock() {
                 Nothing is saved while you are on the free plan.
               </li>
               <li>
-                After saving, values are locked on your account and prefilled on every new
-                release.
+                <strong>Enterprise:</strong> you can keep more than one label, C-Line, and
+                P-Line. Type to search. If nothing matches, choose <strong>+ Add</strong>.
+                A value can be selected only after it is added.
+              </li>
+              <li>
+                <strong>Enterprise ends:</strong> releases use the default label ({defaultLabel})
+                until the plan is active again. Saved labels stay on the account.
+              </li>
+              <li>
+                <strong>Change from Enterprise to another paid plan:</strong> the last saved
+                label, C-Line, and P-Line stay filled in. Save them once, then they lock.
+              </li>
+              <li>
+                After saving on other paid plans, values are locked on your account and
+                prefilled on every new release.
               </li>
               <li>
                 <strong>Upgrade between paid plans:</strong> if you already saved and locked

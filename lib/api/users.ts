@@ -108,6 +108,34 @@ export const saveReleaseMetadata = async (
   return response.data;
 };
 
+export type ReleaseMetadataOptionField = 'labelName' | 'copyright' | 'publisher';
+
+export const addReleaseMetadataOption = async (data: {
+  field: ReleaseMetadataOptionField;
+  value: string;
+}): Promise<User> => {
+  const response = await apiClient.post<User>('/users/profile/release-metadata-options', data);
+  return response.data;
+};
+
+export const updateUserByAdmin = async (
+  userId: string,
+  data: {
+    fullName: string;
+    phoneNumber?: string;
+    address?: string;
+    plan: string;
+  },
+): Promise<User> => {
+  const response = await apiClient.patch<User>(`/users/${userId}`, data);
+  return response.data;
+};
+
+export const updateUserPlan = async (userId: string, plan: string): Promise<User> => {
+  const response = await apiClient.patch<User>(`/users/${userId}/plan`, { plan });
+  return response.data;
+};
+
 export interface PaginatedUsersResponse {
   users: User[];
   total: number;

@@ -41,6 +41,10 @@ export function canManageUsers(user: PermissionUser): boolean {
   return hasPermission(user, 'MANAGE_USERS');
 }
 
+export function canEditUserPlan(user: PermissionUser): boolean {
+  return user?.role === 'admin' || user?.role === 'super_admin';
+}
+
 export function canViewUsers(user: PermissionUser): boolean {
   return hasPermission(user, 'VIEW_USERS');
 }
