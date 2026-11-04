@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, LogOut, Loader2 } from 'lucide-react';
-import { canViewUsers, canManageUsers } from '@/lib/permissions';
+import { Eye, Ban, MoreVertical, FileDown, Plus, Users, UserPlus, Clock, Flag, TrendingUp, LogOut, Loader2, Pencil } from 'lucide-react';
+import { canViewUsers, canManageUsers, canEditUserPlan } from '@/lib/permissions';
 import { getUsers, getUsersOverview, updateUserStatus, logoutAllUsers, createUser } from '@/lib/api/users';
+import { User } from '@/lib/api/auth';
+import EditUserDialog from '@/components/dashboard/edit-user-dialog';
 import { getAllPlans } from '@/lib/api/plans';
 import { formatPlanDisplayName } from '@/lib/plans-display';
 import { getUserAccountStatus, getUserStatusDotClass } from '@/lib/user-status';
@@ -51,7 +53,7 @@ function formatCsvDate(value?: string | Date | null): string {
 }
 
 export default function UsersPage() {
-    const { user: currentUser, loading: authLoading } = useAuth();
+    const { user: currentUser, loading: authLoading, refreshUser } = useAuth();
     const router = useRouter();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -75,6 +77,7 @@ export default function UsersPage() {
     const [totalUsers, setTotalUsers] = useState(0);
     const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [editUserId, setEditUserId] = useState<string | null>(null);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
     const [newUser, setNewUser] = useState({
         fullName: '',
@@ -157,6 +160,23 @@ export default function UsersPage() {
 
     const handleViewUser = (userId: string) => {
         router.push(`/dashboard/users/${userId}`);
+    };
+
+    const handlePlanUpdated = (updated: User) => {
+        setUsers((current) => {
+            if (planFilter !== 'All' && updated.plan !== planFilter) {
+                return current.filter((listedUser) => listedUser._id !== updated._id);
+            }
+            return current.map((listedUser) =>
+                listedUser._id === updated._id ? { ...listedUser, ...updated } : listedUser,
+            );
+        });
+        if (planFilter !== 'All' && updated.plan !== planFilter) {
+            setTotalUsers((count) => Math.max(0, count - 1));
+        }
+        if (currentUser?._id === updated._id) {
+            void refreshUser();
+        }
     };
 
     const handleSuspendUser = async (userId: string, isSuspended: boolean, fullName?: string) => {
@@ -620,6 +640,15 @@ export default function UsersPage() {
                                                             <Eye className="w-4 h-4 mr-2" />
                                                             View Profile
                                                         </DropdownMenuItem>
+                                                        {canEditUserPlan(currentUser) && (
+                                                            <DropdownMenuItem
+                                                                onSelect={() => setEditUserId(listedUser._id)}
+                                                                className="cursor-pointer"
+                                                            >
+                                                                <Pencil className="w-4 h-4 mr-2" />
+                                                                Edit User
+                                                            </DropdownMenuItem>
+                                                        )}
                                                         {canManageUsers(currentUser) && listedUser._id !== currentUser?._id && (
                                                             <DropdownMenuItem
                                                                 onSelect={() =>
@@ -668,6 +697,15 @@ export default function UsersPage() {
                         </div>
                     </div>
                 </div>
+
+                <EditUserDialog
+                    open={Boolean(editUserId)}
+                    userId={editUserId || ''}
+                    onOpenChange={(open) => {
+                        if (!open) setEditUserId(null);
+                    }}
+                    onUpdated={handlePlanUpdated}
+                />
 
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                     <DialogContent className="sm:max-w-[500px]">

@@ -31,6 +31,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [daysRemaining, setDaysRemaining] = useState(0)
 
   useEffect(() => {
+    const refreshOnVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshUser();
+      }
+    };
+    document.addEventListener('visibilitychange', refreshOnVisible);
+    return () => document.removeEventListener('visibilitychange', refreshOnVisible);
+  }, [refreshUser]);
+
+  useEffect(() => {
     if (!user?.planEndDate || isPlanExemptUser(user)) {
       return
     }

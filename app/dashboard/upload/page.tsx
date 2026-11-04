@@ -30,7 +30,11 @@ import {
   MandatoryChecks,
   Track,
 } from "@/components/dashboard/upload/upload-form.schema";
-import { releaseMetadataForPlan } from "@/lib/releases/release-metadata-for-plan";
+import {
+  isActiveEnterpriseCatalog,
+  releaseMetadataForPlan,
+  usesDefaultReleaseMetadata,
+} from "@/lib/releases/release-metadata-for-plan";
 import { copyReleasePrimaryArtistsFromForm } from "@/lib/releases/track-main-artists.util";
 
 // Child Components
@@ -281,6 +285,7 @@ export default function UploadPage() {
         const paidMetadata = releaseMetadataForPlan({
           planKey: resolveEffectivePlanKey(user),
           isStaff: isPlanExemptUser(user),
+          hasPaidPlanAccess: user.hasPaidPlanAccess,
           savedLabelName: user.savedLabelName,
           savedCopyright: user.savedCopyright,
           savedPublisher: user.savedPublisher,
@@ -425,6 +430,7 @@ export default function UploadPage() {
           const metadata = releaseMetadataForPlan({
             planKey,
             isStaff: isPlanExemptUser(user),
+            hasPaidPlanAccess: user.hasPaidPlanAccess,
             savedLabelName: user.savedLabelName,
             savedCopyright: user.savedCopyright,
             savedPublisher: user.savedPublisher,
@@ -569,8 +575,13 @@ export default function UploadPage() {
             fieldsToValidate.push("featuringArtist");
           }
 
-          if (planKey === "free") {
-            const metadata = releaseMetadataForPlan({ planKey });
+          const metadataAccess = {
+            planKey: user?.plan || "free",
+            isStaff: isPlanExemptUser(user),
+            hasPaidPlanAccess: user?.hasPaidPlanAccess,
+          };
+          if (usesDefaultReleaseMetadata(metadataAccess)) {
+            const metadata = releaseMetadataForPlan(metadataAccess);
             if (metadata) {
               form.setValue("labelName", metadata.labelName, { shouldValidate: true });
               form.setValue("copyright", metadata.copyright, { shouldValidate: true });
@@ -579,7 +590,13 @@ export default function UploadPage() {
           }
 
           const isPaidPlan = planKey !== "free";
-          if (isPaidPlan && !user?.releaseMetadataLocked && !isPlanExemptUser(user)) {
+          const isEnterpriseCatalog = isActiveEnterpriseCatalog(metadataAccess);
+          if (
+            isPaidPlan &&
+            !isEnterpriseCatalog &&
+            !user?.releaseMetadataLocked &&
+            !isPlanExemptUser(user)
+          ) {
             toast.error("Save your Label, C-Line, and P-Line before continuing.");
             document
               .getElementById("release-metadata-block")

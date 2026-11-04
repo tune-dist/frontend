@@ -155,9 +155,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const userData = await getMe();
-      setUser(userData);
-      setIsAuthenticated(true);
       setAuthUserCookie(userData);
+      setIsAuthenticated(true);
+      setUser((current) => {
+        if (current && JSON.stringify(current) === JSON.stringify(userData)) {
+          return current;
+        }
+        return userData;
+      });
     } catch (error: unknown) {
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status === 401 || status === 403) {

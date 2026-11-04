@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { User } from '@/lib/api/auth';
+import EditUserDialog from '@/components/dashboard/edit-user-dialog';
 import { formatPlanDisplayName } from '@/lib/plans-display';
 import { getUserAccountStatus } from '@/lib/user-status';
 import { formatRoleLabel, formatPermissionLabel } from '@/lib/rbac-labels';
@@ -61,6 +62,8 @@ interface UserProfileViewProps {
   isSelf?: boolean;
   updatingStatus?: boolean;
   onToggleSuspend?: () => void;
+  canEditPlan?: boolean;
+  onPlanUpdated?: (user: User) => void;
 }
 
 function ReadOnlyVerificationDocCard({
@@ -118,7 +121,10 @@ export default function UserProfileView({
   isSelf = false,
   updatingStatus = false,
   onToggleSuspend,
+  canEditPlan = false,
+  onPlanUpdated,
 }: UserProfileViewProps) {
+  const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const accountStatus = getUserAccountStatus(profile);
 
   return (
@@ -147,22 +153,28 @@ export default function UserProfileView({
           </div>
         </div>
 
-        {canManage && !isSelf && onToggleSuspend ? (
-          <Button
-            type="button"
-            variant={profile.isSuspended ? 'default' : 'destructive'}
-            onClick={onToggleSuspend}
-            disabled={updatingStatus}
-            className="shrink-0"
-          >
-            {updatingStatus ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Ban className="mr-2 h-4 w-4" />
-            )}
-            {profile.isSuspended ? 'Unsuspend User' : 'Suspend User'}
-          </Button>
-        ) : null}
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {canEditPlan ? (
+            <Button type="button" variant="outline" onClick={() => setIsPlanDialogOpen(true)}>
+              Edit user
+            </Button>
+          ) : null}
+          {canManage && !isSelf && onToggleSuspend ? (
+            <Button
+              type="button"
+              variant={profile.isSuspended ? 'default' : 'destructive'}
+              onClick={onToggleSuspend}
+              disabled={updatingStatus}
+            >
+              {updatingStatus ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Ban className="mr-2 h-4 w-4" />
+              )}
+              {profile.isSuspended ? 'Unsuspend User' : 'Suspend User'}
+            </Button>
+          ) : null}
+        </div>
       </motion.div>
 
       <motion.div variants={itemVariants}>
@@ -341,6 +353,14 @@ export default function UserProfileView({
                 <p className="mt-1 text-2xl font-bold">{formatPlanDisplayName(profile.plan)}</p>
               </div>
             </div>
+            {canEditPlan && (
+              <EditUserDialog
+                open={isPlanDialogOpen}
+                userId={profile._id}
+                onOpenChange={setIsPlanDialogOpen}
+                onUpdated={(updated) => onPlanUpdated?.(updated)}
+              />
+            )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="rounded-lg border border-border/80 p-4">

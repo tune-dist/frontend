@@ -11,6 +11,30 @@ function isFreeDefault(value?: string | null): boolean {
   return !trimmed || trimmed === getDefaultLabelName();
 }
 
+type MetadataPlanInput = {
+  planKey?: string | null;
+  isStaff?: boolean;
+  hasPaidPlanAccess?: boolean;
+};
+
+/** Active Enterprise uses the searchable catalog. Staff always do. */
+export function isActiveEnterpriseCatalog(input: MetadataPlanInput): boolean {
+  if (input.planKey !== 'enterprise') return false;
+  if (input.isStaff) return true;
+  return input.hasPaidPlanAccess !== false;
+}
+
+/**
+ * Free, and Enterprise after access has ended, use the default label.
+ * A missing paid-access flag stays on the catalog so a loaded session is not reset.
+ */
+export function usesDefaultReleaseMetadata(input: MetadataPlanInput): boolean {
+  if (input.isStaff) return false;
+  const planKey = input.planKey || 'free';
+  if (planKey === 'free') return true;
+  return planKey === 'enterprise' && input.hasPaidPlanAccess === false;
+}
+
 /**
  * Free plan always uses the default label.
  * Paid plans use the saved label, or blank fields until the user saves one.
@@ -19,6 +43,7 @@ function isFreeDefault(value?: string | null): boolean {
 export function releaseMetadataForPlan(input: {
   planKey: string;
   isStaff?: boolean;
+  hasPaidPlanAccess?: boolean;
   savedLabelName?: string | null;
   savedCopyright?: string | null;
   savedPublisher?: string | null;
@@ -34,7 +59,13 @@ export function releaseMetadataForPlan(input: {
   }
 
   const defaultLabel = getDefaultLabelName();
-  if (input.planKey === 'free') {
+  if (
+    usesDefaultReleaseMetadata({
+      planKey: input.planKey,
+      isStaff: input.isStaff,
+      hasPaidPlanAccess: input.hasPaidPlanAccess,
+    })
+  ) {
     return {
       labelName: defaultLabel,
       copyright: defaultLabel,
