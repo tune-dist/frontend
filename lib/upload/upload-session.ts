@@ -21,12 +21,66 @@ export function recordUploadedKey(
   const key = storageKey?.trim();
   if (!key) return;
 
+  const previous = replaceKey?.trim();
+  if (previous && previous === key) return;
+
   session.newKeys.push(key);
 
-  const previous = replaceKey?.trim();
-  if (previous && previous !== key && !session.supersededKeys.includes(previous)) {
+  if (previous && !session.supersededKeys.includes(previous)) {
     session.supersededKeys.push(previous);
   }
+}
+
+function uniqueTrimmed(keys: string[]): string[] {
+  const result: string[] = [];
+  for (const key of keys) {
+    const trimmed = key.trim();
+    if (!trimmed || result.includes(trimmed)) continue;
+    result.push(trimmed);
+  }
+  return result;
+}
+
+/** New uploads from this attempt that are not already stored on the release. */
+export function keysToDeleteOnFailedSave(
+  session: UploadSession,
+  savedKeys: string[],
+): string[] {
+  const saved = new Set(uniqueTrimmed(savedKeys));
+  return uniqueTrimmed(session.newKeys).filter((key) => !saved.has(key));
+}
+
+/** Replaced files that the successful save no longer points at. */
+export function keysToDeleteAfterSuccessfulSave(
+  session: UploadSession,
+  savedKeys: string[],
+): string[] {
+  const saved = new Set(uniqueTrimmed(savedKeys));
+  return uniqueTrimmed(session.supersededKeys).filter((key) => !saved.has(key));
+}
+
+export function collectSnapshotStorageKeys(
+  snapshot:
+    | {
+        coverArt?: { url?: string; storageKey?: string } | null;
+        tracks?: Array<{ audioFile?: { url?: string } | null }> | null;
+      }
+    | null
+    | undefined,
+): string[] {
+  if (!snapshot) return [];
+
+  const keys: string[] = [];
+  const cover =
+    snapshot.coverArt?.storageKey?.trim() || snapshot.coverArt?.url?.trim();
+  if (cover && !cover.startsWith('http')) keys.push(cover);
+
+  for (const track of snapshot.tracks || []) {
+    const url = track.audioFile?.url?.trim();
+    if (url && !url.startsWith('http')) keys.push(url);
+  }
+
+  return keys;
 }
 
 export async function abandonUploadKeys(keys: string[]): Promise<void> {
@@ -45,11 +99,18 @@ export async function abandonUploadKeys(keys: string[]): Promise<void> {
   }
 }
 
-export async function abandonUploadSession(session: UploadSession): Promise<void> {
-  if (session.newKeys.length === 0) return;
+export async function abandonUploadSession(
+  session: UploadSession,
+  savedKeys: string[] = [],
+): Promise<void> {
+  const keys = keysToDeleteOnFailedSave(session, savedKeys);
+  if (keys.length === 0) {
+    session.newKeys.length = 0;
+    return;
+  }
 
   try {
-    await abandonUploadKeys(session.newKeys);
+    await abandonUploadKeys(keys);
   } catch (error) {
     console.warn('[upload] Failed to abandon orphaned S3 keys', error);
   } finally {
@@ -57,19 +118,19 @@ export async function abandonUploadSession(session: UploadSession): Promise<void
   }
 }
 
-export async function finalizeUploadSession(session: UploadSession): Promise<void> {
-  if (session.supersededKeys.length === 0) {
-    session.newKeys.length = 0;
-    return;
-  }
+export async function finalizeUploadSession(
+  session: UploadSession,
+  savedKeys: string[] = [],
+): Promise<void> {
+  const keys = keysToDeleteAfterSuccessfulSave(session, savedKeys);
+  session.newKeys.length = 0;
+  session.supersededKeys.length = 0;
+  if (keys.length === 0) return;
 
   try {
-    await apiClient.post('/chunk_files/abandon', { keys: session.supersededKeys });
+    await apiClient.post('/chunk_files/abandon', { keys });
   } catch (error) {
     console.warn('[upload] Failed to delete superseded S3 keys', error);
-  } finally {
-    session.newKeys.length = 0;
-    session.supersededKeys.length = 0;
   }
 }
 
