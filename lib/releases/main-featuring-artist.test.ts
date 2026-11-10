@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   artistRoleConflictMessage,
   omitBlockedArtistNames,
-  releaseFeaturingArtistNames,
   releaseMainArtistNames,
   sharedArtistName,
 } from './main-featuring-artist';
@@ -14,7 +13,7 @@ describe('main artist and featuring artist cannot be the same person', () => {
     expect(sharedArtistName(['Aamir'], [''])).toBeNull();
   });
 
-  it('collects release mains and featuring credits, including track artists', () => {
+  it('collects release main artists, including track artists', () => {
     expect(
       releaseMainArtistNames({
         artistName: 'Aamir',
@@ -22,13 +21,6 @@ describe('main artist and featuring artist cannot be the same person', () => {
         tracks: [{ trackMainArtists: [{ name: 'Kabir' }], artistName: 'Ignored' }],
       }),
     ).toEqual(['Aamir', 'Neha', 'Kabir']);
-
-    expect(
-      releaseFeaturingArtistNames({
-        featuringArtist: 'Riya',
-        tracks: [{ featuringArtist: 'Dev' }],
-      }),
-    ).toEqual(['Riya', 'Dev']);
   });
 
   it('hides a featuring artist from the main artist list, and keeps the current selection', () => {

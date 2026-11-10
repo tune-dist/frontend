@@ -20,7 +20,11 @@ import {
   searchArtistProfiles,
 } from '@/lib/integrations/artist-search.util'
 import type { ArtistSearchResponse } from '@/lib/api/artist-search'
-import { rosterArtistName, type RosterArtist } from '@/lib/integrations/artist-form-state.util'
+import {
+  artistNamesMatch,
+  rosterArtistName,
+  type RosterArtist,
+} from '@/lib/integrations/artist-form-state.util'
 import {
   artistRoleConflictMessage,
   sharedArtistName,
@@ -134,12 +138,13 @@ export default function TrackMainArtistsEditor({
     }
   }
 
+  const nameAlreadyOnTrack = (name: string) =>
+    artists.some((artist) => artistNamesMatch(artist.name, name))
+
   const addArtist = (artist: TrackMainArtistFormValue) => {
     const name = artist.name.trim()
     if (!name) return
-    if (
-      artists.some((a) => a.name.trim().toLowerCase() === name.toLowerCase())
-    ) {
+    if (nameAlreadyOnTrack(name)) {
       toast.error('Artist already added to this track')
       return
     }
@@ -161,8 +166,7 @@ export default function TrackMainArtistsEditor({
   }
 
   const blockedOnTrack = (name: string) =>
-    artists.some((a) => a.name.trim().toLowerCase() === name.trim().toLowerCase()) ||
-    sharedArtistName([name], excludedNames) !== null
+    nameAlreadyOnTrack(name) || sharedArtistName([name], excludedNames) !== null
 
   const addCandidates = releasePrimaryArtists.filter(
     (candidate) => !blockedOnTrack(candidate.name),

@@ -879,11 +879,12 @@ export default function UploadPage() {
               [formData.featuringArtist],
             );
             if (singleFeaturingConflict) {
+              const message = artistRoleConflictMessage(singleFeaturingConflict);
               form.setError("featuringArtist", {
                 type: "main-featuring",
-                message: artistRoleConflictMessage(singleFeaturingConflict),
+                message,
               });
-              toast.error(artistRoleConflictMessage(singleFeaturingConflict));
+              toast.error(message);
               isValid = false;
             }
 
@@ -913,6 +914,7 @@ export default function UploadPage() {
               const writerNameErrorHint = LEGAL_PERSON_NAME_HINT;
               const composerNameErrorHint = LEGAL_PERSON_NAME_COMPOSER_HINT;
               let hasError = false;
+              const mainArtistNames = releaseMainArtistNames(formData);
 
               for (let i = 0; i < formData.tracks.length; i++) {
                 const track = formData.tracks[i];
@@ -929,10 +931,9 @@ export default function UploadPage() {
                   break;
                 }
 
-                const trackFeaturingConflict = sharedArtistName(
-                  releaseMainArtistNames(formData),
-                  [track.featuringArtist],
-                );
+                const trackFeaturingConflict = sharedArtistName(mainArtistNames, [
+                  track.featuringArtist,
+                ]);
                 if (trackFeaturingConflict) {
                   toast.error(artistRoleConflictMessage(trackFeaturingConflict));
                   hasError = true;

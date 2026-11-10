@@ -240,7 +240,6 @@ export default function CreditsStep({
     setValue,
     getValues,
     clearErrors,
-    setError,
     formState: { errors },
   } = useFormContext<UploadFormData>();
 
@@ -257,35 +256,13 @@ export default function CreditsStep({
     }),
     [featuringArtist],
   );
-
-  const featuringConflictMessage = featuringConflict
-    ? artistRoleConflictMessage(featuringConflict)
-    : "";
-
-  useEffect(() => {
-    if (featuringConflictMessage) {
-      if (
-        errors.featuringArtist?.type === "main-featuring" &&
-        errors.featuringArtist.message === featuringConflictMessage
-      ) {
-        return;
-      }
-      setError("featuringArtist", {
-        type: "main-featuring",
-        message: featuringConflictMessage,
-      });
-      return;
-    }
-    if (errors.featuringArtist?.type === "main-featuring") {
-      clearErrors("featuringArtist");
-    }
-  }, [
-    featuringConflictMessage,
-    errors.featuringArtist?.type,
-    errors.featuringArtist?.message,
-    setError,
-    clearErrors,
-  ]);
+  let featuringError = errors.featuringArtist?.message;
+  if (errors.featuringArtist?.type === "main-featuring") {
+    featuringError = undefined;
+  }
+  if (featuringConflict) {
+    featuringError = artistRoleConflictMessage(featuringConflict);
+  }
   const audioFiles = watch("audioFiles") || [];
   const audioFileData = watch("audioFile");
   const previewClipStartTime = watch("previewClipStartTime");
@@ -919,7 +896,7 @@ export default function CreditsStep({
                     placeholder="Enter Featuring Artist"
                     {...register('featuringArtist')}
                     disabled={!areFeaturedArtistsAllowed}
-                    className={errors.featuringArtist ? 'border-red-500' : ''}
+                    className={featuringError ? 'border-red-500' : ''}
                   />
                   {!areFeaturedArtistsAllowed && (
                     <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
@@ -927,8 +904,8 @@ export default function CreditsStep({
                       <span>Upgrade to Creator+ or higher to add featuring artists.</span>
                     </div>
                   )}
-                  {errors.featuringArtist && (
-                    <p className="text-xs text-red-500 mt-1">{String(errors.featuringArtist.message)}</p>
+                  {featuringError && (
+                    <p className="text-xs text-red-500 mt-1">{String(featuringError)}</p>
                   )}
                 </div>
               </div>

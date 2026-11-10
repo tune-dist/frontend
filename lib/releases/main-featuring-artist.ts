@@ -64,22 +64,6 @@ export function releaseMainArtistNames(input: {
   return names;
 }
 
-export function releaseFeaturingArtistNames(input: {
-  featuringArtist?: string | null;
-  tracks?: Array<{ featuringArtist?: string | null }> | null;
-}): string[] {
-  const names: string[] = [];
-  const releaseFeaturing = trimmedArtistName(input.featuringArtist);
-  if (releaseFeaturing) names.push(releaseFeaturing);
-
-  for (const track of input.tracks || []) {
-    const name = trimmedArtistName(track.featuringArtist);
-    if (name) names.push(name);
-  }
-
-  return names;
-}
-
 /** Drop artists already used in the other role. Keep the name currently selected in this field. */
 export function omitBlockedArtistNames(
   options: string[],

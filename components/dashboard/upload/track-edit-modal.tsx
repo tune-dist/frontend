@@ -544,6 +544,16 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
         return getLegalPersonNameError(name, false) ?? ''
     }
 
+    const modalMainArtistNames = [
+        mainArtistName,
+        ...releasePrimaryArtists.map((artist) => artist.name),
+        ...modalTrackMainArtists.map((artist) => artist.name),
+    ]
+    const modalFeaturingConflict = sharedArtistName(
+        modalMainArtistNames,
+        [modalFeaturingArtist],
+    )
+
     const handleSave = () => {
         if (track && trackIndex !== null) {
             // Validate required fields
@@ -589,16 +599,8 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 return
             }
 
-            const featuringRoleConflict = sharedArtistName(
-                [
-                    mainArtistName,
-                    ...releasePrimaryArtists.map((artist) => artist.name),
-                    ...modalTrackMainArtists.map((artist) => artist.name),
-                ],
-                [modalFeaturingArtist],
-            )
-            if (featuringRoleConflict) {
-                toast.error(artistRoleConflictMessage(featuringRoleConflict))
+            if (modalFeaturingConflict) {
+                toast.error(artistRoleConflictMessage(modalFeaturingConflict))
                 return
             }
 
@@ -1145,16 +1147,9 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             onChange={(e) => setModalFeaturingArtist(e.target.value)}
                             disabled={!areFeaturedArtistsAllowed}
                         />
-                        {sharedArtistName(
-                            [
-                                mainArtistName,
-                                ...releasePrimaryArtists.map((artist) => artist.name),
-                                ...modalTrackMainArtists.map((artist) => artist.name),
-                            ],
-                            [modalFeaturingArtist],
-                        ) && (
+                        {modalFeaturingConflict && (
                             <p className="text-xs text-red-500">
-                                {artistRoleConflictMessage(modalFeaturingArtist.trim())}
+                                {artistRoleConflictMessage(modalFeaturingConflict)}
                             </p>
                         )}
                         {!areFeaturedArtistsAllowed && (

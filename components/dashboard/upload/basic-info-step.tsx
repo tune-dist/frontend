@@ -88,6 +88,10 @@ export default function BasicInfoStep({
     const artistName = watch('artistName')
     const featuringArtist = watch('featuringArtist')
     const formTracks = watch('tracks') || []
+    const featuringNames = [
+        featuringArtist,
+        ...formTracks.map((track) => track.featuringArtist),
+    ]
     const cosmosArtistId = watch('cosmosArtistId')
     const artists = watch('artists') || []
     const title = watch('title')
@@ -289,10 +293,7 @@ export default function BasicInfoStep({
         }
 
         setValue('artists', currentArtists, { shouldValidate: true })
-        const featuringConflict = sharedArtistName(
-            [name],
-            [featuringArtist, ...formTracks.map((track) => track.featuringArtist)],
-        )
+        const featuringConflict = sharedArtistName([name], featuringNames)
         if (featuringConflict) {
             setError(`artists.${index}.name`, {
                 type: 'main-featuring',
@@ -438,10 +439,7 @@ export default function BasicInfoStep({
             resetSearchForIndex('main')
         }
         setValue('artistName', name, { shouldValidate: true })
-        const featuringConflict = sharedArtistName(
-            [name],
-            [featuringArtist, ...formTracks.map((track) => track.featuringArtist)],
-        )
+        const featuringConflict = sharedArtistName([name], featuringNames)
         if (featuringConflict) {
             setError('artistName', {
                 type: 'main-featuring',
@@ -541,10 +539,6 @@ export default function BasicInfoStep({
         creatingNew: creatingNewMain,
         rosterCount: rosterNames.length,
     })
-    const featuringNames = [
-        featuringArtist,
-        ...formTracks.map((track) => track.featuringArtist),
-    ]
     const mainArtistOptions = omitBlockedArtistNames(
         artistRosterOptionNames({
             rosterNames,

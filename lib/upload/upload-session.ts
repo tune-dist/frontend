@@ -59,24 +59,32 @@ export function keysToDeleteAfterSuccessfulSave(
   return uniqueTrimmed(session.supersededKeys).filter((key) => !saved.has(key));
 }
 
+function trimmedString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function recordValue(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  return value as Record<string, unknown>;
+}
+
 export function collectSnapshotStorageKeys(
-  snapshot:
-    | {
-        coverArt?: { url?: string; storageKey?: string } | null;
-        tracks?: Array<{ audioFile?: { url?: string } | null }> | null;
-      }
-    | null
-    | undefined,
+  snapshot: { coverArt?: unknown; tracks?: unknown } | null | undefined,
 ): string[] {
   if (!snapshot) return [];
 
   const keys: string[] = [];
-  const cover =
-    snapshot.coverArt?.storageKey?.trim() || snapshot.coverArt?.url?.trim();
-  if (cover && !cover.startsWith('http')) keys.push(cover);
+  const cover = recordValue(snapshot.coverArt);
+  const coverKey = cover
+    ? trimmedString(cover.storageKey) || trimmedString(cover.url)
+    : '';
+  if (coverKey && !coverKey.startsWith('http')) keys.push(coverKey);
 
-  for (const track of snapshot.tracks || []) {
-    const url = track.audioFile?.url?.trim();
+  if (!Array.isArray(snapshot.tracks)) return keys;
+
+  for (const track of snapshot.tracks) {
+    const audio = recordValue(recordValue(track)?.audioFile);
+    const url = audio ? trimmedString(audio.url) : '';
     if (url && !url.startsWith('http')) keys.push(url);
   }
 
@@ -84,12 +92,7 @@ export function collectSnapshotStorageKeys(
 }
 
 export async function abandonUploadKeys(keys: string[]): Promise<void> {
-  const uniqueKeys: string[] = [];
-  for (const key of keys) {
-    const trimmed = key.trim();
-    if (!trimmed || uniqueKeys.includes(trimmed)) continue;
-    uniqueKeys.push(trimmed);
-  }
+  const uniqueKeys = uniqueTrimmed(keys);
   if (uniqueKeys.length === 0) return;
 
   try {
