@@ -5,6 +5,11 @@ import {
     LEGAL_PERSON_NAME_HINT,
 } from '@/lib/validation/legal-person-name'
 import { earliestValidReleaseDate } from '@/lib/distribution-issue'
+import {
+    artistRoleConflictMessage,
+    releaseMainArtistNames,
+    sharedArtistName,
+} from '@/lib/releases/main-featuring-artist'
 
 export const songwriterSchema = z.string()
     .refine((val) => {
@@ -232,6 +237,26 @@ export const uploadFormSchema = z.object({
     producers: z.array(z.string()).optional(),
     selectedPlatforms: z.array(z.string()).optional(),
 }).superRefine((data, ctx) => {
+    const mainNames = releaseMainArtistNames(data)
+    const featuringConflict = sharedArtistName(mainNames, [data.featuringArtist])
+    if (featuringConflict) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: artistRoleConflictMessage(featuringConflict),
+            path: ['featuringArtist'],
+        })
+    }
+
+    data.tracks?.forEach((track, index) => {
+        const trackConflict = sharedArtistName(mainNames, [track.featuringArtist])
+        if (!trackConflict) return
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: artistRoleConflictMessage(trackConflict),
+            path: ['tracks', index, 'featuringArtist'],
+        })
+    })
+
     if (data.format !== 'single') {
         data.tracks.forEach((track, index) => {
             if (!track.mood?.trim()) {

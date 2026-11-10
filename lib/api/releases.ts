@@ -16,6 +16,7 @@ import type { BuildDraftPayloadResult } from "@/lib/releases/build-draft-payload
 import type { FormMediaUpdates } from "@/lib/upload/upload-session";
 import {
   abandonUploadSession,
+  collectSnapshotStorageKeys,
   createUploadSession,
   finalizeUploadSession,
 } from "@/lib/upload/upload-session";
@@ -314,7 +315,10 @@ export const submitNewRelease = async (
     onProgress?.({ percent: 92, label: "Saving release…" });
     const result = await createRelease(built.payload);
     options?.onMediaUploaded?.(built.formMediaUpdates);
-    await finalizeUploadSession(uploadSession);
+    await finalizeUploadSession(
+      uploadSession,
+      collectSnapshotStorageKeys(draftRequestToWriteSnapshot(built.payload)),
+    );
     onProgress?.({ percent: 100, label: "Complete" });
     return result;
   } catch (error: any) {
@@ -333,6 +337,7 @@ export const submitReleaseUpdate = async (
   const token = Cookies.get(config.tokenKey) || "";
   const onProgress = options?.onProgress;
   const uploadSession = createUploadSession();
+  const savedBefore = collectSnapshotStorageKeys(options?.baseline);
 
   try {
     const built = await buildCreateReleaseData(formData, token, onProgress, uploadSession);
@@ -341,7 +346,7 @@ export const submitReleaseUpdate = async (
 
     if (Object.keys(changedFields).length === 0) {
       options?.onMediaUploaded?.(built.formMediaUpdates);
-      await finalizeUploadSession(uploadSession);
+      await abandonUploadSession(uploadSession, savedBefore);
       onProgress?.({ percent: 100, label: "Complete" });
       return { _id: id, writeSnapshot } as (Release & { pdlSynced?: boolean; pdlMessage?: string }) & {
         writeSnapshot: ReleaseWriteSnapshot;
@@ -351,11 +356,14 @@ export const submitReleaseUpdate = async (
     onProgress?.({ percent: 92, label: "Saving release…" });
     const result = await updateRelease(id, built.payload);
     options?.onMediaUploaded?.(built.formMediaUpdates);
-    await finalizeUploadSession(uploadSession);
+    await finalizeUploadSession(
+      uploadSession,
+      collectSnapshotStorageKeys(writeSnapshot),
+    );
     onProgress?.({ percent: 100, label: "Complete" });
     return { ...result, writeSnapshot };
   } catch (error: any) {
-    await abandonUploadSession(uploadSession);
+    await abandonUploadSession(uploadSession, savedBefore);
     console.error("Release update failed:", error);
     throw error;
   }

@@ -19,6 +19,11 @@ import toast from "react-hot-toast";
 import WaveformTrimmer from "./waveform-trimmer";
 import { isTrackEligibleForCrbt } from "./crbt-validation";
 import { LEGAL_PERSON_NAME_COMPOSER_HINT, LEGAL_PERSON_NAME_HINT } from "@/lib/validation/legal-person-name";
+import {
+  artistRoleConflictMessage,
+  releaseMainArtistNames,
+  sharedArtistName,
+} from "@/lib/releases/main-featuring-artist";
 import { useResolvedCrbtPlayback } from "@/lib/upload/audio-playback";
 import { IsrcCodeSection, type IsrcMode } from "./isrc-code-section";
 import { cn } from "@/lib/class-names";
@@ -240,6 +245,24 @@ export default function CreditsStep({
 
   const format = watch("format");
   const tracks = watch("tracks") || [];
+  const artistName = watch("artistName");
+  const releaseArtists = watch("artists");
+  const featuringArtist = watch("featuringArtist");
+  const featuringConflict = sharedArtistName(
+    releaseMainArtistNames({
+      artistName,
+      artists: releaseArtists,
+      tracks,
+    }),
+    [featuringArtist],
+  );
+  let featuringError = errors.featuringArtist?.message;
+  if (errors.featuringArtist?.type === "main-featuring") {
+    featuringError = undefined;
+  }
+  if (featuringConflict) {
+    featuringError = artistRoleConflictMessage(featuringConflict);
+  }
   const audioFiles = watch("audioFiles") || [];
   const audioFileData = watch("audioFile");
   const previewClipStartTime = watch("previewClipStartTime");
@@ -873,7 +896,7 @@ export default function CreditsStep({
                     placeholder="Enter Featuring Artist"
                     {...register('featuringArtist')}
                     disabled={!areFeaturedArtistsAllowed}
-                    className={errors.featuringArtist ? 'border-red-500' : ''}
+                    className={featuringError ? 'border-red-500' : ''}
                   />
                   {!areFeaturedArtistsAllowed && (
                     <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
@@ -881,8 +904,8 @@ export default function CreditsStep({
                       <span>Upgrade to Creator+ or higher to add featuring artists.</span>
                     </div>
                   )}
-                  {errors.featuringArtist && (
-                    <p className="text-xs text-red-500 mt-1">{String(errors.featuringArtist.message)}</p>
+                  {featuringError && (
+                    <p className="text-xs text-red-500 mt-1">{String(featuringError)}</p>
                   )}
                 </div>
               </div>

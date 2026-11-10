@@ -116,6 +116,11 @@ describe('releaseMetadataForPlan', () => {
     });
   });
 
+  it('gives staff the enterprise catalog even on a free stored plan', () => {
+    expect(isActiveEnterpriseCatalog({ planKey: 'free', isStaff: true })).toBe(true);
+    expect(usesDefaultReleaseMetadata({ planKey: 'free', isStaff: true })).toBe(false);
+  });
+
   it('keeps a paid plan on its saved line after leaving enterprise', () => {
     expect(isActiveEnterpriseCatalog({ planKey: 'solo', hasPaidPlanAccess: true })).toBe(false);
     expect(usesDefaultReleaseMetadata({ planKey: 'solo', hasPaidPlanAccess: true })).toBe(false);

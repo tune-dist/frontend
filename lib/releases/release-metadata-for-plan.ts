@@ -19,8 +19,8 @@ type MetadataPlanInput = {
 
 /** Active Enterprise uses the searchable catalog. Staff always do. */
 export function isActiveEnterpriseCatalog(input: MetadataPlanInput): boolean {
-  if (input.planKey !== 'enterprise') return false;
   if (input.isStaff) return true;
+  if (input.planKey !== 'enterprise') return false;
   return input.hasPaidPlanAccess !== false;
 }
 

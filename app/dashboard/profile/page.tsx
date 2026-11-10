@@ -29,6 +29,7 @@ import { isAllowedVerificationFile, VERIFICATION_FILE_ACCEPT, VERIFICATION_FILE_
 import { getErrorMessage } from '@/lib/get-error-message'
 import { hasPermission } from '@/lib/permissions'
 import { formatPlanDisplayName } from '@/lib/plans-display'
+import { isPlanExemptUser } from '@/lib/plan-access'
 import { formatPhoneDisplay } from '@/lib/phone-format'
 import { S3Image } from '@/components/ui/s3-image'
 
@@ -573,7 +574,7 @@ export default function ProfilePage() {
                   <p className="text-sm font-medium">Current Plan</p>
                   <p className="text-2xl font-bold mt-1">{formatPlanDisplayName(user?.plan)}</p>
                 </div>
-                {user?.plan !== 'enterprise' && (
+                {!isPlanExemptUser(user) && user?.plan !== 'enterprise' && (
                   <Button variant="outline" onClick={() => router.push('/dashboard/subscription')}>Upgrade Plan</Button>
                 )}
               </div>
@@ -593,7 +594,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {user?.plan === 'free' && (
+              {!isPlanExemptUser(user) && user?.plan === 'free' && (
                 <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
                   <p className="text-sm font-medium text-primary">
                     Upgrade to Pro or Enterprise for unlimited releases and more storage!
