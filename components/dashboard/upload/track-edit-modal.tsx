@@ -34,6 +34,10 @@ import { IsrcCodeSection, type IsrcMode } from './isrc-code-section'
 import { cn } from '@/lib/class-names'
 import type { TrackMainArtistFormValue } from '@/lib/releases/track-main-artists.util'
 import {
+    artistRoleConflictMessage,
+    sharedArtistName,
+} from '@/lib/releases/main-featuring-artist'
+import {
     seedTrackMainArtistsForModal,
 } from '@/lib/releases/track-main-artists.util'
 import TrackMainArtistsEditor from './track-main-artists-editor'
@@ -78,21 +82,20 @@ interface TrackEditModalProps {
 
 export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onSave, usedArtists = [], allTracks = [], mainArtistName = '', featuringArtists = [], mainArtistProfiles = {}, fieldRules = {}, audioFiles = [], releasePrimaryArtists = [] }: TrackEditModalProps) {
     const { user } = useAuth()
+    const planKey = resolveEffectivePlanKey(user)
     const [planLimits, setPlanLimits] = useState({ artistLimit: 1, allowConcurrent: false, allowedFormats: ['single'] })
 
-    // Fetch plan limits on mount
     useEffect(() => {
         const fetchPlanLimits = async () => {
-            if (!user?.plan) return
             try {
-                const limits = await getPlanLimits(user.plan)
+                const limits = await getPlanLimits(planKey)
                 setPlanLimits(limits)
             } catch (error) {
                 console.error('Failed to fetch plan limits:', error)
             }
         }
         fetchPlanLimits()
-    }, [user?.plan])
+    }, [planKey])
 
     // Calculate total allowed artists
     const totalAllowedArtists =
@@ -586,6 +589,19 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                 return
             }
 
+            const featuringRoleConflict = sharedArtistName(
+                [
+                    mainArtistName,
+                    ...releasePrimaryArtists.map((artist) => artist.name),
+                    ...modalTrackMainArtists.map((artist) => artist.name),
+                ],
+                [modalFeaturingArtist],
+            )
+            if (featuringRoleConflict) {
+                toast.error(artistRoleConflictMessage(featuringRoleConflict))
+                return
+            }
+
             const filteredWriters = modalWriters.filter(w => w?.trim())
             const filteredComposers = modalComposers.filter(c => c?.trim())
             const isNoLyricsTrack = isInstrumentalRelease(primaryGenre, instrumental)
@@ -813,6 +829,7 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                         releasePrimaryArtists={releasePrimaryArtists}
                         usedArtists={usedArtists}
                         artistLimit={totalAllowedArtists}
+                        excludedNames={modalFeaturingArtist.trim() ? [modalFeaturingArtist] : []}
                     />
 
                     {/* Instrumental — first so genre & language follow this choice */}
@@ -1128,6 +1145,18 @@ export default function TrackEditModal({ isOpen, onClose, track, trackIndex, onS
                             onChange={(e) => setModalFeaturingArtist(e.target.value)}
                             disabled={!areFeaturedArtistsAllowed}
                         />
+                        {sharedArtistName(
+                            [
+                                mainArtistName,
+                                ...releasePrimaryArtists.map((artist) => artist.name),
+                                ...modalTrackMainArtists.map((artist) => artist.name),
+                            ],
+                            [modalFeaturingArtist],
+                        ) && (
+                            <p className="text-xs text-red-500">
+                                {artistRoleConflictMessage(modalFeaturingArtist.trim())}
+                            </p>
+                        )}
                         {!areFeaturedArtistsAllowed && (
                             <div className="flex items-start gap-2 p-2 bg-muted/50 rounded-md text-xs text-muted-foreground">
                                 <Info className="h-3 w-3 mt-0.5" />

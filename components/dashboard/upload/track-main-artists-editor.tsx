@@ -21,6 +21,10 @@ import {
 } from '@/lib/integrations/artist-search.util'
 import type { ArtistSearchResponse } from '@/lib/api/artist-search'
 import { rosterArtistName, type RosterArtist } from '@/lib/integrations/artist-form-state.util'
+import {
+  artistRoleConflictMessage,
+  sharedArtistName,
+} from '@/lib/releases/main-featuring-artist'
 import type { PlatformKey } from '@/lib/integrations/apply-artist-profile-selection'
 import type { TrackMainArtistFormValue } from '@/lib/releases/track-main-artists.util'
 
@@ -30,6 +34,7 @@ type TrackMainArtistsEditorProps = {
   releasePrimaryArtists?: TrackMainArtistFormValue[]
   usedArtists?: unknown[]
   artistLimit?: number
+  excludedNames?: string[]
 }
 
 function profileUrl(
@@ -45,6 +50,7 @@ export default function TrackMainArtistsEditor({
   releasePrimaryArtists = [],
   usedArtists = [],
   artistLimit = Infinity,
+  excludedNames = [],
 }: TrackMainArtistsEditorProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(
     artists.length > 0 ? 0 : null,
@@ -137,6 +143,11 @@ export default function TrackMainArtistsEditor({
       toast.error('Artist already added to this track')
       return
     }
+    const roleConflict = sharedArtistName([name], excludedNames)
+    if (roleConflict) {
+      toast.error(artistRoleConflictMessage(roleConflict))
+      return
+    }
     if (Number.isFinite(artistLimit) && artists.length >= artistLimit) {
       toast.error(`Artist limit reached (${artistLimit})`)
       return
@@ -149,21 +160,17 @@ export default function TrackMainArtistsEditor({
     void runSearch(next.length - 1, name)
   }
 
+  const blockedOnTrack = (name: string) =>
+    artists.some((a) => a.name.trim().toLowerCase() === name.trim().toLowerCase()) ||
+    sharedArtistName([name], excludedNames) !== null
+
   const addCandidates = releasePrimaryArtists.filter(
-    (candidate) =>
-      !artists.some(
-        (a) =>
-          a.name.trim().toLowerCase() === candidate.name.trim().toLowerCase(),
-      ),
+    (candidate) => !blockedOnTrack(candidate.name),
   )
 
   const rosterCandidates = usedArtists
     .map((ua) => rosterArtistName(ua as RosterArtist))
-    .filter(
-      (name): name is string =>
-        !!name &&
-        !artists.some((a) => a.name.trim().toLowerCase() === name.toLowerCase()),
-    )
+    .filter((name): name is string => !!name && !blockedOnTrack(name))
 
   return (
     <div className="space-y-4 rounded-lg border-2 border-primary/40 p-4 bg-primary/5">
@@ -197,7 +204,7 @@ export default function TrackMainArtistsEditor({
             const isSearching = searchingIndex === index
             return (
               <div
-                key={`${artist.name}-${index}`}
+                key={index}
                 className="rounded-lg border border-border bg-card/40 p-3 space-y-3"
               >
                 <div className="flex items-center gap-2">

@@ -36,6 +36,11 @@ import {
   usesDefaultReleaseMetadata,
 } from "@/lib/releases/release-metadata-for-plan";
 import { copyReleasePrimaryArtistsFromForm } from "@/lib/releases/track-main-artists.util";
+import {
+  artistRoleConflictMessage,
+  releaseMainArtistNames,
+  sharedArtistName,
+} from "@/lib/releases/main-featuring-artist";
 
 // Child Components
 import BasicInfoStep from "@/components/dashboard/upload/basic-info-step";
@@ -576,7 +581,7 @@ export default function UploadPage() {
           }
 
           const metadataAccess = {
-            planKey: user?.plan || "free",
+            planKey,
             isStaff: isPlanExemptUser(user),
             hasPaidPlanAccess: user?.hasPaidPlanAccess,
           };
@@ -869,6 +874,19 @@ export default function UploadPage() {
               isValid = false;
             }
 
+            const singleFeaturingConflict = sharedArtistName(
+              releaseMainArtistNames(formData),
+              [formData.featuringArtist],
+            );
+            if (singleFeaturingConflict) {
+              form.setError("featuringArtist", {
+                type: "main-featuring",
+                message: artistRoleConflictMessage(singleFeaturingConflict),
+              });
+              toast.error(artistRoleConflictMessage(singleFeaturingConflict));
+              isValid = false;
+            }
+
             // Check copyright
             const copyrightAllowed = fieldRules.copyright?.allow !== false;
             const copyrightRequired = fieldRules.copyright?.required === true;
@@ -907,6 +925,16 @@ export default function UploadPage() {
 
                 if (!track.artistName?.trim()) {
                   toast.error(`Track ${i + 1}: Artist name is required`);
+                  hasError = true;
+                  break;
+                }
+
+                const trackFeaturingConflict = sharedArtistName(
+                  releaseMainArtistNames(formData),
+                  [track.featuringArtist],
+                );
+                if (trackFeaturingConflict) {
+                  toast.error(artistRoleConflictMessage(trackFeaturingConflict));
                   hasError = true;
                   break;
                 }
