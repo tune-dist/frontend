@@ -35,6 +35,48 @@ export function rosterArtistName(artist: RosterArtist | null | undefined): strin
   return typeof artist.name === 'string' ? artist.name.trim() : '';
 }
 
+export function artistNamesMatch(left: string, right: string): boolean {
+  return left.trim().toLowerCase() === right.trim().toLowerCase();
+}
+
+/** Roster dropdown stays available on edit. Typing a brand-new name is the only path that hides it. */
+export function showArtistRosterSelect(input: {
+  creatingNew: boolean;
+  rosterCount: number;
+}): boolean {
+  return !input.creatingNew && input.rosterCount > 0;
+}
+
+/** Every account artist, plus the name already saved on this release when it is not in the roster. */
+export function artistRosterOptionNames(input: {
+  rosterNames: string[];
+  currentName: string;
+}): string[] {
+  const options: string[] = [];
+  const add = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const alreadyListed = options.some((existing) => artistNamesMatch(existing, trimmed));
+    if (alreadyListed) return;
+    options.push(trimmed);
+  };
+
+  for (const name of input.rosterNames) {
+    add(name);
+  }
+  add(input.currentName);
+  return options;
+}
+
+/** Select value uses the roster's saved spelling when the release name matches ignoring case. */
+export function matchingRosterName(rosterNames: string[], currentName: string): string {
+  const current = currentName.trim();
+  if (!current) return '';
+  const match = rosterNames.find((name) => artistNamesMatch(name, current));
+  if (match) return match;
+  return current;
+}
+
 /** Apply roster artist profiles onto main form after fields were cleared. */
 export function applyRosterArtistToMainForm(
   setValue: UseFormSetValue<UploadFormData>,

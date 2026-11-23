@@ -27,6 +27,7 @@ import { useUI } from '@/contexts/UIContext'
 import { Tooltip } from '@/components/ui/tooltip'
 import { S3Image } from '@/components/ui/s3-image'
 import { canAccessNavItem, canAccessYouTubeService } from '@/lib/permissions'
+import { isPlanExemptUser } from '@/lib/plan-access'
 import { DASHBOARD_PERMISSION_NAV } from '@/lib/dashboard-navigation'
 
 const navigation = [
@@ -169,7 +170,7 @@ export default function Sidebar() {
 
           {/* User Section */}
           <div className="border-t border-border p-4 space-y-3">
-            {user?.plan !== 'enterprise' && (
+            {!isPlanExemptUser(user) && user?.plan !== 'enterprise' && (
               <Tooltip content="Upgrade Plan" enabled={isSidebarCollapsed}>
                 <button
                   onClick={openUpgradeModal}

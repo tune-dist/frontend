@@ -42,10 +42,19 @@ import { useArtistPlatformSearch } from '@/lib/integrations/use-artist-platform-
 import {
     applyRosterArtistToMainForm,
     applyRosterArtistToSecondarySlot,
+    artistNamesMatch,
+    artistRosterOptionNames,
     clearMainArtistFormProfiles,
     emptySecondaryArtistSlot,
+    matchingRosterName,
     rosterArtistName,
+    showArtistRosterSelect,
 } from '@/lib/integrations/artist-form-state.util'
+import {
+    artistRoleConflictMessage,
+    omitBlockedArtistNames,
+    sharedArtistName,
+} from '@/lib/releases/main-featuring-artist'
 import ArtistPlatformPicker from '@/components/dashboard/upload/artist-platform-picker'
 import ReleaseMetadataBlock from '@/components/dashboard/upload/release-metadata-block'
 import { resolveEffectivePlanKey, isEffectiveFreePlan } from '@/lib/plan-access'
@@ -71,12 +80,18 @@ export default function BasicInfoStep({
     releaseDateAutoCorrected = false,
 }: BasicInfoStepProps) {
     const { user, refreshUser } = useAuth()
-    const { register, formState: { errors }, watch, setValue, control, getValues } = useFormContext<UploadFormData>()
+    const { register, formState: { errors }, watch, setValue, setError, clearErrors, control, getValues } = useFormContext<UploadFormData>()
     const titleField = register('title')
     const { initiatePayment, isLoading: isPaymentLoading } = useRazorpay()
 
     // Watch values for conditional rendering
     const artistName = watch('artistName')
+    const featuringArtist = watch('featuringArtist')
+    const formTracks = watch('tracks') || []
+    const featuringNames = [
+        featuringArtist,
+        ...formTracks.map((track) => track.featuringArtist),
+    ]
     const cosmosArtistId = watch('cosmosArtistId')
     const artists = watch('artists') || []
     const title = watch('title')
@@ -278,6 +293,13 @@ export default function BasicInfoStep({
         }
 
         setValue('artists', currentArtists, { shouldValidate: true })
+        const featuringConflict = sharedArtistName([name], featuringNames)
+        if (featuringConflict) {
+            setError(`artists.${index}.name`, {
+                type: 'main-featuring',
+                message: artistRoleConflictMessage(featuringConflict),
+            })
+        }
         handleSearch(name, index)
     }
 
@@ -417,6 +439,15 @@ export default function BasicInfoStep({
             resetSearchForIndex('main')
         }
         setValue('artistName', name, { shouldValidate: true })
+        const featuringConflict = sharedArtistName([name], featuringNames)
+        if (featuringConflict) {
+            setError('artistName', {
+                type: 'main-featuring',
+                message: artistRoleConflictMessage(featuringConflict),
+            })
+        } else {
+            clearErrors('artistName')
+        }
         handleSearch(name, 'main')
     }
 
@@ -503,6 +534,22 @@ export default function BasicInfoStep({
     }
 
 
+    const rosterNames = usedArtists.map((artist) => rosterArtistName(artist)).filter(Boolean)
+    const showMainRoster = showArtistRosterSelect({
+        creatingNew: creatingNewMain,
+        rosterCount: rosterNames.length,
+    })
+    const mainArtistOptions = omitBlockedArtistNames(
+        artistRosterOptionNames({
+            rosterNames,
+            currentName: artistName,
+        }),
+        featuringNames,
+        artistName,
+    )
+    const findRosterArtist = (name: string) =>
+        usedArtists.find((artist) => artistNamesMatch(rosterArtistName(artist), name))
+
     return (
         <div className="space-y-4">
             <h3 className="text-xl font-semibold">Release Information</h3>
@@ -570,52 +617,63 @@ export default function BasicInfoStep({
                         {/* Main Artist Field */}
                         <div className="relative flex items-center gap-2">
                             <div className="flex-1 relative space-y-2">
-                                {/* Artist Selection Dropdown — always shown until user picks "Create New Artist" */}
-                                {!creatingNewMain && (artistName === '' || usedArtists.some(a => rosterArtistName(a) === artistName)) && (
+                                {/* Existing account artists stay selectable on edit. Plan limit only blocks a brand-new name. */}
+                                {showMainRoster && (
                                     <div className="relative">
                                         <Select
-                                            value={usedArtists.find(a => rosterArtistName(a) === artistName) ? artistName : ''}
+                                            value={matchingRosterName(rosterNames, artistName)}
                                             onValueChange={(val) => {
                                                 if (val === 'new') {
-                                                    if (isArtistLocked) {
-                                                        setShowUpgradeModal(true);
-                                                    } else {
-                                                        clearMainArtistFormProfiles(setValue)
-                                                        setValue('artistName', '', { shouldValidate: true })
-                                                        setActiveSearchIndex('main')
-                                                        resetSearchForIndex('main')
-                                                        setCreatingNewMain(true)
-                                                        setPendingProfileNotice(false)
-                                                    }
-                                                } else {
-                                                    const selectedArtist = usedArtists.find(a => rosterArtistName(a) === val);
-                                                    if (selectedArtist) {
-                                                        const name = rosterArtistName(selectedArtist);
-                                                        clearMainArtistFormProfiles(setValue)
-                                                        setValue('artistName', name, { shouldValidate: true });
-                                                        applyRosterArtistToMainForm(setValue, selectedArtist)
-                                                        handleSearch(name, 'main');
-                                                        setPendingProfileNotice(
-                                                            rosterArtistHasPendingProfiles(selectedArtist),
-                                                        )
-                                                    }
+                                                    clearMainArtistFormProfiles(setValue)
+                                                    setValue('artistName', '', { shouldValidate: true })
+                                                    setActiveSearchIndex('main')
+                                                    resetSearchForIndex('main')
+                                                    setCreatingNewMain(true)
+                                                    setPendingProfileNotice(false)
+                                                    return
                                                 }
+                                                const selectedArtist = findRosterArtist(val);
+                                                if (!selectedArtist) return
+                                                const name = rosterArtistName(selectedArtist);
+                                                clearMainArtistFormProfiles(setValue)
+                                                setValue('artistName', name, { shouldValidate: true });
+                                                const selectedFeaturingConflict = sharedArtistName(
+                                                    [name],
+                                                    featuringNames,
+                                                )
+                                                if (selectedFeaturingConflict) {
+                                                    setError('artistName', {
+                                                        type: 'main-featuring',
+                                                        message: artistRoleConflictMessage(selectedFeaturingConflict),
+                                                    })
+                                                } else {
+                                                    clearErrors('artistName')
+                                                }
+                                                applyRosterArtistToMainForm(setValue, selectedArtist)
+                                                const remainingArtists = (artists || []).filter(
+                                                    (slot) => !artistNamesMatch(slot.name || '', name),
+                                                )
+                                                if (remainingArtists.length !== (artists || []).length) {
+                                                    setValue('artists', remainingArtists, { shouldValidate: true })
+                                                }
+                                                handleSearch(name, 'main');
+                                                setPendingProfileNotice(
+                                                    rosterArtistHasPendingProfiles(selectedArtist),
+                                                )
                                             }}
                                         >
                                             <SelectTrigger className={errors.artistName ? 'border-red-500' : ''}>
                                                 <SelectValue placeholder="Select an artist" />
                                             </SelectTrigger>
                                             <SelectContent className="z-[999]">
-                                                {usedArtists.filter(ua => {
-                                                    const name = rosterArtistName(ua);
-                                                    return name && (name === artistName || !artists.some(a => a.name === name));
-                                                }).map((artist, i) => {
-                                                    const name = rosterArtistName(artist);
+                                                {mainArtistOptions.map((name) => {
+                                                    const artist = findRosterArtist(name);
                                                     const pending =
+                                                        !!artist &&
                                                         typeof artist === 'object' &&
                                                         rosterArtistHasPendingProfiles(artist);
                                                     return (
-                                                        <SelectItem key={i} value={name}>
+                                                        <SelectItem key={name} value={name}>
                                                             <div className="flex items-center gap-2">
                                                                 <UserCheck className="h-4 w-4 text-primary" />
                                                                 <span>{name}</span>
@@ -638,11 +696,10 @@ export default function BasicInfoStep({
                                                 )}
                                             </SelectContent>
                                         </Select>
-                                        {/* Removed Change Artist button for roster selection as per user feedback */}
                                     </div>
                                 )}
 
-                                {(creatingNewMain || (artistName !== '' && !usedArtists.some(a => rosterArtistName(a) === artistName))) && !isArtistLocked && (
+                                {!showMainRoster && (
                                     <div className="relative flex items-center gap-2">
                                         <div className="relative flex-1">
                                             <Input
@@ -749,10 +806,13 @@ export default function BasicInfoStep({
                                     </Button>
                                 </div>
                                 <div className="relative space-y-2">
-                                    {!creatingNewSecondary[index] && (!artist.name || usedArtists.some(a => rosterArtistName(a) === artist.name)) && (
+                                    {showArtistRosterSelect({
+                                        creatingNew: !!creatingNewSecondary[index],
+                                        rosterCount: rosterNames.length,
+                                    }) && (
                                         <div className="relative">
                                             <Select
-                                                value={usedArtists.find(a => rosterArtistName(a) === artist.name) ? artist.name : ''}
+                                                value={matchingRosterName(rosterNames, artist.name || '')}
                                                 onValueChange={(val) => {
                                                     if (val === 'new') {
                                                         const currentArtists = [...(artists || [])]
@@ -761,49 +821,53 @@ export default function BasicInfoStep({
                                                         setActiveSearchIndex(index);
                                                         resetSearchForIndex(index);
                                                         setCreatingNewSecondary(prev => ({ ...prev, [index]: true }));
-                                                    } else {
-                                                        const selectedArtist = usedArtists.find(a => rosterArtistName(a) === val);
-                                                        if (selectedArtist) {
-                                                            const name = rosterArtistName(selectedArtist);
-                                                            const currentArtists = [...(artists || [])]
-                                                            currentArtists[index] = applyRosterArtistToSecondarySlot(selectedArtist)
-                                                            setValue('artists', currentArtists, { shouldValidate: true })
-                                                            handleSearch(name, index);
-                                                        }
+                                                        return
                                                     }
+                                                    const selectedArtist = findRosterArtist(val);
+                                                    if (!selectedArtist) return
+                                                    const name = rosterArtistName(selectedArtist);
+                                                    const currentArtists = [...(artists || [])]
+                                                    currentArtists[index] = applyRosterArtistToSecondarySlot(selectedArtist)
+                                                    setValue('artists', currentArtists, { shouldValidate: true })
+                                                    handleSearch(name, index);
                                                 }}
                                             >
                                                 <SelectTrigger className={errors.artists?.[index]?.name ? 'border-red-500' : ''}>
                                                     <SelectValue placeholder={`Select Artist ${index + 2}`} />
                                                 </SelectTrigger>
                                                 <SelectContent className="z-[999]">
-                                                    {usedArtists.filter(ua => {
-                                                        const name = rosterArtistName(ua);
-                                                        if (!name || name === artistName) return false;
-                                                        return name === artist.name || !artists.some((a, idx) => idx !== index && a.name === name);
-                                                    }).map((ua, i) => {
-                                                        const name = rosterArtistName(ua);
-                                                        return (
-                                                            <SelectItem key={i} value={name}>
-                                                                <div className="flex items-center gap-2">
-                                                                    <UserCheck className="h-4 w-4 text-primary" />
-                                                                    <span>{name}</span>
-                                                                </div>
-                                                            </SelectItem>
-                                                        )
-                                                    })}
+                                                    {omitBlockedArtistNames(
+                                                        artistRosterOptionNames({
+                                                            rosterNames,
+                                                            currentName: artist.name || '',
+                                                        }),
+                                                        featuringNames,
+                                                        artist.name,
+                                                    ).map((name) => (
+                                                        <SelectItem key={name} value={name}>
+                                                            <div className="flex items-center gap-2">
+                                                                <UserCheck className="h-4 w-4 text-primary" />
+                                                                <span>{name}</span>
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                    {!isArtistLocked && (
                                                     <SelectItem value="new">
                                                         <div className="flex items-center gap-2 text-muted-foreground">
                                                             <Plus className="h-4 w-4" />
                                                             <span>Create New Artist</span>
                                                         </div>
                                                     </SelectItem>
+                                                    )}
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                     )}
 
-                                    {(creatingNewSecondary[index] || (artist.name && !usedArtists.some(a => rosterArtistName(a) === artist.name))) && (
+                                    {!showArtistRosterSelect({
+                                        creatingNew: !!creatingNewSecondary[index],
+                                        rosterCount: rosterNames.length,
+                                    }) && (
                                         <div className="relative flex items-center gap-2 w-full">
                                             <div className="relative flex-1">
                                                 <Input

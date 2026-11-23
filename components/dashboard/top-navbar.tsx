@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useUI } from '@/contexts/UIContext'
 import { S3Image } from '@/components/ui/s3-image'
 import { formatPlanDisplayName } from '@/lib/plans-display'
+import { isPlanExemptUser } from '@/lib/plan-access'
 
 export default function TopNavbar() {
   const { user, logout } = useAuth()
@@ -37,7 +38,7 @@ export default function TopNavbar() {
       {/* Right Side Actions */}
       <div className="flex items-center gap-2 ml-auto">
         {/* Upgrade Button */}
-        {user?.plan !== 'enterprise' && (
+        {!isPlanExemptUser(user) && user?.plan !== 'enterprise' && (
           <Button
             size="sm"
             variant="ghost"

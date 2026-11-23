@@ -26,7 +26,7 @@ import ReleaseMetadataCombobox from './release-metadata-combobox'
 import { getErrorMessage } from '@/lib/get-error-message'
 import { dispatchAuthUserUpdated } from '@/lib/auth-session'
 import { setAuthUserCookie } from '@/lib/auth-cookies'
-import { isPlanExemptUser } from '@/lib/plan-access'
+import { isPlanExemptUser, resolveEffectivePlanKey } from '@/lib/plan-access'
 import {
   isActiveEnterpriseCatalog,
   usesDefaultReleaseMetadata,
@@ -43,7 +43,7 @@ export default function ReleaseMetadataBlock() {
   const [showInfo, setShowInfo] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const planKey = user?.plan || 'free'
+  const planKey = resolveEffectivePlanKey(user)
   const isStaffUser = isPlanExemptUser(user)
   const metadataPlan = {
     planKey,
