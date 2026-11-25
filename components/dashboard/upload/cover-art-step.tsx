@@ -60,8 +60,13 @@ export default function CoverArtStep({ formData: propFormData, setFormData: prop
 
     const buildValidationMetadata = (formData: UploadFormData) => {
         const featuredArtists = (formData.artists || []).map((artist) => artist.name);
-        if (formData.featuringArtist) {
-            featuredArtists.push(formData.featuringArtist);
+        const featuringCredits =
+            formData.format === 'single'
+                ? [formData.featuringArtist]
+                : (formData.tracks || []).map((track) => track.featuringArtist);
+        for (const name of featuringCredits) {
+            const trimmed = name?.trim();
+            if (trimmed) featuredArtists.push(trimmed);
         }
 
         return {

@@ -238,24 +238,27 @@ export const uploadFormSchema = z.object({
     selectedPlatforms: z.array(z.string()).optional(),
 }).superRefine((data, ctx) => {
     const mainNames = releaseMainArtistNames(data)
-    const featuringConflict = sharedArtistName(mainNames, [data.featuringArtist])
-    if (featuringConflict) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: artistRoleConflictMessage(featuringConflict),
-            path: ['featuringArtist'],
+    // Single credits input is the only featuring value. Album/EP featuring lives on each track.
+    if (data.format === 'single') {
+        const featuringConflict = sharedArtistName(mainNames, [data.featuringArtist])
+        if (featuringConflict) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: artistRoleConflictMessage(featuringConflict),
+                path: ['featuringArtist'],
+            })
+        }
+    } else {
+        data.tracks?.forEach((track, index) => {
+            const trackConflict = sharedArtistName(mainNames, [track.featuringArtist])
+            if (!trackConflict) return
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: artistRoleConflictMessage(trackConflict),
+                path: ['tracks', index, 'featuringArtist'],
+            })
         })
     }
-
-    data.tracks?.forEach((track, index) => {
-        const trackConflict = sharedArtistName(mainNames, [track.featuringArtist])
-        if (!trackConflict) return
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: artistRoleConflictMessage(trackConflict),
-            path: ['tracks', index, 'featuringArtist'],
-        })
-    })
 
     if (data.format !== 'single') {
         data.tracks.forEach((track, index) => {

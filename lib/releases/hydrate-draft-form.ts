@@ -143,7 +143,7 @@ function hydrateFromDetail(
       isInstrumental: track.isInstrumental ? 'yes' : 'no',
       isExplicit: track.isExplicit,
       previewClipStartTime: track.previewClip?.startTime,
-      featuringArtist: track.credits.featuring || undefined,
+      featuringArtist: isSingle ? undefined : track.credits.featuring || undefined,
       mood: track.mood,
     });
   });
@@ -176,7 +176,7 @@ function hydrateFromDetail(
     format,
     isExplicit: firstTrack?.isExplicit ?? false,
     explicitLyrics: firstTrack?.isExplicit ? 'yes' : 'no',
-    featuringArtist: detail.artists.featured[0] || firstTrack?.credits.featuring || undefined,
+    featuringArtist: isSingle ? firstTrack?.credits.featuring || undefined : undefined,
     upc: detail.release.upc || detail.distribution.upc || undefined,
     spotifyProfile: social.spotifyProfile as UploadFormData['spotifyProfile'],
     appleMusicProfile: social.appleMusicProfile as UploadFormData['appleMusicProfile'],

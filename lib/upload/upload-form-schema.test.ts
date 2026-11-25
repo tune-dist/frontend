@@ -70,6 +70,65 @@ describe('uploadFormSchema — create release form', () => {
     }
   });
 
+  it('accepts a cleared single featuring field when the track still has the old name', () => {
+    const result = uploadFormSchema.safeParse(
+      buildValidSingleForm({
+        artistName: 'Aamir',
+        featuringArtist: '',
+        tracks: [
+          {
+            id: 't1',
+            title: 'Test Song',
+            audioFileId: 'af1',
+            artistName: 'Aamir',
+            featuringArtist: 'Aamir',
+            mood: 'Happy',
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a single whose featuring field matches the main artist', () => {
+    const result = uploadFormSchema.safeParse(
+      buildValidSingleForm({
+        artistName: 'Aamir',
+        featuringArtist: 'Aamir',
+      }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some((issue) => issue.path.join('.') === 'featuringArtist'),
+      ).toBe(true);
+    }
+  });
+
+  it('accepts a cleared album track featuring field when the form field still has the old name', () => {
+    const result = uploadFormSchema.safeParse({
+      ...buildValidSingleForm({
+        format: 'album',
+        artistName: 'Aamir',
+        featuringArtist: 'Aamir',
+        mood: undefined,
+      }),
+      tracks: [
+        {
+          id: 't1',
+          title: 'Track One',
+          audioFileId: 'af1',
+          artistName: 'Aamir',
+          featuringArtist: '',
+          primaryGenre: 'Pop',
+          secondaryGenre: 'Indian Pop',
+          mood: 'Happy',
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('requires vibe on each album track', () => {
     const result = uploadFormSchema.safeParse({
       ...buildValidSingleForm({ format: 'album', mood: undefined }),

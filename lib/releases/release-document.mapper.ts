@@ -100,6 +100,18 @@ function buildMainArtists(document: MongoReleaseDocument): DraftArtist[] {
   return [];
 }
 
+/** Track credit is the source. Singles with only a release-level list still load that name once. */
+function resolveTrackFeaturing(
+  track: MongoReleaseTrack,
+  document: MongoReleaseDocument,
+): string | null {
+  const own = track.featuringArtist?.trim();
+  if (own) return own;
+  if ((document.releaseType || 'single') !== 'single') return null;
+  const fromRelease = document.featuredArtists?.find((name) => name?.trim());
+  return fromRelease?.trim() || null;
+}
+
 function mapMongoTrack(
   track: MongoReleaseTrack,
   index: number,
@@ -136,7 +148,7 @@ function mapMongoTrack(
     credits: {
       writers: track.writers?.length ? track.writers : document.writers || [],
       composers: track.composers?.length ? track.composers : document.composers || [],
-      featuring: track.featuringArtist || document.featuredArtists?.[0] || null,
+      featuring: resolveTrackFeaturing(track, document),
     },
     audio: {
       storageKey: audio.url,
