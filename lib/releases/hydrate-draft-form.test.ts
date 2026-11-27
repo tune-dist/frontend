@@ -131,7 +131,8 @@ describe('hydrateDraftForm — edit round-trip QA', () => {
 
   it('restores featured artist and cover art storage key', () => {
     const form = hydrateDraftForm(buildSavedRelease());
-    expect(form.featuringArtist).toBe('Guest Vocalist');
+    expect(form.featuringArtist).toBeUndefined();
+    expect(form.tracks?.[0]?.featuringArtist).toBe('Guest Vocalist');
     expect(form.coverArt).toMatchObject({
       path: 'tracks/user/coverart/midnight-ca.jpg',
       fileName: 'cover.jpg',
@@ -202,6 +203,8 @@ describe('hydrateDraftForm — edit round-trip QA', () => {
     expect(form.composers).toEqual(['Solo Composer']);
     expect(form.previewClipStartTime).toBe('1:00');
     expect(form.instrumental).toBe('no');
+    expect(form.featuringArtist).toBe('Guest Vocalist');
+    expect(form.tracks?.[0]?.featuringArtist).toBeUndefined();
   });
 
   it('does not substitute copyright when publisher is empty', () => {

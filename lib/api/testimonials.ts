@@ -9,6 +9,14 @@ export interface Testimonial {
     image?: string;
 }
 
+async function bustTestimonialsPageCache(): Promise<void> {
+    try {
+        await fetch('/api/revalidate/testimonials', { method: 'POST' });
+    } catch {
+        // Public page may stay stale until the Next.js revalidate window ends.
+    }
+}
+
 export const testimonialsApi = {
     getAll: async (): Promise<Testimonial[]> => {
         const response = await apiClient.get<Testimonial[]>('/testimonials');
@@ -17,16 +25,19 @@ export const testimonialsApi = {
 
     create: async (data: Partial<Testimonial>): Promise<Testimonial> => {
         const response = await apiClient.post<Testimonial>('/testimonials', data);
+        await bustTestimonialsPageCache();
         return response.data;
     },
 
     update: async (id: string, data: Partial<Testimonial>): Promise<Testimonial> => {
         const response = await apiClient.patch<Testimonial>(`/testimonials/${id}`, data);
+        await bustTestimonialsPageCache();
         return response.data;
     },
 
     remove: async (id: string): Promise<void> => {
         await apiClient.delete(`/testimonials/${id}`);
+        await bustTestimonialsPageCache();
     },
 
     uploadImage: async (file: File, artistName: string): Promise<{ path: string }> => {

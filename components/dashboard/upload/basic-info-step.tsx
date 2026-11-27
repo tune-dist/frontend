@@ -86,12 +86,13 @@ export default function BasicInfoStep({
 
     // Watch values for conditional rendering
     const artistName = watch('artistName')
+    const format = watch('format')
     const featuringArtist = watch('featuringArtist')
     const formTracks = watch('tracks') || []
-    const featuringNames = [
-        featuringArtist,
-        ...formTracks.map((track) => track.featuringArtist),
-    ]
+    const featuringNames =
+        format === 'single' || !format
+            ? [featuringArtist]
+            : formTracks.map((track) => track.featuringArtist)
     const cosmosArtistId = watch('cosmosArtistId')
     const artists = watch('artists') || []
     const title = watch('title')
